@@ -1,0 +1,4 @@
+swh-indexer
+===========
+
+Tools to compute multiple indexes on SWH's raw contents.
