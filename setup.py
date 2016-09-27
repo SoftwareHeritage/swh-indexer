@@ -13,16 +13,16 @@ def parse_requirements():
     return requirements
 
 
-# Edit this part to match your module
-# full sample: https://forge.softwareheritage.org/diffusion/DCORE/browse/master/setup.py
 setup(
-    name='swh.<module-name>',
-    description='Software Heritage <Module\'s intent>',
+    name='swh.indexer',
+    description='Software Heritage Content Indexer',
     author='Software Heritage developers',
     author_email='swh-devel@inria.fr',
-    url='https://forge.softwareheritage.org/diffusion/<module-git-code>',
-    packages=[],  # packages's modules
-    scripts=[],   # scripts to package
+    url='https://forge.softwareheritage.org/diffusion/78/',
+    packages=[
+        'swh.indexer',
+    ],
+    scripts=[],
     install_requires=parse_requirements(),
     setup_requires=['vcversioner'],
     vcversioner={},

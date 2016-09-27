@@ -3,3 +3,4 @@
 # dependency lines, see https://pip.readthedocs.org/en/1.1/requirements.html
 vcversioner
 pygments
+pymongo
