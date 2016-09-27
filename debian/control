@@ -8,7 +8,6 @@ Build-Depends: debhelper (>= 9),
                python3-nose,
                python3-setuptools,
                python3-swh.core,
-               python3-pygments,
                python3-pymongo,
                python3-vcversioner
 Standards-Version: 3.9.6
