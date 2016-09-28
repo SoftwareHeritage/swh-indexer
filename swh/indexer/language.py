@@ -8,14 +8,10 @@ import click
 import json
 import os
 import math
-import re
 import sys
 
 from pygments.lexers import guess_lexer
 from pygments.util import ClassNotFound
-
-# Pattern used in cleanup_classname function
-pattern = re.compile(r'<pygments[.]lexers[.](?P<language>.*)Lexer.*>')
 
 
 def cleanup_classname(classname):
@@ -23,13 +19,7 @@ def cleanup_classname(classname):
     FIXME: Improve the language detection.
 
     """
-    m = pattern.match(classname)
-    if not m:
-        print(classname)
-        raise ValueError('Classname %s could not be parsed.' % classname)
-
-    d = m.groupdict()
-    return d['language'].lower()
+    return classname.lower()
 
 
 def run_language(path):
@@ -44,7 +34,7 @@ def run_language(path):
     """
     with open(path, 'r') as f:
         try:
-            lexer_classname = str(guess_lexer(f.read()))
+            lexer_classname = guess_lexer(f.read()).name
             lexer_classname = cleanup_classname(lexer_classname)
             return lexer_classname
         except ClassNotFound as e:
