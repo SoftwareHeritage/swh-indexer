@@ -7,7 +7,8 @@ import abc
 import os
 import tempfile
 
-from . import mimetype, tasks, converters
+from . import tasks  # noqa
+from . import mimetype, converters, language
 from .storage import Storage
 
 from swh.scheduler.celery_backend.config import app
@@ -207,22 +208,16 @@ class DiskWorker:
         os.unlink(content_path)
 
 
-class MimeTypeWorker(BaseWorker, DiskWorker):
-    """Worker in charge of computing the mimetype of a content.
+class PersistResultWorker:
+    """Mixin intended to be used with other *Worker Class.
+
+       Worker inheriting from this class are a category of workers
+       which are able to perist the computed data in storage.
+
+       Expects:
+           Have the self.storage defined at runtime.
 
     """
-    CONFIG_BASE_FILENAME = 'indexer/mimetype'
-    ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp'),
-        'next_task_queue': ('str', ''),  # empty for now
-    }
-
-    def __init__(self):
-        super().__init__()
-        db = self.config['db']
-        self.storage = Storage(db_conn=db['conn'], db_name=db['name'])
-        self.working_directory = self.config['workdir']
-
     def save(self, content):
         """Store the content in storage.
 
@@ -236,6 +231,23 @@ class MimeTypeWorker(BaseWorker, DiskWorker):
         content_to_store = converters.content_to_storage(content)
         self.storage.content_add(content_to_store)
 
+
+class MimeTypeWorker(BaseWorker, DiskWorker, PersistResultWorker):
+    """Worker in charge of computing the mimetype of a content.
+
+    """
+    CONFIG_BASE_FILENAME = 'indexer/mimetype'
+    ADDITIONAL_CONFIG = {
+        'workdir': ('str', '/tmp'),
+        'next_task_queue': ('str', 'swh.indexer.tasks.SWHLanguageTask'),
+    }
+
+    def __init__(self):
+        super().__init__()
+        db = self.config['db']
+        self.storage = Storage(db_conn=db['conn'], db_name=db['name'])
+        self.working_directory = self.config['workdir']
+
     def compute(self, content):
         """Compute the mimetype of the content, updates the content, stores
            the result and return the updated result.
@@ -246,6 +258,37 @@ class MimeTypeWorker(BaseWorker, DiskWorker):
             sha1=content['sha1'], data=content['data'])
         typemime = mimetype.run_mimetype(content_path)
         content_copy.update({'mimetype': typemime})
+        self.save(content_copy)
+        self.cleanup(content_path)
+        return content_copy
+
+
+class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
+    """Worker in charge of computing the mimetype of a content.
+
+    """
+    CONFIG_BASE_FILENAME = 'indexer/language'
+    ADDITIONAL_CONFIG = {
+        'workdir': ('str', '/tmp'),
+        'next_task_queue': ('str', ''),  # empty for now
+    }
+
+    def __init__(self):
+        super().__init__()
+        db = self.config['db']
+        self.storage = Storage(db_conn=db['conn'], db_name=db['name'])
+        self.working_directory = self.config['workdir']
+
+    def compute(self, content):
+        """Compute the mimetype of the content, updates the content, stores
+           the result and return the updated result.
+
+        """
+        content_copy = content.copy()
+        content_path = self.write_to_temp(
+            sha1=content['sha1'], data=content['data'])
+        lang = language.run_language(content_path)
+        content_copy.update({'language': lang})
         self.save(content_copy)
         self.cleanup(content_path)
         return content_copy

@@ -3,6 +3,7 @@
 # dependency lines, see https://pip.readthedocs.org/en/1.1/requirements.html
 vcversioner
 pymongo
+pygments
 
 swh.core >= 0.0.24
 swh.objstorage >= 0.0.12

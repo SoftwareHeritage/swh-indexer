@@ -11,6 +11,7 @@ Build-Depends: debhelper (>= 9),
                python3-swh.objstorage (>= 0.0.12~),
                python3-swh.scheduler (>= 0.0.9~),
                python3-pymongo,
+               python3-pygments,
                python3-vcversioner
 Standards-Version: 3.9.6
 Homepage: https://forge.softwareheritage.org/diffusion/78/

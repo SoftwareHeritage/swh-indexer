@@ -10,6 +10,26 @@ import os
 import math
 import sys
 
+from pygments.lexers import guess_lexer
+from pygments.util import ClassNotFound
+
+
+def run_language(path):
+    """Determine mime-type from file at path.
+
+    Args:
+        path: filepath to determine the mime type
+
+    Returns:
+        The possible language
+
+    """
+    with open(path, 'r') as f:
+        try:
+            return guess_lexer(f.read())
+        except ClassNotFound as e:
+            return None
+
 
 class LanguageDetector():
     """Bayesian filter to learn and detect languages based on the source

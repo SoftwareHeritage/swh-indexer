@@ -4,7 +4,7 @@
 # See top-level LICENSE file for more information
 
 from swh.scheduler.task import Task
-from .worker import ReaderWorker, MimeTypeWorker
+from .worker import ReaderWorker, MimeTypeWorker, LanguageWorker
 
 
 class SWHReaderTask(Task):
@@ -25,3 +25,13 @@ class SWHMimeTypeTask(Task):
 
     def run(self, *args, **kwargs):
         MimeTypeWorker().run(*args, **kwargs)
+
+
+class SWHLanguageTask(Task):
+    """Main task which computes the language from the sha1's content.
+
+    """
+    task_queue = 'swh_indexer_worker_mimetype'
+
+    def run(self, *args, **kwargs):
+        LanguageWorker().run(*args, **kwargs)
