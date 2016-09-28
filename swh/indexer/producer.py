@@ -30,7 +30,7 @@ class BasicProducer(SWHConfig):
         'limit': ('str', 'none'),
     }
 
-    CONFIG_BASE_FILENAME = 'indexer/producer'
+    CONFIG_BASE_FILENAME = 'indexer/reader'
 
     def __init__(self):
         super().__init__()
