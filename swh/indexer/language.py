@@ -29,16 +29,27 @@ def run_language(path):
         path: filepath to determine the mime type
 
     Returns:
-        The possible language
+        Dict with keys:
+        - language: None if nothing found or the possible language
+        - decoding_failure: True if a decoding failure happened
 
     """
     with open(path, 'r') as f:
         try:
             lexer_classname = guess_lexer(f.read()).name
             lexer_classname = cleanup_classname(lexer_classname)
-            return lexer_classname
+            return {
+                'lang': lexer_classname
+            }
         except ClassNotFound as e:
-            return None
+            return {
+                'lang': None
+            }
+        except UnicodeDecodeError:
+            return {
+                'decoding_failure': True,
+                'lang': None
+            }
 
 
 class LanguageDetector():

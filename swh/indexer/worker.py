@@ -288,7 +288,9 @@ class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
         content_path = self.write_to_temp(
             sha1=content['sha1'], data=content['data'])
         lang = language.run_language(content_path)
-        content_copy.update({'language': lang})
+        # Keep all the information on the resulting data (including errors)
+        for key, value in lang.items():
+            content_copy[key] = value
         self.save(content_copy)
         self.cleanup(content_path)
         return content_copy
