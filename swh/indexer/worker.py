@@ -190,11 +190,13 @@ class DiskWorker:
         # make sure the working directory exists
         os.makedirs(self.working_directory, exist_ok=True)
 
-        _, content_path = tempfile.mkstemp(
+        fd, content_path = tempfile.mkstemp(
             prefix='%s-' % sha1, suffix='.swh', dir=self.working_directory)
 
         with open(content_path, 'wb') as f:
             f.write(data)
+
+        os.close(fd)
 
         return content_path
 
