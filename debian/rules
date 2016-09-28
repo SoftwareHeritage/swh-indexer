@@ -1,9 +1,16 @@
 #!/usr/bin/make -f
 
 export PYBUILD_NAME=swh.indexer
+export PYBUILD_TEST_ARGS=-m 'not db and not fs'
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
 
-
-override_dh_auto_test:
+override_dh_install:
+	dh_install
+	rm -v $(CURDIR)/debian/python3-*/usr/lib/python*/dist-packages/swh/__init__.py
+	for pyvers in $(shell py3versions -vr); do \
+		mkdir -p $(CURDIR)/debian/python3-swh.indexer.storage/usr/lib/python$$pyvers/dist-packages/swh/indexer/storage/ ; \
+		mv $(CURDIR)/debian/python3-swh.indexer/usr/lib/python$$pyvers/dist-packages/swh/indexer/storage/* \
+		   $(CURDIR)/debian/python3-swh.indexer.storage/usr/lib/python$$pyvers/dist-packages/swh/indexer/storage/ ; \
+	done

@@ -1,5 +1,7 @@
-swh-indexer (0.0.1-1) unstable; urgency=low
+swh-indexer (0.0.1-1~swh1) unstable-swh; urgency=medium
 
-  * Import initial source package.
+  * Initial release
+  * v0.0.1
+  * First implementation on poc
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 27 Sep 2016 10:53:19 +0200
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 28 Sep 2016 23:40:13 +0200
