@@ -26,7 +26,7 @@ class BasicProducer(SWHConfig):
                 'root': '/srv/softwareheritage/objects/'
             },
         }),
-        'group': ('int', 10000),
+        'batch': ('int', 10),
         'limit': ('str', 'none'),
     }
 
@@ -42,32 +42,32 @@ class BasicProducer(SWHConfig):
             self.limit = None
         else:
             self.limit = int(self.limit)
-        self.group = self.config['group']
+        self.batch = self.config['batch']
 
     def gen_sha1(self):
         """Generate batch of grouped sha1s from the objstorage.
 
         """
-        for sha1s in utils.grouper((s for s in self.objstorage), self.group):
+        for sha1s in utils.grouper(({'sha1': hashutil.hash_to_hex(s)}
+                                     for s in self.objstorage),
+                                   self.batch):
             sha1s = list(sha1s)
             random.shuffle(sha1s)
-            for sha1 in sha1s:
-                sha1 = hashutil.hash_to_hex(sha1)
-                yield sha1
+            yield sha1s
 
     def run_with_limit(self):
         count = 0
-        for sha1 in self.gen_sha1():
-            count += 1
-            print('sha1 %s sent' % sha1)
-            task1.delay({'sha1': sha1}, task_destination)
+        for sha1s in self.gen_sha1():
+            count += len(sha1s)
+            print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
+            task1.delay(sha1s, task_destination)
             if count >= self.limit:
                 return
 
     def run_no_limit(self):
-        for sha1 in self.gen_sha1():
-            print('sha1 %s sent' % sha1)
-            task1.delay({'sha1': sha1}, task_destination)
+        for sha1s in self.gen_sha1():
+            print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
+            task1.delay(sha1s, task_destination)
 
     def run(self, *args, **kwargs):
         if self.limit:

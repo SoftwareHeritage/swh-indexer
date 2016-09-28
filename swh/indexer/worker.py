@@ -79,17 +79,25 @@ class BaseWorker(SWHConfig, metaclass=abc.ABCMeta):
 
         return content_copy
 
-    def run(self, content_packed, task_destination=None, **kwargs):
+    def compute_contents(self, contents_packed):
+        """Compute what's necessary for each content and yield the updated
+           content.
+
+        """
+        for content_packed in contents_packed:
+            content = self.decode(content_packed)
+            content_updated = self.compute(content)
+            yield self.encode(content_updated)
+
+    def run(self, contents_packed, task_destination=None, **kwargs):
         """Compute from a sha1 or sha1's content and then propagate the result
         to another queue.
 
         """
-        content = self.decode(content_packed)
-        content_updated = self.compute(content)
-        content_updated_pack = self.encode(content_updated)
+        contents_updated_pack = list(self.compute_contents(contents_packed))
         if task_destination:
             task = app.tasks[task_destination]
-            task.delay(content_updated_pack, self.next_task_queue)
+            task.delay(contents_updated_pack, self.next_task_queue)
 
 
 class ReaderWorker(BaseWorker):
