@@ -238,7 +238,7 @@ class MimeTypeWorker(BaseWorker, DiskWorker, PersistResultWorker):
     """
     CONFIG_BASE_FILENAME = 'indexer/mimetype'
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp'),
+        'workdir': ('str', '/tmp/swh/worker.mimetype'),
         'next_task_queue': ('str', 'swh.indexer.tasks.SWHLanguageTask'),
     }
 
@@ -269,7 +269,7 @@ class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
     """
     CONFIG_BASE_FILENAME = 'indexer/language'
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp'),
+        'workdir': ('str', '/tmp/swh/worker.language/'),
         'next_task_queue': ('str', ''),  # empty for now
     }
 
