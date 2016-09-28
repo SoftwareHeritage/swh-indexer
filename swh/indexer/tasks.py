@@ -31,7 +31,7 @@ class SWHLanguageTask(Task):
     """Main task which computes the language from the sha1's content.
 
     """
-    task_queue = 'swh_indexer_worker_mimetype'
+    task_queue = 'swh_indexer_worker_language'
 
     def run(self, *args, **kwargs):
         LanguageWorker().run(*args, **kwargs)
