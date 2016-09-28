@@ -3,8 +3,10 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import random
+
 from swh.core.config import SWHConfig
-from swh.core import hashutil
+from swh.core import hashutil, utils
 from swh.objstorage import get_objstorage
 from swh.indexer import tasks  # noqa
 from swh.scheduler.celery_backend.config import app
@@ -22,9 +24,12 @@ class BasicProducer(SWHConfig):
             'args': {
                 'slicing': '0:2/2:4/4:6',
                 'root': '/srv/softwareheritage/objects/'
-            }
-        })
+            },
+        }),
+        'group': ('int', 10000),
+        'limit': ('str', 'none'),
     }
+
     CONFIG_BASE_FILENAME = 'indexer/producer'
 
     def __init__(self):
@@ -32,13 +37,43 @@ class BasicProducer(SWHConfig):
         self.config = self.parse_config_file()
         storage = self.config['storage']
         self.objstorage = get_objstorage(storage['cls'], storage['args'])
+        self.limit = self.config['limit']
+        if self.limit == 'none':
+            self.limit = None
+        else:
+            self.limit = int(self.limit)
+        self.group = self.config['group']
 
-    def run(self, *args, **kwargs):
-        for sha1 in self.objstorage:
-            sha1 = hashutil.hash_to_hex(sha1)
+    def gen_sha1(self):
+        """Generate batch of grouped sha1s from the objstorage.
+
+        """
+        for sha1s in utils.grouper((s for s in self.objstorage), self.group):
+            sha1s = list(sha1s)
+            random.shuffle(sha1s)
+            for sha1 in sha1s:
+                sha1 = hashutil.hash_to_hex(sha1)
+                yield sha1
+
+    def run_with_limit(self):
+        count = 0
+        for sha1 in self.gen_sha1():
+            count += 1
+            print('sha1 %s sent' % sha1)
+            task1.delay({'sha1': sha1}, task_destination)
+            if count >= self.limit:
+                return
+
+    def run_no_limit(self):
+        for sha1 in self.gen_sha1():
             print('sha1 %s sent' % sha1)
             task1.delay({'sha1': sha1}, task_destination)
 
+    def run(self, *args, **kwargs):
+        if self.limit:
+            self.run_with_limit()
+        else:
+            self.run_no_limit()
 
 if __name__ == '__main__':
     BasicProducer().run()
