@@ -24,7 +24,7 @@ def run_ctags(pkg_path):
     """Run ctags for pkg_path.
 
     """
-    ctagsfile = pkg_path  + '/tags'
+    ctagsfile = pkg_path + '/tags'
     ctagsfile_tmp = ctagsfile + '.new'
     # debian: 'sudo update-alternatives --config ctags' and choose
     # ctags-exuberant

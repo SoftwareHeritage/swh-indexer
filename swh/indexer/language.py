@@ -152,7 +152,8 @@ def cli():
 
 
 @click.command(help='Learn language from language snippet')
-@click.option('--path', required=1, help='Path to source code file to learn from')
+@click.option('--path', required=1, help='Path to source code file to '
+              'learn from')
 @click.option('--lang', required=1, help='Language for that source code')
 @click.option('--dump', help='Read and dump computed state at that path')
 def learn_one_language(path, lang, dump):
@@ -188,7 +189,8 @@ def learn(dump):
 
 
 @click.command(help='Detect language from source code')
-@click.option('--path', required=1, help="Path to source code to detect language")
+@click.option('--path', required=1, help='Path to source code to detect '
+              'language')
 @click.option('--dump', help='Read and dump computed state at that path')
 def detect(path, dump):
     detector = JsonLanguageDetector()

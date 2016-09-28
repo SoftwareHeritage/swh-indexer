@@ -47,7 +47,8 @@ class Storage(SWHConfig):
         """Return the full content from its id.
 
         Args:
-            content_id (str): the hex sha1 representing the content's identifier
+            content_id (str): the hex sha1 representing the content's
+            identifier
 
         Returns:
             The content as dict.
