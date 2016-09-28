@@ -13,28 +13,34 @@ import subprocess
 BAD_TAGS_THRESHOLD = 5
 
 # Option used to generate the tag file
-CTAGS_FLAGS = ['--recurse',
-               '--excmd=number',
-               '--fields=+lnz',
-               '--sort=no',
-               '--links=no']
+CTAGS_FLAGS = [
+    '--excmd=number',
+    '--fields=+lnz',
+    '--sort=no',
+    '--links=no'
+]
 
 
-def run_ctags(pkg_path):
-    """Run ctags for pkg_path.
+# debian: 'sudo update-alternatives --config ctags' and choose
+# ctags-exuberant
+
+def run_ctags(path, lang=None):
+    """Run ctags on file path with optional language.
+
+    Args:
+        path: path to the file
+        lang: language for that path (optional)
 
     """
-    ctagsfile = pkg_path + '/tags'
-    ctagsfile_tmp = ctagsfile + '.new'
-    # debian: 'sudo update-alternatives --config ctags' and choose
-    # ctags-exuberant
-    cmd = ['ctags'] + CTAGS_FLAGS + ['-o', ctagsfile_tmp]
-    # ASSUMPTION: will be run under pkgdir as CWD, which is needed to
-    # get relative paths right. The assumption is enforced by the
-    # updater
-    with open(os.devnull, 'w') as null:
-        subprocess.check_call(cmd, stderr=null)
-    os.rename(ctagsfile_tmp, ctagsfile)
+    ctagsfile = path + '.tags'
+    optional = []
+    # if lang:
+    #     optional = ['--language-force', lang]
+
+    cmd = ['ctags'] + CTAGS_FLAGS + optional + ['-o', ctagsfile, path]
+    subprocess.check_call(cmd)
+
+    return ctagsfile
 
 
 def parse_ctags(path):

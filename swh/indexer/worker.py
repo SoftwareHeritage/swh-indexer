@@ -8,7 +8,7 @@ import os
 import tempfile
 
 from . import tasks  # noqa
-from . import mimetype, converters, language
+from . import mimetype, converters, language, ctags
 from .storage import Storage
 
 from swh.scheduler.celery_backend.config import app
@@ -280,7 +280,7 @@ class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
     CONFIG_BASE_FILENAME = 'indexer/language'
     ADDITIONAL_CONFIG = {
         'workdir': ('str', '/tmp/swh/worker.language/'),
-        'next_task_queue': ('str', ''),  # empty for now
+        'next_task_queue': ('str', 'swh.indexer.tasks.SWHCtagsTask'),
     }
 
     def __init__(self):
@@ -301,6 +301,41 @@ class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
         # Keep all the information on the resulting data (including errors)
         for key, value in lang.items():
             content_copy[key] = value
+        self.save(content_copy)
+        self.cleanup(content_path)
+        return content_copy
+
+
+class CtagsWorker(BaseWorker, DiskWorker, PersistResultWorker):
+    CONFIG_BASE_FILENAME = 'indexer/ctags'
+    ADDITIONAL_CONFIG = {
+        'workdir': ('str', '/tmp/swh/worker.ctags/'),
+        'next_task_queue': ('str', ''),  # empty for final step
+    }
+
+    def __init__(self):
+        super().__init__()
+        db = self.config['db']
+        self.storage = Storage(db_conn=db['conn'], db_name=db['name'])
+        self.working_directory = self.config['workdir']
+
+    def compute(self, content):
+        """Compute the mimetype of the content, updates the content, stores
+           the result and return the updated result.
+
+        """
+        # Bypass contents with error (for now)
+        if 'decoding_failure' in content:
+            return content
+        if not content.get('lang'):  # ctag does not work well without
+                                     # the language assertion
+            return content
+
+        content_copy = content.copy()
+        content_path = self.write_to_temp(
+            sha1=content['sha1'], data=content['data'])
+        ctagsfile = ctags.run_ctags(path=content_path, lang=content.get('lang'))
+        content_copy['ctags'] = list(ctags.parse_ctags(ctagsfile))
         self.save(content_copy)
         self.cleanup(content_path)
         return content_copy

@@ -4,7 +4,7 @@
 # See top-level LICENSE file for more information
 
 from swh.scheduler.task import Task
-from .worker import ReaderWorker, MimeTypeWorker, LanguageWorker
+from .worker import ReaderWorker, MimeTypeWorker, LanguageWorker, CtagsWorker
 
 
 class SWHReaderTask(Task):
@@ -35,3 +35,13 @@ class SWHLanguageTask(Task):
 
     def run(self, *args, **kwargs):
         LanguageWorker().run(*args, **kwargs)
+
+
+class SWHCtagsTask(Task):
+    """Main task which computes the ctags from the sha1's content.
+
+    """
+    task_queue = 'swh_indexer_worker_ctags'
+
+    def run(self, *args, **kwargs):
+        CtagsWorker().run(*args, **kwargs)
