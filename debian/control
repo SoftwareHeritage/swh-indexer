@@ -7,7 +7,9 @@ Build-Depends: debhelper (>= 9),
                python3-all,
                python3-nose,
                python3-setuptools,
-               python3-swh.core,
+               python3-swh.core (>= 0.0.24~),
+               python3-swh.objstorage (>= 0.0.12~),
+               python3-swh.scheduler (>= 0.0.9~),
                python3-pymongo,
                python3-vcversioner
 Standards-Version: 3.9.6
