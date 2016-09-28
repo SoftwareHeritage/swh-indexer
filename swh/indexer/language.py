@@ -15,7 +15,7 @@ from pygments.lexers import guess_lexer
 from pygments.util import ClassNotFound
 
 # Pattern used in cleanup_classname function
-pattern = re.compile(r'<pygments[.]lexers[.](?P<language>.*)Lexer>')
+pattern = re.compile(r'<pygments[.]lexers[.](?P<language>.*)Lexer.*>')
 
 
 def cleanup_classname(classname):
