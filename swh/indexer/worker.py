@@ -326,14 +326,14 @@ class CtagsWorker(BaseWorker, DiskWorker, PersistResultWorker):
         # Bypass contents with error (for now)
         if 'decoding_failure' in content:
             return content
-        if not content.get('lang'):  # ctag does not work well without
-                                     # the language assertion
+        if not content.get('lang'):
             return content
 
         content_copy = content.copy()
         content_path = self.write_to_temp(
             sha1=content['sha1'], data=content['data'])
-        ctagsfile = ctags.run_ctags(path=content_path, lang=content.get('lang'))
+        ctagsfile = ctags.run_ctags(path=content_path,
+                                    lang=content.get('lang'))
         content_copy['ctags'] = list(ctags.parse_ctags(ctagsfile))
         self.save(content_copy)
         self.cleanup(content_path)
