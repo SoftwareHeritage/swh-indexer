@@ -19,7 +19,7 @@ def cleanup_classname(classname):
     FIXME: Improve the language detection.
 
     """
-    return classname.lower()
+    return classname.lower().replace(' ', '-')
 
 
 def run_language(path):

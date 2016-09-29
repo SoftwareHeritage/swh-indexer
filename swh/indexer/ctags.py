@@ -8,6 +8,8 @@ import logging
 import os
 import subprocess
 
+from swh.core import utils
+
 # maximum number of detailed warnings for malformed tags that will be emitted.
 # used to avoid flooding logs
 BAD_TAGS_THRESHOLD = 5
@@ -31,16 +33,21 @@ def run_ctags(path, lang=None):
         path: path to the file
         lang: language for that path (optional)
 
+    Returns:
+        ctags' filepath
+
     """
-    ctagsfile = path + '.tags'
+    ctagsfilepath = path + '.tags'
     optional = []
     # if lang:
     #     optional = ['--language-force', lang]
+    filename = os.path.basename(path)
+    cmd = ['ctags'] + CTAGS_FLAGS + optional + ['-o', ctagsfilepath, filename]
 
-    cmd = ['ctags'] + CTAGS_FLAGS + optional + ['-o', ctagsfile, path]
-    subprocess.check_call(cmd)
+    with utils.cwd(os.path.dirname(path)):
+        subprocess.check_call(cmd)
 
-    return ctagsfile
+    return ctagsfilepath
 
 
 def parse_ctags(path):
