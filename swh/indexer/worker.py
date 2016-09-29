@@ -7,7 +7,6 @@ import abc
 import os
 import tempfile
 
-from . import tasks  # noqa
 from . import mimetype, converters, language, ctags
 from .storage import Storage
 
