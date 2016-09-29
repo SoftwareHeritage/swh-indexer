@@ -324,8 +324,8 @@ class CtagsWorker(BaseWorker, DiskWorker, PersistResultWorker):
         # Bypass contents with error (for now)
         if 'decoding_failure' in content:
             return content
-        if not content.get('lang'):
-            return content
+        # if not content.get('lang'):
+        #     return content
 
         content_copy = content.copy()
         content_path = self.write_to_temp(
