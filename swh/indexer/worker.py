@@ -162,7 +162,7 @@ class ReaderWorker(BaseWorker):
         content_copy = content.copy()
         sha1 = hashutil.hex_to_hash(content['sha1'])
         data = self.objstorage.get(sha1)
-        content_copy.update({'data': data})
+        content_copy['data'] = data
         return content_copy
 
 
