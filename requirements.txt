@@ -7,5 +7,6 @@ pygments
 click
 
 swh.core >= 0.0.24
+swh.storage >= 0.0.64
 swh.objstorage >= 0.0.12
 swh.scheduler >= 0.0.9

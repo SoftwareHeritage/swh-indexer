@@ -3,13 +3,15 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import os
 import random
 
 from swh.core.config import SWHConfig
 from swh.core import hashutil, utils
 from swh.objstorage import get_objstorage
-from swh.indexer import tasks  # noqa
+from swh.storage import get_storage
 from swh.scheduler.celery_backend.config import app
+from . import tasks
 
 task_name = 'swh.indexer.tasks.SWHReaderTask'
 task_destination = 'swh.indexer.tasks.SWHMimeTypeTask'
@@ -17,9 +19,13 @@ task_destination = 'swh.indexer.tasks.SWHMimeTypeTask'
 task1 = app.tasks[task_name]
 
 
-class BasicProducer(SWHConfig):
+class ContentIndexerProducer(SWHConfig):
     DEFAULT_CONFIG = {
         'storage': ('dict', {
+            'cls': 'remote_storage',
+            'args': ['http://localhost:5000/'],
+        }),
+        'objstorage': ('dict', {
             'cls': 'pathslicing',
             'args': {
                 'slicing': '0:2/2:4/4:6',
@@ -36,7 +42,10 @@ class BasicProducer(SWHConfig):
         super().__init__()
         self.config = self.parse_config_file()
         storage = self.config['storage']
-        self.objstorage = get_objstorage(storage['cls'], storage['args'])
+        self.storage = get_storage(storage['cls'], storage['args'])
+        objstorage = self.config['objstorage']
+        self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
+
         self.limit = self.config['limit']
         if self.limit == 'none':
             self.limit = None
@@ -44,13 +53,27 @@ class BasicProducer(SWHConfig):
             self.limit = int(self.limit)
         self.batch = self.config['batch']
 
+    def get_contents(self):
+        """Read contents and retrieve randomly one possible path.
+
+        """
+        for sha1 in self.objstorage:
+            c = self.storage.cache_content_get({'sha1': sha1})
+            if not c:
+                continue
+            revision_paths = (
+                os.path.basename(path) for _, path in c['revision_paths'])
+
+            yield {
+                'sha1': hashutil.hash_to_hex(sha1),
+                'name': random.choice(list(revision_paths)).decode('utf-8')
+            }
+
     def gen_sha1(self):
         """Generate batch of grouped sha1s from the objstorage.
 
         """
-        for sha1s in utils.grouper(({'sha1': hashutil.hash_to_hex(s)}
-                                     for s in self.objstorage),
-                                   self.batch):
+        for sha1s in utils.grouper(self.get_contents(), self.batch):
             sha1s = list(sha1s)
             random.shuffle(sha1s)
             yield sha1s
@@ -76,4 +99,4 @@ class BasicProducer(SWHConfig):
             self.run_no_limit()
 
 if __name__ == '__main__':
-    BasicProducer().run()
+    ContentIndexerProducer().run()

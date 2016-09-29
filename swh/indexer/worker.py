@@ -112,7 +112,7 @@ class ReaderWorker(BaseWorker):
 
     ADDITIONAL_CONFIG = {
         'next_task_queue': ('str', 'swh.indexer.worker.tasks.SWHMimeTypeTask'),
-        'storage': ('dict', {
+        'objstorage': ('dict', {
             'cls': 'multiplexer',
             'args': {
                 'objstorages': [{
@@ -154,8 +154,8 @@ class ReaderWorker(BaseWorker):
 
     def __init__(self):
         super().__init__()
-        storage = self.config['storage']
-        self.objstorage = get_objstorage(storage['cls'], storage['args'])
+        objstorage = self.config['objstorage']
+        self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
 
     def compute(self, content):
         """Compute from the sha1 its content and returns it.
