@@ -4,6 +4,7 @@
 vcversioner
 pymongo
 pygments
+click
 
 swh.core >= 0.0.24
 swh.objstorage >= 0.0.12
