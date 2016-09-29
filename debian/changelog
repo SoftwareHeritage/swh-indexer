@@ -1,8 +1,11 @@
-swh-indexer (0.0.1-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.2-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.2
+  * Provide one possible sha1's name for the multiple tools to ease
+  * information extrapolation
+  * Fix debian package dependency issue
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 28 Sep 2016 23:40:13 +0200
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 29 Sep 2016 21:45:44 +0200
 
 swh-indexer (0.0.1-1~swh1) unstable-swh; urgency=medium
 

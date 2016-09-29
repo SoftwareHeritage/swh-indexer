@@ -7,7 +7,6 @@ import abc
 import os
 import tempfile
 
-from . import tasks  # noqa
 from . import mimetype, converters, language, ctags
 from .storage import Storage
 
@@ -66,7 +65,6 @@ class BaseWorker(SWHConfig, metaclass=abc.ABCMeta):
     def encode(self, content):
         content_copy = content
         if 'data' in content:
-            content_copy = content.copy()
             content_copy['data'] = msgpack_dumps(content['data'])
 
         return content_copy
@@ -74,7 +72,6 @@ class BaseWorker(SWHConfig, metaclass=abc.ABCMeta):
     def decode(self, content):
         content_copy = content
         if 'data' in content:
-            content_copy = content.copy()
             content_copy['data'] = msgpack_loads(content['data'])
 
         return content_copy
@@ -113,7 +110,7 @@ class ReaderWorker(BaseWorker):
 
     ADDITIONAL_CONFIG = {
         'next_task_queue': ('str', 'swh.indexer.worker.tasks.SWHMimeTypeTask'),
-        'storage': ('dict', {
+        'objstorage': ('dict', {
             'cls': 'multiplexer',
             'args': {
                 'objstorages': [{
@@ -155,8 +152,8 @@ class ReaderWorker(BaseWorker):
 
     def __init__(self):
         super().__init__()
-        storage = self.config['storage']
-        self.objstorage = get_objstorage(storage['cls'], storage['args'])
+        objstorage = self.config['objstorage']
+        self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
 
     def compute(self, content):
         """Compute from the sha1 its content and returns it.
@@ -165,7 +162,7 @@ class ReaderWorker(BaseWorker):
         content_copy = content.copy()
         sha1 = hashutil.hex_to_hash(content['sha1'])
         data = self.objstorage.get(sha1)
-        content_copy.update({'data': data})
+        content_copy['data'] = data
         return content_copy
 
 
@@ -182,29 +179,25 @@ class DiskWorker:
     def __init__(self):
         super().__init__()
 
-    def write_to_temp(self, sha1, data):
+    def write_to_temp(self, filename, data):
         """Write the sha1's content in a temporary file.
 
         Args:
             sha1 (str): the sha1 name
-            data (bytes/str): the sha1's content to write in temporary
+            filename (str): one of sha1's many filenames
+            data (bytes): the sha1's content to write in temporary
             file
 
         Returns:
             The path to the temporary file created. That file is
-            filled in with the content of the data.
+            filled in with the raw content's data.
 
         """
-        # make sure the working directory exists
-        os.makedirs(self.working_directory, exist_ok=True)
-
-        fd, content_path = tempfile.mkstemp(
-            prefix='%s-' % sha1, suffix='.swh', dir=self.working_directory)
+        temp_dir = tempfile.mkdtemp(dir=self.working_directory)
+        content_path = os.path.join(temp_dir, filename)
 
         with open(content_path, 'wb') as f:
             f.write(data)
-
-        os.close(fd)
 
         return content_path
 
@@ -265,7 +258,8 @@ class MimeTypeWorker(BaseWorker, DiskWorker, PersistResultWorker):
         """
         content_copy = content.copy()
         content_path = self.write_to_temp(
-            sha1=content['sha1'], data=content['data'])
+            filename=content['name'],
+            data=content['data'])
         typemime = mimetype.run_mimetype(content_path)
         content_copy.update({'mimetype': typemime})
         self.save(content_copy)
@@ -296,7 +290,8 @@ class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
         """
         content_copy = content.copy()
         content_path = self.write_to_temp(
-            sha1=content['sha1'], data=content['data'])
+            filename=content['name'],
+            data=content['data'])
         lang = language.run_language(content_path)
         # Keep all the information on the resulting data (including errors)
         for key, value in lang.items():
@@ -327,14 +322,15 @@ class CtagsWorker(BaseWorker, DiskWorker, PersistResultWorker):
         # Bypass contents with error (for now)
         if 'decoding_failure' in content:
             return content
-        if not content.get('lang'):  # ctag does not work well without
-                                     # the language assertion
-            return content
+        # if not content.get('lang'):
+        #     return content
 
         content_copy = content.copy()
         content_path = self.write_to_temp(
-            sha1=content['sha1'], data=content['data'])
-        ctagsfile = ctags.run_ctags(path=content_path, lang=content.get('lang'))
+            filename=content['name'],
+            data=content['data'])
+        ctagsfile = ctags.run_ctags(path=content_path,
+                                    lang=content.get('lang'))
         content_copy['ctags'] = list(ctags.parse_ctags(ctagsfile))
         self.save(content_copy)
         self.cleanup(content_path)
