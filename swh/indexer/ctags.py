@@ -8,6 +8,7 @@ import logging
 import os
 import subprocess
 
+
 # maximum number of detailed warnings for malformed tags that will be emitted.
 # used to avoid flooding logs
 BAD_TAGS_THRESHOLD = 5
