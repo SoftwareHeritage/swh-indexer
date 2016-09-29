@@ -65,7 +65,6 @@ class BaseWorker(SWHConfig, metaclass=abc.ABCMeta):
     def encode(self, content):
         content_copy = content
         if 'data' in content:
-            content_copy = content.copy()
             content_copy['data'] = msgpack_dumps(content['data'])
 
         return content_copy
@@ -73,7 +72,6 @@ class BaseWorker(SWHConfig, metaclass=abc.ABCMeta):
     def decode(self, content):
         content_copy = content
         if 'data' in content:
-            content_copy = content.copy()
             content_copy['data'] = msgpack_loads(content['data'])
 
         return content_copy
