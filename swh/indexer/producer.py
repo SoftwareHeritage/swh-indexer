@@ -14,9 +14,9 @@ from swh.scheduler.celery_backend.config import app
 from . import tasks
 
 task_name = 'swh.indexer.tasks.SWHReaderTask'
-task_destination = 'swh.indexer.tasks.SWHMimeTypeTask'
+task_destination = 'swh.indexer.tasks.SWHFilePropertiesTask'
 
-task1 = app.tasks[task_name]
+reader_task = app.tasks[task_name]
 
 
 class ContentIndexerProducer(SWHConfig):
@@ -83,14 +83,14 @@ class ContentIndexerProducer(SWHConfig):
         for sha1s in self.gen_sha1():
             count += len(sha1s)
             print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
-            task1.delay(sha1s, task_destination)
+            reader_task.delay(sha1s, task_destination)
             if count >= self.limit:
                 return
 
     def run_no_limit(self):
         for sha1s in self.gen_sha1():
             print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
-            task1.delay(sha1s, task_destination)
+            reader_task.delay(sha1s, task_destination)
 
     def run(self, *args, **kwargs):
         if self.limit:
