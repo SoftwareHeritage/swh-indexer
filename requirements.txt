@@ -2,11 +2,11 @@
 # should match https://pypi.python.org/pypi names. For the full spec or
 # dependency lines, see https://pip.readthedocs.org/en/1.1/requirements.html
 vcversioner
-pymongo
+pymongo >= 3.0.3
 pygments
 click
 
 swh.core >= 0.0.25
 swh.storage >= 0.0.64
-swh.objstorage >= 0.0.12
+swh.objstorage >= 0.0.13
 swh.scheduler >= 0.0.9
