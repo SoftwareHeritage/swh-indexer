@@ -74,10 +74,11 @@ class Storage(SWHConfig):
             _id = content.pop('_id')
 
         r = self.db['content'].update_one(
-            filter={'sha1': content['sha1']},
+            filter={
+                'sha1': content['sha1']
+            },
             update={
                 "$set": content,
-                "$currentDate": {"lastModified": True},
             },
             upsert=True)  # if not existing, this will create it
 
