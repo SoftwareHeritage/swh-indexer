@@ -263,13 +263,13 @@ class FilePropertiesWorker(BaseWorker, DiskWorker, PersistResultWorker):
         content_path = self.write_to_temp(
             filename=content['name'],
             data=content['data'])
+
         properties = file_properties.run_file_properties(content_path)
-        # Keep all information on the resulting data
-        for key, value in properties.items():
-            content_copy[key] = value
+        content_copy.update(properties)
 
         self.save(content_copy)
         self.cleanup(content_path)
+
         return content_copy
 
 
@@ -304,12 +304,10 @@ class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
         content_path = self.write_to_temp(
             filename=content['name'],
             data=content['data'])
+
         lang = language.run_language(content_path, encoding=encoding)
-        # Keep all the information on the resulting data (including errors)
-        for key, value in lang.items():
-            content_copy[key] = value
-            self.save(content_copy)
-            self.cleanup(content_path)
+        content_copy.update(lang)
+
         self.save(content_copy)
         self.cleanup(content_path)
 
