@@ -21,5 +21,5 @@ Homepage: https://forge.softwareheritage.org/diffusion/78/
 
 Package: python3-swh.indexer
 Architecture: all
-Depends: exuberant-ctags, python3-pymongo, ${misc:Depends}, ${python3:Depends}
+Depends: exuberant-ctags, python3-pymongo (>= 3.0.3~), ${misc:Depends}, ${python3:Depends}
 Description: Software Heritage Content Indexer
