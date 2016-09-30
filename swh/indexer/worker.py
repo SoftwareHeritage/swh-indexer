@@ -310,6 +310,8 @@ class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
             content_copy[key] = value
             self.save(content_copy)
             self.cleanup(content_path)
+        self.save(content_copy)
+        self.cleanup(content_path)
 
         return content_copy
 
@@ -332,18 +334,19 @@ class CtagsWorker(BaseWorker, DiskWorker, PersistResultWorker):
            the result and return the updated result.
 
         """
-        # Bypass contents with error (for now)
-        if 'decoding_failure' in content:
-            return content
-        # if not content.get('lang'):
-        #     return content
-
+        # Bypass binary content or content with decoding error
         content_copy = content.copy()
+        encoding = content['encoding']
+        if encoding == 'binary' or 'decoding_failure' in content:
+            content_copy['ctags'] = None
+            self.save(content_copy)
+            return content_copy
+
         content_path = self.write_to_temp(
             filename=content['name'],
             data=content['data'])
-        ctagsfile = ctags.run_ctags(path=content_path,
-                                    lang=content.get('lang'))
+        ctagsfile = ctags.run_ctags(
+            path=content_path, lang=content.get('lang'))
         content_copy['ctags'] = list(ctags.parse_ctags(ctagsfile))
         self.save(content_copy)
         self.cleanup(content_path)
