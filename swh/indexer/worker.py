@@ -7,7 +7,7 @@ import abc
 import os
 import tempfile
 
-from . import mimetype, converters, language, ctags
+from . import file_properties, converters, language, ctags
 from .storage import Storage
 
 from swh.scheduler.celery_backend.config import app
@@ -109,7 +109,8 @@ class ReaderWorker(BaseWorker):
     CONFIG_BASE_FILENAME = 'indexer/reader'
 
     ADDITIONAL_CONFIG = {
-        'next_task_queue': ('str', 'swh.indexer.worker.tasks.SWHMimeTypeTask'),
+        'next_task_queue': (
+            'str', 'swh.indexer.tasks.SWHFilePropertiesTask'),
         'objstorage': ('dict', {
             'cls': 'multiplexer',
             'args': {
@@ -193,6 +194,7 @@ class DiskWorker:
             filled in with the raw content's data.
 
         """
+        os.makedirs(self.working_directory, exist_ok=True)
         temp_dir = tempfile.mkdtemp(dir=self.working_directory)
         content_path = os.path.join(temp_dir, filename)
 
@@ -222,26 +224,27 @@ class PersistResultWorker:
 
     """
     def save(self, content):
-        """Store the content in storage.
+        """Store the content in storage except for the raw data.
 
         Args:
             content: dict with the following keys:
                 - sha1: content id
                 - data: raw data for the content
-                - mimetype: its newly computed mimetype
+                - mimetype: its mimetype
+                - encoding: its encoding
 
         """
         content_to_store = converters.content_to_storage(content)
         self.storage.content_add(content_to_store)
 
 
-class MimeTypeWorker(BaseWorker, DiskWorker, PersistResultWorker):
-    """Worker in charge of computing the mimetype of a content.
+class FilePropertiesWorker(BaseWorker, DiskWorker, PersistResultWorker):
+    """Worker in charge of computing the properties of the file content.
 
     """
-    CONFIG_BASE_FILENAME = 'indexer/mimetype'
+    CONFIG_BASE_FILENAME = 'indexer/file_properties'
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp/swh/worker.mimetype'),
+        'workdir': ('str', '/tmp/swh/worker.file.properties'),
         'next_task_queue': ('str', 'swh.indexer.tasks.SWHLanguageTask'),
     }
 
@@ -260,8 +263,11 @@ class MimeTypeWorker(BaseWorker, DiskWorker, PersistResultWorker):
         content_path = self.write_to_temp(
             filename=content['name'],
             data=content['data'])
-        typemime = mimetype.run_mimetype(content_path)
-        content_copy.update({'mimetype': typemime})
+        properties = file_properties.run_file_properties(content_path)
+        # Keep all information on the resulting data
+        for key, value in properties.items():
+            content_copy[key] = value
+
         self.save(content_copy)
         self.cleanup(content_path)
         return content_copy
