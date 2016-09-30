@@ -16,40 +16,42 @@ from pygments.util import ClassNotFound
 
 def cleanup_classname(classname):
     """Determine the language from the pygments' lexer names.
-    FIXME: Improve the language detection.
 
     """
     return classname.lower().replace(' ', '-')
 
 
-def run_language(path):
+def run_language(path, encoding=None):
     """Determine mime-type from file at path.
 
     Args:
-        path: filepath to determine the mime type
+        path (str): filepath to determine the mime type
+        encoding (str): optional file's encoding
 
     Returns:
         Dict with keys:
-        - language: None if nothing found or the possible language
+        - lang: None if nothing found or the possible language
         - decoding_failure: True if a decoding failure happened
 
     """
-    with open(path, 'r') as f:
-        try:
-            lexer_classname = guess_lexer(f.read()).name
-            lexer_classname = cleanup_classname(lexer_classname)
-            return {
-                'lang': lexer_classname
-            }
-        except ClassNotFound as e:
-            return {
-                'lang': None
-            }
-        except UnicodeDecodeError:
-            return {
-                'decoding_failure': True,
-                'lang': None
-            }
+    try:
+        with open(path, 'r', encoding=encoding) as f:
+            try:
+                raw_content = f.read()
+                lang = cleanup_classname(
+                    guess_lexer(raw_content).name)
+                return {
+                    'lang': lang
+                }
+            except ClassNotFound as e:
+                return {
+                    'lang': None
+                }
+    except LookupError as e:  # Unknown encoding
+        return {
+            'decoding_failure': True,
+            'lang': None
+        }
 
 
 class LanguageDetector():

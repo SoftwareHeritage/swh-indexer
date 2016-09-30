@@ -295,15 +295,22 @@ class LanguageWorker(BaseWorker, DiskWorker, PersistResultWorker):
 
         """
         content_copy = content.copy()
+        encoding = content['encoding']
+        if encoding == 'binary':
+            content_copy['lang'] = None
+            self.save(content_copy)
+            return content_copy
+
         content_path = self.write_to_temp(
             filename=content['name'],
             data=content['data'])
-        lang = language.run_language(content_path)
+        lang = language.run_language(content_path, encoding=encoding)
         # Keep all the information on the resulting data (including errors)
         for key, value in lang.items():
             content_copy[key] = value
-        self.save(content_copy)
-        self.cleanup(content_path)
+            self.save(content_copy)
+            self.cleanup(content_path)
+
         return content_copy
 
 
