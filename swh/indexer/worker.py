@@ -5,6 +5,7 @@
 
 import abc
 import os
+import shutil
 import tempfile
 
 from . import file_properties, converters, language, ctags
@@ -210,7 +211,8 @@ class DiskWorker:
             content_path (str): the file to remove
 
         """
-        os.unlink(content_path)
+        temp_dir = os.path.dirname(content_path)
+        shutil.rmtree(temp_dir)
 
 
 class PersistResultWorker:
