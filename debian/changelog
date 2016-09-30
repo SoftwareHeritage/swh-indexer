@@ -1,8 +1,12 @@
-swh-indexer (0.0.2-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.3-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.3
+  * Add encoding detection
+  * Use encoding to improve language detection
+  * bypass language detection for binary files
+  * bypass ctags for binary files or decoding failure file
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 29 Sep 2016 21:45:44 +0200
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 30 Sep 2016 12:30:11 +0200
 
 swh-indexer (0.0.2-1~swh1) unstable-swh; urgency=medium
 
