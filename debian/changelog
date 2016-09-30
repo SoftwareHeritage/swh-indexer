@@ -1,3 +1,13 @@
+swh-indexer (0.0.3-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.3
+  * Add encoding detection
+  * Use encoding to improve language detection
+  * bypass language detection for binary files
+  * bypass ctags for binary files or decoding failure file
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 30 Sep 2016 12:30:11 +0200
+
 swh-indexer (0.0.2-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.2
