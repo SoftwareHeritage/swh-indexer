@@ -53,6 +53,21 @@ class ContentIndexerProducer(SWHConfig):
             self.limit = int(self.limit)
         self.batch = self.config['batch']
 
+    def _get_random_name(self, sha1, revision_paths, total_retry=10):
+        """Retrieve a random name which is utf-8 decodable.
+
+        """
+        retry = 0
+        while retry <= total_retry:
+            name = random.choice(revision_paths)
+            try:
+                return name.decode('utf-8')
+            except UnicodeDecodeError as e:
+                print('sha1 %s with path %s is not utf-8 decodable - %s' % (
+                    sha1, name, e))
+                pass
+            retry += 1
+
     def get_contents(self):
         """Read contents and retrieve randomly one possible path.
 
@@ -60,13 +75,20 @@ class ContentIndexerProducer(SWHConfig):
         for sha1 in self.objstorage:
             c = self.storage.cache_content_get({'sha1': sha1})
             if not c:
+                print('No reference found for %s' % sha1)
                 continue
-            revision_paths = (
-                os.path.basename(path) for _, path in c['revision_paths'])
+            revision_paths = [
+                os.path.basename(path) for _, path in c['revision_paths']
+            ]
+
+            name = self._get_random_name(sha1, revision_paths)
+            if not name:  # nothing found, drop that content (for now)
+                print('No valid path found for %s' % sha1)
+                continue
 
             yield {
                 'sha1': hashutil.hash_to_hex(sha1),
-                'name': random.choice(list(revision_paths)).decode('utf-8')
+                'name': name,
             }
 
     def gen_sha1(self):
