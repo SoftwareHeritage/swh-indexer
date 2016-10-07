@@ -27,7 +27,7 @@ class BaseIndexer(SWHConfig,
         objstorage) and store result in storage.
 
     """
-    CONFIG_BASE_FILENAME = 'indexer/indexer'
+    CONFIG_BASE_FILENAME = 'indexer/base'
 
     DEFAULT_CONFIG = {
         'storage': ('dict', {
