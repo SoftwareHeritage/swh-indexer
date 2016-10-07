@@ -1,16 +1,12 @@
-# Copyright (C) 2015-2016  The Software Heritage developers
+# Copyright (C) 2016  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 
-import json
-import os
-import math
-import sys
-
 from pygments.lexers import guess_lexer
 from pygments.util import ClassNotFound
+from chardet import detect
 
 
 def cleanup_classname(classname):
@@ -20,12 +16,11 @@ def cleanup_classname(classname):
     return classname.lower().replace(' ', '-')
 
 
-def run_language(path, encoding=None):
-    """Determine mime-type from file at path.
+def run_language(raw_content):
+    """Determine the raw content's language.
 
     Args:
-        path (str): filepath to determine the mime type
-        encoding (str): optional file's encoding
+        raw_content (bytes): content to determine raw content
 
     Returns:
         Dict with keys:
@@ -34,18 +29,18 @@ def run_language(path, encoding=None):
 
     """
     try:
-        with open(path, 'r', encoding=encoding) as f:
-            try:
-                raw_content = f.read()
-                lang = cleanup_classname(
-                    guess_lexer(raw_content).name)
-                return {
-                    'lang': lang
-                }
-            except ClassNotFound as e:
-                return {
-                    'lang': None
-                }
+        encoding = detect(raw_content)['encoding']
+        content = raw_content.decode(encoding)
+        lang = cleanup_classname(
+            guess_lexer(content).name)
+
+        return {
+            'lang': lang
+        }
+    except ClassNotFound as e:
+        return {
+            'lang': None
+        }
     except LookupError as e:  # Unknown encoding
         return {
             'decoding_failure': True,
