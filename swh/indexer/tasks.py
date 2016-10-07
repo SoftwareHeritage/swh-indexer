@@ -4,45 +4,14 @@
 # See top-level LICENSE file for more information
 
 from swh.scheduler.task import Task
-from .worker import ReaderWorker, FilePropertiesWorker, LanguageWorker
-from .worker import CtagsWorker
+from .file_properties import ContentMimetypeIndexer
 
 
-class SWHReaderTask(Task):
-    """Main task that read from storage the sha1's content.
-
-    """
-    task_queue = 'swh_indexer_worker_reader'
-
-    def run(self, *args, **kwargs):
-        ReaderWorker().run(*args, **kwargs)
-
-
-class SWHFilePropertiesTask(Task):
-    """Main task which computes the mime type from the sha1's content.
+class SWHContentMimetypeTask(Task):
+    """Main task which computes the mimetype, encoding from the sha1's content.
 
     """
-    task_queue = 'swh_indexer_worker_file_properties'
+    task_queue = 'swh_indexer_worker_content_mimetype'
 
     def run(self, *args, **kwargs):
-        FilePropertiesWorker().run(*args, **kwargs)
-
-
-class SWHLanguageTask(Task):
-    """Main task which computes the language from the sha1's content.
-
-    """
-    task_queue = 'swh_indexer_worker_language'
-
-    def run(self, *args, **kwargs):
-        LanguageWorker().run(*args, **kwargs)
-
-
-class SWHCtagsTask(Task):
-    """Main task which computes the ctags from the sha1's content.
-
-    """
-    task_queue = 'swh_indexer_worker_ctags'
-
-    def run(self, *args, **kwargs):
-        CtagsWorker().run(*args, **kwargs)
+        ContentMimetypeIndexer().run(*args, **kwargs)
