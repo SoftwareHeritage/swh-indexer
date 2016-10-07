@@ -4,14 +4,27 @@
 # See top-level LICENSE file for more information
 
 from swh.scheduler.task import Task
+
+from .orchestrator import OrchestratorIndexer
 from .file_properties import ContentMimetypeIndexer
 
 
-class SWHContentMimetypeTask(Task):
-    """Main task which computes the mimetype, encoding from the sha1's content.
+class SWHOrchestratorTask(Task):
+    """Main task in charge of reading messages and broadcasting them back
+    to other tasks.
 
     """
-    task_queue = 'swh_indexer_worker_content_mimetype'
+    task_queue = 'swh_indexer_orchestrator'
+
+    def run(self, *args, **kwargs):
+        OrchestratorIndexer().run(*args, **kwargs)
+
+
+class SWHContentMimetypeTask(Task):
+    """Task which computes the mimetype, encoding from the sha1's content.
+
+    """
+    task_queue = 'swh_indexer_content_mimetype'
 
     def run(self, *args, **kwargs):
         ContentMimetypeIndexer().run(*args, **kwargs)

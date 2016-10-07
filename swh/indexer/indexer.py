@@ -8,9 +8,9 @@ import os
 import shutil
 import tempfile
 
-from swh.core import SWHConfig
-from swh.storage import get_storage
+from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
+from swh.storage import get_storage
 
 
 class BaseIndexer(SWHConfig,
@@ -129,6 +129,12 @@ class BaseIndexer(SWHConfig,
 
         """
         pass
+
+    def run(self, sha1s):
+        """Main entry point for the base indexer.
+
+        """
+        self.index_contents(sha1s)
 
 
 class DiskIndexer:
