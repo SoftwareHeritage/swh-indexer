@@ -32,7 +32,6 @@ class OrchestratorIndexer(SWHConfig):
         self.indexers = {
             TASK_NAMES[name]: INDEXER_CLASSES[name]
             for name in indexer_names
-            if name in app.tasks
         }
 
     def run(self, sha1s):
@@ -40,7 +39,7 @@ class OrchestratorIndexer(SWHConfig):
             indexer = indexer_class()
 
             # first filter the contents per indexers
-            sha1s_filtered = indexer.filter_contents(sha1s)
+            sha1s_filtered = list(indexer.filter_contents(sha1s))
 
             # now send the message for the indexer to compute and store results
             app.tasks[task_name].delay(sha1s_filtered)
