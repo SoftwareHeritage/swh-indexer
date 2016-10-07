@@ -11,7 +11,7 @@ from swh.core import hashutil, utils
 from swh.objstorage import get_objstorage
 from swh.storage import get_storage
 from swh.scheduler.celery_backend.config import app
-from . import tasks
+from . import tasks  # noqa
 
 task_name = 'swh.indexer.tasks.SWHReaderTask'
 task_destination = 'swh.indexer.tasks.SWHFilePropertiesTask'
