@@ -4,16 +4,19 @@
 # See top-level LICENSE file for more information
 
 from .file_properties import ContentMimetypeIndexer
+from .language import ContentLanguageIndexer
 
 
 INDEXER_CLASSES = {
     'mimetype': ContentMimetypeIndexer,
+    'language': ContentLanguageIndexer,
 }
 
 
 TASK_NAMES = {
     'orchestrator': 'swh.indexer.tasks.SWHOrchestratorTask',
     'mimetype': 'swh.indexer.tasks.SWHContentMimetypeTask',
+    'language': 'swh.indexer.tasks.SWHContentLanguageTask',
 }
 
 

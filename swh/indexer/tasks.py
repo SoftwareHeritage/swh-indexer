@@ -7,6 +7,7 @@ from swh.scheduler.task import Task
 
 from .orchestrator import OrchestratorIndexer
 from .file_properties import ContentMimetypeIndexer
+from .language import ContentLanguageIndexer
 
 
 class SWHOrchestratorTask(Task):
@@ -28,3 +29,13 @@ class SWHContentMimetypeTask(Task):
 
     def run(self, *args, **kwargs):
         ContentMimetypeIndexer().run(*args, **kwargs)
+
+
+class SWHContentLanguageTask(Task):
+    """Task which computes the language from the sha1's content.
+
+    """
+    task_queue = 'swh_indexer_content_language'
+
+    def run(self, *args, **kwargs):
+        ContentLanguageIndexer().run(*args, **kwargs)

@@ -5,18 +5,19 @@
 
 
 from pygments.lexers import guess_lexer
-from pygments.util import ClassNotFound
 from chardet import detect
 
+from .indexer import BaseIndexer
 
-def cleanup_classname(classname):
+
+def _cleanup_classname(classname):
     """Determine the language from the pygments' lexer names.
 
     """
     return classname.lower().replace(' ', '-')
 
 
-def run_language(raw_content):
+def compute_language(raw_content):
     """Determine the raw content's language.
 
     Args:
@@ -29,20 +30,71 @@ def run_language(raw_content):
 
     """
     try:
-        encoding = detect(raw_content)['encoding']
+        stats = detect(raw_content)
+        encoding = stats['encoding']
         content = raw_content.decode(encoding)
-        lang = cleanup_classname(
+        lang = _cleanup_classname(
             guess_lexer(content).name)
-
         return {
             'lang': lang
         }
-    except ClassNotFound as e:
+    except Exception:
         return {
             'lang': None
         }
-    except LookupError as e:  # Unknown encoding
-        return {
-            'decoding_failure': True,
-            'lang': None
-        }
+
+
+class ContentLanguageIndexer(BaseIndexer):
+    """Indexer in charge of:
+    - filtering out content already indexed
+    - reading content from objstorage per the content's id (sha1)
+    - computing {mimetype, encoding} from that content
+    - store result in storage
+
+    """
+    ADDITIONAL_CONFIG = {
+        'workdir': ('str', '/tmp/swh/worker.file.properties'),
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.working_directory = self.config['workdir']
+
+    def filter_contents(self, sha1s):
+        """Filter out known sha1s and return only missing ones.
+
+        """
+        yield from self.storage.content_language_missing(sha1s)
+
+    def index_content(self, sha1, raw_content):
+        """Index sha1s' content and store result.
+
+        Args:
+            sha1 (bytes): content's identifier
+            raw_content (bytes): raw content in bytes
+
+        Returns:
+            A dict, representing a content_mimetype, with keys:
+              - id (bytes): content's identifier (sha1)
+              - lang (bytes): detected language
+
+        """
+        result = compute_language(raw_content)
+        result.update({
+            'id': sha1,
+        })
+
+        return result
+
+    def persist_index_computations(self, results):
+        """Persist the results in storage.
+
+        Args:
+
+            results ([dict]): list of content_mimetype, dict with the
+            following keys:
+              - id (bytes): content's identifier (sha1)
+              - lang (bytes): detected language
+
+        """
+        self.storage.content_language_add(results)
