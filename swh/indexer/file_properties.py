@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2016  The Software Heritage developers
+# Copyright (C) 2016  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -11,7 +11,7 @@ from swh.core import hashutil
 from .indexer import BaseIndexer, DiskIndexer
 
 
-def run_file_properties(path):
+def compute_mimetype_encoding(path):
     """Determine mimetype and encoding from file at path.
 
     Args:
@@ -74,7 +74,7 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
             filename=filename,
             data=content)
 
-        properties = run_file_properties(content_path)
+        properties = compute_mimetype_encoding(content_path)
         properties.update({
             'id': sha1,
         })
@@ -100,7 +100,7 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 @click.command()
 @click.option('--path', help="Path to execute index on")
 def main(path):
-    print(run_file_properties(path))
+    print(compute_mimetype_encoding(path))
 
 
 if __name__ == '__main__':
