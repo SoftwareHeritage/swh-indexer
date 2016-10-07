@@ -41,5 +41,8 @@ class OrchestratorIndexer(SWHConfig):
             # first filter the contents per indexers
             sha1s_filtered = list(indexer.filter_contents(sha1s))
 
+            if not sha1s_filtered:
+                continue
+
             # now send the message for the indexer to compute and store results
             app.tasks[task_name].delay(sha1s_filtered)
