@@ -10,6 +10,7 @@ import tempfile
 
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
+from swh.objstorage.exc import ObjNotFoundError
 from swh.storage import get_storage
 
 
@@ -109,8 +110,11 @@ class BaseIndexer(SWHConfig,
         """
         results = []
         for sha1 in sha1s:
-            content = self.objstorage.get(sha1)
-            res = self.index_content(sha1, content)
+            try:
+                raw_content = self.objstorage.get(sha1)
+            except ObjNotFoundError:
+                continue
+            res = self.index_content(sha1, raw_content)
             results.append(res)
 
         self.persist_index_computations(results)
