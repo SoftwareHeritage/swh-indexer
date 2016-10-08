@@ -42,8 +42,10 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 
     """
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp/swh/worker.file.properties'),
+        'workdir': ('str', '/tmp/swh/indexer.mimetype'),
     }
+
+    CONFIG_BASE_FILENAME = 'indexer/mimetype'
 
     def __init__(self):
         super().__init__()

@@ -52,13 +52,8 @@ class ContentLanguageIndexer(BaseIndexer):
     - store result in storage
 
     """
-    ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp/swh/worker.file.properties'),
-    }
-
     def __init__(self):
         super().__init__()
-        self.working_directory = self.config['workdir']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
