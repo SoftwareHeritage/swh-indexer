@@ -3,100 +3,61 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import os
+import click
 import random
+import sys
 
-from swh.core.config import SWHConfig
-from swh.core import hashutil, utils
-from swh.objstorage import get_objstorage
-from swh.storage import get_storage
+from swh.core import utils, hashutil
 from swh.scheduler.celery_backend.config import app
-from . import tasks
 
-task_name = 'swh.indexer.tasks.SWHReaderTask'
-task_destination = 'swh.indexer.tasks.SWHFilePropertiesTask'
+from . import tasks, TASK_NAMES  # noqa
 
-reader_task = app.tasks[task_name]
+task_name = TASK_NAMES['orchestrator']
+
+orchestrator_task = app.tasks[task_name]
 
 
-class ContentIndexerProducer(SWHConfig):
-    DEFAULT_CONFIG = {
-        'storage': ('dict', {
-            'cls': 'remote_storage',
-            'args': ['http://localhost:5000/'],
-        }),
-        'objstorage': ('dict', {
-            'cls': 'pathslicing',
-            'args': {
-                'slicing': '0:2/2:4/4:6',
-                'root': '/srv/softwareheritage/objects/'
-            },
-        }),
-        'batch': ('int', 10),
-        'limit': ('str', 'none'),
-    }
+def read_from_stdin():
+    for sha1 in sys.stdin:
+        yield hashutil.hex_to_hash(sha1.strip())
 
-    CONFIG_BASE_FILENAME = 'indexer/reader'
 
-    def __init__(self):
-        super().__init__()
-        self.config = self.parse_config_file()
-        storage = self.config['storage']
-        self.storage = get_storage(storage['cls'], storage['args'])
-        objstorage = self.config['objstorage']
-        self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
+def gen_sha1(batch):
+    """Generate batch of grouped sha1s from the objstorage.
 
-        self.limit = self.config['limit']
-        if self.limit == 'none':
-            self.limit = None
-        else:
-            self.limit = int(self.limit)
-        self.batch = self.config['batch']
+    """
+    for sha1s in utils.grouper(read_from_stdin(), batch):
+        sha1s = list(sha1s)
+        random.shuffle(sha1s)
+        yield sha1s
 
-    def get_contents(self):
-        """Read contents and retrieve randomly one possible path.
 
-        """
-        for sha1 in self.objstorage:
-            c = self.storage.cache_content_get({'sha1': sha1})
-            if not c:
-                continue
-            revision_paths = (
-                os.path.basename(path) for _, path in c['revision_paths'])
+def run_with_limit(limit, batch):
+    count = 0
+    for sha1s in gen_sha1(batch):
+        count += len(sha1s)
+        print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
+        orchestrator_task.delay(sha1s)
+        if count >= limit:
+            return
 
-            yield {
-                'sha1': hashutil.hash_to_hex(sha1),
-                'name': random.choice(list(revision_paths)).decode('utf-8')
-            }
 
-    def gen_sha1(self):
-        """Generate batch of grouped sha1s from the objstorage.
+def run_no_limit(batch):
+    for sha1s in gen_sha1(batch):
+        print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
+        orchestrator_task.delay(sha1s)
 
-        """
-        for sha1s in utils.grouper(self.get_contents(), self.batch):
-            sha1s = list(sha1s)
-            random.shuffle(sha1s)
-            yield sha1s
 
-    def run_with_limit(self):
-        count = 0
-        for sha1s in self.gen_sha1():
-            count += len(sha1s)
-            print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
-            reader_task.delay(sha1s, task_destination)
-            if count >= self.limit:
-                return
+@click.command(help='Read sha1 from stdin and send them for indexing')
+@click.option('--limit', default=None, help='Limit the number of data to read')
+@click.option('--batch', default='10', help='Group data by batch')
+def main(limit, batch):
+    batch = int(batch)
+    if limit:
+        run_with_limit(int(limit), batch)
+    else:
+        run_no_limit(batch)
 
-    def run_no_limit(self):
-        for sha1s in self.gen_sha1():
-            print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
-            reader_task.delay(sha1s, task_destination)
-
-    def run(self, *args, **kwargs):
-        if self.limit:
-            self.run_with_limit()
-        else:
-            self.run_no_limit()
 
 if __name__ == '__main__':
-    ContentIndexerProducer().run()
+    main()
