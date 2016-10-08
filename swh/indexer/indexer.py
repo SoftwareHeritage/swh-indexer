@@ -5,6 +5,7 @@
 
 import abc
 import os
+import logging
 import shutil
 import tempfile
 
@@ -87,6 +88,8 @@ class BaseIndexer(SWHConfig,
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         storage = self.config['storage']
         self.storage = get_storage(storage['cls'], storage['args'])
+        l = logging.getLogger('requests.packages.urllib3.connectionpool')
+        l.setLevel(logging.WARN)
 
     @abc.abstractmethod
     def filter_contents(self, sha1s):
