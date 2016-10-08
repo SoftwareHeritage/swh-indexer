@@ -6,8 +6,7 @@
 from swh.scheduler.task import Task
 
 from .orchestrator import OrchestratorIndexer
-from .file_properties import ContentMimetypeIndexer
-from .language import ContentLanguageIndexer
+from . import ContentMimetypeIndexer, ContentLanguageIndexer
 
 
 class SWHOrchestratorTask(Task):

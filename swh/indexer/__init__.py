@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from .file_properties import ContentMimetypeIndexer
+from .mimetype import ContentMimetypeIndexer
 from .language import ContentLanguageIndexer
 
 
@@ -21,5 +21,6 @@ TASK_NAMES = {
 
 
 __all__ = [
-    'INDEXER_CLASSES', 'TASK_NAMES'
+    'INDEXER_CLASSES', 'TASK_NAMES', 'ContentMimetypeIndexer',
+    'ContentLanguageIndexer'
 ]
