@@ -142,13 +142,13 @@ class BaseIndexer(SWHConfig,
 
 
 class DiskIndexer:
-    """Mixin intended to be used with other *Indexer Class.
+    """Mixin intended to be used with other *Indexer classes.
 
        Indexer* inheriting from this class are a category of indexers
        which needs the disk for their computations.
 
        Expects:
-           Have the self.working_directory defined at runtime.
+           self.working_directory variable defined at runtime.
 
     """
     def __init__(self):
