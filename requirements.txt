@@ -7,6 +7,6 @@ click
 chardet
 
 swh.core >= 0.0.25
-swh.storage >= 0.0.64
+swh.storage >= 0.0.65
 swh.objstorage >= 0.0.13
 swh.scheduler >= 0.0.9
