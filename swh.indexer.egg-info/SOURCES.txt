@@ -20,9 +20,9 @@ swh.indexer.egg-info/requires.txt
 swh.indexer.egg-info/top_level.txt
 swh/indexer/__init__.py
 swh/indexer/ctags.py
-swh/indexer/file_properties.py
 swh/indexer/indexer.py
 swh/indexer/language.py
+swh/indexer/mimetype.py
 swh/indexer/orchestrator.py
 swh/indexer/producer.py
 swh/indexer/tasks.py
