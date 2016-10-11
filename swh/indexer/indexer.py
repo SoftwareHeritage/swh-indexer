@@ -121,6 +121,7 @@ class BaseIndexer(SWHConfig,
             results.append(res)
 
         self.persist_index_computations(results)
+        self.next_step(results)
 
     @abc.abstractmethod
     def index_content(self, sha1, content):
@@ -144,6 +145,25 @@ class BaseIndexer(SWHConfig,
         Args:
             results ([result]): List of results. One result is the
             result of the index_content function.
+
+        Returns:
+            None
+
+        """
+        pass
+
+    def next_step(self, results):
+        """Do something else with computations results (e.g. send to another
+        queue, ...).
+
+        (This is not an abstractmethod since it is optional).
+
+        Args:
+            results ([result]): List of results (dict) as returned
+            by index_content function.
+
+        Returns:
+            None
 
         """
         pass

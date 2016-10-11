@@ -7,6 +7,7 @@ import click
 import subprocess
 
 from swh.core import hashutil
+from swh.scheduler.celery_backend.config import app
 
 from .indexer import BaseIndexer, DiskIndexer
 
@@ -43,6 +44,8 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
     """
     ADDITIONAL_CONFIG = {
         'workdir': ('str', '/tmp/swh/indexer.mimetype'),
+        'destination_queue': (
+            'str', 'swh.indexer.tasks.SWHOrchestratorTextContentsTask')
     }
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'
@@ -50,6 +53,8 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
     def __init__(self):
         super().__init__()
         self.working_directory = self.config['workdir']
+        destination_queue = self.config['destination_queue']
+        self.task_destination = app.tasks[destination_queue]
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
@@ -97,6 +102,28 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 
         """
         self.storage.content_mimetype_add(results)
+
+    def _filter_text(self, results):
+        """Filter sha1 whose raw content is text.
+
+        """
+        for result in results:
+            if b'text/' in result['mimetype']:
+                yield result['id']
+
+    def next_step(self, results):
+        """When the computations is done, we'd like to send over only text
+        contents to the text content orchestrator.
+
+        Args:
+            results ([dict]): List of content_mimetype results, dict
+            with the following keys:
+              - id (bytes): content's identifier (sha1)
+              - mimetype (bytes): mimetype in bytes
+              - encoding (bytes): encoding in bytes
+
+        """
+        self.task_destination.delay(list(self._filter_text(results)))
 
 
 @click.command()
