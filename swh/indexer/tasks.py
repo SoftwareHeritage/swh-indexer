@@ -10,23 +10,23 @@ from .orchestrator import OrchestratorTextContentsIndexer
 from . import ContentMimetypeIndexer, ContentLanguageIndexer
 
 
-class SWHOrchestratorAllTask(Task):
+class SWHOrchestratorAllContentsTask(Task):
     """Main task in charge of reading batch contents (of any type) and
     broadcasting them back to other tasks.
 
     """
-    task_queue = 'swh_indexer_all_content'
+    task_queue = 'swh_indexer_orchestrator_content_all'
 
     def run(self, *args, **kwargs):
         OrchestratorAllContentsIndexer().run(*args, **kwargs)
 
 
-class SWHOrchestratorTextContentTask(Task):
+class SWHOrchestratorTextContentsTask(Task):
     """Main task in charge of reading batch contents (of type text) and
     broadcasting them back to other tasks.
 
     """
-    task_queue = 'swh_indexer_text_content'
+    task_queue = 'swh_indexer_orchestrator_content_text'
 
     def run(self, *args, **kwargs):
         OrchestratorTextContentsIndexer().run(*args, **kwargs)
