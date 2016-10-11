@@ -11,7 +11,7 @@ from swh.scheduler.celery_backend.config import app
 from . import TASK_NAMES, INDEXER_CLASSES
 
 
-class OrchestratorIndexer(SWHConfig):
+class BaseOrchestratorIndexer(SWHConfig):
     """The indexer orchestrator is in charge of:
     - reading batch of contents (list of sha1s as bytes)
     - according to its configuration, filter or not the contents
@@ -46,3 +46,16 @@ class OrchestratorIndexer(SWHConfig):
 
             # now send the message for the indexer to compute and store results
             app.tasks[task_name].delay(sha1s_filtered)
+
+
+class OrchestratorAllContentsIndexer(BaseOrchestratorIndexer):
+    """Orchestrator which deals with batch of any types of contents.
+
+    """
+
+
+class OrchestratorTextContentsIndexer(BaseOrchestratorIndexer):
+    """Orchestrator which deals with batch of text contents.
+
+    """
+    CONFIG_BASE_FILENAME = 'indexer/orchestrator_text'
