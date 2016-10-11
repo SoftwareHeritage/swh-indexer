@@ -124,6 +124,17 @@ class BaseIndexer(SWHConfig,
 
     @abc.abstractmethod
     def index_content(self, sha1, content):
+        """Index computation for the sha1 and associated raw content.
+
+        Args:
+            sha1 (bytes): sha1 identifier
+            content (bytes): sha1's raw content
+
+        Returns:
+            a dict that makes sense for the persist_index_computations
+        function.
+
+        """
         pass
 
     @abc.abstractmethod
