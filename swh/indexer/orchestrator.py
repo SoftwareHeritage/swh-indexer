@@ -13,9 +13,9 @@ from . import TASK_NAMES, INDEXER_CLASSES
 
 class OrchestratorIndexer(SWHConfig):
     """The indexer orchestrator is in charge of:
-    - reading messages (list of sha1s as bytes)
-    - according to its configuration, broadcast those messages to indexers
-    - by eventually filtering by indexers
+    - reading batch of contents (list of sha1s as bytes)
+    - according to its configuration, filter or not the contents
+    - and then broadcast those contents to indexers
 
     """
     CONFIG_BASE_FILENAME = 'indexer/orchestrator'
