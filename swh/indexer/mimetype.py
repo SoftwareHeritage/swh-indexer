@@ -108,8 +108,9 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 
         """
         for result in results:
-            if b'text/' in result['mimetype']:
-                yield result['id']
+            if b'binary' in result['encoding']:
+                continue
+            yield result['id']
 
     def next_step(self, results):
         """When the computations is done, we'd like to send over only text
