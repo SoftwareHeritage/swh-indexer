@@ -22,7 +22,7 @@ def compute_mimetype_encoding(path):
         A dict with mimetype and encoding key and corresponding values.
 
     """
-    cmd = ['file', '--mime-type', '--mime-encoding', path]
+    cmd = ['file', '--mime', path]
     properties = subprocess.check_output(cmd)
     if properties:
         res = properties.split(b': ')[1].strip().split(b'; ')
