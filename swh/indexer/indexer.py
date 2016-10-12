@@ -9,6 +9,7 @@ import logging
 import shutil
 import tempfile
 
+from swh.core import hashutil
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
@@ -90,6 +91,7 @@ class BaseIndexer(SWHConfig,
         self.storage = get_storage(storage['cls'], storage['args'])
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
         l.setLevel(logging.WARN)
+        self.log = logging.getLogger('swh.indexer')
 
     @abc.abstractmethod
     def filter_contents(self, sha1s):
@@ -116,6 +118,8 @@ class BaseIndexer(SWHConfig,
             try:
                 raw_content = self.objstorage.get(sha1)
             except ObjNotFoundError:
+                self.log.warn('Content %s not found in objstorage' %
+                              hashutil.hash_to_hex(sha1))
                 continue
             res = self.index_content(sha1, raw_content)
             results.append(res)
