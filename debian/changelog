@@ -1,3 +1,15 @@
+swh-indexer (0.0.9-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.9
+  * d/control: Bump dependency to latest python3-swh.storage api
+  * mimetype: Use the charset to filter out data
+  * orchestrator: Separate 2 distincts orchestrators (one for all
+  * contents, one for text contents)
+  * mimetype: once index computed, send text contents to text
+    orchestrator
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 13 Oct 2016 15:28:17 +0200
+
 swh-indexer (0.0.8-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.8
