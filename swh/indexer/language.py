@@ -81,15 +81,17 @@ class ContentLanguageIndexer(BaseIndexer):
 
         return result
 
-    def persist_index_computations(self, results):
+    def persist_index_computations(self, results, policy_update):
         """Persist the results in storage.
 
         Args:
-
             results ([dict]): list of content_mimetype, dict with the
             following keys:
               - id (bytes): content's identifier (sha1)
               - lang (bytes): detected language
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
 
         """
-        self.storage.content_language_add(results)
+        self.storage.content_language_add(
+            results, conflict_update=(policy_update == 'update-dups'))

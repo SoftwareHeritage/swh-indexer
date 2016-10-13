@@ -5,19 +5,31 @@
 
 from swh.scheduler.task import Task
 
-from .orchestrator import OrchestratorIndexer
+from .orchestrator import OrchestratorAllContentsIndexer
+from .orchestrator import OrchestratorTextContentsIndexer
 from . import ContentMimetypeIndexer, ContentLanguageIndexer
 
 
-class SWHOrchestratorTask(Task):
-    """Main task in charge of reading messages and broadcasting them back
-    to other tasks.
+class SWHOrchestratorAllContentsTask(Task):
+    """Main task in charge of reading batch contents (of any type) and
+    broadcasting them back to other tasks.
 
     """
-    task_queue = 'swh_indexer_orchestrator'
+    task_queue = 'swh_indexer_orchestrator_content_all'
 
     def run(self, *args, **kwargs):
-        OrchestratorIndexer().run(*args, **kwargs)
+        OrchestratorAllContentsIndexer().run(*args, **kwargs)
+
+
+class SWHOrchestratorTextContentsTask(Task):
+    """Main task in charge of reading batch contents (of type text) and
+    broadcasting them back to other tasks.
+
+    """
+    task_queue = 'swh_indexer_orchestrator_content_text'
+
+    def run(self, *args, **kwargs):
+        OrchestratorTextContentsIndexer().run(*args, **kwargs)
 
 
 class SWHContentMimetypeTask(Task):

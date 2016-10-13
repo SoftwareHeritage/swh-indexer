@@ -9,6 +9,7 @@ import logging
 import shutil
 import tempfile
 
+from swh.core import hashutil
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
@@ -18,15 +19,27 @@ from swh.storage import get_storage
 class BaseIndexer(SWHConfig,
                   metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
+
+    The main entry point is the `run` functions which is in charge to
+    trigger the computations on the sha1s batch receiived as
+    parameter.
+
     Indexers can:
     - filter out sha1 whose data has already been indexed.
     - retrieve sha1's content from objstorage, index this content then
       store the result in storage.
 
     Thus the following interface to implement per inheriting class:
-      - def filter: filter out data already indexed (in storage)
-      - def index: compute index on data (stored by sha1 in
-        objstorage) and store result in storage.
+      - def filter_contents(self, sha1s): filter out data already
+        indexed (in storage)
+
+      - def index_content(self, sha1, content): compute index on sha1 with
+        data content (stored by sha1 in objstorage) and store result
+        in storage.
+
+      - def persist_index_computations(self, results, policy_update):
+        the function to store the results (as per index_content
+        defined).
 
     """
     CONFIG_BASE_FILENAME = 'indexer/base'
@@ -90,6 +103,7 @@ class BaseIndexer(SWHConfig,
         self.storage = get_storage(storage['cls'], storage['args'])
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
         l.setLevel(logging.WARN)
+        self.log = logging.getLogger('swh.indexer')
 
     @abc.abstractmethod
     def filter_contents(self, sha1s):
@@ -104,11 +118,63 @@ class BaseIndexer(SWHConfig,
         """
         pass
 
-    def index_contents(self, sha1s):
+    @abc.abstractmethod
+    def index_content(self, sha1, content):
+        """Index computation for the sha1 and associated raw content.
+
+        Args:
+            sha1 (bytes): sha1 identifier
+            content (bytes): sha1's raw content
+
+        Returns:
+            a dict that makes sense for the persist_index_computations
+        function.
+
+        """
+        pass
+
+    @abc.abstractmethod
+    def persist_index_computations(self, results, policy_update):
+        """Persist the computation resulting from the index.
+
+        Args:
+            results ([result]): List of results. One result is the
+            result of the index_content function.
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
+
+        Returns:
+            None
+
+        """
+        pass
+
+    def next_step(self, results):
+        """Do something else with computations results (e.g. send to another
+        queue, ...).
+
+        (This is not an abstractmethod since it is optional).
+
+        Args:
+            results ([result]): List of results (dict) as returned
+            by index_content function.
+
+        Returns:
+            None
+
+        """
+        pass
+
+    def run(self, sha1s, policy_update):
         """Given a list of sha1s:
         - retrieve the content from the storage
         - execute the indexing computations
-        - store the results
+        - store the results (according to policy_update)
+
+        Args:
+            sha1s ([bytes]): sha1's identifier list
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
 
         """
         results = []
@@ -116,32 +182,14 @@ class BaseIndexer(SWHConfig,
             try:
                 raw_content = self.objstorage.get(sha1)
             except ObjNotFoundError:
+                self.log.warn('Content %s not found in objstorage' %
+                              hashutil.hash_to_hex(sha1))
                 continue
             res = self.index_content(sha1, raw_content)
             results.append(res)
 
-        self.persist_index_computations(results)
-
-    @abc.abstractmethod
-    def index_content(self, sha1, content):
-        pass
-
-    @abc.abstractmethod
-    def persist_index_computations(self, results):
-        """Persist the computation resulting from the index.
-
-        Args:
-            results ([result]): List of results. One result is the
-            result of the index_content function.
-
-        """
-        pass
-
-    def run(self, sha1s):
-        """Main entry point for the base indexer.
-
-        """
-        self.index_contents(sha1s)
+        self.persist_index_computations(results, policy_update)
+        self.next_step(results)
 
 
 class DiskIndexer:
