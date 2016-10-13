@@ -89,19 +89,21 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
         self.cleanup(content_path)
         return properties
 
-    def persist_index_computations(self, results):
+    def persist_index_computations(self, results, policy_update):
         """Persist the results in storage.
 
         Args:
-
             results ([dict]): list of content_mimetype, dict with the
             following keys:
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
 
         """
-        self.storage.content_mimetype_add(results)
+        self.storage.content_mimetype_add(
+            results, conflict_update=(policy_update == 'update-dups'))
 
     def _filter_text(self, results):
         """Filter sha1 whose raw content is text.

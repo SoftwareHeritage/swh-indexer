@@ -38,7 +38,7 @@ class BaseOrchestratorIndexer(SWHConfig):
         self.check_presence = self.config['check_presence']
 
     def run_with_check(self, sha1s):
-        """Run with checking the presence on sha1s in db.
+        """Run with checking the presence on sha1s in db to filter them out.
 
         """
         celery_tasks = []
@@ -51,19 +51,23 @@ class BaseOrchestratorIndexer(SWHConfig):
             if not sha1s_filtered:
                 continue
 
-            celery_task = app.tasks[task_name].s(sha1s_filtered)
+            # send message for indexer to compute and store results on
+            # filtered sha1s
+            celery_task = app.tasks[task_name].s(sha1s=sha1s_filtered,
+                                                 policy_update='ignore-dups')
             celery_tasks.append(celery_task)
 
         return celery_tasks
 
     def run_no_check(self, sha1s):
-        """Simply broadcase sha1s to the indexers' queue.
+        """Simply broadcast sha1s to the indexers' queue.
 
         """
         celery_tasks = []
         for task_name, _ in self.indexers.items():
             # send message for indexer to compute and store results
-            celery_task = app.tasks[task_name].s(sha1s)
+            celery_task = app.tasks[task_name].s(sha1s=sha1s,
+                                                 policy_update='update-dups')
             celery_tasks.append(celery_task)
 
         return celery_tasks

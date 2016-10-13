@@ -37,7 +37,7 @@ class BaseIndexer(SWHConfig,
         data content (stored by sha1 in objstorage) and store result
         in storage.
 
-      - def persist_index_computations(self, results):
+      - def persist_index_computations(self, results, policy_update):
         the function to store the results (as per index_content
         defined).
 
@@ -134,12 +134,14 @@ class BaseIndexer(SWHConfig,
         pass
 
     @abc.abstractmethod
-    def persist_index_computations(self, results):
+    def persist_index_computations(self, results, policy_update):
         """Persist the computation resulting from the index.
 
         Args:
             results ([result]): List of results. One result is the
             result of the index_content function.
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
 
         Returns:
             None
@@ -163,7 +165,7 @@ class BaseIndexer(SWHConfig,
         """
         pass
 
-    def run(self, sha1s):
+    def run(self, sha1s, policy_update):
         """Given a list of sha1s:
         - retrieve the content from the storage
         - execute the indexing computations
@@ -171,6 +173,8 @@ class BaseIndexer(SWHConfig,
 
         Args:
             sha1s ([bytes]): sha1's identifier list
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
 
         """
         results = []
@@ -184,7 +188,7 @@ class BaseIndexer(SWHConfig,
             res = self.index_content(sha1, raw_content)
             results.append(res)
 
-        self.persist_index_computations(results)
+        self.persist_index_computations(results, policy_update)
         self.next_step(results)
 
 
