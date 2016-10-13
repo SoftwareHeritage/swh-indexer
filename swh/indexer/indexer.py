@@ -19,15 +19,27 @@ from swh.storage import get_storage
 class BaseIndexer(SWHConfig,
                   metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
+
+    The main entry point is the `run` functions which is in charge to
+    trigger the computations on the sha1s batch receiived as
+    parameter.
+
     Indexers can:
     - filter out sha1 whose data has already been indexed.
     - retrieve sha1's content from objstorage, index this content then
       store the result in storage.
 
     Thus the following interface to implement per inheriting class:
-      - def filter: filter out data already indexed (in storage)
-      - def index: compute index on data (stored by sha1 in
-        objstorage) and store result in storage.
+      - def filter_contents(self, sha1s): filter out data already
+        indexed (in storage)
+
+      - def index_content(self, sha1, content): compute index on sha1 with
+        data content (stored by sha1 in objstorage) and store result
+        in storage.
+
+      - def persist_index_computations(self, results):
+        the function to store the results (as per index_content
+        defined).
 
     """
     CONFIG_BASE_FILENAME = 'indexer/base'
