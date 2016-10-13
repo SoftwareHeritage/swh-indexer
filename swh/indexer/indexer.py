@@ -118,27 +118,6 @@ class BaseIndexer(SWHConfig,
         """
         pass
 
-    def index_contents(self, sha1s):
-        """Given a list of sha1s:
-        - retrieve the content from the storage
-        - execute the indexing computations
-        - store the results
-
-        """
-        results = []
-        for sha1 in sha1s:
-            try:
-                raw_content = self.objstorage.get(sha1)
-            except ObjNotFoundError:
-                self.log.warn('Content %s not found in objstorage' %
-                              hashutil.hash_to_hex(sha1))
-                continue
-            res = self.index_content(sha1, raw_content)
-            results.append(res)
-
-        self.persist_index_computations(results)
-        self.next_step(results)
-
     @abc.abstractmethod
     def index_content(self, sha1, content):
         """Index computation for the sha1 and associated raw content.
@@ -185,10 +164,28 @@ class BaseIndexer(SWHConfig,
         pass
 
     def run(self, sha1s):
-        """Main entry point for the base indexer.
+        """Given a list of sha1s:
+        - retrieve the content from the storage
+        - execute the indexing computations
+        - store the results (according to policy_update)
+
+        Args:
+            sha1s ([bytes]): sha1's identifier list
 
         """
-        self.index_contents(sha1s)
+        results = []
+        for sha1 in sha1s:
+            try:
+                raw_content = self.objstorage.get(sha1)
+            except ObjNotFoundError:
+                self.log.warn('Content %s not found in objstorage' %
+                              hashutil.hash_to_hex(sha1))
+                continue
+            res = self.index_content(sha1, raw_content)
+            results.append(res)
+
+        self.persist_index_computations(results)
+        self.next_step(results)
 
 
 class DiskIndexer:
