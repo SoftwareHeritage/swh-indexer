@@ -12,7 +12,7 @@ from swh.scheduler.celery_backend.config import app
 
 from . import tasks, TASK_NAMES  # noqa
 
-task_name = TASK_NAMES['orchestrator']
+task_name = TASK_NAMES['orchestrator_all']
 
 orchestrator_task = app.tasks[task_name]
 

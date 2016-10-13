@@ -14,7 +14,8 @@ INDEXER_CLASSES = {
 
 
 TASK_NAMES = {
-    'orchestrator': 'swh.indexer.tasks.SWHOrchestratorTask',
+    'orchestrator_all': 'swh.indexer.tasks.SWHOrchestratorAllContentsTask',
+    'orchestrator_text': 'swh.indexer.tasks.SWHOrchestratorTextContentsTask',
     'mimetype': 'swh.indexer.tasks.SWHContentMimetypeTask',
     'language': 'swh.indexer.tasks.SWHContentLanguageTask',
 }
