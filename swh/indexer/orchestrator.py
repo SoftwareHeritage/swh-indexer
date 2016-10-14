@@ -23,7 +23,7 @@ class BaseOrchestratorIndexer(SWHConfig):
 
     DEFAULT_CONFIG = {
         'indexers': ('[str]', ['mimetype']),
-        'check_presence': ('bool', 'true'),
+        'check_presence': ('bool', True),
     }
 
     def __init__(self):
