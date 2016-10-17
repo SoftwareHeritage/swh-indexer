@@ -47,7 +47,7 @@ class BaseIndexer(SWHConfig,
     DEFAULT_CONFIG = {
         'storage': ('dict', {
             'host': 'uffizi',
-            'cls': 'pathslicing',
+            'cls': 'remote',
             'args': {'root': '/tmp/softwareheritage/objects',
                      'slicing': '0:2/2:4/4:6'}
         }),
