@@ -7,19 +7,23 @@ import click
 import subprocess
 import json
 
+from swh.core import hashutil
+
+from .language import compute_language
+from .indexer import BaseIndexer, DiskIndexer
+
 
 # Options used to compute tags
 __FLAGS = [
-    '--fields=+lnz',  # +l: language of source file containing tag
-                      # +n: line number of tag definition
-                      # +z: include the symbol's kind (function, variable, ...)
-    '--sort=no',      # sort output on tag name
-    '--links=no',     # do not follow symlinks
+    '--fields=+nz',  # +n: line number of tag definition
+                     # +z: include the symbol's kind (function, variable, ...)
+    '--sort=no',     # sort output on tag name
+    '--links=no',    # do not follow symlinks
     '--output-format=json',  # outputs in json
 ]
 
 
-def run_ctags(path, lang=None):
+def run_ctags(path, lang=None, ctags_binary='ctags'):
     """Run ctags on file path with optional language.
 
     Args:
@@ -31,10 +35,10 @@ def run_ctags(path, lang=None):
 
     """
     optional = []
-    # if lang:
-    #     optional = ['--language-force', lang]
+    if lang:
+        optional = ['--language-force=%s' % lang]
 
-    cmd = ['ctags'] + __FLAGS + optional + [path]
+    cmd = [ctags_binary] + __FLAGS + optional + [path]
     output = subprocess.check_output(cmd, universal_newlines=True)
 
     for symbol in output.split('\n'):
@@ -44,6 +48,87 @@ def run_ctags(path, lang=None):
         yield {
             k: v for k, v in js_symbol.items() if k != '_type' and k != 'path'
         }
+
+
+class CtagsIndexer(BaseIndexer, DiskIndexer):
+    CONFIG_BASE_FILENAME = 'indexer/ctags'
+
+    ADDITIONAL_CONFIG = {
+        'ctags': ('str', '/usr/bin/ctags'),
+        'workdir': ('str', '/tmp/swh/indexer.ctags'),
+        'languages': ('dict', {
+            'ada': 'Ada',
+            'adl': None,
+            'agda': None,
+            # ...
+        })
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.working_directory = self.config['workdir']
+        self.language_map = self.config['languages']
+        self.ctags_binary = self.config['ctags']
+
+    def filter_contents(self, sha1s):
+        """Filter out known sha1s and return only missing ones.
+
+        """
+        yield from self.storage.content_ctags_missing(sha1s)
+
+    def index_content(self, sha1, raw_content):
+        """Index sha1s' content and store result.
+
+        Args:
+            sha1 (bytes): content's identifier
+            raw_content (bytes): raw content in bytes
+
+        Returns:
+            A dict, representing a content_mimetype, with keys:
+              - id (bytes): content's identifier (sha1)
+              - ctags ([dict]): ctags list of symbols
+
+        """
+        lang = compute_language(raw_content)['lang']
+
+        ctags = {
+            'id': sha1,
+            'ctags': []
+        }
+
+        if lang:
+            ctags_lang = self.language_map.get(lang)
+            if ctags_lang:
+                filename = hashutil.hash_to_hex(sha1)
+                content_path = self.write_to_temp(
+                    filename=filename,
+                    data=raw_content)
+
+                result = run_ctags(content_path,
+                                   lang=ctags_lang,
+                                   ctags_binary=self.ctags_binary)
+                ctags.update({
+                    'ctags': list(result),
+                })
+
+                self.cleanup(content_path)
+
+        return ctags
+
+    def persist_index_computations(self, results, policy_update):
+        """Persist the results in storage.
+
+        Args:
+            results ([dict]): list of content_mimetype, dict with the
+            following keys:
+              - id (bytes): content's identifier (sha1)
+              - ctags ([dict]): ctags list of symbols
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
+
+        """
+        self.storage.content_ctags_add(
+            results, conflict_update=(policy_update == 'update-dups'))
 
 
 @click.command()

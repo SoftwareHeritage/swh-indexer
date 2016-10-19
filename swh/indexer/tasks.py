@@ -7,7 +7,7 @@ from swh.scheduler.task import Task
 
 from .orchestrator import OrchestratorAllContentsIndexer
 from .orchestrator import OrchestratorTextContentsIndexer
-from . import ContentMimetypeIndexer, ContentLanguageIndexer
+from . import ContentMimetypeIndexer, ContentLanguageIndexer, CtagsIndexer
 
 
 class SWHOrchestratorAllContentsTask(Task):
@@ -50,3 +50,13 @@ class SWHContentLanguageTask(Task):
 
     def run(self, *args, **kwargs):
         ContentLanguageIndexer().run(*args, **kwargs)
+
+
+class SWHCtagsTask(Task):
+    """Task which computes ctags from the sha1's content.
+
+    """
+    task_queue = 'swh_indexer_content_ctags'
+
+    def run(self, *args, **kwargs):
+        CtagsIndexer().run(*args, **kwargs)
