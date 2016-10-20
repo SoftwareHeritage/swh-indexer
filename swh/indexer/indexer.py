@@ -47,7 +47,7 @@ class BaseIndexer(SWHConfig,
     DEFAULT_CONFIG = {
         'storage': ('dict', {
             'host': 'uffizi',
-            'cls': 'pathslicing',
+            'cls': 'remote',
             'args': {'root': '/tmp/softwareheritage/objects',
                      'slicing': '0:2/2:4/4:6'}
         }),
@@ -186,7 +186,8 @@ class BaseIndexer(SWHConfig,
                               hashutil.hash_to_hex(sha1))
                 continue
             res = self.index_content(sha1, raw_content)
-            results.append(res)
+            if res:  # If no results, skip it
+                results.append(res)
 
         self.persist_index_computations(results, policy_update)
         self.next_step(results)
