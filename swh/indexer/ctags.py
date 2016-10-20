@@ -91,27 +91,31 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
         """
         lang = compute_language(raw_content)['lang']
 
+        if not lang:
+            return None
+
+        ctags_lang = self.language_map.get(lang)
+
+        if not ctags_lang:
+            return None
+
         ctags = {
             'id': sha1,
-            'ctags': []
         }
 
-        if lang:
-            ctags_lang = self.language_map.get(lang)
-            if ctags_lang:
-                filename = hashutil.hash_to_hex(sha1)
-                content_path = self.write_to_temp(
-                    filename=filename,
-                    data=raw_content)
+        filename = hashutil.hash_to_hex(sha1)
+        content_path = self.write_to_temp(
+            filename=filename,
+            data=raw_content)
 
-                result = run_ctags(content_path,
-                                   lang=ctags_lang,
-                                   ctags_binary=self.ctags_binary)
-                ctags.update({
-                    'ctags': list(result),
-                })
+        result = run_ctags(content_path,
+                           lang=ctags_lang,
+                           ctags_binary=self.ctags_binary)
+        ctags.update({
+            'ctags': list(result),
+        })
 
-                self.cleanup(content_path)
+        self.cleanup(content_path)
 
         return ctags
 
