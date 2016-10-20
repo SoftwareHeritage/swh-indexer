@@ -1,3 +1,10 @@
+swh-indexer (0.0.10-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.10
+  * Add ctags indexer
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 20 Oct 2016 16:12:42 +0200
+
 swh-indexer (0.0.9-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.9
