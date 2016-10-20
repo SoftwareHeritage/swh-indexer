@@ -50,7 +50,7 @@ def run_ctags(path, lang=None, ctags_binary='ctags'):
             'name': js_symbol['name'],
             'kind': js_symbol['kind'],
             'line': js_symbol['line'],
-            'language': js_symbol['language'],
+            'lang': js_symbol['language'],
         }
 
 
@@ -131,12 +131,10 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
             following keys:
               - id (bytes): content's identifier (sha1)
               - ctags ([dict]): ctags list of symbols
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+            policy_update ([str]): unused in this context
 
         """
-        self.storage.content_ctags_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+        self.storage.content_ctags_add(results)
 
 
 @click.command()
