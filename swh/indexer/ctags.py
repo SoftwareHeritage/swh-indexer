@@ -15,10 +15,11 @@ from .indexer import BaseIndexer, DiskIndexer
 
 # Options used to compute tags
 __FLAGS = [
-    '--fields=+nz',  # +n: line number of tag definition
-                     # +z: include the symbol's kind (function, variable, ...)
-    '--sort=no',     # sort output on tag name
-    '--links=no',    # do not follow symlinks
+    '--fields=+lnz',  # +l: language
+                      # +n: line number of tag definition
+                      # +z: include the symbol's kind (function, variable, ...)
+    '--sort=no',      # sort output on tag name
+    '--links=no',     # do not follow symlinks
     '--output-format=json',  # outputs in json
 ]
 
@@ -46,7 +47,10 @@ def run_ctags(path, lang=None, ctags_binary='ctags'):
             continue
         js_symbol = json.loads(symbol)
         yield {
-            k: v for k, v in js_symbol.items() if k != '_type' and k != 'path'
+            'name': js_symbol['name'],
+            'kind': js_symbol['kind'],
+            'line': js_symbol['line'],
+            'language': js_symbol['language'],
         }
 
 
