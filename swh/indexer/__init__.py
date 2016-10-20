@@ -5,11 +5,13 @@
 
 from .mimetype import ContentMimetypeIndexer
 from .language import ContentLanguageIndexer
+from .ctags import CtagsIndexer
 
 
 INDEXER_CLASSES = {
     'mimetype': ContentMimetypeIndexer,
     'language': ContentLanguageIndexer,
+    'ctags': CtagsIndexer,
 }
 
 
@@ -18,10 +20,11 @@ TASK_NAMES = {
     'orchestrator_text': 'swh.indexer.tasks.SWHOrchestratorTextContentsTask',
     'mimetype': 'swh.indexer.tasks.SWHContentMimetypeTask',
     'language': 'swh.indexer.tasks.SWHContentLanguageTask',
+    'ctags': 'swh.indexer.tasks.SWHCtagsTask',
 }
 
 
 __all__ = [
-    'INDEXER_CLASSES', 'TASK_NAMES', 'ContentMimetypeIndexer',
-    'ContentLanguageIndexer'
+    'INDEXER_CLASSES', 'TASK_NAMES',
+    'ContentMimetypeIndexer', 'ContentLanguageIndexer', 'CtagsIndexer',
 ]

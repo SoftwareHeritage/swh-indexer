@@ -4,29 +4,27 @@
 # See top-level LICENSE file for more information
 
 import click
-import logging
-import os
 import subprocess
+import json
 
-from swh.core import utils
+from swh.core import hashutil
 
-# maximum number of detailed warnings for malformed tags that will be emitted.
-# used to avoid flooding logs
-BAD_TAGS_THRESHOLD = 5
+from .language import compute_language
+from .indexer import BaseIndexer, DiskIndexer
 
-# Option used to generate the tag file
-CTAGS_FLAGS = [
-    '--excmd=number',
-    '--fields=+lnz',
-    '--sort=no',
-    '--links=no'
+
+# Options used to compute tags
+__FLAGS = [
+    '--fields=+lnz',  # +l: language
+                      # +n: line number of tag definition
+                      # +z: include the symbol's kind (function, variable, ...)
+    '--sort=no',      # sort output on tag name
+    '--links=no',     # do not follow symlinks
+    '--output-format=json',  # outputs in json
 ]
 
 
-# debian: 'sudo update-alternatives --config ctags' and choose
-# ctags-exuberant
-
-def run_ctags(path, lang=None):
+def run_ctags(path, lang=None, ctags_binary='ctags'):
     """Run ctags on file path with optional language.
 
     Args:
@@ -34,81 +32,115 @@ def run_ctags(path, lang=None):
         lang: language for that path (optional)
 
     Returns:
-        ctags' filepath
+        ctags' output
 
     """
-    ctagsfilepath = path + '.tags'
     optional = []
-    # if lang:
-    #     optional = ['--language-force', lang]
-    filename = os.path.basename(path)
-    cmd = ['ctags'] + CTAGS_FLAGS + optional + ['-o', ctagsfilepath, filename]
+    if lang:
+        optional = ['--language-force=%s' % lang]
 
-    with utils.cwd(os.path.dirname(path)):
-        subprocess.check_call(cmd)
+    cmd = [ctags_binary] + __FLAGS + optional + [path]
+    output = subprocess.check_output(cmd, universal_newlines=True)
 
-    return ctagsfilepath
+    for symbol in output.split('\n'):
+        if not symbol:
+            continue
+        js_symbol = json.loads(symbol)
+        yield {
+            'name': js_symbol['name'],
+            'kind': js_symbol['kind'],
+            'line': js_symbol['line'],
+            'lang': js_symbol['language'],
+        }
 
 
-def parse_ctags(path):
-    """Parse exuberant ctags tags file.
+class CtagsIndexer(BaseIndexer, DiskIndexer):
+    CONFIG_BASE_FILENAME = 'indexer/ctags'
 
-    Args:
-        path: Path to the ctag file
+    ADDITIONAL_CONFIG = {
+        'ctags': ('str', '/usr/bin/ctags'),
+        'workdir': ('str', '/tmp/swh/indexer.ctags'),
+        'languages': ('dict', {
+            'ada': 'Ada',
+            'adl': None,
+            'agda': None,
+            # ...
+        })
+    }
 
-    Yields:
-        For each tag, a tag dictionary with the keys:
-            - tag:  'TAG_NAME',
-            - path: 'PATH/WITH/IN/PACKAGE',
-            - line: LINE_NUMBER, # int
-            - kind: 'TAG_KIND', # 1 letter
-            - language: 'TAG_LANGUAGE',
+    def __init__(self):
+        super().__init__()
+        self.working_directory = self.config['workdir']
+        self.language_map = self.config['languages']
+        self.ctags_binary = self.config['ctags']
 
-    """
-    def parse_tag(line):
-        tag = {'kind': None, 'line': None, 'language': None}
-        # initialize with extension fields which are not guaranteed to exist
-        fields = line.rstrip().split('\t')
+    def filter_contents(self, sha1s):
+        """Filter out known sha1s and return only missing ones.
 
-        tag['tag'] = fields[0]
-        tag['path'] = fields[1]
+        """
+        yield from self.storage.content_ctags_missing(sha1s)
 
-        for ext in fields[3:]:  # parse extension fields
-            k, v = ext.split(':', 1)  # caution: "typeref:struct:__RAW_R_INFO"
-            if k == 'kind':
-                tag['kind'] = v
-            elif k == 'line':
-                tag['line'] = int(v)
-            elif k == 'language':
-                tag['language'] = v.lower()
-            else:
-                pass  # ignore other fields
+    def index_content(self, sha1, raw_content):
+        """Index sha1s' content and store result.
 
-        assert tag['line'] is not None
-        return tag
+        Args:
+            sha1 (bytes): content's identifier
+            raw_content (bytes): raw content in bytes
 
-    with open(path) as ctags:
-        bad_tags = 0
-        for line in ctags:
-            # e.g. 'music\tsound.c\t13;"\tkind:v\tline:13\tlanguage:C\tfile:\n'
-            # see CTAGS(1), section "TAG FILE FORMAT"
-            if line.startswith('!_TAG'):  # skip ctags metadata
-                continue
-            try:
-                yield parse_tag(line)
-            except:
-                bad_tags += 1
-                if bad_tags <= BAD_TAGS_THRESHOLD:
-                    logging.warn('ignore malformed tag "%s"' % line.rstrip())
-        if bad_tags > BAD_TAGS_THRESHOLD:
-            logging.warn('%d extra malformed tag(s) ignored' %
-                         (bad_tags - BAD_TAGS_THRESHOLD))
+        Returns:
+            A dict, representing a content_mimetype, with keys:
+              - id (bytes): content's identifier (sha1)
+              - ctags ([dict]): ctags list of symbols
+
+        """
+        lang = compute_language(raw_content)['lang']
+
+        if not lang:
+            return None
+
+        ctags_lang = self.language_map.get(lang)
+
+        if not ctags_lang:
+            return None
+
+        ctags = {
+            'id': sha1,
+        }
+
+        filename = hashutil.hash_to_hex(sha1)
+        content_path = self.write_to_temp(
+            filename=filename,
+            data=raw_content)
+
+        result = run_ctags(content_path,
+                           lang=ctags_lang,
+                           ctags_binary=self.ctags_binary)
+        ctags.update({
+            'ctags': list(result),
+        })
+
+        self.cleanup(content_path)
+
+        return ctags
+
+    def persist_index_computations(self, results, policy_update):
+        """Persist the results in storage.
+
+        Args:
+            results ([dict]): list of content_mimetype, dict with the
+            following keys:
+              - id (bytes): content's identifier (sha1)
+              - ctags ([dict]): ctags list of symbols
+            policy_update ([str]): unused in this context
+
+        """
+        self.storage.content_ctags_add(results)
 
 
 @click.command()
 @click.option('--path', help="Path to execute index on")
 def main(path):
-    r = list(parse_ctags(path))
+    r = list(run_ctags(path))
     print(r)
 
 
