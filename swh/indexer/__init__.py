@@ -3,15 +3,12 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from .mimetype import ContentMimetypeIndexer
-from .language import ContentLanguageIndexer
-from .ctags import CtagsIndexer
-
 
 INDEXER_CLASSES = {
-    'mimetype': ContentMimetypeIndexer,
-    'language': ContentLanguageIndexer,
-    'ctags': CtagsIndexer,
+    'mimetype': 'swh.indexer.mimetype.ContentMimetypeIndexer',
+    'language': 'swh.indexer.language.ContentLanguageIndexer',
+    'ctags': 'swh.indexer.ctags.CtagsIndexer',
+    'license': 'swh.indexer.license.ContentLicenseIndexer',
 }
 
 
@@ -21,10 +18,10 @@ TASK_NAMES = {
     'mimetype': 'swh.indexer.tasks.SWHContentMimetypeTask',
     'language': 'swh.indexer.tasks.SWHContentLanguageTask',
     'ctags': 'swh.indexer.tasks.SWHCtagsTask',
+    'license': 'swh.indexer.tasks.SWHContentLicenseTask',
 }
 
 
 __all__ = [
     'INDEXER_CLASSES', 'TASK_NAMES',
-    'ContentMimetypeIndexer', 'ContentLanguageIndexer', 'CtagsIndexer',
 ]
