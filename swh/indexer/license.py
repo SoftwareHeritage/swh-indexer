@@ -60,8 +60,7 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
         """Filter out known sha1s and return only missing ones.
 
         """
-        # yield from self.storage.content_license_missing(sha1s)
-        pass
+        yield from self.storage.content_license_missing(sha1s)
 
     def index_content(self, sha1, content):
         """Index sha1s' content and store result.
@@ -87,6 +86,8 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
             'id': sha1,
         })
 
+        self.log.info('Licenses: %s' % properties['licenses'])
+
         self.cleanup(content_path)
         return properties
 
@@ -103,9 +104,8 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
             respectively update duplicates or ignore them
 
         """
-        pass
-        # self.storage.content_license_add(
-        #     results, conflict_update=(policy_update == 'update-dups'))
+        self.storage.content_license_add(
+            results, conflict_update=(policy_update == 'update-dups'))
 
 
 @click.command(help='Compute license for path using tool')
