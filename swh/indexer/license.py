@@ -18,17 +18,15 @@ def compute_license(tool, path):
         path: filepath to determine the license
 
     Returns:
-        A dict with 'licenses' and 'path' key and corresponding
-        values.
+        A dict with the following keys:
+        - licenses ([bytes]): associated detected licenses to path
+        - path (bytes): content filepath
 
     """
     properties = subprocess.check_output([tool, path])
     if properties:
         res = properties.rstrip().split(b' contains license(s) ')
         licenses = res[1].split(b',')
-
-        if licenses == [b'No_license_found']:
-            licenses = []
 
         return {
             'licenses': licenses,
@@ -104,8 +102,15 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
             respectively update duplicates or ignore them
 
         """
-        self.storage.content_license_add(
+        wrong_licenses = self.storage.content_license_add(
             results, conflict_update=(policy_update == 'update-dups'))
+
+        if wrong_licenses:
+            for l in wrong_licenses:
+                self.log.warn('Content %s has some unknown licenses: %s' % (
+                    hashutil.hash_to_hex(l['id']),
+                    ','.join((name.decode('utf-8') for name in l['licenses'])))
+                )
 
 
 @click.command(help='Compute license for path using tool')
