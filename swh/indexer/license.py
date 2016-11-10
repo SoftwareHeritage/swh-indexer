@@ -24,7 +24,8 @@ def compute_license(tool, path):
         - tool (str): tool used to compute the output
 
     """
-    properties = subprocess.check_output([tool, path], universal_newlines=False)
+    properties = subprocess.check_output([tool, path],
+                                         universal_newlines=False)
     if properties:
         res = properties.rstrip().split(' contains license(s) ')
         licenses = res[1].split(',')
