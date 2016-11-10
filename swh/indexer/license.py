@@ -19,18 +19,19 @@ def compute_license(tool, path):
 
     Returns:
         A dict with the following keys:
-        - licenses ([bytes]): associated detected licenses to path
+        - licenses ([str]): associated detected licenses to path
         - path (bytes): content filepath
+        - tool (str): tool used to compute the output
 
     """
-    properties = subprocess.check_output([tool, path])
+    properties = subprocess.check_output([tool, path], universal_newlines=False)
     if properties:
-        res = properties.rstrip().split(b' contains license(s) ')
-        licenses = res[1].split(b',')
+        res = properties.rstrip().split(' contains license(s) ')
+        licenses = res[1].split(',')
 
         return {
             'licenses': licenses,
-            'path': path
+            'path': path,
         }
 
 
@@ -44,7 +45,11 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
     """
     ADDITIONAL_CONFIG = {
         'workdir': ('str', '/tmp/swh/indexer.license'),
-        'tool': ('str', '/usr/local/bin/nomossa')
+        'tool': ('dict', {
+            'cli': '/usr/local/bin/nomossa',
+            'name': 'nomos',
+            'version': '3.1.0rc2-31-ga2cbb8c'
+        }),
     }
 
     CONFIG_BASE_FILENAME = 'indexer/license'
@@ -52,7 +57,9 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
     def __init__(self):
         super().__init__()
         self.working_directory = self.config['workdir']
-        self.tool = self.config['tool']
+        self.tool = self.config['tool']['cli']
+        self.tool_name = self.config['tool']['name']
+        self.tool_version = self.config['tool']['version']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
@@ -82,6 +89,8 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
         properties = compute_license(self.tool, path=content_path)
         properties.update({
             'id': sha1,
+            'tool_name': self.config['tool_name'],
+            'tool_version': self.config['tool_version']
         })
 
         self.log.info('Licenses: %s' % properties['licenses'])
