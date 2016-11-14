@@ -1,8 +1,11 @@
-swh-indexer (0.0.12-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.13-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.13
+  * Add new license indexer
+  * ctags indexer: align behavior with other indexers regarding the
+  * conflict update policy
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 04 Nov 2016 13:59:59 +0100
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 14 Nov 2016 14:13:34 +0100
 
 swh-indexer (0.0.12-1~swh1) unstable-swh; urgency=medium
 
