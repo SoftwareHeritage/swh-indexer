@@ -131,10 +131,12 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
             following keys:
               - id (bytes): content's identifier (sha1)
               - ctags ([dict]): ctags list of symbols
-            policy_update ([str]): unused in this context
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
 
         """
-        self.storage.content_ctags_add(results)
+        self.storage.content_ctags_add(
+            results, conflict_update=(policy_update == 'update-dups'))
 
 
 @click.command()
