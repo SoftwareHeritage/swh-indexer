@@ -3,15 +3,13 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from .mimetype import ContentMimetypeIndexer
-from .language import ContentLanguageIndexer
-from .ctags import CtagsIndexer
-
 
 INDEXER_CLASSES = {
-    'mimetype': ContentMimetypeIndexer,
-    'language': ContentLanguageIndexer,
-    'ctags': CtagsIndexer,
+    'mimetype': 'swh.indexer.mimetype.ContentMimetypeIndexer',
+    'language': 'swh.indexer.language.ContentLanguageIndexer',
+    'ctags': 'swh.indexer.ctags.CtagsIndexer',
+    'fossology_license':
+    'swh.indexer.fossology_license.ContentFossologyLicenseIndexer',
 }
 
 
@@ -21,10 +19,10 @@ TASK_NAMES = {
     'mimetype': 'swh.indexer.tasks.SWHContentMimetypeTask',
     'language': 'swh.indexer.tasks.SWHContentLanguageTask',
     'ctags': 'swh.indexer.tasks.SWHCtagsTask',
+    'fossology_license': 'swh.indexer.tasks.SWHContentFossologyLicenseTask',
 }
 
 
 __all__ = [
     'INDEXER_CLASSES', 'TASK_NAMES',
-    'ContentMimetypeIndexer', 'ContentLanguageIndexer', 'CtagsIndexer',
 ]

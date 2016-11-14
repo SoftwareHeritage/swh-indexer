@@ -7,7 +7,10 @@ from swh.scheduler.task import Task
 
 from .orchestrator import OrchestratorAllContentsIndexer
 from .orchestrator import OrchestratorTextContentsIndexer
-from . import ContentMimetypeIndexer, ContentLanguageIndexer, CtagsIndexer
+from .mimetype import ContentMimetypeIndexer
+from .language import ContentLanguageIndexer
+from .ctags import CtagsIndexer
+from .fossology_license import ContentFossologyLicenseIndexer
 
 
 class SWHOrchestratorAllContentsTask(Task):
@@ -60,3 +63,13 @@ class SWHCtagsTask(Task):
 
     def run(self, *args, **kwargs):
         CtagsIndexer().run(*args, **kwargs)
+
+
+class SWHContentFossologyLicenseTask(Task):
+    """Task which computes licenses from the sha1's content.
+
+    """
+    task_queue = 'swh_indexer_content_fossology_license'
+
+    def run(self, *args, **kwargs):
+        ContentFossologyLicenseIndexer().run(*args, **kwargs)
