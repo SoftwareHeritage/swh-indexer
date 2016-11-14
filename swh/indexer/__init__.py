@@ -8,7 +8,8 @@ INDEXER_CLASSES = {
     'mimetype': 'swh.indexer.mimetype.ContentMimetypeIndexer',
     'language': 'swh.indexer.language.ContentLanguageIndexer',
     'ctags': 'swh.indexer.ctags.CtagsIndexer',
-    'license': 'swh.indexer.license.ContentLicenseIndexer',
+    'fossology_license':
+    'swh.indexer.fossology_license.ContentFossologyLicenseIndexer',
 }
 
 
@@ -18,7 +19,7 @@ TASK_NAMES = {
     'mimetype': 'swh.indexer.tasks.SWHContentMimetypeTask',
     'language': 'swh.indexer.tasks.SWHContentLanguageTask',
     'ctags': 'swh.indexer.tasks.SWHCtagsTask',
-    'license': 'swh.indexer.tasks.SWHContentLicenseTask',
+    'fossology_license': 'swh.indexer.tasks.SWHContentFossologyLicenseTask',
 }
 
 

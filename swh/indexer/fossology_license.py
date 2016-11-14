@@ -36,7 +36,7 @@ def compute_license(tool, path):
         }
 
 
-class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
+class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
     """Indexer in charge of:
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
@@ -45,7 +45,7 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
 
     """
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp/swh/indexer.license'),
+        'workdir': ('str', '/tmp/swh/indexer.fossology.license'),
         'tool': ('dict', {
             'cli': '/usr/local/bin/nomossa',
             'name': 'nomos',
@@ -53,7 +53,7 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
         }),
     }
 
-    CONFIG_BASE_FILENAME = 'indexer/license'
+    CONFIG_BASE_FILENAME = 'indexer/fossology_license'
 
     def __init__(self):
         super().__init__()
@@ -66,7 +66,7 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.storage.content_license_missing(sha1s)
+        yield from self.storage.content_fossology_license_missing(sha1s)
 
     def index_content(self, sha1, content):
         """Index sha1s' content and store result.
@@ -112,7 +112,7 @@ class ContentLicenseIndexer(BaseIndexer, DiskIndexer):
             respectively update duplicates or ignore them
 
         """
-        wrong_licenses = self.storage.content_license_add(
+        wrong_licenses = self.storage.content_fossology_license_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
         if wrong_licenses:
