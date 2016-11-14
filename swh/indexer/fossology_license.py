@@ -25,7 +25,7 @@ def compute_license(tool, path):
 
     """
     properties = subprocess.check_output([tool, path],
-                                         universal_newlines=False)
+                                         universal_newlines=True)
     if properties:
         res = properties.rstrip().split(' contains license(s) ')
         licenses = res[1].split(',')
@@ -90,11 +90,9 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
         properties = compute_license(self.tool, path=content_path)
         properties.update({
             'id': sha1,
-            'tool_name': self.config['tool_name'],
-            'tool_version': self.config['tool_version']
+            'tool_name': self.tool_name,
+            'tool_version': self.tool_version,
         })
-
-        self.log.info('Licenses: %s' % properties['licenses'])
 
         self.cleanup(content_path)
         return properties
