@@ -117,7 +117,7 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
             for l in wrong_licenses:
                 self.log.warn('Content %s has some unknown licenses: %s' % (
                     hashutil.hash_to_hex(l['id']),
-                    ','.join((name.decode('utf-8') for name in l['licenses'])))
+                    ','.join((name for name in l['licenses'])))
                 )
 
 
