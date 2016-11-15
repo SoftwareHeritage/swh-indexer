@@ -1,3 +1,10 @@
+swh-indexer (0.0.14-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.14
+  * Update package dependency on fossology-nomossa
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 15 Nov 2016 14:13:41 +0100
+
 swh-indexer (0.0.13-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.13
