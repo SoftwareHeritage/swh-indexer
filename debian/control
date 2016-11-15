@@ -20,5 +20,5 @@ Homepage: https://forge.softwareheritage.org/diffusion/78/
 
 Package: python3-swh.indexer
 Architecture: all
-Depends: universal-ctags (>= 0.8~), ${misc:Depends}, ${python3:Depends}
+Depends: universal-ctags (>= 0.8~), fossology-nomossa (>= 3.1~), ${misc:Depends}, ${python3:Depends}
 Description: Software Heritage Content Indexer
