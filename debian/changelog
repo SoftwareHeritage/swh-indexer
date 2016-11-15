@@ -1,8 +1,9 @@
-swh-indexer (0.0.14-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.15-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.15
+  * Improve message producer
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 15 Nov 2016 14:13:41 +0100
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 15 Nov 2016 18:16:42 +0100
 
 swh-indexer (0.0.14-1~swh1) unstable-swh; urgency=medium
 
