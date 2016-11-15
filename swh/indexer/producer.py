@@ -57,8 +57,7 @@ def main(limit, batch, task_name):
               ', '.join(possible_tasks))
         return
 
-    task_name = TASK_NAMES['orchestrator_all']
-    task = app.tasks[task_name]
+    task = app.tasks[TASK_NAMES[task_name]]
 
     if limit:
         run_with_limit(task, int(limit), batch)
