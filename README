@@ -5,4 +5,67 @@ Tools to compute multiple indexes on SWH's raw contents:
 - mimetype
 - ctags
 - language
-- license
+- fossology-license
+
+
+# Context
+
+SWH has currently stored around 3B contents.  The table `content`
+holds their checksums.
+
+Those contents are physically stored in an object storage (using
+disks) and replicated in another. Those object storages are not
+destined for reading yet.
+
+We are in the process to copy those contents over to azure's blob
+storages.  As such, we will use that opportunity to trigger the
+computations on these contents once those have been copied over.
+
+
+# Workers
+
+There exists 2 kinds:
+- orchestrators (orchestrator, orchestrator-text)
+- indexer (mimetype, language, ctags, fossology-license)
+
+## Orchestrator
+
+Orchestrators:
+- receive batch of sha1s
+- split those batches
+- broadcast those to indexers
+
+There are 2 sorts:
+
+- orchestrator (swh_indexer_orchestrator_content_all): Receives and
+  broadcast sha1 ids (of contents) to indexers (currently only the
+  mimetype indexer)
+
+- orchestrator-text (swh_indexer_orchestrator_content_text): Receives
+  batch of sha1 ids (of textual contents) and broadcast those to
+  indexers (currently language, ctags, and fossology-license
+  indexers).
+
+
+## Indexers
+
+Indexers:
+- receive batch of sha1
+- retrieve the associated content from the blob storage
+- compute for that content some index
+- store the result to swh's storage
+- (and possibly do some broadcast itself)
+
+Current indexers:
+
+- mimetype (queue swh_indexer_content_mimetype): compute the mimetype,
+  filter out the textual contents and broadcast the list to the
+  orchestrator-text
+
+- language (queue swh_indexer_content_language): detect the programming language
+
+- ctags (queue swh_indexer_content_ctags): try and compute tags
+  information
+
+- fossology-license (queue swh_indexer_fossology_license): try and
+  compute the license
