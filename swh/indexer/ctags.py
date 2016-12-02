@@ -24,7 +24,7 @@ __FLAGS = [
 ]
 
 
-def run_ctags(path, lang=None, ctags_binary='ctags'):
+def run_ctags(path, lang=None, ctags_command='ctags'):
     """Run ctags on file path with optional language.
 
     Args:
@@ -39,7 +39,7 @@ def run_ctags(path, lang=None, ctags_binary='ctags'):
     if lang:
         optional = ['--language-force=%s' % lang]
 
-    cmd = [ctags_binary] + __FLAGS + optional + [path]
+    cmd = [ctags_command] + __FLAGS + optional + [path]
     output = subprocess.check_output(cmd, universal_newlines=True)
 
     for symbol in output.split('\n'):
@@ -58,8 +58,12 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
     CONFIG_BASE_FILENAME = 'indexer/ctags'
 
     ADDITIONAL_CONFIG = {
-        'ctags': ('str', '/usr/bin/ctags'),
         'workdir': ('str', '/tmp/swh/indexer.ctags'),
+        'tool': ('dict', {
+            'name': 'universal-ctags',
+            'version': '~git7859817b',
+            'command': '/usr/bin/ctags',
+        }),
         'languages': ('dict', {
             'ada': 'Ada',
             'adl': None,
@@ -72,13 +76,21 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
         super().__init__()
         self.working_directory = self.config['workdir']
         self.language_map = self.config['languages']
-        self.ctags_binary = self.config['ctags']
+        self.ctags_command = self.config['tool']['command']
+        self.tool_name = self.config['tool']['name']
+        self.tool_version = self.config['tool']['version']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.storage.content_ctags_missing(sha1s)
+        yield from self.storage.content_ctags_missing((
+            {
+                'id': sha1,
+                'tool_name': self.tool_name,
+                'tool_version': self.tool_version
+            } for sha1 in sha1s
+        ))
 
     def index_content(self, sha1, raw_content):
         """Index sha1s' content and store result.
@@ -114,9 +126,11 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
 
         result = run_ctags(content_path,
                            lang=ctags_lang,
-                           ctags_binary=self.ctags_binary)
+                           ctags_command=self.ctags_command)
         ctags.update({
             'ctags': list(result),
+            'tool_name': self.tool_name,
+            'tool_version': self.tool_version,
         })
 
         self.cleanup(content_path)
