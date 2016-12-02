@@ -52,14 +52,31 @@ class ContentLanguageIndexer(BaseIndexer):
     - store result in storage
 
     """
+    CONFIG_BASE_FILENAME = 'indexer/language'
+
+    ADDITIONAL_CONFIG = {
+        'tool': ('dict', {
+            'name': 'pygments',
+            'version': '2.0.1+dfsg-1.1+deb8u1',
+        }),
+    }
+
     def __init__(self):
         super().__init__()
+        self.tool_name = self.config['tool']['name']
+        self.tool_version = self.config['tool']['version']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.storage.content_language_missing(sha1s)
+        yield from self.storage.content_language_missing((
+            {
+                'id': sha1,
+                'tool_name': self.tool_name,
+                'tool_version': self.tool_version
+            } for sha1 in sha1s
+        ))
 
     def index_content(self, sha1, raw_content):
         """Index sha1s' content and store result.
@@ -77,6 +94,8 @@ class ContentLanguageIndexer(BaseIndexer):
         result = compute_language(raw_content)
         result.update({
             'id': sha1,
+            'tool_name': self.tool_name,
+            'tool_version': self.tool_version,
         })
 
         return result
