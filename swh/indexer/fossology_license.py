@@ -47,9 +47,9 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
     ADDITIONAL_CONFIG = {
         'workdir': ('str', '/tmp/swh/indexer.fossology.license'),
         'tool': ('dict', {
-            'cli': '/usr/local/bin/nomossa',
             'name': 'nomos',
-            'version': '3.1.0rc2-31-ga2cbb8c'
+            'version': '3.1.0rc2-31-ga2cbb8c',
+            'command': '/usr/bin/nomossa',
         }),
     }
 
@@ -58,7 +58,7 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
     def __init__(self):
         super().__init__()
         self.working_directory = self.config['workdir']
-        self.tool = self.config['tool']['cli']
+        self.tool = self.config['tool']['command']
         self.tool_name = self.config['tool']['name']
         self.tool_version = self.config['tool']['version']
 
@@ -66,7 +66,13 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.storage.content_fossology_license_missing(sha1s)
+        yield from self.storage.content_fossology_license_missing((
+            {
+                'id': sha1,
+                'tool_name': self.tool_name,
+                'tool_version': self.tool_version
+            } for sha1 in sha1s
+        ))
 
     def index_content(self, sha1, content):
         """Index sha1s' content and store result.
