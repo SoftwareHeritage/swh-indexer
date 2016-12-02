@@ -45,7 +45,11 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
     ADDITIONAL_CONFIG = {
         'workdir': ('str', '/tmp/swh/indexer.mimetype'),
         'destination_queue': (
-            'str', 'swh.indexer.tasks.SWHOrchestratorTextContentsTask')
+            'str', 'swh.indexer.tasks.SWHOrchestratorTextContentsTask'),
+        'tool': ('dict', {
+            'name': 'file',
+            'version': '5.22'
+        }),
     }
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'
@@ -55,12 +59,20 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
         self.working_directory = self.config['workdir']
         destination_queue = self.config['destination_queue']
         self.task_destination = app.tasks[destination_queue]
+        self.tool_name = self.config['tool']['name']
+        self.tool_version = self.config['tool']['version']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.storage.content_mimetype_missing(sha1s)
+        yield from self.storage.content_mimetype_missing((
+            {
+                'id': sha1,
+                'tool_name': self.tool_name,
+                'tool_version': self.tool_version
+            } for sha1 in sha1s
+        ))
 
     def index_content(self, sha1, content):
         """Index sha1s' content and store result.
@@ -84,6 +96,8 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
         properties = compute_mimetype_encoding(content_path)
         properties.update({
             'id': sha1,
+            'tool_name': self.tool_name,
+            'tool_version': self.tool_version,
         })
 
         self.cleanup(content_path)
