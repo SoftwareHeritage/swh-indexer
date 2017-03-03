@@ -11,6 +11,7 @@ from .mimetype import ContentMimetypeIndexer
 from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import ContentFossologyLicenseIndexer
+from .recompute import RecomputeChecksums
 
 
 class SWHOrchestratorAllContentsTask(Task):
@@ -73,3 +74,13 @@ class SWHContentFossologyLicenseTask(Task):
 
     def run(self, *args, **kwargs):
         ContentFossologyLicenseIndexer().run(*args, **kwargs)
+
+
+class SWHRecomputeChecksums(Task):
+    """Task which recomputes hashes and possibly new ones.
+
+    """
+    task_queue = 'swh_indexer_recompute_content_hashes'
+
+    def run(self, *args, **kwargs):
+        RecomputeChecksums().run(*args, **kwargs)
