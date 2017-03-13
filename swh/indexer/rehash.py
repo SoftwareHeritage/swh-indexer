@@ -11,7 +11,7 @@ from swh.storage import get_storage
 
 
 class RecomputeChecksums(SWHConfig):
-    """Class in charge of (re)computing blob's hashes.
+    """Class in charge of (re)computing content's hashes.
 
     Corrupted contents won't be updated.
 
@@ -20,11 +20,12 @@ class RecomputeChecksums(SWHConfig):
     - primary_key ([str]): List of keys composing the primary key of a
       content in the storage db.
 
-    - compute_new_checksums ([str]): list of hash algorithms that
+    - compute_checksums ([str]): list of hash algorithms that
       swh.model.hashutil.hashdata function should be able to deal
-      with.
+      with. For variable-length checksums a desired checksum length
+      should also be provided (e.g: blake2:512)
 
-    - recompute_existing_checksums (bool): a boolean to notify that we
+    - recompute_checksums (bool): a boolean to notify that we
       also want to recompute existing hash (as defined in
       swh.model.hashutil.ALGORITHMS). As an important design detail,
       there is currently one limitation about sha1. Since it's a
@@ -41,12 +42,12 @@ class RecomputeChecksums(SWHConfig):
         }),
         # the set of checksums that should be computed. For
         # variable-length checksums a desired checksum length should also
-        # be provided.
-        'compute_new_checksums': (
-            'list[str]', ['sha3:224', 'blake2:512']),
+        # be provided. Examples: 'sha3:224', 'blake2:512', 'sha512'
+        'compute_checksums': (
+            'list[str]', []),
         # whether checksums that already exist in the DB should be
         # recomputed/updated or left untouched
-        'recompute_existing_checksums': ('bool', 'False'),
+        'recompute_checksums': ('bool', False),
         # primary key used for content. This will serve to check the
         # data is not corrupted. The content sent should reflect the
         # keys defined here.
@@ -57,14 +58,14 @@ class RecomputeChecksums(SWHConfig):
         'batch_size_update': ('int', 100)
     }
 
-    CONFIG_BASE_FILENAME = 'storage/recompute'
+    CONFIG_BASE_FILENAME = 'storage/rehash'
 
     def __init__(self):
         self.config = self.parse_config_file()
         self.storage = get_storage(**self.config['storage'])
-        self.compute_new_checksums = self.config['compute-new-checkums']
-        self.recompute_existing_checksums = set(self.config[
-            'recompute_existing_checksums'])
+        self.compute_checksums = self.config['compute_checksums']
+        self.recompute_checksums = set(self.config[
+            'recompute_checksums'])
         self.primary_key = set(self.config['primary_key'])
         self.batch_size_retrieve_content = self.config[
             'batch_size_retrieve_content']
@@ -75,6 +76,9 @@ class RecomputeChecksums(SWHConfig):
             if key not in hashutil.ALGORITHMS:
                 raise ValueError('Primary key should be in %s' %
                                  hashutil.ALGORITHMS)
+
+        if not self.compute_checksums:
+            raise ValueError('Checksums list should not be empty.')
 
     def get_new_contents_metadata(self, all_contents, checksum_algorithms):
         """Retrieve raw contents and compute new checksums on the
@@ -123,8 +127,8 @@ class RecomputeChecksums(SWHConfig):
 
         """
         # Determine checksums to compute
-        checksum_algorithms = self.compute_new_checksums
-        if self.recompute_existing_checksums:
+        checksum_algorithms = self.compute_checksums
+        if self.recompute_checksums:
             checksum_algorithms = checksum_algorithms + set(
                 hashutil.ALGORITHMS)
 
