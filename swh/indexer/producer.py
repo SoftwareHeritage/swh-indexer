@@ -1,4 +1,4 @@
-# Copyright (C) 2016  The Software Heritage developers
+# Copyright (C) 2016-2017  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -7,13 +7,14 @@ import click
 import random
 import sys
 
-from swh.core import utils, hashutil
+from swh.core import utils
+from swh.model import hashutil
 from swh.scheduler.celery_backend.config import app
 
 
 def read_from_stdin():
     for sha1 in sys.stdin:
-        yield hashutil.hex_to_hash(sha1.strip())
+        yield hashutil.hash_to_bytes(sha1.strip())
 
 
 def gen_sha1(batch):
