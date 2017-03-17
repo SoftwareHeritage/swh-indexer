@@ -20,6 +20,7 @@ TASK_NAMES = {
     'language': 'swh.indexer.tasks.SWHContentLanguageTask',
     'ctags': 'swh.indexer.tasks.SWHCtagsTask',
     'fossology_license': 'swh.indexer.tasks.SWHContentFossologyLicenseTask',
+    'rehash': 'swh.indexer.tasks.SWHRecomputeChecksums',
 }
 
 
