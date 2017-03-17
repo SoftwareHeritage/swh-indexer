@@ -9,7 +9,7 @@ import sys
 
 from swh.core import utils
 from swh.model import hashutil
-from swh.scheduler.celery_backend.config import app
+from swh.scheduler.utils import get_task
 
 
 def read_from_stdin():
@@ -58,7 +58,7 @@ def main(limit, batch, task_name):
               ', '.join(possible_tasks))
         return
 
-    task = app.tasks[TASK_NAMES[task_name]]
+    task = get_task(TASK_NAMES[task_name])
 
     if limit:
         run_with_limit(task, int(limit), batch)
