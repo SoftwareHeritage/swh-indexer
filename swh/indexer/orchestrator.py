@@ -1,4 +1,4 @@
-# Copyright (C) 2016  The Software Heritage developers
+# Copyright (C) 2016-2017  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -8,7 +8,7 @@ import random
 from celery import group
 
 from swh.core.config import SWHConfig
-from swh.scheduler.celery_backend.config import app
+from swh.scheduler import utils
 from . import TASK_NAMES, INDEXER_CLASSES
 
 
@@ -53,8 +53,9 @@ class BaseOrchestratorIndexer(SWHConfig):
 
             # send message for indexer to compute and store results on
             # filtered sha1s
-            celery_task = app.tasks[task_name].s(sha1s=sha1s_filtered,
-                                                 policy_update='ignore-dups')
+            celery_task = utils.get_task(task_name).s(
+                sha1s=sha1s_filtered,
+                policy_update='ignore-dups')
             celery_tasks.append(celery_task)
 
         return celery_tasks
@@ -66,8 +67,9 @@ class BaseOrchestratorIndexer(SWHConfig):
         celery_tasks = []
         for task_name, _ in self.indexers.items():
             # send message for indexer to compute and store results
-            celery_task = app.tasks[task_name].s(sha1s=sha1s,
-                                                 policy_update='update-dups')
+            celery_task = utils.get_task(task_name).s(
+                sha1s=sha1s,
+                policy_update='update-dups')
             celery_tasks.append(celery_task)
 
         return celery_tasks

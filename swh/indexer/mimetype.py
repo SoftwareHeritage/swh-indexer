@@ -7,7 +7,7 @@ import click
 import subprocess
 
 from swh.model import hashutil
-from swh.scheduler.celery_backend.config import app
+from swh.scheduler import utils
 
 from .indexer import BaseIndexer, DiskIndexer
 
@@ -58,7 +58,7 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
         super().__init__()
         self.working_directory = self.config['workdir']
         destination_queue = self.config['destination_queue']
-        self.task_destination = app.tasks[destination_queue]
+        self.task_destination = utils.get_task(destination_queue)
         self.tool_name = self.config['tool']['name']
         self.tool_version = self.config['tool']['version']
 
