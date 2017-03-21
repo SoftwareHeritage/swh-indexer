@@ -34,9 +34,8 @@ class RecomputeChecksums(SWHConfig):
               'url': 'http://localhost:5002/'
             },
         }),
-        # the set of checksums that should be computed. For
-        # variable-length checksums a desired checksum length should also
-        # be provided. Examples: 'sha1_git', 'sha3:224', 'blake2:512', 'sha512'
+        # the set of checksums that should be computed.
+        # Examples: 'sha1_git', 'blake2b512', 'blake2s256'
         'compute_checksums': (
             'list[str]', []),
         # whether checksums that already exist in the DB should be
