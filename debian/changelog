@@ -1,3 +1,10 @@
+swh-indexer (0.0.18-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.18
+  * Add new rehash indexer
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 26 Apr 2017 15:23:02 +0200
+
 swh-indexer (0.0.17-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.17
