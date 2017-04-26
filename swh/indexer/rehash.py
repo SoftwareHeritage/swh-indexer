@@ -9,6 +9,8 @@ from swh.model import hashutil
 from swh.core import utils
 from swh.core.config import SWHConfig
 from swh.storage import get_storage
+from swh.objstorage import get_objstorage
+from swh.objstorage.exc import ObjNotFoundError
 
 
 class RecomputeChecksums(SWHConfig):
@@ -28,10 +30,19 @@ class RecomputeChecksums(SWHConfig):
 
     """
     DEFAULT_CONFIG = {
+        # The storage to read from or update metadata to
         'storage': ('dict', {
             'cls': 'remote',
             'args': {
               'url': 'http://localhost:5002/'
+            },
+        }),
+        # The objstorage to read contents' data from
+        'objstorage': ('dict', {
+            'cls': 'pathslicing',
+            'args': {
+                'root': '/srv/softwareheritage/objects',
+                'slicing': '0:2/2:4/4:6',
             },
         }),
         # the set of checksums that should be computed.
@@ -52,6 +63,7 @@ class RecomputeChecksums(SWHConfig):
     def __init__(self):
         self.config = self.parse_config_file()
         self.storage = get_storage(**self.config['storage'])
+        self.objstorage = get_objstorage(**self.config['objstorage'])
         self.compute_checksums = self.config['compute_checksums']
         self.recompute_checksums = self.config[
             'recompute_checksums']
@@ -93,14 +105,14 @@ class RecomputeChecksums(SWHConfig):
                 self._read_content_ids(contents))
 
             for content in contents:
-                # Retrieve content's data
-                raw_contents = list(self.storage.content_get(
-                    [content['sha1']]))
-                raw_content = raw_contents[0]
-                if not raw_content:
+                try:
+                    raw_content = self.objstorage.get(content['sha1'])
+                except ObjNotFoundError:
+                    print('%s not found!' % content['sha1'])
                     continue
 
-                raw_content = raw_content['data']
+                if not raw_content:
+                    continue
 
                 if self.recompute_checksums:    # Recompute checksums provided
                                                 # in compute_checksums options
