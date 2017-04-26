@@ -38,16 +38,16 @@ def run_with_limit(task, limit, batch, dict_with_key=None):
     count = 0
     for sha1s in gen_sha1(batch, dict_with_key):
         count += len(sha1s)
-        print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
         task.delay(sha1s)
+        print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
         if count >= limit:
             return
 
 
 def run(task, batch, dict_with_key=None):
     for sha1s in gen_sha1(batch, dict_with_key):
-        print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
         task.delay(sha1s)
+        print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
 
 
 @click.command(help='Read sha1 from stdin and send them for indexing')
