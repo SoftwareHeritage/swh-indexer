@@ -80,7 +80,7 @@ class SWHRecomputeChecksums(Task):
     """Task which recomputes hashes and possibly new ones.
 
     """
-    task_queue = 'swh_indexer_rehash'
+    task_queue = 'swh_indexer_content_rehash'
 
     def run(self, *args, **kwargs):
         RecomputeChecksums().run(*args, **kwargs)
