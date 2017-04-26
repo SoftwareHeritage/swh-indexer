@@ -4,6 +4,7 @@ LICENSE
 MANIFEST.in
 Makefile
 README
+requirements-swh.txt
 requirements.txt
 setup.py
 version.txt
@@ -26,4 +27,5 @@ swh/indexer/language.py
 swh/indexer/mimetype.py
 swh/indexer/orchestrator.py
 swh/indexer/producer.py
+swh/indexer/rehash.py
 swh/indexer/tasks.py

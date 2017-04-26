@@ -1,4 +1,4 @@
-# Copyright (C) 2016  The Software Heritage developers
+# Copyright (C) 2016-2017  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,8 +6,8 @@
 import click
 import subprocess
 
-from swh.core import hashutil
-from swh.scheduler.celery_backend.config import app
+from swh.model import hashutil
+from swh.scheduler import utils
 
 from .indexer import BaseIndexer, DiskIndexer
 
@@ -58,7 +58,7 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
         super().__init__()
         self.working_directory = self.config['workdir']
         destination_queue = self.config['destination_queue']
-        self.task_destination = app.tasks[destination_queue]
+        self.task_destination = utils.get_task(destination_queue)
         self.tool_name = self.config['tool']['name']
         self.tool_version = self.config['tool']['version']
 
@@ -140,7 +140,8 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
               - encoding (bytes): encoding in bytes
 
         """
-        self.task_destination.delay(list(self._filter_text(results)))
+        if self.task_destination:
+            self.task_destination.delay(list(self._filter_text(results)))
 
 
 @click.command()
