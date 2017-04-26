@@ -140,7 +140,8 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
               - encoding (bytes): encoding in bytes
 
         """
-        self.task_destination.delay(list(self._filter_text(results)))
+        if self.task_destination:
+            self.task_destination.delay(list(self._filter_text(results)))
 
 
 @click.command()
