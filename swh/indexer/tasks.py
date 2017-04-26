@@ -1,4 +1,4 @@
-# Copyright (C) 2016  The Software Heritage developers
+# Copyright (C) 2016-2017  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -11,6 +11,7 @@ from .mimetype import ContentMimetypeIndexer
 from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import ContentFossologyLicenseIndexer
+from .rehash import RecomputeChecksums
 
 
 class SWHOrchestratorAllContentsTask(Task):
@@ -73,3 +74,13 @@ class SWHContentFossologyLicenseTask(Task):
 
     def run(self, *args, **kwargs):
         ContentFossologyLicenseIndexer().run(*args, **kwargs)
+
+
+class SWHRecomputeChecksums(Task):
+    """Task which recomputes hashes and possibly new ones.
+
+    """
+    task_queue = 'swh_indexer_content_rehash'
+
+    def run(self, *args, **kwargs):
+        RecomputeChecksums().run(*args, **kwargs)
