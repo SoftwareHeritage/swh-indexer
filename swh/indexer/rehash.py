@@ -58,7 +58,7 @@ class RecomputeChecksums(SWHConfig):
         'batch_size_update': ('int', 100)
     }
 
-    CONFIG_BASE_FILENAME = 'storage/rehash'
+    CONFIG_BASE_FILENAME = 'indexer/rehash'
 
     def __init__(self):
         self.config = self.parse_config_file()
