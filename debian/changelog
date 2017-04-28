@@ -1,3 +1,13 @@
+swh-indexer (0.0.20-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.20
+  * swh.indexer.rehash:
+  * Improve reading from objstorage only when needed
+  * Fix empty file use case (which was skipped)
+  * Add logging
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 28 Apr 2017 09:39:09 +0200
+
 swh-indexer (0.0.19-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.19
