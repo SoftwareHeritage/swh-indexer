@@ -3,6 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import logging
+
 from collections import defaultdict
 
 from swh.model import hashutil
@@ -71,6 +73,7 @@ class RecomputeChecksums(SWHConfig):
             'batch_size_retrieve_content']
         self.batch_size_update = self.config[
             'batch_size_update']
+        self.log = logging.getLogger('swh.indexer.rehash')
 
         if not self.compute_checksums:
             raise ValueError('Checksums list should not be empty.')
@@ -105,15 +108,6 @@ class RecomputeChecksums(SWHConfig):
                 self._read_content_ids(contents))
 
             for content in contents:
-                try:
-                    raw_content = self.objstorage.get(content['sha1'])
-                except ObjNotFoundError:
-                    print('%s not found!' % content['sha1'])
-                    continue
-
-                if not raw_content:
-                    continue
-
                 if self.recompute_checksums:    # Recompute checksums provided
                                                 # in compute_checksums options
                     checksums_to_compute = list(self.compute_checksums)
@@ -123,6 +117,14 @@ class RecomputeChecksums(SWHConfig):
                                             if not content.get(h)]
 
                 if not checksums_to_compute:  # Nothing to recompute
+                    self.log.warn('No checksums to compute, skip')
+                    continue
+
+                try:
+                    raw_content = self.objstorage.get(content['sha1'])
+                except ObjNotFoundError:
+                    self.log.warn('Content %s not found in objstorage!' %
+                                  content['sha1'])
                     continue
 
                 # Actually computing the checksums for that content
