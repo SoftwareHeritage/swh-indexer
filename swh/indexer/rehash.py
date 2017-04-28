@@ -105,15 +105,6 @@ class RecomputeChecksums(SWHConfig):
                 self._read_content_ids(contents))
 
             for content in contents:
-                try:
-                    raw_content = self.objstorage.get(content['sha1'])
-                except ObjNotFoundError:
-                    print('%s not found!' % content['sha1'])
-                    continue
-
-                if not raw_content:
-                    continue
-
                 if self.recompute_checksums:    # Recompute checksums provided
                                                 # in compute_checksums options
                     checksums_to_compute = list(self.compute_checksums)
@@ -123,6 +114,15 @@ class RecomputeChecksums(SWHConfig):
                                             if not content.get(h)]
 
                 if not checksums_to_compute:  # Nothing to recompute
+                    continue
+
+                try:
+                    raw_content = self.objstorage.get(content['sha1'])
+                except ObjNotFoundError:
+                    print('%s not found!' % content['sha1'])
+                    continue
+
+                if not raw_content:
                     continue
 
                 # Actually computing the checksums for that content
