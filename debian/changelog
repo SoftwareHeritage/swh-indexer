@@ -1,3 +1,10 @@
+swh-indexer (0.0.21-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.21
+  * swh.indexer.rehash: Actually make the worker log
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 02 May 2017 14:28:55 +0200
+
 swh-indexer (0.0.20-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.20
