@@ -4,37 +4,38 @@
 # See top-level LICENSE file for more information
 
 import click
-import subprocess
 
-from swh.model import hashutil
+from subprocess import Popen, PIPE
 from swh.scheduler import utils
 
-from .indexer import BaseIndexer, DiskIndexer
+from .indexer import BaseIndexer
 
 
-def compute_mimetype_encoding(path):
-    """Determine mimetype and encoding from file at path.
+def compute_mimetype_encoding(raw_content):
+    """Determine mimetype and encoding from the raw content.
 
     Args:
-        path: filepath to determine the mime type
+        raw_content (bytes): content's raw data
 
     Returns:
         A dict with mimetype and encoding key and corresponding values.
 
     """
-    cmd = ['file', '--mime', path]
-    properties = subprocess.check_output(cmd)
-    if properties:
-        res = properties.split(b': ')[1].strip().split(b'; ')
-        mimetype = res[0]
-        encoding = res[1].split(b'=')[1]
-        return {
-            'mimetype': mimetype,
-            'encoding': encoding
-        }
+    with Popen(['file', '--mime', '-'], stdin=PIPE,
+               stdout=PIPE, stderr=PIPE) as p:
+        properties, _ = p.communicate(raw_content)
+
+        if properties:
+            res = properties.split(b': ')[1].strip().split(b'; ')
+            mimetype = res[0]
+            encoding = res[1].split(b'=')[1]
+            return {
+                'mimetype': mimetype,
+                'encoding': encoding
+            }
 
 
-class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
+class ContentMimetypeIndexer(BaseIndexer):
     """Indexer in charge of:
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
@@ -43,9 +44,9 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 
     """
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp/swh/indexer.mimetype'),
-        'destination_queue': (
-            'str', 'swh.indexer.tasks.SWHOrchestratorTextContentsTask'),
+        # chained queue message, e.g:
+        # swh.indexer.tasks.SWHOrchestratorTextContentsTask
+        'destination_queue': ('str', None),
         'tool': ('dict', {
             'name': 'file',
             'version': '5.22'
@@ -56,9 +57,11 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 
     def __init__(self):
         super().__init__()
-        self.working_directory = self.config['workdir']
-        destination_queue = self.config['destination_queue']
-        self.task_destination = utils.get_task(destination_queue)
+        destination_queue = self.config.get('destination_queue')
+        if destination_queue:
+            self.task_destination = utils.get_task(destination_queue)
+        else:
+            self.task_destination = None
         self.tool_name = self.config['tool']['name']
         self.tool_version = self.config['tool']['version']
 
@@ -74,12 +77,12 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
             } for sha1 in sha1s
         ))
 
-    def index_content(self, sha1, content):
+    def index_content(self, sha1, raw_content):
         """Index sha1s' content and store result.
 
         Args:
             sha1 (bytes): content's identifier
-            content (bytes): raw content in bytes
+            raw_content (bytes): raw content in bytes
 
         Returns:
             A dict, representing a content_mimetype, with keys:
@@ -88,19 +91,13 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
               - encoding (bytes): encoding in bytes
 
         """
-        filename = hashutil.hash_to_hex(sha1)
-        content_path = self.write_to_temp(
-            filename=filename,
-            data=content)
-
-        properties = compute_mimetype_encoding(content_path)
+        properties = compute_mimetype_encoding(raw_content)
         properties.update({
             'id': sha1,
             'tool_name': self.tool_name,
             'tool_version': self.tool_version,
         })
 
-        self.cleanup(content_path)
         return properties
 
     def persist_index_computations(self, results, policy_update):
@@ -147,7 +144,10 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 @click.command()
 @click.option('--path', help="Path to execute index on")
 def main(path):
-    print(compute_mimetype_encoding(path))
+    with open(path, 'rb') as f:
+        raw_content = f.read()
+
+    print(compute_mimetype_encoding(raw_content))
 
 
 if __name__ == '__main__':
