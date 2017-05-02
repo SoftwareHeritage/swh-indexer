@@ -43,9 +43,9 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 
     """
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp/swh/indexer.mimetype'),
-        'destination_queue': (
-            'str', 'swh.indexer.tasks.SWHOrchestratorTextContentsTask'),
+        # chained queue message, e.g:
+        # swh.indexer.tasks.SWHOrchestratorTextContentsTask
+        'destination_queue': ('str', None),
         'tool': ('dict', {
             'name': 'file',
             'version': '5.22'
@@ -56,9 +56,11 @@ class ContentMimetypeIndexer(BaseIndexer, DiskIndexer):
 
     def __init__(self):
         super().__init__()
-        self.working_directory = self.config['workdir']
-        destination_queue = self.config['destination_queue']
-        self.task_destination = utils.get_task(destination_queue)
+        destination_queue = self.config.get('destination_queue')
+        if destination_queue:
+            self.task_destination = utils.get_task(destination_queue)
+        else:
+            self.task_destination = None
         self.tool_name = self.config['tool']['name']
         self.tool_version = self.config['tool']['version']
 
