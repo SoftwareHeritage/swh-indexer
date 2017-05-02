@@ -117,14 +117,13 @@ class RecomputeChecksums(SWHConfig):
                                             if not content.get(h)]
 
                 if not checksums_to_compute:  # Nothing to recompute
-                    self.log.warn('No checksums to compute, skip')
                     continue
 
                 try:
                     raw_content = self.objstorage.get(content['sha1'])
                 except ObjNotFoundError:
-                    self.log.warn('Content %s not found in objstorage!' %
-                                  content['sha1'])
+                    self.log.warning('Content %s not found in objstorage!' %
+                                     content['sha1'])
                     continue
 
                 # Actually computing the checksums for that content
