@@ -3,6 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import logging
+
 from swh.scheduler.task import Task
 
 from .orchestrator import OrchestratorAllContentsIndexer
@@ -12,6 +14,8 @@ from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import ContentFossologyLicenseIndexer
 from .rehash import RecomputeChecksums
+
+logging.basicConfig(level=logging.INFO)
 
 
 class SWHOrchestratorAllContentsTask(Task):
