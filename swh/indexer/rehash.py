@@ -150,7 +150,7 @@ class RecomputeChecksums(SWHConfig):
                 self.batch_size_update):
 
             groups = defaultdict(list)
-            for content, keys_to_update in list(data):
+            for content, keys_to_update in data:
                 keys = ','.join(keys_to_update)
                 groups[keys].append(content)
 
