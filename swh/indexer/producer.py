@@ -34,28 +34,44 @@ def gen_sha1(batch, dict_with_key=None):
         yield from _gen()
 
 
-def run_with_limit(task, limit, batch, dict_with_key=None):
+def make_function_execute(task, sync):
+    """Compute a function which executes computations on sha1s
+       synchronously or asynchronously.
+
+    """
+    if sync:
+        return (lambda sha1s, task=task: task(sha1s))
+    return (lambda sha1s, task=task: task.delay(sha1s))
+
+
+def run_with_limit(task, limit, batch, dict_with_key=None, sync=False):
+    execute_fn = make_function_execute(task, sync)
+
     count = 0
     for sha1s in gen_sha1(batch, dict_with_key):
         count += len(sha1s)
-        task.delay(sha1s)
+        execute_fn(sha1s)
         print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
         if count >= limit:
             return
 
 
-def run(task, batch, dict_with_key=None):
+def run(task, batch, dict_with_key=None, sync=False):
+    execute_fn = make_function_execute(task, sync)
+
     for sha1s in gen_sha1(batch, dict_with_key):
-        task.delay(sha1s)
+        execute_fn(sha1s)
         print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
 
 
 @click.command(help='Read sha1 from stdin and send them for indexing')
 @click.option('--limit', default=None, help='Limit the number of data to read')
 @click.option('--batch', default='10', help='Group data by batch')
-@click.option('--task-name', default='orchestrator_all', help='')
+@click.option('--task-name', default='orchestrator_all', help='Task\'s name')
+@click.option('--sync/--nosync', default=False,
+              help='Make the producer actually execute the routine.')
 @click.option('--dict-with-key', default=None)
-def main(limit, batch, task_name, dict_with_key):
+def main(limit, batch, task_name, sync, dict_with_key):
     """Read sha1 from stdin and send them for indexing.
 
     By default, send directly list of hashes.  Using the
@@ -76,9 +92,11 @@ def main(limit, batch, task_name, dict_with_key):
     task = get_task(TASK_NAMES[task_name])
 
     if limit:
-        run_with_limit(task, int(limit), batch, dict_with_key)
+        run_with_limit(task, int(limit), batch,
+                       dict_with_key=dict_with_key, sync=sync)
     else:
-        run(task, batch, dict_with_key)
+        run(task, batch,
+            dict_with_key=dict_with_key, sync=sync)
 
 
 if __name__ == '__main__':
