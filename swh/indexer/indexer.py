@@ -21,28 +21,31 @@ class BaseIndexer(SWHConfig,
     """Base class for indexers to inherit from.
 
     The main entry point is the `run` functions which is in charge to
-    trigger the computations on the sha1s batch receiived as
-    parameter.
+    trigger the computations on the sha1s batch received.
 
     Indexers can:
     - filter out sha1 whose data has already been indexed.
     - retrieve sha1's content from objstorage, index this content then
       store the result in storage.
 
-    Thus the following interface to implement per inheriting class:
-      - def filter_contents(self, sha1s): filter out data already
-        indexed (in storage)
+    To implement a new index, inherit from this class and implement
+    the following functions:
 
-      - def index_content(self, sha1, content): compute index on sha1 with
-        data content (stored by sha1 in objstorage) and store result
-        in storage.
+      - def filter_contents(self, sha1s): filter out data already
+        indexed (in storage). This function is used by the
+        orchestrator and not directly by the indexer
+        (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
+
+      - def index_content(self, sha1, raw_content): compute index on
+        sha1 with data raw_content (retrieved in the objstorage by the
+        sha1 key) and return the resulting index computation.
 
       - def persist_index_computations(self, results, policy_update):
-        the function to store the results (as per index_content
-        defined).
+        persist the results of multiple index computations in the
+        storage.
 
     """
-    CONFIG_BASE_FILENAME = 'indexer/base'
+    CONFIG = 'indexer/base'
 
     DEFAULT_CONFIG = {
         'storage': ('dict', {
