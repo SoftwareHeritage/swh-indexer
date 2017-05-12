@@ -15,7 +15,10 @@ from . import TASK_NAMES, INDEXER_CLASSES
 class BaseOrchestratorIndexer(SWHConfig):
     """The indexer orchestrator is in charge of:
     - reading batch of contents (list of sha1s as bytes)
-    - according to its configuration, filter or not the contents
+
+    - according to its configuration (flag check_presence), filter (or
+      not) the contents already present
+
     - and then broadcast those contents to indexers
 
     """
