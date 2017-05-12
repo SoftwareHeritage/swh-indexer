@@ -14,6 +14,7 @@ from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
 from swh.storage import get_storage
+from swh.scheduler.utils import get_task
 
 
 class BaseIndexer(SWHConfig,
@@ -54,6 +55,9 @@ class BaseIndexer(SWHConfig,
             'args': {'root': '/tmp/softwareheritage/objects',
                      'slicing': '0:2/2:4/4:6'}
         }),
+        # queue to reschedule if problem (none for no rescheduling,
+        # the default)
+        'rescheduling_task': ('str', None),
         'objstorage': ('dict', {
             'cls': 'multiplexer',
             'args': {
@@ -104,6 +108,12 @@ class BaseIndexer(SWHConfig,
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         storage = self.config['storage']
         self.storage = get_storage(storage['cls'], storage['args'])
+        rescheduling_task = self.config['rescheduling_task']
+        if rescheduling_task:
+            self.rescheduling_task = get_task(rescheduling_task)
+        else:
+            self.rescheduling_task = None
+
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
         l.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
@@ -181,19 +191,24 @@ class BaseIndexer(SWHConfig,
 
         """
         results = []
-        for sha1 in sha1s:
-            try:
-                raw_content = self.objstorage.get(sha1)
-            except ObjNotFoundError:
-                self.log.warn('Content %s not found in objstorage' %
-                              hashutil.hash_to_hex(sha1))
-                continue
-            res = self.index_content(sha1, raw_content)
-            if res:  # If no results, skip it
-                results.append(res)
+        try:
+            for sha1 in sha1s:
+                try:
+                    raw_content = self.objstorage.get(sha1)
+                except ObjNotFoundError:
+                    self.log.warn('Content %s not found in objstorage' %
+                                  hashutil.hash_to_hex(sha1))
+                    continue
+                res = self.index_content(sha1, raw_content)
+                if res:  # If no results, skip it
+                    results.append(res)
 
-        self.persist_index_computations(results, policy_update)
-        self.next_step(results)
+            self.persist_index_computations(results, policy_update)
+            self.next_step(results)
+        except Exception as e:
+            if self.rescheduling_task:
+                self.log.warn('Rescheduling batch due to error: %s' % e)
+                self.rescheduling_task.delay(sha1s, policy_update)
 
 
 class DiskIndexer:
