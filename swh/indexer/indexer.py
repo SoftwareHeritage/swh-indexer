@@ -14,6 +14,7 @@ from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
 from swh.storage import get_storage
+from swh.scheduler.utils import get_task
 
 
 class BaseIndexer(SWHConfig,
@@ -21,28 +22,31 @@ class BaseIndexer(SWHConfig,
     """Base class for indexers to inherit from.
 
     The main entry point is the `run` functions which is in charge to
-    trigger the computations on the sha1s batch receiived as
-    parameter.
+    trigger the computations on the sha1s batch received.
 
     Indexers can:
     - filter out sha1 whose data has already been indexed.
     - retrieve sha1's content from objstorage, index this content then
       store the result in storage.
 
-    Thus the following interface to implement per inheriting class:
-      - def filter_contents(self, sha1s): filter out data already
-        indexed (in storage)
+    To implement a new index, inherit from this class and implement
+    the following functions:
 
-      - def index_content(self, sha1, content): compute index on sha1 with
-        data content (stored by sha1 in objstorage) and store result
-        in storage.
+      - def filter_contents(self, sha1s): filter out data already
+        indexed (in storage). This function is used by the
+        orchestrator and not directly by the indexer
+        (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
+
+      - def index_content(self, sha1, raw_content): compute index on
+        sha1 with data raw_content (retrieved in the objstorage by the
+        sha1 key) and return the resulting index computation.
 
       - def persist_index_computations(self, results, policy_update):
-        the function to store the results (as per index_content
-        defined).
+        persist the results of multiple index computations in the
+        storage.
 
     """
-    CONFIG_BASE_FILENAME = 'indexer/base'
+    CONFIG = 'indexer/base'
 
     DEFAULT_CONFIG = {
         'storage': ('dict', {
@@ -51,6 +55,9 @@ class BaseIndexer(SWHConfig,
             'args': {'root': '/tmp/softwareheritage/objects',
                      'slicing': '0:2/2:4/4:6'}
         }),
+        # queue to reschedule if problem (none for no rescheduling,
+        # the default)
+        'rescheduling_task': ('str', None),
         'objstorage': ('dict', {
             'cls': 'multiplexer',
             'args': {
@@ -101,6 +108,12 @@ class BaseIndexer(SWHConfig,
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         storage = self.config['storage']
         self.storage = get_storage(storage['cls'], storage['args'])
+        rescheduling_task = self.config['rescheduling_task']
+        if rescheduling_task:
+            self.rescheduling_task = get_task(rescheduling_task)
+        else:
+            self.rescheduling_task = None
+
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
         l.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
@@ -178,19 +191,24 @@ class BaseIndexer(SWHConfig,
 
         """
         results = []
-        for sha1 in sha1s:
-            try:
-                raw_content = self.objstorage.get(sha1)
-            except ObjNotFoundError:
-                self.log.warn('Content %s not found in objstorage' %
-                              hashutil.hash_to_hex(sha1))
-                continue
-            res = self.index_content(sha1, raw_content)
-            if res:  # If no results, skip it
-                results.append(res)
+        try:
+            for sha1 in sha1s:
+                try:
+                    raw_content = self.objstorage.get(sha1)
+                except ObjNotFoundError:
+                    self.log.warn('Content %s not found in objstorage' %
+                                  hashutil.hash_to_hex(sha1))
+                    continue
+                res = self.index_content(sha1, raw_content)
+                if res:  # If no results, skip it
+                    results.append(res)
 
-        self.persist_index_computations(results, policy_update)
-        self.next_step(results)
+            self.persist_index_computations(results, policy_update)
+            self.next_step(results)
+        except Exception as e:
+            if self.rescheduling_task:
+                self.log.warn('Rescheduling batch due to error: %s' % e)
+                self.rescheduling_task.delay(sha1s, policy_update)
 
 
 class DiskIndexer:
