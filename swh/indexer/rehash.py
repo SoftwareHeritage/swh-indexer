@@ -121,8 +121,8 @@ class RecomputeChecksums(SWHConfig):
             try:
                 content_metadata = self.storage.content_get_metadata(
                     [s for s in contents_iter[0]])
-            except:
-                self.log.error(
+            except Exception:
+                self.log.exception(
                     'Problem when reading contents metadata. Rescheduling!')
                 self._reschedule([{'sha1': sha1} for sha1 in contents_iter[1]])
                 continue
@@ -179,7 +179,7 @@ class RecomputeChecksums(SWHConfig):
                 try:
                     self.storage.content_update(contents,
                                                 keys=keys)
-                except:
-                    self.log.error('Problem during update. Rescheduling!')
+                except Exception:
+                    self.log.exception('Problem during update. Rescheduling!')
                     self._reschedule([{'sha1': c['sha1']} for c in contents])
                     continue
