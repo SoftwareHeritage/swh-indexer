@@ -205,9 +205,11 @@ class BaseIndexer(SWHConfig,
 
             self.persist_index_computations(results, policy_update)
             self.next_step(results)
-        except Exception as e:
+        except Exception:
+            self.log.exception(
+                'Problem when reading contents metadata.')
             if self.rescheduling_task:
-                self.log.warn('Rescheduling batch due to error: %s' % e)
+                self.log.warn('Rescheduling batch')
                 self.rescheduling_task.delay(sha1s, policy_update)
 
 
