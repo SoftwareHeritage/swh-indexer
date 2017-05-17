@@ -1,3 +1,12 @@
+swh-indexer (0.0.26-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.26
+  * swh.indexer.orchestrator: Add batch size option per indexer
+  * Log caught exception in a unified manner
+  * Add rescheduling option (not by default) on rehash + indexers
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 17 May 2017 14:08:07 +0200
+
 swh-indexer (0.0.25-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.25
