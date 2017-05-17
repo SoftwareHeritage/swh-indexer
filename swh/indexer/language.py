@@ -1,11 +1,13 @@
-# Copyright (C) 2016  The Software Heritage developers
+# Copyright (C) 2016-2017  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 
+import io
+
 from pygments.lexers import guess_lexer
-from chardet import detect
+from chardet.universaldetector import UniversalDetector
 
 from .indexer import BaseIndexer
 
@@ -15,6 +17,31 @@ def _cleanup_classname(classname):
 
     """
     return classname.lower().replace(' ', '-')
+
+
+def _read_raw(raw_content, size=2048):
+    """Read raw content in chunk.
+
+    """
+    bs = io.BytesIO(raw_content)
+    while True:
+        chunk = bs.read(size)
+        if not chunk:
+            break
+        yield chunk
+
+
+def _detect_encoding(raw_content):
+    """Given a raw content, try and detect its encoding.
+
+    """
+    detector = UniversalDetector()
+    for chunk in _read_raw(raw_content):
+        detector.feed(chunk)
+        if detector.done:
+            break
+    detector.close()
+    return detector.result['encoding']
 
 
 def compute_language(raw_content):
@@ -30,8 +57,7 @@ def compute_language(raw_content):
 
     """
     try:
-        stats = detect(raw_content)
-        encoding = stats['encoding']
+        encoding = _detect_encoding(raw_content)
         content = raw_content.decode(encoding)
         lang = _cleanup_classname(
             guess_lexer(content).name)
