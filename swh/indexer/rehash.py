@@ -59,7 +59,9 @@ class RecomputeChecksums(SWHConfig):
         # Number of contents to retrieve blobs at the same time
         'batch_size_retrieve_content': ('int', 10),
         # Number of contents to update at the same time
-        'batch_size_update': ('int', 100)
+        'batch_size_update': ('int', 100),
+        # Rescheduling task on error (if None, nothing is done)
+        'rescheduling_task': ('str', None),
     }
 
     CONFIG_BASE_FILENAME = 'indexer/rehash'
@@ -76,7 +78,12 @@ class RecomputeChecksums(SWHConfig):
         self.batch_size_update = self.config[
             'batch_size_update']
         self.log = logging.getLogger('swh.indexer.rehash')
-        self.task = get_task('swh.indexer.tasks.SWHRecomputeChecksums')
+
+        rescheduling_task = self.config['rescheduling_task']
+        if rescheduling_task:
+            self.rescheduling_task = get_task(rescheduling_task)
+        else:
+            self.rescheduling_task = None
 
         if not self.compute_checksums:
             raise ValueError('Checksums list should not be empty.')
@@ -91,15 +98,6 @@ class RecomputeChecksums(SWHConfig):
                 h = hashutil.hash_to_bytes(h)
 
             yield h
-
-    def _reschedule(self, contents):
-        """Reschedule contents to the task.
-
-        Args:
-            contents ([dict]): dictionary of data to schedule back.
-
-        """
-        self.task.delay(contents)
 
     def get_new_contents_metadata(self, all_contents):
         """Retrieve raw contents and compute new checksums on the
@@ -123,8 +121,11 @@ class RecomputeChecksums(SWHConfig):
                     [s for s in contents_iter[0]])
             except Exception:
                 self.log.exception(
-                    'Problem when reading contents metadata. Rescheduling!')
-                self._reschedule([{'sha1': sha1} for sha1 in contents_iter[1]])
+                    'Problem when reading contents metadata.')
+                if self.rescheduling_task:
+                    self.log.warn('Rescheduling batch.')
+                    cs = [{'sha1': sha1} for sha1 in contents_iter[1]]
+                    self.rescheduling_task.delay(cs)
                 continue
 
             for content in content_metadata:
@@ -142,8 +143,8 @@ class RecomputeChecksums(SWHConfig):
                 try:
                     raw_content = self.objstorage.get(content['sha1'])
                 except ObjNotFoundError:
-                    self.log.warning('Content %s not found in objstorage!' %
-                                     content['sha1'])
+                    self.log.warn('Content %s not found in objstorage!' %
+                                  content['sha1'])
                     continue
 
                 # Actually computing the checksums for that content
@@ -180,6 +181,9 @@ class RecomputeChecksums(SWHConfig):
                     self.storage.content_update(contents,
                                                 keys=keys)
                 except Exception:
-                    self.log.exception('Problem during update. Rescheduling!')
-                    self._reschedule([{'sha1': c['sha1']} for c in contents])
+                    self.log.exception('Problem during update.')
+                    if self.rescheduling_task:
+                        self.log.warn('Rescheduling batch.')
+                        cs = [{'sha1': c['sha1']} for c in contents]
+                        self.rescheduling_task.delay(cs)
                     continue
