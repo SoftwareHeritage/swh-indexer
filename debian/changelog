@@ -1,3 +1,10 @@
+swh-indexer (0.0.27-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.27
+  * swh.indexer.language: Incremental encoding detection
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 17 May 2017 18:04:27 +0200
+
 swh-indexer (0.0.26-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.26
