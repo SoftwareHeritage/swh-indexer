@@ -80,7 +80,7 @@ class SWHContentFossologyLicenseTask(Task):
         ContentFossologyLicenseIndexer().run(*args, **kwargs)
 
 
-class SWHRecomputeChecksums(Task):
+class SWHRecomputeChecksumsTask(Task):
     """Task which recomputes hashes and possibly new ones.
 
     """
