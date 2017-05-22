@@ -11,7 +11,7 @@ from swh.model import hashutil
 from .indexer import BaseIndexer, DiskIndexer
 
 
-def compute_license(tool, path):
+def compute_license(tool, path, log=None):
     """Determine license from file at path.
 
     Args:
@@ -24,14 +24,24 @@ def compute_license(tool, path):
         - tool (str): tool used to compute the output
 
     """
-    properties = subprocess.check_output([tool, path],
-                                         universal_newlines=True)
-    if properties:
-        res = properties.rstrip().split(' contains license(s) ')
-        licenses = res[1].split(',')
+    try:
+        properties = subprocess.check_output([tool, path],
+                                             universal_newlines=True)
+        if properties:
+            res = properties.rstrip().split(' contains license(s) ')
+            licenses = res[1].split(',')
 
+            return {
+                'licenses': licenses,
+                'path': path,
+            }
+    except subprocess.CalledProcessError:
+        if log:
+            from os import path as __path
+            log.exception('Problem during license detection for sha1 %s' %
+                          __path.basename(path))
         return {
-            'licenses': licenses,
+            'licenses': [],
             'path': path,
         }
 
@@ -93,14 +103,17 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
             filename=filename,
             data=content)
 
-        properties = compute_license(self.tool, path=content_path)
-        properties.update({
-            'id': sha1,
-            'tool_name': self.tool_name,
-            'tool_version': self.tool_version,
-        })
+        try:
+            properties = compute_license(self.tool, path=content_path,
+                                         log=self.log)
+            properties.update({
+                'id': sha1,
+                'tool_name': self.tool_name,
+                'tool_version': self.tool_version,
+            })
+        finally:
+            self.cleanup(content_path)
 
-        self.cleanup(content_path)
         return properties
 
     def persist_index_computations(self, results, policy_update):
