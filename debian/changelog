@@ -1,3 +1,10 @@
+swh-indexer (0.0.28-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.28
+  * Add error resilience to fossology indexer
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 22 May 2017 12:57:55 +0200
+
 swh-indexer (0.0.27-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.27
