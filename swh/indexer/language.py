@@ -84,6 +84,7 @@ class ContentLanguageIndexer(BaseIndexer):
         'tool': ('dict', {
             'name': 'pygments',
             'version': '2.0.1+dfsg-1.1+deb8u1',
+            'max_content_size': 10240,
         }),
     }
 
@@ -91,6 +92,7 @@ class ContentLanguageIndexer(BaseIndexer):
         super().__init__()
         self.tool_name = self.config['tool']['name']
         self.tool_version = self.config['tool']['version']
+        self.max_content_size = self.config['tool']['max_content_size']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
@@ -117,6 +119,10 @@ class ContentLanguageIndexer(BaseIndexer):
               - lang (bytes): detected language
 
         """
+        l = len(raw_content)
+        if self.max_content_size <= l:
+            raw_content = raw_content[0:self.max_content_size]
+
         result = compute_language(raw_content)
         result.update({
             'id': sha1,
