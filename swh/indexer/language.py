@@ -44,7 +44,7 @@ def _detect_encoding(raw_content):
     return detector.result['encoding']
 
 
-def compute_language(raw_content):
+def compute_language(raw_content, log=None):
     """Determine the raw content's language.
 
     Args:
@@ -65,6 +65,8 @@ def compute_language(raw_content):
             'lang': lang
         }
     except Exception:
+        if log:
+            log.exception('Problem during language detection, skipping')
         return {
             'lang': None
         }
@@ -123,7 +125,7 @@ class ContentLanguageIndexer(BaseIndexer):
         if self.max_content_size <= l:
             raw_content = raw_content[0:self.max_content_size]
 
-        result = compute_language(raw_content)
+        result = compute_language(raw_content, log=self.log)
         result.update({
             'id': sha1,
             'tool_name': self.tool_name,
