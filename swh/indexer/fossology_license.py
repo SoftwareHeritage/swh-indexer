@@ -11,7 +11,7 @@ from swh.model import hashutil
 from .indexer import BaseIndexer, DiskIndexer
 
 
-def compute_license(tool, path, log=None):
+def compute_license(path, log=None):
     """Determine license from file at path.
 
     Args:
@@ -25,7 +25,7 @@ def compute_license(tool, path, log=None):
 
     """
     try:
-        properties = subprocess.check_output([tool, path],
+        properties = subprocess.check_output(['nomossa', path],
                                              universal_newlines=True)
         if properties:
             res = properties.rstrip().split(' contains license(s) ')
@@ -56,10 +56,12 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
     """
     ADDITIONAL_CONFIG = {
         'workdir': ('str', '/tmp/swh/indexer.fossology.license'),
-        'tool': ('dict', {
+        'tools': ('dict', {
             'name': 'nomos',
             'version': '3.1.0rc2-31-ga2cbb8c',
-            'command': '/usr/bin/nomossa',
+            'configuration': {
+                'command_line': 'nomossa <filepath>',
+            },
         }),
     }
 
@@ -68,9 +70,6 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
     def __init__(self):
         super().__init__()
         self.working_directory = self.config['workdir']
-        self.tool = self.config['tool']['command']
-        self.tool_name = self.config['tool']['name']
-        self.tool_version = self.config['tool']['version']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
@@ -79,17 +78,16 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
         yield from self.storage.content_fossology_license_missing((
             {
                 'id': sha1,
-                'tool_name': self.tool_name,
-                'tool_version': self.tool_version
+                'indexer_configuration_id': self.tools['id'],
             } for sha1 in sha1s
         ))
 
-    def index_content(self, sha1, content):
+    def index_content(self, sha1, raw_content):
         """Index sha1s' content and store result.
 
         Args:
             sha1 (bytes): content's identifier
-            content (bytes): raw content in bytes
+            raw_content (bytes): raw content in bytes
 
         Returns:
             A dict, representing a content_license, with keys:
@@ -101,15 +99,13 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
         filename = hashutil.hash_to_hex(sha1)
         content_path = self.write_to_temp(
             filename=filename,
-            data=content)
+            data=raw_content)
 
         try:
-            properties = compute_license(self.tool, path=content_path,
-                                         log=self.log)
+            properties = compute_license(path=content_path, log=self.log)
             properties.update({
                 'id': sha1,
-                'tool_name': self.tool_name,
-                'tool_version': self.tool_version,
+                'indexer_configuration_id': self.tools['id'],
             })
         finally:
             self.cleanup(content_path)

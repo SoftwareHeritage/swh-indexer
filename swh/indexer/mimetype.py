@@ -47,9 +47,10 @@ class ContentMimetypeIndexer(BaseIndexer):
         # chained queue message, e.g:
         # swh.indexer.tasks.SWHOrchestratorTextContentsTask
         'destination_queue': ('str', None),
-        'tool': ('dict', {
+        'tools': ('dict', {
             'name': 'file',
-            'version': '5.22'
+            'version': '5.22',
+            'configuration': 'file --mime <filename>',
         }),
     }
 
@@ -62,8 +63,6 @@ class ContentMimetypeIndexer(BaseIndexer):
             self.task_destination = utils.get_task(destination_queue)
         else:
             self.task_destination = None
-        self.tool_name = self.config['tool']['name']
-        self.tool_version = self.config['tool']['version']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
@@ -72,8 +71,7 @@ class ContentMimetypeIndexer(BaseIndexer):
         yield from self.storage.content_mimetype_missing((
             {
                 'id': sha1,
-                'tool_name': self.tool_name,
-                'tool_version': self.tool_version
+                'indexer_configuration_id': self.tools['id'],
             } for sha1 in sha1s
         ))
 
@@ -94,8 +92,7 @@ class ContentMimetypeIndexer(BaseIndexer):
         properties = compute_mimetype_encoding(raw_content)
         properties.update({
             'id': sha1,
-            'tool_name': self.tool_name,
-            'tool_version': self.tool_version,
+            'indexer_configuration_id': self.tools['id'],
         })
 
         return properties
