@@ -118,11 +118,6 @@ class BaseIndexer(SWHConfig,
         l.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
 
-        self.tools = self.retrieve_tools_information()
-        if not self.tools:
-            raise ValueError('Tools %s is unknown, cannot continue' %
-                             self.config['tools'])
-
     def retrieve_tools_information(self):
         """Permit to define how to retrieve tool information based on
            configuration.
@@ -210,6 +205,10 @@ class BaseIndexer(SWHConfig,
 
         """
         results = []
+        self.tools = self.retrieve_tools_information()
+        if not self.tools:
+            raise ValueError('Tools %s is unknown, cannot continue' %
+                             self.config['tools'])
         try:
             for sha1 in sha1s:
                 try:
