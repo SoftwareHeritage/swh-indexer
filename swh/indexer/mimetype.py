@@ -70,10 +70,11 @@ class ContentMimetypeIndexer(BaseIndexer):
         """Filter out known sha1s and return only missing ones.
 
         """
+        tools = self.retrieve_tools_information()
         yield from self.storage.content_mimetype_missing((
             {
                 'id': sha1,
-                'indexer_configuration_id': self.tools['id'],
+                'indexer_configuration_id': tools['id'],
             } for sha1 in sha1s
         ))
 
