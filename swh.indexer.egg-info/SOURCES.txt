@@ -29,3 +29,4 @@ swh/indexer/orchestrator.py
 swh/indexer/producer.py
 swh/indexer/rehash.py
 swh/indexer/tasks.py
+swh/indexer/tests/test_mimetype.py

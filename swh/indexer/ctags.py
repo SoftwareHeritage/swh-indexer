@@ -59,10 +59,13 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
 
     ADDITIONAL_CONFIG = {
         'workdir': ('str', '/tmp/swh/indexer.ctags'),
-        'tool': ('dict', {
+        'tools': ('dict', {
             'name': 'universal-ctags',
             'version': '~git7859817b',
-            'command': '/usr/bin/ctags',
+            'configuration': {
+                'command_line': '''ctags --fields=+lnz --sort=no --links=no '''
+                                '''--output-format=json <filepath>'''
+            },
         }),
         'languages': ('dict', {
             'ada': 'Ada',
@@ -76,9 +79,6 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
         super().__init__()
         self.working_directory = self.config['workdir']
         self.language_map = self.config['languages']
-        self.ctags_command = self.config['tool']['command']
-        self.tool_name = self.config['tool']['name']
-        self.tool_version = self.config['tool']['version']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
@@ -87,8 +87,7 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
         yield from self.storage.content_ctags_missing((
             {
                 'id': sha1,
-                'tool_name': self.tool_name,
-                'tool_version': self.tool_version
+                'indexer_configuration_id': self.tools['id'],
             } for sha1 in sha1s
         ))
 
@@ -124,13 +123,10 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
             filename=filename,
             data=raw_content)
 
-        result = run_ctags(content_path,
-                           lang=ctags_lang,
-                           ctags_command=self.ctags_command)
+        result = run_ctags(content_path, lang=ctags_lang)
         ctags.update({
             'ctags': list(result),
-            'tool_name': self.tool_name,
-            'tool_version': self.tool_version,
+            'indexer_configuration_id': self.tools['id'],
         })
 
         self.cleanup(content_path)
