@@ -7,6 +7,7 @@
 import io
 
 from pygments.lexers import guess_lexer
+from pygments.util import ClassNotFound
 from chardet.universaldetector import UniversalDetector
 
 from .indexer import BaseIndexer
@@ -63,6 +64,10 @@ def compute_language(raw_content, log=None):
             guess_lexer(content).name)
         return {
             'lang': lang
+        }
+    except ClassNotFound:
+        return {
+            'lang': None
         }
     except Exception:
         if log:
