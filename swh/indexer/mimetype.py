@@ -50,7 +50,9 @@ class ContentMimetypeIndexer(BaseIndexer):
         'tools': ('dict', {
             'name': 'file',
             'version': '5.22',
-            'configuration': 'file --mime <filename>',
+            'configuration': {
+                'command_line': 'file --mime <filename>',
+            },
         }),
     }
 
