@@ -1,3 +1,11 @@
+swh-indexer (0.0.29-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.29
+  * Update indexer to resolve indexer configuration identifier
+  * Adapt language indexer to use partial raw content
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 02 Jun 2017 16:21:27 +0200
+
 swh-indexer (0.0.28-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.28
