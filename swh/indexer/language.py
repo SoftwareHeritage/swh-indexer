@@ -44,7 +44,7 @@ def _detect_encoding(raw_content):
     return detector.result['encoding']
 
 
-def compute_language(raw_content):
+def compute_language(raw_content, log=None):
     """Determine the raw content's language.
 
     Args:
@@ -65,6 +65,8 @@ def compute_language(raw_content):
             'lang': lang
         }
     except Exception:
+        if log:
+            log.exception('Problem during language detection, skipping')
         return {
             'lang': None
         }
@@ -81,16 +83,21 @@ class ContentLanguageIndexer(BaseIndexer):
     CONFIG_BASE_FILENAME = 'indexer/language'
 
     ADDITIONAL_CONFIG = {
-        'tool': ('dict', {
+        'tools': ('dict', {
             'name': 'pygments',
             'version': '2.0.1+dfsg-1.1+deb8u1',
+            'configuration': {
+                'type': 'library',
+                'debian-package': 'python3-pygments',
+                'max_content_size': 10240,
+            },
         }),
     }
 
     def __init__(self):
         super().__init__()
-        self.tool_name = self.config['tool']['name']
-        self.tool_version = self.config['tool']['version']
+        c = self.config
+        self.max_content_size = c['tools']['configuration']['max_content_size']
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
@@ -99,8 +106,7 @@ class ContentLanguageIndexer(BaseIndexer):
         yield from self.storage.content_language_missing((
             {
                 'id': sha1,
-                'tool_name': self.tool_name,
-                'tool_version': self.tool_version
+                'indexer_configuration_id': self.tools['id'],
             } for sha1 in sha1s
         ))
 
@@ -117,11 +123,14 @@ class ContentLanguageIndexer(BaseIndexer):
               - lang (bytes): detected language
 
         """
-        result = compute_language(raw_content)
+        l = len(raw_content)
+        if self.max_content_size <= l:
+            raw_content = raw_content[0:self.max_content_size]
+
+        result = compute_language(raw_content, log=self.log)
         result.update({
             'id': sha1,
-            'tool_name': self.tool_name,
-            'tool_version': self.tool_version,
+            'indexer_configuration_id': self.tools['id'],
         })
 
         return result

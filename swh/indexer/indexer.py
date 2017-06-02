@@ -118,6 +118,20 @@ class BaseIndexer(SWHConfig,
         l.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
 
+    def retrieve_tools_information(self):
+        """Permit to define how to retrieve tool information based on
+           configuration.
+
+           Add a sensible default which can be overridden if not
+           sufficient.  (For now, all indexers use only one tool)
+
+        """
+        tool = {
+            'tool_%s' % key: value for key, value
+            in self.config['tools'].items()
+        }
+        return self.storage.indexer_configuration_get(tool)
+
     @abc.abstractmethod
     def filter_contents(self, sha1s):
         """Filter missing sha1 for that particular indexer.
@@ -191,6 +205,10 @@ class BaseIndexer(SWHConfig,
 
         """
         results = []
+        self.tools = self.retrieve_tools_information()
+        if not self.tools:
+            raise ValueError('Tools %s is unknown, cannot continue' %
+                             self.config['tools'])
         try:
             for sha1 in sha1s:
                 try:
