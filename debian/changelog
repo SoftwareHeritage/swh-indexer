@@ -1,3 +1,12 @@
+swh-indexer (0.0.32-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.32
+  * Update fossology license to use the latest swh-storage
+  * Improve language indexer to deal with potential error on bad
+  * chunking
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 06 Jun 2017 18:13:40 +0200
+
 swh-indexer (0.0.31-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.31
