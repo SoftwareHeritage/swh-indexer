@@ -45,16 +45,50 @@ def _detect_encoding(raw_content):
     return detector.result['encoding']
 
 
-def compute_language(raw_content, log=None):
+def compute_language_from_chunk(encoding, length, raw_content, max_size,
+                                log=None):
     """Determine the raw content's language.
 
     Args:
-        raw_content (bytes): content to determine raw content
+        encoding (str): Encoding to use to decode the content
+        length (int): raw_content's length
+        raw_content (bytes): raw content to work with
+        max_size (int): max size to split the raw content at
 
     Returns:
         Dict with keys:
         - lang: None if nothing found or the possible language
-        - decoding_failure: True if a decoding failure happened
+
+    """
+    try:
+        if max_size <= length:
+            raw_content = raw_content[0:max_size]
+
+        content = raw_content.decode(encoding)
+        lang = _cleanup_classname(
+            guess_lexer(content).name)
+    except ClassNotFound:
+        lang = None
+    except UnicodeDecodeError:
+        raise
+    except Exception:
+        if log:
+            log.exception('Problem during language detection, skipping')
+        lang = None
+    return {
+        'lang': lang
+    }
+
+
+def compute_language(raw_content, encoding=None, log=None):
+    """Determine the raw content's language.
+
+    Args:
+        raw_content (bytes): raw content to work with
+
+    Returns:
+        Dict with keys:
+        - lang: None if nothing found or the possible language
 
     """
     try:
@@ -125,15 +159,27 @@ class ContentLanguageIndexer(BaseIndexer):
               - lang (bytes): detected language
 
         """
-        l = len(raw_content)
-        if self.max_content_size <= l:
-            raw_content = raw_content[0:self.max_content_size]
+        encoding = _detect_encoding(raw_content)
 
-        result = compute_language(raw_content, log=self.log)
-        result.update({
-            'id': sha1,
-            'indexer_configuration_id': self.tools['id'],
-        })
+        l = len(raw_content)
+        for i in range(0, 4):   # we could split at the wrong index,
+                                # thus raising a UnicodeDecodeError
+            max_size = self.max_content_size + i
+
+            try:
+                result = compute_language_from_chunk(
+                    encoding, l, raw_content, max_size, log=self.log)
+            except UnicodeDecodeError:
+                self.log.warn('Decoding failed on wrong byte chunk at [0-%s]'
+                              ', trying again at next ending byte.' % max_size)
+                continue
+
+            # we found something, so we return it
+            result.update({
+                'id': sha1,
+                'indexer_configuration_id': self.tools['id'],
+            })
+            break
 
         return result
 
