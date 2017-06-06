@@ -62,19 +62,15 @@ def compute_language(raw_content, log=None):
         content = raw_content.decode(encoding)
         lang = _cleanup_classname(
             guess_lexer(content).name)
-        return {
-            'lang': lang
-        }
     except ClassNotFound:
-        return {
-            'lang': None
-        }
+        lang = None
     except Exception:
         if log:
             log.exception('Problem during language detection, skipping')
-        return {
-            'lang': None
-        }
+        lang = None
+    return {
+        'lang': lang
+    }
 
 
 class ContentLanguageIndexer(BaseIndexer):
