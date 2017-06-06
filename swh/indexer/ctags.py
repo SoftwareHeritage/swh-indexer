@@ -105,7 +105,7 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
               - ctags ([dict]): ctags list of symbols
 
         """
-        lang = compute_language(raw_content)['lang']
+        lang = compute_language(raw_content, log=self.log)['lang']
 
         if not lang:
             return None

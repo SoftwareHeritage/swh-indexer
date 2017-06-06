@@ -126,15 +126,8 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
             respectively update duplicates or ignore them
 
         """
-        wrong_licenses = self.storage.content_fossology_license_add(
+        self.storage.content_fossology_license_add(
             results, conflict_update=(policy_update == 'update-dups'))
-
-        if wrong_licenses:
-            for l in wrong_licenses:
-                self.log.warn('Content %s has some unknown licenses: %s' % (
-                    hashutil.hash_to_hex(l['id']),
-                    ','.join((name for name in l['licenses'])))
-                )
 
 
 @click.command(help='Compute license for path using tool')
