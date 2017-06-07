@@ -159,7 +159,7 @@ class ContentLanguageIndexer(BaseIndexer):
               - lang (bytes): detected language
 
         """
-        default_result = {
+        result = {
             'id': sha1,
             'indexer_configuration_id': self.tools['id'],
             'lang': None,
@@ -168,7 +168,7 @@ class ContentLanguageIndexer(BaseIndexer):
         encoding = _detect_encoding(raw_content)
 
         if not encoding:
-            return default_result
+            return result
 
         l = len(raw_content)
         for i in range(0, 9):
@@ -189,7 +189,7 @@ class ContentLanguageIndexer(BaseIndexer):
             })
             break
 
-        return result if result else default_result
+        return result
 
     def persist_index_computations(self, results, policy_update):
         """Persist the results in storage.
