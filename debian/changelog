@@ -1,8 +1,9 @@
-swh-indexer (0.0.32-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.33-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.33
+  * language indexer: Improve edge case policy
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 06 Jun 2017 18:13:39 +0200
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 07 Jun 2017 11:02:47 +0200
 
 swh-indexer (0.0.32-1~swh1) unstable-swh; urgency=medium
 
