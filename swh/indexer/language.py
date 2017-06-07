@@ -159,11 +159,19 @@ class ContentLanguageIndexer(BaseIndexer):
               - lang (bytes): detected language
 
         """
+        default_result = {
+            'id': sha1,
+            'indexer_configuration_id': self.tools['id'],
+            'lang': None,
+        }
+
         encoding = _detect_encoding(raw_content)
 
+        if not encoding:
+            return default_result
+
         l = len(raw_content)
-        for i in range(0, 4):   # we could split at the wrong index,
-                                # thus raising a UnicodeDecodeError
+        for i in range(0, 9):
             max_size = self.max_content_size + i
 
             try:
@@ -181,7 +189,7 @@ class ContentLanguageIndexer(BaseIndexer):
             })
             break
 
-        return result
+        return result if result else default_result
 
     def persist_index_computations(self, results, policy_update):
         """Persist the results in storage.
