@@ -25,7 +25,7 @@ class SWHOrchestratorAllContentsTask(Task):
     """
     task_queue = 'swh_indexer_orchestrator_content_all'
 
-    def run(self, *args, **kwargs):
+    def run_task(self, *args, **kwargs):
         OrchestratorAllContentsIndexer().run(*args, **kwargs)
 
 
@@ -36,7 +36,7 @@ class SWHOrchestratorTextContentsTask(Task):
     """
     task_queue = 'swh_indexer_orchestrator_content_text'
 
-    def run(self, *args, **kwargs):
+    def run_task(self, *args, **kwargs):
         OrchestratorTextContentsIndexer().run(*args, **kwargs)
 
 
@@ -46,7 +46,7 @@ class SWHContentMimetypeTask(Task):
     """
     task_queue = 'swh_indexer_content_mimetype'
 
-    def run(self, *args, **kwargs):
+    def run_task(self, *args, **kwargs):
         ContentMimetypeIndexer().run(*args, **kwargs)
 
 
@@ -56,7 +56,7 @@ class SWHContentLanguageTask(Task):
     """
     task_queue = 'swh_indexer_content_language'
 
-    def run(self, *args, **kwargs):
+    def run_task(self, *args, **kwargs):
         ContentLanguageIndexer().run(*args, **kwargs)
 
 
@@ -66,7 +66,7 @@ class SWHCtagsTask(Task):
     """
     task_queue = 'swh_indexer_content_ctags'
 
-    def run(self, *args, **kwargs):
+    def run_task(self, *args, **kwargs):
         CtagsIndexer().run(*args, **kwargs)
 
 
@@ -76,7 +76,7 @@ class SWHContentFossologyLicenseTask(Task):
     """
     task_queue = 'swh_indexer_content_fossology_license'
 
-    def run(self, *args, **kwargs):
+    def run_task(self, *args, **kwargs):
         ContentFossologyLicenseIndexer().run(*args, **kwargs)
 
 
@@ -86,5 +86,5 @@ class SWHRecomputeChecksumsTask(Task):
     """
     task_queue = 'swh_indexer_content_rehash'
 
-    def run(self, *args, **kwargs):
+    def run_task(self, *args, **kwargs):
         RecomputeChecksums().run(*args, **kwargs)
