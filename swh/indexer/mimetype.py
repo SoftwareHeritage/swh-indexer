@@ -58,23 +58,23 @@ class ContentMimetypeIndexer(BaseIndexer):
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'
 
-    def __init__(self):
-        super().__init__()
+    def prepare(self):
+        super().prepare()
         destination_queue = self.config.get('destination_queue')
         if destination_queue:
             self.task_destination = utils.get_task(destination_queue)
         else:
             self.task_destination = None
+        self.tools = self.retrieve_tools_information()
 
     def filter_contents(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
-        tools = self.retrieve_tools_information()
         yield from self.storage.content_mimetype_missing((
             {
                 'id': sha1,
-                'indexer_configuration_id': tools['id'],
+                'indexer_configuration_id': self.tools['id'],
             } for sha1 in sha1s
         ))
 

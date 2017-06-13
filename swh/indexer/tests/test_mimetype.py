@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import unittest
+import logging
 from nose.tools import istest
 
 from swh.indexer.mimetype import ContentMimetypeIndexer
@@ -47,9 +48,12 @@ class MockObjStorage():
         return raw_content
 
 
-class TestMimetypeIndexerNoNextStep(ContentMimetypeIndexer):
-    def __init__(self, wrong_storage=False):
-        super().__init__()
+class TestMimetypeIndexer(ContentMimetypeIndexer):
+    """Specific mimetype whose configuration is enough to satisfy the
+       indexing tests.
+
+    """
+    def prepare(self):
         self.config = {
             'destination_queue': None,
             'rescheduling_task': None,
@@ -59,32 +63,40 @@ class TestMimetypeIndexerNoNextStep(ContentMimetypeIndexer):
                 'configuration': 'file --mime <filename>',
             },
         }
-        if wrong_storage:
-            self.storage = MockStorageWrongConfiguration()
-        else:
-            self.storage = MockStorage()
-
+        self.storage = MockStorage()
+        self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.task_destination = None
+        self.rescheduling_task = self.config['rescheduling_task']
+        self.destination_queue = self.config['destination_queue']
+        self.tools = self.retrieve_tools_information()
+
+
+class TestMimetypeIndexerWrongStorage(TestMimetypeIndexer):
+    """Specific mimetype whose configuration is not enough to satisfy the
+       indexing tests.
+
+    """
+    def prepare(self):
+        super().prepare()
+        self.tools = None
 
 
 class TestMimetypeIndexerWithErrors(unittest.TestCase):
 
     @istest
     def test_index_fail_because_wrong_tool(self):
-        indexer = TestMimetypeIndexerNoNextStep(wrong_storage=True)
-
         try:
-            indexer.run(sha1s=[], policy_update='ignore-dups')
+            TestMimetypeIndexerWrongStorage()
         except ValueError:
             pass
         else:
             self.fail('An error should be raised about wrong tool being used.')
 
 
-class TestMimetypeIndexer(unittest.TestCase):
+class TestMimetypeIndexerTest(unittest.TestCase):
     def setUp(self):
-        self.indexer = TestMimetypeIndexerNoNextStep()
+        self.indexer = TestMimetypeIndexer()
 
     @istest
     def test_index_no_update(self):

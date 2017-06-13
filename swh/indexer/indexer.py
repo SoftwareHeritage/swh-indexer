@@ -45,6 +45,17 @@ class BaseIndexer(SWHConfig,
         persist the results of multiple index computations in the
         storage.
 
+    The new indexer implementation can also override the following functions:
+
+      - def prepare(self): Configuration preparation for the indexer.
+        When overriding, this must call the super().prepare() function.
+
+      - def check(self): Configuration check for the indexer.
+        When overriding, this must call the super().check() function.
+
+      - def retrieve_tools_information(self): This should return a
+        dict of the tool(s) to use when indexing or filtering.
+
     """
     CONFIG = 'indexer/base'
 
@@ -101,7 +112,18 @@ class BaseIndexer(SWHConfig,
     ADDITIONAL_CONFIG = {}
 
     def __init__(self):
+        """Prepare and check that the indexer is ready to run.
+
+        """
         super().__init__()
+        self.prepare()
+        self.check()
+
+    def prepare(self):
+        """Prepare the indexer's needed runtime configuration.
+           Without this step, the indexer cannot possibly run.
+
+        """
         self.config = self.parse_config_file(
             additional_configs=[self.ADDITIONAL_CONFIG])
         objstorage = self.config['objstorage']
@@ -117,6 +139,16 @@ class BaseIndexer(SWHConfig,
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
         l.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
+        self.tools = self.retrieve_tools_information()
+
+    def check(self):
+        """Check the indexer's configuration is ok before proceeding.
+           If ok, does nothing. If not raise error.
+
+        """
+        if not self.tools:
+            raise ValueError('Tools %s is unknown, cannot continue' %
+                             self.config['tools'])
 
     def retrieve_tools_information(self):
         """Permit to define how to retrieve tool information based on
@@ -205,10 +237,6 @@ class BaseIndexer(SWHConfig,
 
         """
         results = []
-        self.tools = self.retrieve_tools_information()
-        if not self.tools:
-            raise ValueError('Tools %s is unknown, cannot continue' %
-                             self.config['tools'])
         try:
             for sha1 in sha1s:
                 try:
