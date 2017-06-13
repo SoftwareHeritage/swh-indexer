@@ -8,7 +8,8 @@ import logging
 from nose.tools import istest
 
 from swh.indexer.mimetype import ContentMimetypeIndexer
-from swh.objstorage.exc import ObjNotFoundError
+
+from swh.indexer.tests.test_utils import MockObjStorage
 
 
 class MockStorage():
@@ -23,29 +24,6 @@ class MockStorage():
         return {
             'id': 10,
         }
-
-
-class MockStorageWrongConfiguration():
-    def indexer_configuration_get(self, tool):
-        return None
-
-
-class MockObjStorage():
-    """Mock objstorage with predefined contents.
-
-    """
-    def __init__(self):
-        self.data = {
-            '01c9379dfc33803963d07c1ccc748d3fe4c96bb50': b'this is some text',
-            '688a5ef812c53907562fe379d4b3851e69c7cb15': b'another text',
-            '8986af901dd2043044ce8f0d8fc039153641cf17': b'yet another text',
-        }
-
-    def get(self, sha1):
-        raw_content = self.data.get(sha1)
-        if not raw_content:
-            raise ObjNotFoundError()
-        return raw_content
 
 
 class TestMimetypeIndexer(ContentMimetypeIndexer):
