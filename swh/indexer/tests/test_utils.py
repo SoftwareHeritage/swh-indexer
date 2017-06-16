@@ -51,6 +51,56 @@ class MockObjStorage():
             '93666f74f1cf635c8c8ac118879da6ec5623c410': b"""
             (should 'pygments (recognize 'lisp 'easily))
 
+            """,
+            '26a9f72a7c87cc9205725cfd879f514ff4f3d8d5': b"""
+            {
+                "name": "test_metadata",
+                "version": "0.0.1",
+                "description": "Simple package.json test for indexer",
+                "repository": {
+                  "type": "git",
+                  "url": "https://github.com/moranegg/metadata_test"
+              }
+            }
+            """,
+            'd4c647f0fc257591cc9ba1722484229780d1c607': b"""
+            {
+              "version": "5.0.3",
+              "name": "npm",
+              "description": "a package manager for JavaScript",
+              "keywords": [
+                "install",
+                "modules",
+                "package manager",
+                "package.json"
+              ],
+              "preferGlobal": true,
+              "config": {
+                "publishtest": false
+              },
+              "homepage": "https://docs.npmjs.com/",
+              "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)",
+              "repository": {
+                "type": "git",
+                "url": "https://github.com/npm/npm"
+              },
+              "bugs": {
+                "url": "https://github.com/npm/npm/issues"
+              },
+              "dependencies": {
+                "JSONStream": "~1.3.1",
+                "abbrev": "~1.1.0",
+                "ansi-regex": "~2.1.1",
+                "ansicolors": "~0.3.2",
+                "ansistyles": "~0.1.3"
+              },
+              "devDependencies": {
+                "tacks": "~1.2.6",
+                "tap": "~10.3.2"
+              },
+              "license": "Artistic-2.0"
+            }
+
             """
 
         }

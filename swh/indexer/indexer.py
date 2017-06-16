@@ -17,6 +17,53 @@ from swh.storage import get_storage
 from swh.scheduler.utils import get_task
 
 
+class DiskIndexer:
+    """Mixin intended to be used with other *Indexer classes.
+
+       Indexer* inheriting from this class are a category of indexers
+       which needs the disk for their computations.
+
+       Expects:
+           self.working_directory variable defined at runtime.
+
+    """
+    def __init__(self):
+        super().__init__()
+
+    def write_to_temp(self, filename, data):
+        """Write the sha1's content in a temporary file.
+
+        Args:
+            sha1 (str): the sha1 name
+            filename (str): one of sha1's many filenames
+            data (bytes): the sha1's content to write in temporary
+            file
+
+        Returns:
+            The path to the temporary file created. That file is
+            filled in with the raw content's data.
+
+        """
+        os.makedirs(self.working_directory, exist_ok=True)
+        temp_dir = tempfile.mkdtemp(dir=self.working_directory)
+        content_path = os.path.join(temp_dir, filename)
+
+        with open(content_path, 'wb') as f:
+            f.write(data)
+
+        return content_path
+
+    def cleanup(self, content_path):
+        """Remove content_path from working directory.
+
+        Args:
+            content_path (str): the file to remove
+
+        """
+        temp_dir = os.path.dirname(content_path)
+        shutil.rmtree(temp_dir)
+
+
 class BaseIndexer(SWHConfig,
                   metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
@@ -257,50 +304,3 @@ class BaseIndexer(SWHConfig,
             if self.rescheduling_task:
                 self.log.warn('Rescheduling batch')
                 self.rescheduling_task.delay(sha1s, policy_update)
-
-
-class DiskIndexer:
-    """Mixin intended to be used with other *Indexer classes.
-
-       Indexer* inheriting from this class are a category of indexers
-       which needs the disk for their computations.
-
-       Expects:
-           self.working_directory variable defined at runtime.
-
-    """
-    def __init__(self):
-        super().__init__()
-
-    def write_to_temp(self, filename, data):
-        """Write the sha1's content in a temporary file.
-
-        Args:
-            sha1 (str): the sha1 name
-            filename (str): one of sha1's many filenames
-            data (bytes): the sha1's content to write in temporary
-            file
-
-        Returns:
-            The path to the temporary file created. That file is
-            filled in with the raw content's data.
-
-        """
-        os.makedirs(self.working_directory, exist_ok=True)
-        temp_dir = tempfile.mkdtemp(dir=self.working_directory)
-        content_path = os.path.join(temp_dir, filename)
-
-        with open(content_path, 'wb') as f:
-            f.write(data)
-
-        return content_path
-
-    def cleanup(self, content_path):
-        """Remove content_path from working directory.
-
-        Args:
-            content_path (str): the file to remove
-
-        """
-        temp_dir = os.path.dirname(content_path)
-        shutil.rmtree(temp_dir)
