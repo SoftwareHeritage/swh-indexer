@@ -156,8 +156,8 @@ def parse_xml(content):
 
 
 mapping_tool_fn = {
-    "hard_mapping_npm": NpmMapping(),
-    "pom_xml": MavenMapping(),
+    "npm": NpmMapping(),
+    "maven": MavenMapping(),
     "doap_xml": DoapMapping()
 }
 
@@ -193,8 +193,8 @@ def main():
     raw_content1 = b"""{"name": "test_name",
                         "unknown_term": "ut",
                         "prerequisites" :"packageXYZ"}"""
-    result = compute_metadata("hard_mapping_npm", raw_content)
-    result1 = compute_metadata("pom_xml", raw_content1)
+    result = compute_metadata("npm", raw_content)
+    result1 = compute_metadata("maven", raw_content1)
 
     print(result)
     print(result1)

@@ -23,7 +23,11 @@ class MockStorage():
         return {
             'id': 30,
             'name': 'hard_mapping_npm',
-            'version': '0.1'
+            'version': '0.1',
+            'configuration': {
+                'type': 'local',
+                'context': 'npm'
+            },
         }
 
 
@@ -35,11 +39,11 @@ class TestMetadataIndexer(ContentMetadataIndexer):
         self.config = {
             'rescheduling_task': None,
             'tools':  {
-                'name': 'hard_mapping_npm',
-                'version': '0.1',
+                'name': 'swh-metadata-translator',
+                'version': '0.0.1',
                 'configuration': {
                     'type': 'local',
-                    'debian-package': ''
+                    'context': 'npm'
                 }
             }
         }
@@ -69,12 +73,12 @@ class Metadata(unittest.TestCase):
         """
         # given
         content = b""
-        tool = "hard_mapping_npm"
+        context = "npm"
 
         # None if no metadata was found or an error occurred
         declared_metadata = None
         # when
-        result = compute_metadata(tool, content)
+        result = compute_metadata(context, content)
         # then
         self.assertEqual(declared_metadata, result)
 
@@ -107,7 +111,7 @@ class Metadata(unittest.TestCase):
         }
 
         # when
-        result = compute_metadata("hard_mapping_npm", content)
+        result = compute_metadata("npm", content)
         # then
         self.assertEqual(declared_metadata, result)
 

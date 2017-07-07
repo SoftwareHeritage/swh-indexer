@@ -19,11 +19,11 @@ class ContentMetadataIndexer(BaseIndexer):
 
     ADDITIONAL_CONFIG = {
         'tools': ('dict', {
-            'name': 'hard_mapping_npm',
+            'name': 'swh-metadata-translator',
             'version': '0.0.1',
             'configuration': {
-                'type': 'test',
-                'debian-package': ''
+                'type': 'local',
+                'context': 'npm'
             },
         }),
     }
@@ -60,7 +60,7 @@ class ContentMetadataIndexer(BaseIndexer):
             'translated_metadata': None
         }
         try:
-            context = self.tools['name']
+            context = self.tools['configuration']['context']
             result['translated_metadata'] = compute_metadata(
                                             context, raw_content)
         except:
