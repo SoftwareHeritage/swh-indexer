@@ -19,16 +19,69 @@ class MockStorage():
         self.state = metadata
         self.conflict_update = conflict_update
 
+    def revision_metadata_add(self, metadata, conflict_update=None):
+        self.state = metadata
+        self.conflict_update = conflict_update
+
     def indexer_configuration_get(self, tool):
-        return {
-            'id': 30,
-            'name': 'hard_mapping_npm',
-            'version': '0.1',
-            'configuration': {
-                'type': 'local',
-                'context': 'npm'
-            },
-        }
+        if tool['tool_name'] == 'swh-metadata-translator':
+            return {
+                'id': 30,
+                'name': 'swh-metadata-translator',
+                'version': '0.1',
+                'configuration': {
+                    'type': 'local',
+                    'context': 'npm'
+                },
+            }
+        elif tool['tool_name'] == 'swh-metadata-detector':
+            return {
+                'id': 7,
+                'name': 'swh-metadata-detector',
+                'version': '0.1',
+                'configuration': {
+                    'type': 'local',
+                    'context': 'npm'
+                },
+            }
+
+    def revision_missing(self, revisions, cur=None):
+        pass
+
+    def revision_get(self, revisions):
+        """Get all revisions from storage
+           Args: an iterable of revision ids
+           Returns: an iterable of revisions as dictionaries
+                    (or None if the revision doesn't exist)
+        """
+        pass
+
+    def directory_get(self,
+                      directories,
+                      cur=None):
+        """Get information on directories.
+
+        Args:
+            - directories: an iterable of directory ids
+
+        Returns:
+            List of directories as dict with keys and associated values.
+
+        """
+        pass
+
+    def directory_ls(self, directory, recursive=False, cur=None):
+        """Get entries for one directory.
+
+        Args:
+            - directory: the directory to list entries from.
+            - recursive: if flag on, this list recursively from this directory.
+
+        Returns:
+            List of entries for such directory.
+
+        """
+        pass
 
 
 class TestMetadataIndexer(ContentMetadataIndexer):
@@ -53,6 +106,32 @@ class TestMetadataIndexer(ContentMetadataIndexer):
         self.task_destination = None
         self.rescheduling_task = self.config['rescheduling_task']
         self.tools = self.retrieve_tools_information()
+        self.results = []
+
+
+# class TestRevisionMetadataIndexer(RevsionMetadataIndexer):
+#     """Specific indexer whose configuration is enough to satisfy the
+#        indexing tests.
+#     """
+#     def prepare(self):
+#         self.config = {
+#             'rescheduling_task': None,
+#             'tools':  {
+#                 'name': 'swh-metadata-detector',
+#                 'version': '0.0.1',
+#                 'configuration': {
+#                     'type': 'local',
+#                     'context': 'npm'
+#                 }
+#             }
+#         }
+#         self.storage = MockStorage()
+#         self.log = logging.getLogger('swh.indexer')
+#         self.objstorage = MockObjStorage()
+#         self.task_destination = None
+#         self.rescheduling_task = self.config['rescheduling_task']
+#         self.tools = self.retrieve_tools_information()
+#         self.results = []
 
 
 class Metadata(unittest.TestCase):

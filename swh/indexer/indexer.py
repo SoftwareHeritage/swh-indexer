@@ -69,24 +69,34 @@ class BaseIndexer(SWHConfig,
     """Base class for indexers to inherit from.
 
     The main entry point is the `run` functions which is in charge to
-    trigger the computations on the sha1s batch received.
+    trigger the computations on the ids batch received.
 
     Indexers can:
-    - filter out sha1 whose data has already been indexed.
-    - retrieve sha1's content from objstorage, index this content then
-      store the result in storage.
+    - filter out ids whose data has already been indexed.
+    - retrieve ids data from storage or objstorage
+    - index this data depending on the object and store the result in storage.
 
-    To implement a new index, inherit from this class and implement
-    the following functions:
+    To implement a new object type indexer, inherit from the BaseIndexer and
+    implement the process of indexation :
 
-      - def filter_contents(self, sha1s): filter out data already
+        - def run(self, object_ids, policy_update): object_ids are different
+        depending on object. For example: sha1 for content, sha1_git for
+        revision, directorie, release, and id for origin
+
+    To implement a new concrete indexer, inherit from the object level classes:
+    ContentIndexer, RevisionIndexer
+    (later on OriginIndexer will also be available)
+
+    Then you need to implement the following functions:
+
+      - def filter(self, ids): filter out data already
         indexed (in storage). This function is used by the
         orchestrator and not directly by the indexer
         (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
 
-      - def index_content(self, sha1, raw_content): compute index on
-        sha1 with data raw_content (retrieved in the objstorage by the
-        sha1 key) and return the resulting index computation.
+      - def index_object(self, id, data): compute index on
+        id with data (retrieved from the storage or the objstorage by the
+        id key) and return the resulting index computation.
 
       - def persist_index_computations(self, results, policy_update):
         persist the results of multiple index computations in the
@@ -212,25 +222,26 @@ class BaseIndexer(SWHConfig,
         return self.storage.indexer_configuration_get(tool)
 
     @abc.abstractmethod
-    def filter_contents(self, sha1s):
-        """Filter missing sha1 for that particular indexer.
+    def filter(self, ids):
+        """Filter missing ids for that particular indexer.
 
         Args:
-            sha1s ([bytes]): list of contents' sha1
+            ids ([bytes]): list of ids
 
         Yields:
-            iterator of missing sha1
+            iterator of missing ids
 
         """
         pass
 
     @abc.abstractmethod
-    def index_content(self, sha1, content):
+    def index(self, id, data):
         """Index computation for the sha1 and associated raw content.
 
         Args:
-            sha1 (bytes): sha1 identifier
-            content (bytes): sha1's raw content
+            id (bytes): sha1 identifier
+            content (bytes): id's data from storage or objstorage depending on
+                             object type
 
         Returns:
             a dict that makes sense for the persist_index_computations
@@ -245,7 +256,7 @@ class BaseIndexer(SWHConfig,
 
         Args:
             results ([result]): List of results. One result is the
-            result of the index_content function.
+            result of the index function.
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
             respectively update duplicates or ignore them
 
@@ -263,13 +274,39 @@ class BaseIndexer(SWHConfig,
 
         Args:
             results ([result]): List of results (dict) as returned
-            by index_content function.
+            by index function.
 
         Returns:
             None
 
         """
         pass
+
+    @abc.abstractmethod
+    def run(self, ids, policy_update):
+        """Given a list of ids:
+        - retrieves the data from the storage
+        - executes the indexing computations
+        - stores the results (according to policy_update)
+
+        Args:
+            ids ([bytes]): id's identifier list
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
+
+        """
+        pass
+
+
+class ContentIndexer(BaseIndexer):
+    """
+    An object type indexer, inherit from the BaseIndexer and
+    implement the process of indexation for Contents with the run method
+
+    Note: the ContentIndexer is not an instantiable object
+    to use it in another context one should refer to the instructions in the
+    BaseIndexer
+    """
 
     def run(self, sha1s, policy_update):
         """Given a list of sha1s:
@@ -292,7 +329,7 @@ class BaseIndexer(SWHConfig,
                     self.log.warn('Content %s not found in objstorage' %
                                   hashutil.hash_to_hex(sha1))
                     continue
-                res = self.index_content(sha1, raw_content)
+                res = self.index(sha1, raw_content)
                 if res:  # If no results, skip it
                     results.append(res)
 
@@ -304,3 +341,46 @@ class BaseIndexer(SWHConfig,
             if self.rescheduling_task:
                 self.log.warn('Rescheduling batch')
                 self.rescheduling_task.delay(sha1s, policy_update)
+
+
+class RevisionIndexer(BaseIndexer):
+    """
+    An object type indexer, inherit from the BaseIndexer and
+    implement the process of indexation for Revisions with the run method
+
+    Note: the RevisionIndexer is not an instantiable object
+    to use it in another context one should refer to the instructions in the
+    BaseIndexer
+    """
+
+    def run(self, sha1_gits, policy_update):
+        """
+        Given a list of sha1_gits:
+        - retrieve revsions from storage
+        - execute the indexing computations
+        - store the results (according to policy_update)
+        Args:
+            sha1_gits ([bytes]): sha1_git's identifier list
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
+
+        """
+        results = []
+        try:
+            for sha1_git in sha1_gits:
+                try:
+                    revs = self.storage.revision_get([sha1_git])
+                except ValueError:
+                    self.log.warn('Revision %s not found in storage' %
+                                  hashutil.hash_to_hex(sha1_git))
+                    continue
+                for rev in revs:
+                    if rev:      # If no revision, skip it
+                        res = self.index(rev)
+                        print(res)
+                        if res:  # If no results, skip it
+                            results.append(res)
+                self.persist_index_computations(results, policy_update)
+        except Exception:
+            self.log.exception(
+                'Problem when processing revision')

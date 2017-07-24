@@ -8,7 +8,7 @@ import click
 from subprocess import Popen, PIPE
 from swh.scheduler import utils
 
-from .indexer import BaseIndexer
+from .indexer import ContentIndexer
 
 
 def compute_mimetype_encoding(raw_content):
@@ -35,7 +35,7 @@ def compute_mimetype_encoding(raw_content):
             }
 
 
-class ContentMimetypeIndexer(BaseIndexer):
+class ContentMimetypeIndexer(ContentIndexer):
     """Indexer in charge of:
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
@@ -67,7 +67,7 @@ class ContentMimetypeIndexer(BaseIndexer):
             self.task_destination = None
         self.tools = self.retrieve_tools_information()
 
-    def filter_contents(self, sha1s):
+    def filter(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
@@ -78,7 +78,7 @@ class ContentMimetypeIndexer(BaseIndexer):
             } for sha1 in sha1s
         ))
 
-    def index_content(self, sha1, raw_content):
+    def index(self, sha1, raw_content):
         """Index sha1s' content and store result.
 
         Args:

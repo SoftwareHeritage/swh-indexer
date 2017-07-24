@@ -98,7 +98,7 @@ class BaseOrchestratorIndexer(SWHConfig):
             if filtering:
                 policy_update = 'ignore-dups'
                 indexer_class = get_class(idx_class)
-                sha1s_filtered = list(indexer_class().filter_contents(sha1s))
+                sha1s_filtered = list(indexer_class().filter(sha1s))
                 if not sha1s_filtered:
                     continue
             else:

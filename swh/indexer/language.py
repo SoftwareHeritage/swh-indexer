@@ -10,7 +10,7 @@ from pygments.lexers import guess_lexer
 from pygments.util import ClassNotFound
 from chardet.universaldetector import UniversalDetector
 
-from .indexer import BaseIndexer
+from .indexer import ContentIndexer
 
 
 def _cleanup_classname(classname):
@@ -107,7 +107,7 @@ def compute_language(raw_content, encoding=None, log=None):
     }
 
 
-class ContentLanguageIndexer(BaseIndexer):
+class ContentLanguageIndexer(ContentIndexer):
     """Indexer in charge of:
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
@@ -134,7 +134,7 @@ class ContentLanguageIndexer(BaseIndexer):
         c = self.config
         self.max_content_size = c['tools']['configuration']['max_content_size']
 
-    def filter_contents(self, sha1s):
+    def filter(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
@@ -145,7 +145,7 @@ class ContentLanguageIndexer(BaseIndexer):
             } for sha1 in sha1s
         ))
 
-    def index_content(self, sha1, raw_content):
+    def index(self, sha1, raw_content):
         """Index sha1s' content and store result.
 
         Args:
