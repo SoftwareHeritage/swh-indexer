@@ -8,46 +8,11 @@ import logging
 from nose.tools import istest
 
 from swh.indexer.metadata_dictionary import compute_metadata
+from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata import ContentMetadataIndexer
 from swh.indexer.metadata import RevisionMetadataIndexer
 from swh.indexer.tests.test_utils import MockObjStorage
-
-
-class MockStorage():
-    """Mock storage to simplify reading indexers' outputs.
-    """
-    def content_metadata_get(self, sha1s):
-        yield
-
-    def content_metadata_add(self, metadata, conflict_update=None):
-        self.state = metadata
-        self.conflict_update = conflict_update
-
-    def revision_metadata_add(self, metadata, conflict_update=None):
-        self.state = metadata
-        self.conflict_update = conflict_update
-
-    def indexer_configuration_get(self, tool):
-        if tool['tool_name'] == 'swh-metadata-translator':
-            return {
-                'id': 30,
-                'tool_name': 'swh-metadata-translator',
-                'tool_version': '0.0.1',
-                'tool_configuration': {
-                    'type': 'local',
-                    'context': 'npm'
-                },
-            }
-        elif tool['tool_name'] == 'swh-metadata-detector':
-            return {
-                'id': 7,
-                'tool_name': 'swh-metadata-detector',
-                'tool_version': '0.0.1',
-                'tool_configuration': {
-                    'type': 'local',
-                    'context': 'npm'
-                },
-            }
+from swh.indexer.tests.test_utils import MockStorage
 
 
 class TestContentMetadataIndexer(ContentMetadataIndexer):
@@ -74,6 +39,14 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
     def prepare(self):
         self.config = {
             'rescheduling_task': None,
+            'tools': {
+                'name': 'swh-metadata-detector',
+                'version': '0.0.1',
+                'configuration': {
+                    'type': 'local',
+                    'context': 'npm'
+                }
+            }
         }
         self.storage = MockStorage()
         self.log = logging.getLogger('swh.indexer')
@@ -95,14 +68,6 @@ class Metadata(unittest.TestCase):
         self.maxDiff = None
         self.content_tool = {
             'name': 'swh-metadata-translator',
-            'version': '0.0.1',
-            'configuration': {
-                'type': 'local',
-                'context': 'npm'
-            }
-        }
-        self.revision_tool = {
-            'name': 'swh-metadata-detector',
             'version': '0.0.1',
             'configuration': {
                 'type': 'local',
@@ -241,4 +206,86 @@ class Metadata(unittest.TestCase):
         }]
 
         # The assertion bellow returns False sometimes because of nested lists
+        self.assertEqual(expected_results, results)
+
+    @istest
+    def test_detect_metadata_package_json(self):
+        # given
+        df = [{
+                'sha1_git': b'abc',
+                'name': b'index.js',
+                'target': b'abc',
+                'length': 897,
+                'status': 'visible',
+                'type': 'file',
+                'perms': 33188,
+                'dir_id': b'dir_a',
+                'sha1': b'bcd'
+            },
+            {
+                'sha1_git': b'aab',
+                'name': b'package.json',
+                'target': b'aab',
+                'length': 712,
+                'status': 'visible',
+                'type': 'file',
+                'perms': 33188,
+                'dir_id': b'dir_a',
+                'sha1': b'cde'
+        }]
+        # when
+        results = detect_metadata(df)
+
+        expected_results = {
+            'npm': [
+                b'cde'
+            ]
+        }
+        # then
+        self.assertEqual(expected_results, results)
+
+    @istest
+    def test_revision_metadata_indexer(self):
+        metadata_indexer = TestRevisionMetadataIndexer()
+
+        sha1_gits = [
+            b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+        ]
+        metadata_indexer.run(sha1_gits, 'update-dups')
+
+        results = metadata_indexer.storage.state
+
+        expected_results = [{
+            'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'translated_metadata': {
+                'identifier': None,
+                'maintainer': None,
+                'url': [
+                    'https://github.com/librariesio/yarn-parser#readme'
+                ],
+                'author': ['Andrew Nesbitt'],
+                'license': ['AGPL-3.0'],
+                'version': ['1.0.0'],
+                'description': [
+                    'Tiny web service for parsing yarn.lock files'
+                ],
+                'relatedLink': None,
+                'developmentStatus': None,
+                'operatingSystem': None,
+                'issueTracker': [{
+                    'url': 'https://github.com/librariesio/yarn-parser/issues'
+                }],
+                'softwareRequirements': [{
+                    'express': '^4.14.0',
+                    'yarn': '^0.21.0',
+                    'body-parser': '^1.15.2'
+                }],
+                'name': ['yarn-parser'],
+                'keywords': [['yarn', 'parse', 'lock', 'dependencies']],
+                'type': None,
+                'email': None
+            },
+            'indexer_configuration_id': 7
+        }]
+        # then
         self.assertEqual(expected_results, results)

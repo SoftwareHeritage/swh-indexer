@@ -111,3 +111,136 @@ class MockObjStorage():
         if not raw_content:
             raise ObjNotFoundError()
         return raw_content
+
+
+class MockStorage():
+    """Mock storage to simplify reading indexers' outputs.
+    """
+    def content_metadata_add(self, metadata, conflict_update=None):
+        self.state = metadata
+        self.conflict_update = conflict_update
+
+    def revision_metadata_add(self, metadata, conflict_update=None):
+        self.state = metadata
+        self.conflict_update = conflict_update
+
+    def indexer_configuration_get(self, tool):
+        if tool['tool_name'] == 'swh-metadata-translator':
+            return {
+                'id': 30,
+                'tool_name': 'swh-metadata-translator',
+                'tool_version': '0.0.1',
+                'tool_configuration': {
+                    'type': 'local',
+                    'context': 'npm'
+                },
+            }
+        elif tool['tool_name'] == 'swh-metadata-detector':
+            return {
+                'id': 7,
+                'tool_name': 'swh-metadata-detector',
+                'tool_version': '0.0.1',
+                'tool_configuration': {
+                    'type': 'local',
+                    'context': 'npm'
+                },
+            }
+
+    def revision_get(self, revisions):
+        return [{
+            'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'committer': {
+                'id': 26,
+                'name': b'Andrew Nesbitt',
+                'fullname': b'Andrew Nesbitt <andrewnez@gmail.com>',
+                'email': b'andrewnez@gmail.com'
+            },
+            'synthetic': False,
+            'date': {
+                'negative_utc': False,
+                'timestamp': {
+                    'seconds': 1487596456,
+                    'microseconds': 0
+                },
+                'offset': 0
+            },
+            'directory': b'10'
+        }]
+
+    def directory_ls(self, directory, recursive=False, cur=None):
+        # with directory: b'\x9d',
+        return [{
+                'sha1_git': b'abc',
+                'name': b'index.js',
+                'target': b'abc',
+                'length': 897,
+                'status': 'visible',
+                'type': 'file',
+                'perms': 33188,
+                'dir_id': b'10',
+                'sha1': b'bcd'
+                },
+                {
+                'sha1_git': b'aab',
+                'name': b'package.json',
+                'target': b'aab',
+                'length': 712,
+                'status': 'visible',
+                'type': 'file',
+                'perms': 33188,
+                'dir_id': b'10',
+                'sha1': b'cde'
+                },
+                {
+                'dir_id': b'10',
+                'target': b'11',
+                'type': 'dir',
+                'length': None,
+                'name': b'.github',
+                'sha1': None,
+                'perms': 16384,
+                'sha1_git': None,
+                'status': None,
+                'sha256': None
+                }]
+
+    def content_metadata_get(self, sha1s):
+        return [{
+            'tool': {
+                'configuration': {
+                    'type': 'local',
+                    'context': 'npm'
+                    },
+                'version': '0.0.1',
+                'id': 6,
+                'name': 'swh-metadata-translator'
+            },
+            'id': b'cde',
+            'translated_metadata': {
+                'issueTracker': {
+                    'url': 'https://github.com/librariesio/yarn-parser/issues'
+                },
+                'version': '1.0.0',
+                'name': 'yarn-parser',
+                'author': 'Andrew Nesbitt',
+                'url': 'https://github.com/librariesio/yarn-parser#readme',
+                'processorRequirements': {'node': '7.5'},
+                'other': {
+                    'scripts': {
+                                    'start': 'node index.js'
+                    },
+                    'main': 'index.js'
+                },
+                'license': 'AGPL-3.0',
+                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+                'codeRepository': {
+                    'type': 'git',
+                    'url': 'git+https://github.com/librariesio/yarn-parser.git'
+                },
+                'description': 'Tiny web service for parsing yarn.lock files',
+                'softwareRequirements': {
+                    'yarn': '^0.21.0',
+                    'express': '^4.14.0',
+                    'body-parser': '^1.15.2'}
+                }
+        }]

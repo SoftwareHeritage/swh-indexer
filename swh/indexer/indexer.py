@@ -81,7 +81,7 @@ class BaseIndexer(SWHConfig,
 
         - def run(self, object_ids, policy_update): object_ids are different
         depending on object. For example: sha1 for content, sha1_git for
-        revision, directorie, release, and id for origin
+        revision, directory, release, and id for origin
 
     To implement a new concrete indexer, inherit from the object level classes:
     ContentIndexer, RevisionIndexer
@@ -300,12 +300,12 @@ class BaseIndexer(SWHConfig,
 
 class ContentIndexer(BaseIndexer):
     """
-    An object type indexer, inherit from the BaseIndexer and
-    implement the process of indexation for Contents with the run method
+    An object type indexer, inherits from the BaseIndexer and
+    implements the process of indexation for Contents using the run method
 
     Note: the ContentIndexer is not an instantiable object
-    to use it in another context one should refer to the instructions in the
-    BaseIndexer
+    to use it in another context one should inherit from this class and
+    override the methods mentioned in the BaseIndexer class
     """
 
     def run(self, sha1s, policy_update):
@@ -345,12 +345,12 @@ class ContentIndexer(BaseIndexer):
 
 class RevisionIndexer(BaseIndexer):
     """
-    An object type indexer, inherit from the BaseIndexer and
-    implement the process of indexation for Revisions with the run method
+    An object type indexer, inherits from the BaseIndexer and
+    implements the process of indexation for Revisions using the run method
 
     Note: the RevisionIndexer is not an instantiable object
-    to use it in another context one should refer to the instructions in the
-    BaseIndexer
+    to use it in another context one should inherit from this class and
+    override the methods mentioned in the BaseIndexer class
     """
 
     def run(self, sha1_gits, policy_update):
@@ -366,20 +366,19 @@ class RevisionIndexer(BaseIndexer):
 
         """
         results = []
-        try:
-            for sha1_git in sha1_gits:
-                try:
-                    revs = self.storage.revision_get([sha1_git])
-                except ValueError:
-                    self.log.warn('Revision %s not found in storage' %
-                                  hashutil.hash_to_hex(sha1_git))
-                    continue
-                for rev in revs:
-                    if rev:      # If no revision, skip it
-                        res = self.index(rev)
-                        if res:  # If no results, skip it
-                            results.append(res)
-                self.persist_index_computations(results, policy_update)
-        except Exception:
-            self.log.exception(
-                'Problem when processing revision')
+        revs = self.storage.revision_get(sha1_gits)
+
+        for rev in revs:
+            if not rev:
+                self.log.warn('Revision %s not found in storage' %
+                              hashutil.hash_to_hex(sha1_gits))
+                continue
+            try:
+                res = self.index(rev)
+                if res:  # If no results, skip it
+                    results.append(res)
+            except Exception:
+                self.log.exception(
+                        'Problem when processing revision')
+        self.persist_index_computations(results, policy_update)
+        print(results)

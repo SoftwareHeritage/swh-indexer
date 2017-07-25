@@ -185,9 +185,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         """
         # TODO: add functions in storage to keep data in revision_metadata
-        # self.storage.reivision_metadata_add(
-        #    results, conflict_update=(policy_update == 'update-dups'))
-        pass
+        self.storage.revision_metadata_add(
+            results, conflict_update=(policy_update == 'update-dups'))
 
     def translate_revision_metadata(self, detected_files):
         """
@@ -221,7 +220,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
                 metadata_generator = self.storage.content_metadata_get([sha1])
                 metadata_generated = False
                 for c in metadata_generator:
-                    # print(c)
                     metadata_generated = True
                     # extracting translated_metadata
                     local_metadata = c['translated_metadata']
