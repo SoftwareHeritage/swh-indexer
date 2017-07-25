@@ -9,12 +9,16 @@ from nose.tools import istest
 
 from swh.indexer.metadata_dictionary import compute_metadata
 from swh.indexer.metadata import ContentMetadataIndexer
+from swh.indexer.metadata import RevisionMetadataIndexer
 from swh.indexer.tests.test_utils import MockObjStorage
 
 
 class MockStorage():
     """Mock storage to simplify reading indexers' outputs.
     """
+    def content_metadata_get(self, sha1s):
+        yield
+
     def content_metadata_add(self, metadata, conflict_update=None):
         self.state = metadata
         self.conflict_update = conflict_update
@@ -27,9 +31,9 @@ class MockStorage():
         if tool['tool_name'] == 'swh-metadata-translator':
             return {
                 'id': 30,
-                'name': 'swh-metadata-translator',
-                'version': '0.1',
-                'configuration': {
+                'tool_name': 'swh-metadata-translator',
+                'tool_version': '0.0.1',
+                'tool_configuration': {
                     'type': 'local',
                     'context': 'npm'
                 },
@@ -37,68 +41,22 @@ class MockStorage():
         elif tool['tool_name'] == 'swh-metadata-detector':
             return {
                 'id': 7,
-                'name': 'swh-metadata-detector',
-                'version': '0.1',
-                'configuration': {
+                'tool_name': 'swh-metadata-detector',
+                'tool_version': '0.0.1',
+                'tool_configuration': {
                     'type': 'local',
                     'context': 'npm'
                 },
             }
 
-    def revision_missing(self, revisions, cur=None):
-        pass
 
-    def revision_get(self, revisions):
-        """Get all revisions from storage
-           Args: an iterable of revision ids
-           Returns: an iterable of revisions as dictionaries
-                    (or None if the revision doesn't exist)
-        """
-        pass
-
-    def directory_get(self,
-                      directories,
-                      cur=None):
-        """Get information on directories.
-
-        Args:
-            - directories: an iterable of directory ids
-
-        Returns:
-            List of directories as dict with keys and associated values.
-
-        """
-        pass
-
-    def directory_ls(self, directory, recursive=False, cur=None):
-        """Get entries for one directory.
-
-        Args:
-            - directory: the directory to list entries from.
-            - recursive: if flag on, this list recursively from this directory.
-
-        Returns:
-            List of entries for such directory.
-
-        """
-        pass
-
-
-class TestMetadataIndexer(ContentMetadataIndexer):
+class TestContentMetadataIndexer(ContentMetadataIndexer):
     """Specific Metadata whose configuration is enough to satisfy the
        indexing tests.
     """
     def prepare(self):
         self.config = {
             'rescheduling_task': None,
-            'tools':  {
-                'name': 'swh-metadata-translator',
-                'version': '0.0.1',
-                'configuration': {
-                    'type': 'local',
-                    'context': 'npm'
-                }
-            }
         }
         self.storage = MockStorage()
         self.log = logging.getLogger('swh.indexer')
@@ -109,29 +67,21 @@ class TestMetadataIndexer(ContentMetadataIndexer):
         self.results = []
 
 
-# class TestRevisionMetadataIndexer(RevsionMetadataIndexer):
-#     """Specific indexer whose configuration is enough to satisfy the
-#        indexing tests.
-#     """
-#     def prepare(self):
-#         self.config = {
-#             'rescheduling_task': None,
-#             'tools':  {
-#                 'name': 'swh-metadata-detector',
-#                 'version': '0.0.1',
-#                 'configuration': {
-#                     'type': 'local',
-#                     'context': 'npm'
-#                 }
-#             }
-#         }
-#         self.storage = MockStorage()
-#         self.log = logging.getLogger('swh.indexer')
-#         self.objstorage = MockObjStorage()
-#         self.task_destination = None
-#         self.rescheduling_task = self.config['rescheduling_task']
-#         self.tools = self.retrieve_tools_information()
-#         self.results = []
+class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
+    """Specific indexer whose configuration is enough to satisfy the
+       indexing tests.
+    """
+    def prepare(self):
+        self.config = {
+            'rescheduling_task': None,
+        }
+        self.storage = MockStorage()
+        self.log = logging.getLogger('swh.indexer')
+        self.objstorage = MockObjStorage()
+        self.task_destination = None
+        self.rescheduling_task = self.config['rescheduling_task']
+        self.tools = self.retrieve_tools_information()
+        self.results = []
 
 
 class Metadata(unittest.TestCase):
@@ -143,6 +93,22 @@ class Metadata(unittest.TestCase):
         shows the entire diff in the results
         """
         self.maxDiff = None
+        self.content_tool = {
+            'name': 'swh-metadata-translator',
+            'version': '0.0.1',
+            'configuration': {
+                'type': 'local',
+                'context': 'npm'
+            }
+        }
+        self.revision_tool = {
+            'name': 'swh-metadata-detector',
+            'version': '0.0.1',
+            'configuration': {
+                'type': 'local',
+                'context': 'npm'
+            }
+        }
 
     @istest
     def test_compute_metadata_none(self):
@@ -207,7 +173,7 @@ class Metadata(unittest.TestCase):
                  '02fb2c89e14f7fab46701478c83779c7beb7b069']
         # this metadata indexer computes only metadata for package.json
         # in npm context with a hard mapping
-        metadata_indexer = TestMetadataIndexer()
+        metadata_indexer = TestContentMetadataIndexer(self.content_tool)
 
         # when
         metadata_indexer.run(sha1s, policy_update='ignore-dups')

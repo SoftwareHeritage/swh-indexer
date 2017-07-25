@@ -377,7 +377,6 @@ class RevisionIndexer(BaseIndexer):
                 for rev in revs:
                     if rev:      # If no revision, skip it
                         res = self.index(rev)
-                        print(res)
                         if res:  # If no results, skip it
                             results.append(res)
                 self.persist_index_computations(results, policy_update)

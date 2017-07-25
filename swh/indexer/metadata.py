@@ -9,7 +9,6 @@ from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 
 from swh.model import hashutil
-from swh.objstorage.exc import ObjNotFoundError
 
 
 class ContentMetadataIndexer(ContentIndexer):
@@ -22,26 +21,17 @@ class ContentMetadataIndexer(ContentIndexer):
     """
     CONFIG_BASE_FILENAME = 'indexer/metadata'
 
-    ADDITIONAL_CONFIG = {
-        'tools': ('dict', {
-            'name': 'swh-metadata-translator',
-            'version': '0.0.1',
-            'configuration': {
-                'type': 'local',
-                'context': 'npm'
-            },
-        }),
-    }
-
-    def __init__(self):
-        self.config = self.parse_config_file(
-            config_filename="~/.config/swh/storage.yml",
-            additional_configs=[self.ADDITIONAL_CONFIG])
+    def __init__(self, tool):
+        self.tool = tool
         super().__init__()
 
     def prepare(self):
         super().prepare()
         self.results = []
+
+    def retrieve_tools_information(self):
+        self.config['tools'] = self.tool
+        return super().retrieve_tools_information()
 
     def filter(self, sha1s):
         """Filter out known sha1s and return only missing ones.
@@ -72,7 +62,7 @@ class ContentMetadataIndexer(ContentIndexer):
             'translated_metadata': None
         }
         try:
-            context = self.tools['configuration']['context']
+            context = self.tools['tool_configuration']['context']
             result['translated_metadata'] = compute_metadata(
                                             context, raw_content)
             # a twisted way to keep result with indexer object for get_results
@@ -119,22 +109,21 @@ class RevisionMetadataIndexer(RevisionIndexer):
     - store the results for revision
 
     """
+    CONFIG_BASE_FILENAME = 'indexer/metadata'
+
     ADDITIONAL_CONFIG = {
-        'destination_queue': ('str', None),
         'tools': ('dict', {
             'name': 'swh-metadata-detector',
-            'version': '0.1',
+            'version': '0.0.1',
             'configuration': {
                 'type': 'local',
-                'contexts': ['npm']
+                'context': ['npm', 'codemeta']
             },
         }),
     }
 
     def prepare(self):
         super().prepare()
-        self.tools = self.retrieve_tools_information()
-        print(self.tools)
 
     def filter(self, sha1_gits):
         """Filter out known sha1s and return only missing ones.
@@ -171,16 +160,15 @@ class RevisionMetadataIndexer(RevisionIndexer):
             }
 
             root_dir = rev['directory']
-            dir_ls = self.storage.directory_ls(root_dir, recursive=True)
+            dir_ls = self.storage.directory_ls(root_dir, recursive=False)
             files = (entry for entry in dir_ls if entry['type'] == 'file')
             detected_files = detect_metadata(files)
             result['translated_metadata'] = self.translate_revision_metadata(
                                                                 detected_files)
         except Exception as e:
             self.log.exception(
-                'Problem when indexing rev: ', e)
+                'Problem when indexing rev')
             print(e)
-
         return result
 
     def persist_index_computations(self, results, policy_update):
@@ -196,8 +184,10 @@ class RevisionMetadataIndexer(RevisionIndexer):
             respectively update duplicates or ignore them
 
         """
-        self.storage.revision_metadata_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+        # TODO: add functions in storage to keep data in revision_metadata
+        # self.storage.reivision_metadata_add(
+        #    results, conflict_update=(policy_update == 'update-dups'))
+        pass
 
     def translate_revision_metadata(self, detected_files):
         """
@@ -211,38 +201,49 @@ class RevisionMetadataIndexer(RevisionIndexer):
         Returns:
             - translated_metadata: dict with the CodeMeta vocabulary
         """
-        print(detected_files)
         translated_metadata = []
-
+        tool = {
+                'name': 'swh-metadata-translator',
+                'version': '0.0.1',
+                'configuration': {
+                    'type': 'local',
+                    'context': None
+                },
+            }
         # TODO: iterate on each context, on each file
         # -> get raw_contents
         # -> translate each content
         for context in detected_files.keys():
+            tool['configuration']['context'] = context
             for sha1 in detected_files[context]:
-                try:
-                    raw_content = self.objstorage.get(sha1)
-                except ObjNotFoundError:
-                    self.log.warn('Content %s not found in objstorage' %
-                                  hashutil.hash_to_hex(sha1))
-                # sends to raw_content 'swh-metadata-translator'
-                local_metadata = compute_metadata(context, raw_content)
-                # aggregating metadata
-                translated_metadata.append(local_metadata)
-        # for now this method doesn't call the ContentMetadataIndexer
-        # due to configuration issue that should be resolved with a better
-        # configuration management plan, should look like this
-        #####################################################################
-        # send sha1s to ContentMetadataIndexer
-        # c_metadata_indexer = ContentMetadataIndexer()
-        # c_metadata_indexer.run(sha1s, policy_update='ignore-dups')
-        # translated_metadata = c_metadata_indexer.get_results()
-        #####################################################################
-        # open questions:
-        # do we keep at revision level the translated_metadata of one file?
-        # we have a key in the swh-metadata-translator named 'other'
-        # to keep undefined categories, should we delete this ?
-        extract_minimal_metadata_dict(translated_metadata)
-        return translated_metadata
+                local_metadata = {}
+                # fetch content_metadata from storage
+                metadata_generator = self.storage.content_metadata_get([sha1])
+                metadata_generated = False
+                for c in metadata_generator:
+                    # print(c)
+                    metadata_generated = True
+                    # extracting translated_metadata
+                    local_metadata = c['translated_metadata']
+                if not metadata_generated:
+                    # schedule indexation of content
+                    try:
+                        c_metadata_indexer = ContentMetadataIndexer(tool)
+                        c_metadata_indexer.run([sha1],
+                                               policy_update='ignore-dups')
+                        local_metadata = c_metadata_indexer.get_results()
+                    except Exception as e:
+                        self.log.warn("""indexing Content %s with
+                                        ContentMetadataIndexer raises
+                                        exeception""" %
+                                      hashutil.hash_to_hex(sha1))
+                        print(e)
+                # local metadata is aggregated
+                if local_metadata:
+                    translated_metadata.append(local_metadata)
+        # transform translated_metadata into min set with swh-metadata-detector
+        min_metadata = extract_minimal_metadata_dict(translated_metadata)
+        return min_metadata
 
 
 def main():
@@ -250,8 +251,10 @@ def main():
     sha1_git1 = hashutil.hash_to_bytes(
                                     '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
     sha1_git2 = hashutil.hash_to_bytes(
-                                    '8dbb6aeb036e7fd80664eb8bfd1507881af1ba94')
-    sha1_gits = [sha1_git1, sha1_git2]
+                                    '026040ea79dec1b49b4e3e7beda9132b6b26b51b')
+    sha1_git3 = hashutil.hash_to_bytes(
+                                    '9699072e21eded4be8d45e3b8d543952533fa190')
+    sha1_gits = [sha1_git1, sha1_git2, sha1_git3]
     rev_metadata_indexer.run(sha1_gits, 'update-dups')
 
 
