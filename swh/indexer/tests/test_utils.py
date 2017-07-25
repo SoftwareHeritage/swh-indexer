@@ -101,8 +101,9 @@ class MockObjStorage():
               "license": "Artistic-2.0"
             }
 
+            """,
+            'a7ab314d8a11d2c93e3dcf528ca294e7b431c449': b"""
             """
-
         }
 
     def get(self, sha1):

@@ -6,7 +6,7 @@ Tools to compute multiple indexes on SWH's raw contents:
 - ctags
 - language
 - fossology-license
-
+- metadata
 
 # Context
 
@@ -50,13 +50,13 @@ There are 2 sorts:
 ## Indexers
 
 Indexers:
-- receive batch of sha1
-- retrieve the associated content from the blob storage
-- compute for that content some index
+- receive batch of ids
+- retrieve the associated data depending on object type
+- compute for that object some index
 - store the result to swh's storage
 - (and possibly do some broadcast itself)
 
-Current indexers:
+Current content indexers:
 
 - mimetype (queue swh_indexer_content_mimetype): compute the mimetype,
   filter out the textual contents and broadcast the list to the
@@ -69,3 +69,11 @@ Current indexers:
 
 - fossology-license (queue swh_indexer_fossology_license): try and
   compute the license
+
+- metadata : translate file into translated_metadata dict
+
+Current revision indexers:
+
+- metadata: detects files containing metadata and retrieves translated_metadata
+  in content_metadata table in storage or run content indexer to translate
+  files.
