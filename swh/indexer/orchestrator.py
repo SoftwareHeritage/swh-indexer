@@ -93,22 +93,22 @@ class BaseOrchestratorIndexer(SWHConfig):
         self.indexers = indexers
         self.tasks = tasks
 
-    def run(self, sha1s):
+    def run(self, ids):
         for name, (idx_class, filtering, batch_size) in self.indexers.items():
             if filtering:
                 policy_update = 'ignore-dups'
                 indexer_class = get_class(idx_class)
-                sha1s_filtered = list(indexer_class().filter(sha1s))
-                if not sha1s_filtered:
+                ids_filtered = list(indexer_class().filter(ids))
+                if not ids_filtered:
                     continue
             else:
                 policy_update = 'update-dups'
-                sha1s_filtered = sha1s
+                ids_filtered = ids
 
             celery_tasks = []
-            for sha1s_to_send in grouper(sha1s_filtered, batch_size):
+            for ids_to_send in grouper(ids_filtered, batch_size):
                 celery_task = self.tasks[name].s(
-                    sha1s=list(sha1s_to_send),
+                    ids=list(ids_to_send),
                     policy_update=policy_update)
                 celery_tasks.append(celery_task)
 

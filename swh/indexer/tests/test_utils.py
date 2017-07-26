@@ -116,6 +116,9 @@ class MockObjStorage():
 class MockStorage():
     """Mock storage to simplify reading indexers' outputs.
     """
+    def content_metadata_missing(self, sha1s):
+        yield from []
+
     def content_metadata_add(self, metadata, conflict_update=None):
         self.state = metadata
         self.conflict_update = conflict_update

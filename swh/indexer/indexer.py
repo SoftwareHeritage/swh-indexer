@@ -236,11 +236,11 @@ class BaseIndexer(SWHConfig,
 
     @abc.abstractmethod
     def index(self, id, data):
-        """Index computation for the sha1 and associated raw content.
+        """Index computation for the id and associated raw data.
 
         Args:
-            id (bytes): sha1 identifier
-            content (bytes): id's data from storage or objstorage depending on
+            id (bytes):  identifier
+            data (bytes): id's data from storage or objstorage depending on
                              object type
 
         Returns:
@@ -381,4 +381,3 @@ class RevisionIndexer(BaseIndexer):
                 self.log.exception(
                         'Problem when processing revision')
         self.persist_index_computations(results, policy_update)
-        print(results)
