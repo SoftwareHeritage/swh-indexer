@@ -370,8 +370,8 @@ class RevisionIndexer(BaseIndexer):
 
         for rev in revs:
             if not rev:
-                self.log.warn('Revision %s not found in storage' %
-                              hashutil.hash_to_hex(sha1_gits))
+                self.log.warn('Revisions %s not found in storage' %
+                              list(map(hashutil.hash_to_hex, sha1_gits)))
                 continue
             try:
                 res = self.index(rev)

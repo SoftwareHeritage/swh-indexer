@@ -263,6 +263,10 @@ class Metadata(unittest.TestCase):
                 'url': [
                     'https://github.com/librariesio/yarn-parser#readme'
                 ],
+                'codeRepository': [{
+                    'type': 'git',
+                    'url': 'git+https://github.com/librariesio/yarn-parser.git'
+                }],
                 'author': ['Andrew Nesbitt'],
                 'license': ['AGPL-3.0'],
                 'version': ['1.0.0'],

@@ -61,7 +61,8 @@ def extract_minimal_metadata_dict(metadata_list):
         "maintainer": [],
         "email": [],
         "softwareRequirements": [],
-        "identifier": []
+        "identifier": [],
+        "codeRepository": []
     }
     for term in minimal_dict.keys():
         for metadata_dict in metadata_list:

@@ -226,45 +226,50 @@ class RevisionMetadataIndexer(RevisionIndexer):
         for context in detected_files.keys():
             tool['configuration']['context'] = context
             c_metadata_indexer = ContentMetadataIndexer(tool, config)
-            # sha1s that aren't in content_metadata table
-            sha1s_filtered = list(c_metadata_indexer.filter(
-                                                    detected_files[context]))
+            # sha1s that are in content_metadata table
+            sha1s_in_storage = []
+            metadata_generator = self.storage.content_metadata_get(
+                                              detected_files[context])
+            for c in metadata_generator:
+                # extracting translated_metadata
+                sha1 = c['id']
+                sha1s_in_storage.append(sha1)
+                local_metadata = c['translated_metadata']
+                # local metadata is aggregated
+                if local_metadata:
+                    translated_metadata.append(local_metadata)
+
+            sha1s_filtered = [item for item in detected_files[context]
+                              if item not in sha1s_in_storage]
+
             if sha1s_filtered:
-                print(sha1s_filtered)
                 # schedule indexation of content
                 try:
                     c_metadata_indexer.run(sha1s_filtered,
                                            policy_update='ignore-dups')
                     # on the fly possibility:
-                    local_metadata = c_metadata_indexer.get_results()
+                    results = c_metadata_indexer.get_results()
+
+                    for result in results:
+                        local_metadata = result['translated_metadata']
+                        translated_metadata.append(local_metadata)
+
                 except Exception as e:
                     self.log.warn("""Exception while indexing content""", e)
-            sha1s_in_storage = [item for item in detected_files[context]
-                                if item not in sha1s_filtered]
-            # fetch from storage results that were skipped with filter
-            for sha1 in sha1s_in_storage:
-                local_metadata = {}
-                # fetch content_metadata from storage
-                metadata_generator = self.storage.content_metadata_get([sha1])
-                for c in metadata_generator:
-                    # extracting translated_metadata
-                    local_metadata = c['translated_metadata']
-                # local metadata is aggregated
-                if local_metadata:
-                    translated_metadata.append(local_metadata)
+
         # transform translated_metadata into min set with swh-metadata-detector
         min_metadata = extract_minimal_metadata_dict(translated_metadata)
         return min_metadata
 
 
 @click.command()
-@click.option('--revs_ids',
+@click.option('--revs', '-i',
               default=['8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
                        '026040ea79dec1b49b4e3e7beda9132b6b26b51b',
                        '9699072e21eded4be8d45e3b8d543952533fa190'],
-              help='Default sha1_git to lookup')
-def main(revs_ids):
-    _git_sha1s = list(map(hashutil.hash_to_bytes, revs_ids))
+              help='Default sha1_git to lookup', multiple=True)
+def main(revs):
+    _git_sha1s = list(map(hashutil.hash_to_bytes, revs))
     rev_metadata_indexer = RevisionMetadataIndexer()
     rev_metadata_indexer.run(_git_sha1s, 'update-dups')
 
