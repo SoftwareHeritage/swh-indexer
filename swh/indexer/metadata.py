@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 import click
+import logging
 
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer
 from swh.indexer.metadata_dictionary import compute_metadata
@@ -26,16 +27,19 @@ class ContentMetadataIndexer(ContentIndexer):
         self.tool = tool
         # twisted way to use the exact same config of RevisionMetadataIndexer
         # object that uses internally ContentMetadataIndexer
-        self.new_config = config
+        self.config = config
         super().__init__()
 
     def prepare(self):
-        super().prepare()
         self.results = []
-        if self.new_config['storage']:
-            self.storage = self.new_config['storage']
-        if self.new_config['objstorage']:
-            self.objstorage = self.new_config['objstorage']
+        if self.config['storage']:
+            self.storage = self.config['storage']
+        if self.config['objstorage']:
+            self.objstorage = self.config['objstorage']
+        l = logging.getLogger('requests.packages.urllib3.connectionpool')
+        l.setLevel(logging.WARN)
+        self.log = logging.getLogger('swh.indexer')
+        self.tools = self.retrieve_tools_information()
 
     def retrieve_tools_information(self):
         self.config['tools'] = self.tool
@@ -275,6 +279,5 @@ def main(revs):
 
 
 if __name__ == '__main__':
-    import logging
     logging.basicConfig(level=logging.INFO)
     main()
