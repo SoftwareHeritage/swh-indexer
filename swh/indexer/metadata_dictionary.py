@@ -8,12 +8,16 @@ import json
 def convert(raw_content):
     """
     convert raw_content recursively:
-        - from bytes to string
-        - from string to dict
+
+    - from bytes to string
+    - from string to dict
+
     Args:
-        - raw_content (bytes / string / dict)
+        raw_content (bytes / string / dict)
+
     Returns:
-        - Dict of content (if string was json, otherwise returns string)
+        dict: content (if string was json, otherwise returns string)
+
     """
     if isinstance(raw_content, bytes):
         return convert(raw_content.decode())
@@ -34,20 +38,23 @@ class BaseMapping():
     """Base class for mappings to inherit from
 
     To implement a new mapping:
-        - inherit this class
-        - add a local property self.mapping
-        - override translate function
+
+    - inherit this class
+    - add a local property self.mapping
+    - override translate function
     """
 
     def translate(self, content_dict):
         """
         Tranlsates content  by parsing content to a json object
         and translating with the npm mapping (for now hard_coded mapping)
+
         Args:
-            - context_text (text) : should be json
+            context_text (text): should be json
 
         Returns:
-            - translated_metadata (dict): jsonb form needed for the indexer
+            dict: translated metadata in jsonb form needed for the indexer
+
         """
         translated_metadata = {}
         default = 'other'
@@ -167,14 +174,14 @@ def compute_metadata(context, raw_content):
     first landing method: a dispatcher that sends content
     to the right function to carry out the real parsing of syntax
     and translation of terms
+
     Args:
-        - context (text) : defines to which function/tool
-            the content is sent
-        - content (text): the string form of the raw_content
+        context (text): defines to which function/tool the content is sent
+        content (text): the string form of the raw_content
 
     Returns:
-        - translated_metadata (dict): jsonb form needed for the indexer
-            to store in storage
+        dict: translated metadata jsonb dictionary needed for the indexer to
+          store in storage
 
     """
     if raw_content is None or raw_content is b"":

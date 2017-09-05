@@ -38,25 +38,20 @@ class BaseOrchestratorIndexer(SWHConfig):
     - broadcast those (filtered or not) contents to indexers in a
       batch_size fashioned
 
-    For example:
+    For example::
 
-    ```yaml
-    indexers:
-      mimetype:
-        batch_size: 10
-        check_presence: false
-      language:
-        batch_size: 2
-        check_presence: true
-    ```
+        indexers:
+          mimetype:
+            batch_size: 10
+            check_presence: false
+          language:
+            batch_size: 2
+            check_presence: true
 
     means:
 
-    - send all contents received as batch of size 10 to the 'mimetype'
-    indexer
-
-    - send only unknown contents as batch of size 2 to the 'language'
-    indexer.
+    - send all contents received as batch of size 10 to the 'mimetype' indexer
+    - send only unknown contents as batch of size 2 to the 'language' indexer.
 
     """
     CONFIG_BASE_FILENAME = 'indexer/orchestrator'

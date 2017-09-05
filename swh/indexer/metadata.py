@@ -14,12 +14,16 @@ from swh.model import hashutil
 
 
 class ContentMetadataIndexer(ContentIndexer):
-    """Indexer at content level in charge of:
+    """Content-level indexer
+
+    This indexer is in charge of:
+
     - filtering out content already indexed in content_metadata
     - reading content from objstorage with the content's id sha1
     - computing translated_metadata by given context
     - using the metadata_dictionary as the 'swh-metadata-translator' tool
     - store result in content_metadata table
+
     """
     CONFIG_BASE_FILENAME = 'indexer/metadata'
 
@@ -63,9 +67,9 @@ class ContentMetadataIndexer(ContentIndexer):
             raw_content (bytes): raw content in bytes
 
         Returns:
-            result (dict): representing a content_metadata
-            if translation wasn't successful the translated_metadata keys
-            will be kept as None
+            dict: dictionary representing a content_metadata. If the
+            translation wasn't successful the translated_metadata keys will
+            be returned as None
 
         """
         result = {
@@ -104,14 +108,16 @@ class ContentMetadataIndexer(ContentIndexer):
         can be called only if run method was called before
 
         Returns:
-            results (list): list of content_metadata entries calculated
-            by current indxer
+            list: list of content_metadata entries calculated by current indxer
         """
         return self.results
 
 
 class RevisionMetadataIndexer(RevisionIndexer):
-    """Indexer at Revision level in charge of:
+    """Revision-level indexer
+
+    This indexer is in charge of:
+
     - filtering revisions already indexed in revision_metadata table with
       defined computation tool
     - retrieve all entry_files in root directory
@@ -150,18 +156,21 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
     def index(self, rev):
         """Index rev by processing it and organizing result.
-           use metadata_detector to iterate on filenames
-           - if one filename detected -> sends file to content indexer
-           - if multiple file detected -> translation needed at revision level
 
-            Args:
-                rev (bytes): revision artifact from storage
+        use metadata_detector to iterate on filenames
 
-            Returns:
-                A dict, representing a revision_metadata, with keys:
-                  - id (bytes): rev's identifier (sha1_git)
-                  - indexer_configuration_id (bytes): tool used
-                  - translated_metadata (bytes): dict of retrieved metadata
+        - if one filename detected -> sends file to content indexer
+        - if multiple file detected -> translation needed at revision level
+
+        Args:
+          rev (bytes): revision artifact from storage
+
+        Returns:
+            dict: dictionary representing a revision_metadata, with keys:
+
+                - id (bytes): rev's identifier (sha1_git)
+                - indexer_configuration_id (bytes): tool used
+                - translated_metadata (bytes): dict of retrieved metadata
 
         """
         try:
@@ -203,13 +212,15 @@ class RevisionMetadataIndexer(RevisionIndexer):
         """
         Determine plan of action to translate metadata when containing
         one or multiple detected files:
+
         Args:
-            - detected_files : dict with context name and list of sha1s
-            (e.g : {'npm' : [sha1_1, sha1_2],
-                     'authors': sha1_3})
+            detected_files (dict): dictionary mapping context names (e.g.,
+              "npm", "authors") to list of sha1
 
         Returns:
-            - translated_metadata: dict with the CodeMeta vocabulary
+            dict: dict with translated metadata according to the CodeMeta
+            vocabulary
+
         """
         translated_metadata = []
         tool = {

@@ -18,13 +18,13 @@ from swh.scheduler.utils import get_task
 
 
 class DiskIndexer:
-    """Mixin intended to be used with other *Indexer classes.
+    """Mixin intended to be used with other SomethingIndexer classes.
 
-       Indexer* inheriting from this class are a category of indexers
-       which needs the disk for their computations.
+       Indexers inheriting from this class are a category of indexers which
+       needs the disk for their computations.
 
-       Expects:
-           self.working_directory variable defined at runtime.
+       Note:
+           expects `self.working_directory` variable defined at runtime.
 
     """
     def __init__(self):
@@ -72,16 +72,17 @@ class BaseIndexer(SWHConfig,
     trigger the computations on the ids batch received.
 
     Indexers can:
+
     - filter out ids whose data has already been indexed.
     - retrieve ids data from storage or objstorage
     - index this data depending on the object and store the result in storage.
 
     To implement a new object type indexer, inherit from the BaseIndexer and
-    implement the process of indexation :
+    implement the process of indexation:
 
-        - def run(self, object_ids, policy_update): object_ids are different
-        depending on object. For example: sha1 for content, sha1_git for
-        revision, directory, release, and id for origin
+    def run(self, object_ids, policy_update)
+      object_ids are different depending on object. For example: sha1 for
+      content, sha1_git for revision, directory, release, and id for origin
 
     To implement a new concrete indexer, inherit from the object level classes:
     ContentIndexer, RevisionIndexer
@@ -89,29 +90,31 @@ class BaseIndexer(SWHConfig,
 
     Then you need to implement the following functions:
 
-      - def filter(self, ids): filter out data already
-        indexed (in storage). This function is used by the
-        orchestrator and not directly by the indexer
-        (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
+    def filter(self, ids)
+      filter out data already indexed (in storage). This function is used by
+      the orchestrator and not directly by the indexer
+      (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
 
-      - def index_object(self, id, data): compute index on
-        id with data (retrieved from the storage or the objstorage by the
-        id key) and return the resulting index computation.
+    def index_object(self, id, data)
+      compute index on id with data (retrieved from the storage or the
+      objstorage by the id key) and return the resulting index computation.
 
-      - def persist_index_computations(self, results, policy_update):
-        persist the results of multiple index computations in the
-        storage.
+    def persist_index_computations(self, results, policy_update)
+      persist the results of multiple index computations in the storage.
 
     The new indexer implementation can also override the following functions:
 
-      - def prepare(self): Configuration preparation for the indexer.
-        When overriding, this must call the super().prepare() function.
+    def prepare(self)
+      Configuration preparation for the indexer.  When overriding, this must
+      call the super().prepare() function.
 
-      - def check(self): Configuration check for the indexer.
-        When overriding, this must call the super().check() function.
+    def check(self)
+      Configuration check for the indexer.  When overriding, this must call the
+      super().check() function.
 
-      - def retrieve_tools_information(self): This should return a
-        dict of the tool(s) to use when indexing or filtering.
+    def retrieve_tools_information(self)
+      This should return a dict of the tool(s) to use when indexing or
+      filtering.
 
     """
     CONFIG = 'indexer/base'
