@@ -37,6 +37,7 @@ def compute_mimetype_encoding(raw_content):
 
 class ContentMimetypeIndexer(ContentIndexer):
     """Indexer in charge of:
+
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
     - computing {mimetype, encoding} from that content
@@ -87,6 +88,7 @@ class ContentMimetypeIndexer(ContentIndexer):
 
         Returns:
             A dict, representing a content_mimetype, with keys:
+
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
@@ -106,9 +108,11 @@ class ContentMimetypeIndexer(ContentIndexer):
         Args:
             results ([dict]): list of content_mimetype, dict with the
             following keys:
+
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
+
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
             respectively update duplicates or ignore them
 
@@ -132,6 +136,7 @@ class ContentMimetypeIndexer(ContentIndexer):
         Args:
             results ([dict]): List of content_mimetype results, dict
             with the following keys:
+
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes

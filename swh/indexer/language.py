@@ -109,6 +109,7 @@ def compute_language(raw_content, encoding=None, log=None):
 
 class ContentLanguageIndexer(ContentIndexer):
     """Indexer in charge of:
+
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
     - computing {mimetype, encoding} from that content

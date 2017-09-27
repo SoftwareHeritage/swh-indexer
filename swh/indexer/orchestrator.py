@@ -28,15 +28,16 @@ def get_class(clazz):
 
 class BaseOrchestratorIndexer(SWHConfig):
     """The indexer orchestrator is in charge of dispatching batch of
-       contents (filtered or not based on presence) to indexers.
+    contents (filtered or not based on presence) to indexers.
 
     That dispatch is indexer specific, so the configuration reflects it:
 
-    - when check_presence flag is true, filter out the contents
-      already present for that indexer, otherwise send everything
+    - when `check_presence` flag is true, filter out the
+      contents already present for that indexer, otherwise send
+      everything
 
     - broadcast those (filtered or not) contents to indexers in a
-      batch_size fashioned
+      `batch_size` fashioned
 
     For example::
 

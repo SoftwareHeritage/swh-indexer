@@ -20,16 +20,14 @@ from swh.scheduler.utils import get_task
 class DiskIndexer:
     """Mixin intended to be used with other SomethingIndexer classes.
 
-       Indexers inheriting from this class are a category of indexers which
-       needs the disk for their computations.
+       Indexers inheriting from this class are a category of indexers
+       which needs the disk for their computations.
 
        Note:
-           expects `self.working_directory` variable defined at runtime.
+           This expects `self.working_directory` variable defined at
+           runtime.
 
     """
-    def __init__(self):
-        super().__init__()
-
     def write_to_temp(self, filename, data):
         """Write the sha1's content in a temporary file.
 
@@ -68,51 +66,53 @@ class BaseIndexer(SWHConfig,
                   metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
 
-    The main entry point is the `run` functions which is in charge to
-    trigger the computations on the ids batch received.
+    The main entry point is the :func:`run` function which is in
+    charge of triggering the computations on the batch dict/ids
+    received.
 
     Indexers can:
 
     - filter out ids whose data has already been indexed.
     - retrieve ids data from storage or objstorage
-    - index this data depending on the object and store the result in storage.
+    - index this data depending on the object and store the result in
+      storage.
 
-    To implement a new object type indexer, inherit from the BaseIndexer and
-    implement the process of indexation:
+    To implement a new object type indexer, inherit from the
+    BaseIndexer and implement the process of indexation:
 
-    def run(self, object_ids, policy_update)
+    :func:`run`:
       object_ids are different depending on object. For example: sha1 for
       content, sha1_git for revision, directory, release, and id for origin
 
-    To implement a new concrete indexer, inherit from the object level classes:
-    ContentIndexer, RevisionIndexer
-    (later on OriginIndexer will also be available)
+    To implement a new concrete indexer, inherit from the object level
+    classes: :class:`ContentIndexer`, :class:`RevisionIndexer` (later
+    on :class:`OriginIndexer` will also be available)
 
     Then you need to implement the following functions:
 
-    def filter(self, ids)
+    :func:`filter`:
       filter out data already indexed (in storage). This function is used by
       the orchestrator and not directly by the indexer
       (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
 
-    def index_object(self, id, data)
+    :func:`index_object`:
       compute index on id with data (retrieved from the storage or the
       objstorage by the id key) and return the resulting index computation.
 
-    def persist_index_computations(self, results, policy_update)
+    :func:`persist_index_computations`:
       persist the results of multiple index computations in the storage.
 
     The new indexer implementation can also override the following functions:
 
-    def prepare(self)
+    :func:`prepare`:
       Configuration preparation for the indexer.  When overriding, this must
-      call the super().prepare() function.
+      call the `super().prepare()` instruction.
 
-    def check(self)
+    :func:`check`:
       Configuration check for the indexer.  When overriding, this must call the
-      super().check() function.
+      `super().check()` instruction.
 
-    def retrieve_tools_information(self)
+    :func:`retrieve_tools_information`:
       This should return a dict of the tool(s) to use when indexing or
       filtering.
 
@@ -242,7 +242,7 @@ class BaseIndexer(SWHConfig,
         """Index computation for the id and associated raw data.
 
         Args:
-            id (bytes):  identifier
+            id (bytes): identifier
             data (bytes): id's data from storage or objstorage depending on
                              object type
 
@@ -258,10 +258,12 @@ class BaseIndexer(SWHConfig,
         """Persist the computation resulting from the index.
 
         Args:
+
             results ([result]): List of results. One result is the
-            result of the index function.
+                                result of the index function.
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+                                   respectively update duplicates or ignore
+                                   them
 
         Returns:
             None
@@ -277,7 +279,7 @@ class BaseIndexer(SWHConfig,
 
         Args:
             results ([result]): List of results (dict) as returned
-            by index function.
+                                by index function.
 
         Returns:
             None
@@ -288,6 +290,7 @@ class BaseIndexer(SWHConfig,
     @abc.abstractmethod
     def run(self, ids, policy_update):
         """Given a list of ids:
+
         - retrieves the data from the storage
         - executes the indexing computations
         - stores the results (according to policy_update)
@@ -302,17 +305,20 @@ class BaseIndexer(SWHConfig,
 
 
 class ContentIndexer(BaseIndexer):
-    """
-    An object type indexer, inherits from the BaseIndexer and
-    implements the process of indexation for Contents using the run method
+    """An object type indexer, inherits from the :class:`BaseIndexer` and
+    implements the process of indexation for Contents using the run
+    method
 
-    Note: the ContentIndexer is not an instantiable object
-    to use it in another context one should inherit from this class and
-    override the methods mentioned in the BaseIndexer class
+    Note: the :class:`ContentIndexer` is not an instantiable
+    object. To use it in another context, one should inherit from this
+    class and override the methods mentioned in the
+    :class:`BaseIndexer` class.
+
     """
 
     def run(self, sha1s, policy_update):
         """Given a list of sha1s:
+
         - retrieve the content from the storage
         - execute the indexing computations
         - store the results (according to policy_update)
@@ -320,7 +326,8 @@ class ContentIndexer(BaseIndexer):
         Args:
             sha1s ([bytes]): sha1's identifier list
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+                                   respectively update duplicates or ignore
+                                   them
 
         """
         results = []
@@ -347,25 +354,29 @@ class ContentIndexer(BaseIndexer):
 
 
 class RevisionIndexer(BaseIndexer):
-    """
-    An object type indexer, inherits from the BaseIndexer and
-    implements the process of indexation for Revisions using the run method
+    """An object type indexer, inherits from the :class:`BaseIndexer` and
+    implements the process of indexation for Revisions using the run
+    method
 
-    Note: the RevisionIndexer is not an instantiable object
-    to use it in another context one should inherit from this class and
-    override the methods mentioned in the BaseIndexer class
+    Note: the :class:`RevisionIndexer` is not an instantiable object.
+    To use it in another context one should inherit from this class
+    and override the methods mentioned in the :class:`BaseIndexer`
+    class.
+
     """
 
     def run(self, sha1_gits, policy_update):
-        """
-        Given a list of sha1_gits:
+        """Given a list of sha1_gits:
+
         - retrieve revsions from storage
         - execute the indexing computations
         - store the results (according to policy_update)
+
         Args:
             sha1_gits ([bytes]): sha1_git's identifier list
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+                                   respectively update duplicates or ignore
+                                   them
 
         """
         results = []
