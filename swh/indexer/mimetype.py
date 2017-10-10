@@ -21,6 +21,12 @@ def compute_mimetype_encoding(raw_content):
         A dict with mimetype and encoding key and corresponding values.
 
     """
+    if raw_content is b'':
+        return {
+            'mimetype': b'application/x-empty',
+            'encoding': b'binary'
+        }
+
     with Popen(['file', '--mime', '-'], stdin=PIPE,
                stdout=PIPE, stderr=PIPE) as p:
         properties, _ = p.communicate(raw_content)
