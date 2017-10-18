@@ -22,14 +22,14 @@ def gen_sha1(batch, dict_with_key=None):
 
     """
     def _gen():
-        for sha1s in utils.grouper(read_from_stdin(), batch):
-            sha1s = list(sha1s)
-            random.shuffle(sha1s)
-            yield sha1s
+        for ids in utils.grouper(read_from_stdin(), batch):
+            ids = list(ids)
+            random.shuffle(ids)
+            yield ids
 
     if dict_with_key:
-        for sha1s in _gen():
-            yield [{dict_with_key: sha1} for sha1 in sha1s]
+        for ids in _gen():
+            yield [{dict_with_key: sha1} for sha1 in ids]
     else:
         yield from _gen()
 
@@ -40,18 +40,18 @@ def make_function_execute(task, sync):
 
     """
     if sync:
-        return (lambda sha1s, task=task: task(sha1s))
-    return (lambda sha1s, task=task: task.delay(sha1s))
+        return (lambda ids, task=task: task(ids))
+    return (lambda ids, task=task: task.delay(ids))
 
 
 def run_with_limit(task, limit, batch, dict_with_key=None, sync=False):
     execute_fn = make_function_execute(task, sync)
 
     count = 0
-    for sha1s in gen_sha1(batch, dict_with_key):
-        count += len(sha1s)
-        execute_fn(sha1s)
-        print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
+    for ids in gen_sha1(batch, dict_with_key):
+        count += len(ids)
+        execute_fn(ids)
+        print('%s sent - [%s, ...]' % (len(ids), ids[0]))
         if count >= limit:
             return
 
@@ -59,9 +59,9 @@ def run_with_limit(task, limit, batch, dict_with_key=None, sync=False):
 def run(task, batch, dict_with_key=None, sync=False):
     execute_fn = make_function_execute(task, sync)
 
-    for sha1s in gen_sha1(batch, dict_with_key):
-        execute_fn(sha1s)
-        print('%s sent - [%s, ...]' % (len(sha1s), sha1s[0]))
+    for ids in gen_sha1(batch, dict_with_key):
+        execute_fn(ids)
+        print('%s sent - [%s, ...]' % (len(ids), ids[0]))
 
 
 @click.command(help='Read sha1 from stdin and send them for indexing')
