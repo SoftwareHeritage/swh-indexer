@@ -17,33 +17,104 @@ from swh.storage import get_storage
 from swh.scheduler.utils import get_task
 
 
+class DiskIndexer:
+    """Mixin intended to be used with other SomethingIndexer classes.
+
+       Indexers inheriting from this class are a category of indexers
+       which needs the disk for their computations.
+
+       Note:
+           This expects `self.working_directory` variable defined at
+           runtime.
+
+    """
+    def write_to_temp(self, filename, data):
+        """Write the sha1's content in a temporary file.
+
+        Args:
+            sha1 (str): the sha1 name
+            filename (str): one of sha1's many filenames
+            data (bytes): the sha1's content to write in temporary
+            file
+
+        Returns:
+            The path to the temporary file created. That file is
+            filled in with the raw content's data.
+
+        """
+        os.makedirs(self.working_directory, exist_ok=True)
+        temp_dir = tempfile.mkdtemp(dir=self.working_directory)
+        content_path = os.path.join(temp_dir, filename)
+
+        with open(content_path, 'wb') as f:
+            f.write(data)
+
+        return content_path
+
+    def cleanup(self, content_path):
+        """Remove content_path from working directory.
+
+        Args:
+            content_path (str): the file to remove
+
+        """
+        temp_dir = os.path.dirname(content_path)
+        shutil.rmtree(temp_dir)
+
+
 class BaseIndexer(SWHConfig,
                   metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
 
-    The main entry point is the `run` functions which is in charge to
-    trigger the computations on the sha1s batch received.
+    The main entry point is the :func:`run` function which is in
+    charge of triggering the computations on the batch dict/ids
+    received.
 
     Indexers can:
-    - filter out sha1 whose data has already been indexed.
-    - retrieve sha1's content from objstorage, index this content then
-      store the result in storage.
 
-    To implement a new index, inherit from this class and implement
-    the following functions:
+    - filter out ids whose data has already been indexed.
+    - retrieve ids data from storage or objstorage
+    - index this data depending on the object and store the result in
+      storage.
 
-      - def filter_contents(self, sha1s): filter out data already
-        indexed (in storage). This function is used by the
-        orchestrator and not directly by the indexer
-        (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
+    To implement a new object type indexer, inherit from the
+    BaseIndexer and implement the process of indexation:
 
-      - def index_content(self, sha1, raw_content): compute index on
-        sha1 with data raw_content (retrieved in the objstorage by the
-        sha1 key) and return the resulting index computation.
+    :func:`run`:
+      object_ids are different depending on object. For example: sha1 for
+      content, sha1_git for revision, directory, release, and id for origin
 
-      - def persist_index_computations(self, results, policy_update):
-        persist the results of multiple index computations in the
-        storage.
+    To implement a new concrete indexer, inherit from the object level
+    classes: :class:`ContentIndexer`, :class:`RevisionIndexer` (later
+    on :class:`OriginIndexer` will also be available)
+
+    Then you need to implement the following functions:
+
+    :func:`filter`:
+      filter out data already indexed (in storage). This function is used by
+      the orchestrator and not directly by the indexer
+      (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
+
+    :func:`index_object`:
+      compute index on id with data (retrieved from the storage or the
+      objstorage by the id key) and return the resulting index computation.
+
+    :func:`persist_index_computations`:
+      persist the results of multiple index computations in the storage.
+
+    The new indexer implementation can also override the following functions:
+
+    :func:`prepare`:
+      Configuration preparation for the indexer.  When overriding, this must
+      call the `super().prepare()` instruction.
+
+    :func:`check`:
+      Configuration check for the indexer.  When overriding, this must call the
+      `super().check()` instruction.
+
+    :func:`retrieve_tools_information`:
+      This should return a dict of the tool(s) to use when indexing or
+      filtering.
 
     """
     CONFIG = 'indexer/base'
@@ -101,7 +172,18 @@ class BaseIndexer(SWHConfig,
     ADDITIONAL_CONFIG = {}
 
     def __init__(self):
+        """Prepare and check that the indexer is ready to run.
+
+        """
         super().__init__()
+        self.prepare()
+        self.check()
+
+    def prepare(self):
+        """Prepare the indexer's needed runtime configuration.
+           Without this step, the indexer cannot possibly run.
+
+        """
         self.config = self.parse_config_file(
             additional_configs=[self.ADDITIONAL_CONFIG])
         objstorage = self.config['objstorage']
@@ -117,6 +199,16 @@ class BaseIndexer(SWHConfig,
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
         l.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
+        self.tools = self.retrieve_tools_information()
+
+    def check(self):
+        """Check the indexer's configuration is ok before proceeding.
+           If ok, does nothing. If not raise error.
+
+        """
+        if not self.tools:
+            raise ValueError('Tools %s is unknown, cannot continue' %
+                             self.config['tools'])
 
     def retrieve_tools_information(self):
         """Permit to define how to retrieve tool information based on
@@ -133,25 +225,26 @@ class BaseIndexer(SWHConfig,
         return self.storage.indexer_configuration_get(tool)
 
     @abc.abstractmethod
-    def filter_contents(self, sha1s):
-        """Filter missing sha1 for that particular indexer.
+    def filter(self, ids):
+        """Filter missing ids for that particular indexer.
 
         Args:
-            sha1s ([bytes]): list of contents' sha1
+            ids ([bytes]): list of ids
 
         Yields:
-            iterator of missing sha1
+            iterator of missing ids
 
         """
         pass
 
     @abc.abstractmethod
-    def index_content(self, sha1, content):
-        """Index computation for the sha1 and associated raw content.
+    def index(self, id, data):
+        """Index computation for the id and associated raw data.
 
         Args:
-            sha1 (bytes): sha1 identifier
-            content (bytes): sha1's raw content
+            id (bytes): identifier
+            data (bytes): id's data from storage or objstorage depending on
+                             object type
 
         Returns:
             a dict that makes sense for the persist_index_computations
@@ -165,10 +258,12 @@ class BaseIndexer(SWHConfig,
         """Persist the computation resulting from the index.
 
         Args:
+
             results ([result]): List of results. One result is the
-            result of the index_content function.
+                                result of the index function.
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+                                   respectively update duplicates or ignore
+                                   them
 
         Returns:
             None
@@ -184,7 +279,7 @@ class BaseIndexer(SWHConfig,
 
         Args:
             results ([result]): List of results (dict) as returned
-            by index_content function.
+                                by index function.
 
         Returns:
             None
@@ -192,8 +287,38 @@ class BaseIndexer(SWHConfig,
         """
         pass
 
+    @abc.abstractmethod
+    def run(self, ids, policy_update):
+        """Given a list of ids:
+
+        - retrieves the data from the storage
+        - executes the indexing computations
+        - stores the results (according to policy_update)
+
+        Args:
+            ids ([bytes]): id's identifier list
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            respectively update duplicates or ignore them
+
+        """
+        pass
+
+
+class ContentIndexer(BaseIndexer):
+    """An object type indexer, inherits from the :class:`BaseIndexer` and
+    implements the process of indexation for Contents using the run
+    method
+
+    Note: the :class:`ContentIndexer` is not an instantiable
+    object. To use it in another context, one should inherit from this
+    class and override the methods mentioned in the
+    :class:`BaseIndexer` class.
+
+    """
+
     def run(self, sha1s, policy_update):
         """Given a list of sha1s:
+
         - retrieve the content from the storage
         - execute the indexing computations
         - store the results (according to policy_update)
@@ -201,14 +326,11 @@ class BaseIndexer(SWHConfig,
         Args:
             sha1s ([bytes]): sha1's identifier list
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+                                   respectively update duplicates or ignore
+                                   them
 
         """
         results = []
-        self.tools = self.retrieve_tools_information()
-        if not self.tools:
-            raise ValueError('Tools %s is unknown, cannot continue' %
-                             self.config['tools'])
         try:
             for sha1 in sha1s:
                 try:
@@ -217,7 +339,7 @@ class BaseIndexer(SWHConfig,
                     self.log.warn('Content %s not found in objstorage' %
                                   hashutil.hash_to_hex(sha1))
                     continue
-                res = self.index_content(sha1, raw_content)
+                res = self.index(sha1, raw_content)
                 if res:  # If no results, skip it
                     results.append(res)
 
@@ -231,48 +353,45 @@ class BaseIndexer(SWHConfig,
                 self.rescheduling_task.delay(sha1s, policy_update)
 
 
-class DiskIndexer:
-    """Mixin intended to be used with other *Indexer classes.
+class RevisionIndexer(BaseIndexer):
+    """An object type indexer, inherits from the :class:`BaseIndexer` and
+    implements the process of indexation for Revisions using the run
+    method
 
-       Indexer* inheriting from this class are a category of indexers
-       which needs the disk for their computations.
-
-       Expects:
-           self.working_directory variable defined at runtime.
+    Note: the :class:`RevisionIndexer` is not an instantiable object.
+    To use it in another context one should inherit from this class
+    and override the methods mentioned in the :class:`BaseIndexer`
+    class.
 
     """
-    def __init__(self):
-        super().__init__()
 
-    def write_to_temp(self, filename, data):
-        """Write the sha1's content in a temporary file.
+    def run(self, sha1_gits, policy_update):
+        """Given a list of sha1_gits:
 
-        Args:
-            sha1 (str): the sha1 name
-            filename (str): one of sha1's many filenames
-            data (bytes): the sha1's content to write in temporary
-            file
-
-        Returns:
-            The path to the temporary file created. That file is
-            filled in with the raw content's data.
-
-        """
-        os.makedirs(self.working_directory, exist_ok=True)
-        temp_dir = tempfile.mkdtemp(dir=self.working_directory)
-        content_path = os.path.join(temp_dir, filename)
-
-        with open(content_path, 'wb') as f:
-            f.write(data)
-
-        return content_path
-
-    def cleanup(self, content_path):
-        """Remove content_path from working directory.
+        - retrieve revsions from storage
+        - execute the indexing computations
+        - store the results (according to policy_update)
 
         Args:
-            content_path (str): the file to remove
+            sha1_gits ([bytes]): sha1_git's identifier list
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+                                   respectively update duplicates or ignore
+                                   them
 
         """
-        temp_dir = os.path.dirname(content_path)
-        shutil.rmtree(temp_dir)
+        results = []
+        revs = self.storage.revision_get(sha1_gits)
+
+        for rev in revs:
+            if not rev:
+                self.log.warn('Revisions %s not found in storage' %
+                              list(map(hashutil.hash_to_hex, sha1_gits)))
+                continue
+            try:
+                res = self.index(rev)
+                if res:  # If no results, skip it
+                    results.append(res)
+            except Exception:
+                self.log.exception(
+                        'Problem when processing revision')
+        self.persist_index_computations(results, policy_update)

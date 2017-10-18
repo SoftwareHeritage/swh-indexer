@@ -22,15 +22,15 @@ class RecomputeChecksums(SWHConfig):
 
     Hashes to compute are defined across 2 configuration options:
 
-    - compute_checksums ([str]): list of hash algorithms that
-      swh.model.hashutil.hash_data function should be able to deal
-      with. For variable-length checksums, a desired checksum length
-      should also be provided. Their format is <algorithm's
-      name>:<variable-length> e.g: blake2:512
+    compute_checksums ([str])
+      list of hash algorithms that py:func:`swh.model.hashutil.hash_data`
+      function should be able to deal with. For variable-length checksums, a
+      desired checksum length should also be provided. Their format is
+      <algorithm's name>:<variable-length> e.g: blake2:512
 
-    - recompute_checksums (bool): a boolean to notify that we also
-      want to recompute potential existing hashes specified in
-      compute_checksums. Default to False.
+    recompute_checksums (bool)
+      a boolean to notify that we also want to recompute potential existing
+      hashes specified in compute_checksums.  Default to False.
 
     """
     DEFAULT_CONFIG = {
@@ -154,16 +154,16 @@ class RecomputeChecksums(SWHConfig):
                 yield content, checksums_to_compute
 
     def run(self, contents):
-        """Given a list of content (dict):
-            - (re)compute a given set of checksums on contents
-              available in our object storage
-            - update those contents with the new metadata
+        """Given a list of content:
 
-            Args:
-                - contents ([dict]): contents as dictionary with
-                  necessary keys.  key present in such dictionary
-                  should be the ones defined in the 'primary_key'
-                  option.
+          - (re)compute a given set of checksums on contents available in our
+            object storage
+          - update those contents with the new metadata
+
+          Args:
+              contents (dict): contents as dictionary with necessary keys.
+                  key present in such dictionary should be the ones defined in
+                  the 'primary_key' option.
 
         """
         for data in utils.grouper(

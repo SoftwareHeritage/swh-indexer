@@ -8,7 +8,7 @@ import subprocess
 
 from swh.model import hashutil
 
-from .indexer import BaseIndexer, DiskIndexer
+from .indexer import ContentIndexer, DiskIndexer
 
 
 def compute_license(path, log=None):
@@ -46,7 +46,7 @@ def compute_license(path, log=None):
         }
 
 
-class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
+class ContentFossologyLicenseIndexer(ContentIndexer, DiskIndexer):
     """Indexer in charge of:
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
@@ -67,23 +67,22 @@ class ContentFossologyLicenseIndexer(BaseIndexer, DiskIndexer):
 
     CONFIG_BASE_FILENAME = 'indexer/fossology_license'
 
-    def __init__(self):
-        super().__init__()
+    def prepare(self):
+        super().prepare()
         self.working_directory = self.config['workdir']
 
-    def filter_contents(self, sha1s):
+    def filter(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
-        tools = self.retrieve_tools_information()
         yield from self.storage.content_fossology_license_missing((
             {
                 'id': sha1,
-                'indexer_configuration_id': tools['id'],
+                'indexer_configuration_id': self.tools['id'],
             } for sha1 in sha1s
         ))
 
-    def index_content(self, sha1, raw_content):
+    def index(self, sha1, raw_content):
         """Index sha1s' content and store result.
 
         Args:

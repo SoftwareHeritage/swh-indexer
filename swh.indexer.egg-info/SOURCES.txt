@@ -4,6 +4,7 @@ LICENSE
 MANIFEST.in
 Makefile
 README
+codemeta.json
 requirements-swh.txt
 requirements.txt
 setup.py
@@ -14,6 +15,13 @@ debian/control
 debian/copyright
 debian/rules
 debian/source/format
+docs/.gitignore
+docs/Makefile
+docs/conf.py
+docs/index.rst
+docs/_static/.placeholder
+docs/_templates/.placeholder
+swh/__init__.py
 swh.indexer.egg-info/PKG-INFO
 swh.indexer.egg-info/SOURCES.txt
 swh.indexer.egg-info/dependency_links.txt
@@ -24,9 +32,15 @@ swh/indexer/ctags.py
 swh/indexer/fossology_license.py
 swh/indexer/indexer.py
 swh/indexer/language.py
+swh/indexer/metadata.py
+swh/indexer/metadata_detector.py
+swh/indexer/metadata_dictionary.py
 swh/indexer/mimetype.py
 swh/indexer/orchestrator.py
 swh/indexer/producer.py
 swh/indexer/rehash.py
 swh/indexer/tasks.py
+swh/indexer/tests/test_language.py
+swh/indexer/tests/test_metadata.py
 swh/indexer/tests/test_mimetype.py
+swh/indexer/tests/test_utils.py
