@@ -316,15 +316,15 @@ class ContentIndexer(BaseIndexer):
 
     """
 
-    def run(self, sha1s, policy_update):
-        """Given a list of sha1s:
+    def run(self, ids, policy_update):
+        """Given a list of ids:
 
         - retrieve the content from the storage
         - execute the indexing computations
         - store the results (according to policy_update)
 
         Args:
-            sha1s ([bytes]): sha1's identifier list
+            ids ([bytes]): sha1's identifier list
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
                                    respectively update duplicates or ignore
                                    them
@@ -332,7 +332,7 @@ class ContentIndexer(BaseIndexer):
         """
         results = []
         try:
-            for sha1 in sha1s:
+            for sha1 in ids:
                 try:
                     raw_content = self.objstorage.get(sha1)
                 except ObjNotFoundError:
@@ -350,7 +350,7 @@ class ContentIndexer(BaseIndexer):
                 'Problem when reading contents metadata.')
             if self.rescheduling_task:
                 self.log.warn('Rescheduling batch')
-                self.rescheduling_task.delay(sha1s, policy_update)
+                self.rescheduling_task.delay(ids, policy_update)
 
 
 class RevisionIndexer(BaseIndexer):
@@ -365,27 +365,27 @@ class RevisionIndexer(BaseIndexer):
 
     """
 
-    def run(self, sha1_gits, policy_update):
+    def run(self, ids, policy_update):
         """Given a list of sha1_gits:
 
-        - retrieve revsions from storage
+        - retrieve revisions from storage
         - execute the indexing computations
         - store the results (according to policy_update)
 
         Args:
-            sha1_gits ([bytes]): sha1_git's identifier list
+            ids ([bytes]): sha1_git's identifier list
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
                                    respectively update duplicates or ignore
                                    them
 
         """
         results = []
-        revs = self.storage.revision_get(sha1_gits)
+        revs = self.storage.revision_get(ids)
 
         for rev in revs:
             if not rev:
                 self.log.warn('Revisions %s not found in storage' %
-                              list(map(hashutil.hash_to_hex, sha1_gits)))
+                              list(map(hashutil.hash_to_hex, ids)))
                 continue
             try:
                 res = self.index(rev)
