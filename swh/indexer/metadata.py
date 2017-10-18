@@ -49,22 +49,22 @@ class ContentMetadataIndexer(ContentIndexer):
         self.config['tools'] = self.tool
         return super().retrieve_tools_information()
 
-    def filter(self, sha1s):
+    def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
         """
         yield from self.storage.content_metadata_missing((
             {
                 'id': sha1,
                 'indexer_configuration_id': self.tools['id'],
-            } for sha1 in sha1s
+            } for sha1 in ids
         ))
 
-    def index(self, sha1, raw_content):
+    def index(self, id, data):
         """Index sha1s' content and store result.
 
         Args:
-            sha1 (bytes): content's identifier
-            raw_content (bytes): raw content in bytes
+            id (bytes): content's identifier
+            data (bytes): raw content in bytes
 
         Returns:
             dict: dictionary representing a content_metadata. If the
@@ -73,14 +73,13 @@ class ContentMetadataIndexer(ContentIndexer):
 
         """
         result = {
-            'id': sha1,
+            'id': id,
             'indexer_configuration_id': self.tools['id'],
             'translated_metadata': None
         }
         try:
             context = self.tools['tool_configuration']['context']
-            result['translated_metadata'] = compute_metadata(
-                                            context, raw_content)
+            result['translated_metadata'] = compute_metadata(context, data)
             # a twisted way to keep result with indexer object for get_results
             self.results.append(result)
         except:
@@ -104,11 +103,12 @@ class ContentMetadataIndexer(ContentIndexer):
             results, conflict_update=(policy_update == 'update-dups'))
 
     def get_results(self):
-        """
-        can be called only if run method was called before
+        """can be called only if run method was called before
 
         Returns:
-            list: list of content_metadata entries calculated by current indxer
+            list: list of content_metadata entries calculated by
+                  current indexer
+
         """
         return self.results
 
