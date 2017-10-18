@@ -135,7 +135,7 @@ class ContentLanguageIndexer(ContentIndexer):
         c = self.config
         self.max_content_size = c['tools']['configuration']['max_content_size']
 
-    def filter(self, sha1s):
+    def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
 
         """
@@ -143,15 +143,15 @@ class ContentLanguageIndexer(ContentIndexer):
             {
                 'id': sha1,
                 'indexer_configuration_id': self.tools['id'],
-            } for sha1 in sha1s
+            } for sha1 in ids
         ))
 
-    def index(self, sha1, raw_content):
+    def index(self, id, data):
         """Index sha1s' content and store result.
 
         Args:
-            sha1 (bytes): content's identifier
-            raw_content (bytes): raw content in bytes
+            id (bytes): content's identifier
+            data (bytes): raw content in bytes
 
         Returns:
             A dict, representing a content_mimetype, with keys:
@@ -160,23 +160,23 @@ class ContentLanguageIndexer(ContentIndexer):
 
         """
         result = {
-            'id': sha1,
+            'id': id,
             'indexer_configuration_id': self.tools['id'],
             'lang': None,
         }
 
-        encoding = _detect_encoding(raw_content)
+        encoding = _detect_encoding(data)
 
         if not encoding:
             return result
 
-        l = len(raw_content)
+        l = len(data)
         for i in range(0, 9):
             max_size = self.max_content_size + i
 
             try:
                 result = compute_language_from_chunk(
-                    encoding, l, raw_content, max_size, log=self.log)
+                    encoding, l, data, max_size, log=self.log)
             except UnicodeDecodeError:
                 self.log.warn('Decoding failed on wrong byte chunk at [0-%s]'
                               ', trying again at next ending byte.' % max_size)
@@ -184,7 +184,7 @@ class ContentLanguageIndexer(ContentIndexer):
 
             # we found something, so we return it
             result.update({
-                'id': sha1,
+                'id': id,
                 'indexer_configuration_id': self.tools['id'],
             })
             break

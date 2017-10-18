@@ -80,7 +80,7 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
         self.working_directory = self.config['workdir']
         self.language_map = self.config['languages']
 
-    def filter(self, sha1s):
+    def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
 
         """
@@ -88,15 +88,15 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
             {
                 'id': sha1,
                 'indexer_configuration_id': self.tools['id'],
-            } for sha1 in sha1s
+            } for sha1 in ids
         ))
 
-    def index(self, sha1, raw_content):
+    def index(self, id, data):
         """Index sha1s' content and store result.
 
         Args:
-            sha1 (bytes): content's identifier
-            raw_content (bytes): raw content in bytes
+            id (bytes): content's identifier
+            data (bytes): raw content in bytes
 
         Returns:
             A dict, representing a content_mimetype, with keys:
@@ -104,7 +104,7 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
               - ctags ([dict]): ctags list of symbols
 
         """
-        lang = compute_language(raw_content, log=self.log)['lang']
+        lang = compute_language(data, log=self.log)['lang']
 
         if not lang:
             return None
@@ -115,13 +115,13 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
             return None
 
         ctags = {
-            'id': sha1,
+            'id': id,
         }
 
-        filename = hashutil.hash_to_hex(sha1)
+        filename = hashutil.hash_to_hex(id)
         content_path = self.write_to_temp(
             filename=filename,
-            data=raw_content)
+            data=data)
 
         result = run_ctags(content_path, lang=ctags_lang)
         ctags.update({
