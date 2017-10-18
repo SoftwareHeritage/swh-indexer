@@ -1,3 +1,19 @@
+swh-indexer (0.0.36-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.36
+  * packaging: Cleanup
+  * codemeta: Adding codemeta.json file to document metadata
+  * swh.indexer.mimetype: Fix edge case regarding empty raw content
+  * docs: sanitize docstrings for sphinx documentation generation
+  * swh.indexer.metadata: Add RevisionMetadataIndexer
+  * swh.indexer.metadata: Add ContentMetadataIndexer
+  * swh.indexer: Refactor base class to improve inheritance
+  * swh.indexer.metadata: First draft of the metadata content indexer
+  * for npm (package.json)
+  * swh.indexer.tests: Added tests for language indexer
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 18 Oct 2017 16:24:24 +0200
+
 swh-indexer (0.0.35-1~swh1) unstable-swh; urgency=medium
 
   * Release swh.indexer 0.0.35
