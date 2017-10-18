@@ -71,7 +71,7 @@ class ContentFossologyLicenseIndexer(ContentIndexer, DiskIndexer):
         super().prepare()
         self.working_directory = self.config['workdir']
 
-    def filter(self, sha1s):
+    def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
 
         """
@@ -79,10 +79,10 @@ class ContentFossologyLicenseIndexer(ContentIndexer, DiskIndexer):
             {
                 'id': sha1,
                 'indexer_configuration_id': self.tools['id'],
-            } for sha1 in sha1s
+            } for sha1 in ids
         ))
 
-    def index(self, sha1, raw_content):
+    def index(self, id, data):
         """Index sha1s' content and store result.
 
         Args:
@@ -96,15 +96,15 @@ class ContentFossologyLicenseIndexer(ContentIndexer, DiskIndexer):
               - path (bytes): path
 
         """
-        filename = hashutil.hash_to_hex(sha1)
+        filename = hashutil.hash_to_hex(id)
         content_path = self.write_to_temp(
             filename=filename,
-            data=raw_content)
+            data=data)
 
         try:
             properties = compute_license(path=content_path, log=self.log)
             properties.update({
-                'id': sha1,
+                'id': id,
                 'indexer_configuration_id': self.tools['id'],
             })
         finally:

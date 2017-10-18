@@ -74,7 +74,7 @@ class ContentMimetypeIndexer(ContentIndexer):
             self.task_destination = None
         self.tools = self.retrieve_tools_information()
 
-    def filter(self, sha1s):
+    def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
 
         """
@@ -82,15 +82,15 @@ class ContentMimetypeIndexer(ContentIndexer):
             {
                 'id': sha1,
                 'indexer_configuration_id': self.tools['id'],
-            } for sha1 in sha1s
+            } for sha1 in ids
         ))
 
-    def index(self, sha1, raw_content):
+    def index(self, id, data):
         """Index sha1s' content and store result.
 
         Args:
-            sha1 (bytes): content's identifier
-            raw_content (bytes): raw content in bytes
+            id (bytes): content's identifier
+            data (bytes): raw content in bytes
 
         Returns:
             A dict, representing a content_mimetype, with keys:
@@ -100,9 +100,9 @@ class ContentMimetypeIndexer(ContentIndexer):
               - encoding (bytes): encoding in bytes
 
         """
-        properties = compute_mimetype_encoding(raw_content)
+        properties = compute_mimetype_encoding(data)
         properties.update({
-            'id': sha1,
+            'id': id,
             'indexer_configuration_id': self.tools['id'],
         })
 
