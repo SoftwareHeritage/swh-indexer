@@ -10,7 +10,7 @@ import json
 from swh.model import hashutil
 
 from .language import compute_language
-from .indexer import BaseIndexer, DiskIndexer
+from .indexer import ContentIndexer, DiskIndexer
 
 
 # Options used to compute tags
@@ -54,7 +54,7 @@ def run_ctags(path, lang=None, ctags_command='ctags'):
         }
 
 
-class CtagsIndexer(BaseIndexer, DiskIndexer):
+class CtagsIndexer(ContentIndexer, DiskIndexer):
     CONFIG_BASE_FILENAME = 'indexer/ctags'
 
     ADDITIONAL_CONFIG = {
@@ -75,24 +75,23 @@ class CtagsIndexer(BaseIndexer, DiskIndexer):
         })
     }
 
-    def __init__(self):
-        super().__init__()
+    def prepare(self):
+        super().prepare()
         self.working_directory = self.config['workdir']
         self.language_map = self.config['languages']
 
-    def filter_contents(self, sha1s):
+    def filter(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
-        tools = self.retrieve_tools_information()
         yield from self.storage.content_ctags_missing((
             {
                 'id': sha1,
-                'indexer_configuration_id': tools['id'],
+                'indexer_configuration_id': self.tools['id'],
             } for sha1 in sha1s
         ))
 
-    def index_content(self, sha1, raw_content):
+    def index(self, sha1, raw_content):
         """Index sha1s' content and store result.
 
         Args:
