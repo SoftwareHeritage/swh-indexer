@@ -8,7 +8,7 @@ import click
 from subprocess import Popen, PIPE
 from swh.scheduler import utils
 
-from .indexer import BaseIndexer
+from .indexer import ContentIndexer
 
 
 def compute_mimetype_encoding(raw_content):
@@ -21,6 +21,12 @@ def compute_mimetype_encoding(raw_content):
         A dict with mimetype and encoding key and corresponding values.
 
     """
+    if raw_content is b'':
+        return {
+            'mimetype': b'application/x-empty',
+            'encoding': b'binary'
+        }
+
     with Popen(['file', '--mime', '-'], stdin=PIPE,
                stdout=PIPE, stderr=PIPE) as p:
         properties, _ = p.communicate(raw_content)
@@ -35,8 +41,9 @@ def compute_mimetype_encoding(raw_content):
             }
 
 
-class ContentMimetypeIndexer(BaseIndexer):
+class ContentMimetypeIndexer(ContentIndexer):
     """Indexer in charge of:
+
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
     - computing {mimetype, encoding} from that content
@@ -58,27 +65,27 @@ class ContentMimetypeIndexer(BaseIndexer):
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'
 
-    def __init__(self):
-        super().__init__()
+    def prepare(self):
+        super().prepare()
         destination_queue = self.config.get('destination_queue')
         if destination_queue:
             self.task_destination = utils.get_task(destination_queue)
         else:
             self.task_destination = None
+        self.tools = self.retrieve_tools_information()
 
-    def filter_contents(self, sha1s):
+    def filter(self, sha1s):
         """Filter out known sha1s and return only missing ones.
 
         """
-        tools = self.retrieve_tools_information()
         yield from self.storage.content_mimetype_missing((
             {
                 'id': sha1,
-                'indexer_configuration_id': tools['id'],
+                'indexer_configuration_id': self.tools['id'],
             } for sha1 in sha1s
         ))
 
-    def index_content(self, sha1, raw_content):
+    def index(self, sha1, raw_content):
         """Index sha1s' content and store result.
 
         Args:
@@ -87,6 +94,7 @@ class ContentMimetypeIndexer(BaseIndexer):
 
         Returns:
             A dict, representing a content_mimetype, with keys:
+
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
@@ -106,9 +114,11 @@ class ContentMimetypeIndexer(BaseIndexer):
         Args:
             results ([dict]): list of content_mimetype, dict with the
             following keys:
+
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
+
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
             respectively update duplicates or ignore them
 
@@ -132,6 +142,7 @@ class ContentMimetypeIndexer(BaseIndexer):
         Args:
             results ([dict]): List of content_mimetype results, dict
             with the following keys:
+
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
