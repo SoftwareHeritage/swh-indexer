@@ -1,3 +1,10 @@
+swh-indexer (0.0.39-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.39
+  * swh.indexer.producer: Fix argument to match the abstract definition
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 19 Oct 2017 10:03:44 +0200
+
 swh-indexer (0.0.38-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.38
