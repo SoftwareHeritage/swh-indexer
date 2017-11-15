@@ -37,8 +37,11 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
             'rescheduling_task': None,
             'tools': {
                 'name': 'file',
-                'version': '5.22',
-                'configuration': 'file --mime <filename>',
+                'version': '1:5.30-1+deb9u1',
+                'configuration': {
+                    "type": "library",
+                    "debian-package": "python3-magic"
+                },
             },
         }
         self.storage = _MockStorage()
