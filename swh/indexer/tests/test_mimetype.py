@@ -12,7 +12,7 @@ from swh.indexer.mimetype import ContentMimetypeIndexer
 from swh.indexer.tests.test_utils import MockObjStorage
 
 
-class MockStorage():
+class _MockStorage():
     """Mock storage to simplify reading indexers' outputs.
 
     """
@@ -41,7 +41,7 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
                 'configuration': 'file --mime <filename>',
             },
         }
-        self.storage = MockStorage()
+        self.storage = _MockStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.task_destination = None
@@ -79,15 +79,17 @@ class TestMimetypeIndexerTest(unittest.TestCase):
     @istest
     def test_index_no_update(self):
         # given
-        sha1s = ['01c9379dfc33803963d07c1ccc748d3fe4c96bb50',
-                 '688a5ef812c53907562fe379d4b3851e69c7cb15']
+        sha1s = [
+            '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
+            '688a5ef812c53907562fe379d4b3851e69c7cb15',
+        ]
 
         # when
         self.indexer.run(sha1s, policy_update='ignore-dups')
 
         # then
         expected_results = [{
-            'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb50',
+            'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
             'indexer_configuration_id': 10,
             'mimetype': b'text/plain',
             'encoding': b'us-ascii',
@@ -104,15 +106,18 @@ class TestMimetypeIndexerTest(unittest.TestCase):
     @istest
     def test_index_update(self):
         # given
-        sha1s = ['01c9379dfc33803963d07c1ccc748d3fe4c96bb50',
-                 '688a5ef812c53907562fe379d4b3851e69c7cb15']
+        sha1s = [
+            '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
+            '688a5ef812c53907562fe379d4b3851e69c7cb15',
+            'da39a3ee5e6b4b0d3255bfef95601890afd80709',  # empty content
+        ]
 
         # when
         self.indexer.run(sha1s, policy_update='update-dups')
 
         # then
         expected_results = [{
-            'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb50',
+            'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
             'indexer_configuration_id': 10,
             'mimetype': b'text/plain',
             'encoding': b'us-ascii',
@@ -121,6 +126,11 @@ class TestMimetypeIndexerTest(unittest.TestCase):
             'indexer_configuration_id': 10,
             'mimetype': b'text/plain',
             'encoding': b'us-ascii',
+        }, {
+            'id': 'da39a3ee5e6b4b0d3255bfef95601890afd80709',
+            'indexer_configuration_id': 10,
+            'mimetype': b'application/x-empty',
+            'encoding': b'binary',
         }]
 
         self.assertTrue(self.indexer.storage.conflict_update)
