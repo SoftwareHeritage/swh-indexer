@@ -1,5 +1,6 @@
 chardet
 click
+file_magic
 pygments
 swh.core>=0.0.27
 swh.model>=0.0.15

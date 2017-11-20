@@ -1,3 +1,5 @@
+.. _swh-indexer:
+
 Software Heritage - Development Documentation
 =============================================
 

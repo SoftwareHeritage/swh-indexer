@@ -4,8 +4,8 @@
 # See top-level LICENSE file for more information
 
 import click
+import magic
 
-from subprocess import Popen, PIPE
 from swh.scheduler import utils
 
 from .indexer import ContentIndexer
@@ -18,27 +18,15 @@ def compute_mimetype_encoding(raw_content):
         raw_content (bytes): content's raw data
 
     Returns:
-        A dict with mimetype and encoding key and corresponding values.
+        A dict with mimetype and encoding key and corresponding values
+        (as bytes).
 
     """
-    if raw_content is b'':
-        return {
-            'mimetype': b'application/x-empty',
-            'encoding': b'binary'
-        }
-
-    with Popen(['file', '--mime', '-'], stdin=PIPE,
-               stdout=PIPE, stderr=PIPE) as p:
-        properties, _ = p.communicate(raw_content)
-
-        if properties:
-            res = properties.split(b': ')[1].strip().split(b'; ')
-            mimetype = res[0]
-            encoding = res[1].split(b'=')[1]
-            return {
-                'mimetype': mimetype,
-                'encoding': encoding
-            }
+    r = magic.detect_from_content(raw_content)
+    return {
+        'mimetype': r.mime_type.encode('utf-8'),
+        'encoding': r.encoding.encode('utf-8'),
+    }
 
 
 class ContentMimetypeIndexer(ContentIndexer):
@@ -51,14 +39,13 @@ class ContentMimetypeIndexer(ContentIndexer):
 
     """
     ADDITIONAL_CONFIG = {
-        # chained queue message, e.g:
-        # swh.indexer.tasks.SWHOrchestratorTextContentsTask
         'destination_queue': ('str', None),
         'tools': ('dict', {
             'name': 'file',
-            'version': '5.22',
+            'version': '1:5.30-1+deb9u1',
             'configuration': {
-                'command_line': 'file --mime <filename>',
+                "type": "library",
+                "debian-package": "python3-magic"
             },
         }),
     }
