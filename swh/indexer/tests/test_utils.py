@@ -1,4 +1,3 @@
-
 # Copyright (C) 2017  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
@@ -12,13 +11,15 @@ class MockStorageWrongConfiguration():
         return None
 
 
-class MockObjStorage():
+class MockObjStorage:
     """Mock objstorage with predefined contents.
 
     """
+    data = {}
+
     def __init__(self):
         self.data = {
-            '01c9379dfc33803963d07c1ccc748d3fe4c96bb50': b'this is some text',
+            '01c9379dfc33803963d07c1ccc748d3fe4c96bb5': b'this is some text',
             '688a5ef812c53907562fe379d4b3851e69c7cb15': b'another text',
             '8986af901dd2043044ce8f0d8fc039153641cf17': b'yet another text',
             '02fb2c89e14f7fab46701478c83779c7beb7b069': b"""
@@ -103,13 +104,20 @@ class MockObjStorage():
 
             """,
             'a7ab314d8a11d2c93e3dcf528ca294e7b431c449': b"""
-            """
+            """,
+            'da39a3ee5e6b4b0d3255bfef95601890afd80709': b'',
         }
+
+    def __iter__(self):
+        yield from self.data.keys()
+
+    def __contains__(self, sha1):
+        return self.data.get(sha1) is not None
 
     def get(self, sha1):
         raw_content = self.data.get(sha1)
-        if not raw_content:
-            raise ObjNotFoundError()
+        if raw_content is None:
+            raise ObjNotFoundError(sha1)
         return raw_content
 
 

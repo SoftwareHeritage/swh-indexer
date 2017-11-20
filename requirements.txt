@@ -6,3 +6,4 @@ pygments
 click
 chardet
 
+file_magic
