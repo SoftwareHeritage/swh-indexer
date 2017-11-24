@@ -79,6 +79,7 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
         super().prepare()
         self.working_directory = self.config['workdir']
         self.language_map = self.config['languages']
+        self.tool = self.tools[0]
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
@@ -87,7 +88,7 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
         yield from self.storage.content_ctags_missing((
             {
                 'id': sha1,
-                'indexer_configuration_id': self.tools['id'],
+                'indexer_configuration_id': self.tool['id'],
             } for sha1 in ids
         ))
 
@@ -126,7 +127,7 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
         result = run_ctags(content_path, lang=ctags_lang)
         ctags.update({
             'ctags': list(result),
-            'indexer_configuration_id': self.tools['id'],
+            'indexer_configuration_id': self.tool['id'],
         })
 
         self.cleanup(content_path)

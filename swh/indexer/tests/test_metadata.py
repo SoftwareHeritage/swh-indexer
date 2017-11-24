@@ -20,15 +20,16 @@ class TestContentMetadataIndexer(ContentMetadataIndexer):
        indexing tests.
     """
     def prepare(self):
-        self.config = {
+        self.config.update({
             'rescheduling_task': None,
-        }
+        })
         self.storage = MockStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.task_destination = None
         self.rescheduling_task = self.config['rescheduling_task']
-        self.tools = self.retrieve_tools_information()
+        self.tools = self.register_tools(self.config['tools'])
+        self.tool = self.tools[0]
         self.results = []
 
 
@@ -53,7 +54,8 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
         self.objstorage = MockObjStorage()
         self.task_destination = None
         self.rescheduling_task = self.config['rescheduling_task']
-        self.tools = self.retrieve_tools_information()
+        self.tools = self.register_tools(self.config['tools'])
+        self.tool = self.tools[0]
         self.results = []
 
 
@@ -138,7 +140,8 @@ class Metadata(unittest.TestCase):
                  '02fb2c89e14f7fab46701478c83779c7beb7b069']
         # this metadata indexer computes only metadata for package.json
         # in npm context with a hard mapping
-        metadata_indexer = TestContentMetadataIndexer(self.content_tool, None)
+        metadata_indexer = TestContentMetadataIndexer(
+            tool=self.content_tool, config={})
 
         # when
         metadata_indexer.run(sha1s, policy_update='ignore-dups')
