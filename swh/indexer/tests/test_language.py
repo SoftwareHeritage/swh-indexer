@@ -18,10 +18,10 @@ class MockStorage():
         self.state = languages
         self.conflict_update = conflict_update
 
-    def indexer_configuration_get(self, tool):
-        return {
+    def indexer_configuration_add(self, tools):
+        return [{
             'id': 20,
-        }
+        }]
 
 
 class TestLanguageIndexer(ContentLanguageIndexer):
@@ -49,7 +49,8 @@ class TestLanguageIndexer(ContentLanguageIndexer):
         self.rescheduling_task = self.config['rescheduling_task']
         self.tool_config = self.config['tools']['configuration']
         self.max_content_size = self.tool_config['max_content_size']
-        self.tools = self.retrieve_tools_information()
+        self.tools = self.register_tools(self.config['tools'])
+        self.tool = self.tools[0]
 
 
 class Language(unittest.TestCase):

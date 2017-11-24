@@ -6,11 +6,6 @@
 from swh.objstorage.exc import ObjNotFoundError
 
 
-class MockStorageWrongConfiguration():
-    def indexer_configuration_get(self, tool):
-        return None
-
-
 class MockObjStorage:
     """Mock objstorage with predefined contents.
 
@@ -34,10 +29,10 @@ class MockObjStorage:
                     self.state = mimetypes
                     self.conflict_update = conflict_update
 
-                def indexer_configuration_get(self, tool):
-                    return {
+                def indexer_configuration_add(self, tools):
+                    return [{
                         'id': 10,
-                    }
+                    }]
             """,
             '103bc087db1d26afc3a0283f38663d081e9b01e6': b"""
                 #ifndef __AVL__
@@ -135,9 +130,10 @@ class MockStorage():
         self.state = metadata
         self.conflict_update = conflict_update
 
-    def indexer_configuration_get(self, tool):
+    def indexer_configuration_add(self, tools):
+        tool = tools[0]
         if tool['tool_name'] == 'swh-metadata-translator':
-            return {
+            return [{
                 'id': 30,
                 'tool_name': 'swh-metadata-translator',
                 'tool_version': '0.0.1',
@@ -145,9 +141,9 @@ class MockStorage():
                     'type': 'local',
                     'context': 'npm'
                 },
-            }
+            }]
         elif tool['tool_name'] == 'swh-metadata-detector':
-            return {
+            return [{
                 'id': 7,
                 'tool_name': 'swh-metadata-detector',
                 'tool_version': '0.0.1',
@@ -155,7 +151,7 @@ class MockStorage():
                     'type': 'local',
                     'context': 'npm'
                 },
-            }
+            }]
 
     def revision_get(self, revisions):
         return [{

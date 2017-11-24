@@ -134,6 +134,7 @@ class ContentLanguageIndexer(ContentIndexer):
         super().prepare()
         c = self.config
         self.max_content_size = c['tools']['configuration']['max_content_size']
+        self.tool = self.tools[0]
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
@@ -142,7 +143,7 @@ class ContentLanguageIndexer(ContentIndexer):
         yield from self.storage.content_language_missing((
             {
                 'id': sha1,
-                'indexer_configuration_id': self.tools['id'],
+                'indexer_configuration_id': self.tool['id']
             } for sha1 in ids
         ))
 
@@ -161,7 +162,7 @@ class ContentLanguageIndexer(ContentIndexer):
         """
         result = {
             'id': id,
-            'indexer_configuration_id': self.tools['id'],
+            'indexer_configuration_id': self.tool['id'],
             'lang': None,
         }
 
@@ -185,7 +186,7 @@ class ContentLanguageIndexer(ContentIndexer):
             # we found something, so we return it
             result.update({
                 'id': id,
-                'indexer_configuration_id': self.tools['id'],
+                'indexer_configuration_id': self.tool['id'],
             })
             break
 

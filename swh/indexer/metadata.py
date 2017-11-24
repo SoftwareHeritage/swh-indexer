@@ -28,10 +28,10 @@ class ContentMetadataIndexer(ContentIndexer):
     CONFIG_BASE_FILENAME = 'indexer/metadata'
 
     def __init__(self, tool, config):
-        self.tool = tool
         # twisted way to use the exact same config of RevisionMetadataIndexer
         # object that uses internally ContentMetadataIndexer
         self.config = config
+        self.config['tools'] = tool
         super().__init__()
 
     def prepare(self):
@@ -43,11 +43,9 @@ class ContentMetadataIndexer(ContentIndexer):
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
         l.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
-        self.tools = self.retrieve_tools_information()
-
-    def retrieve_tools_information(self):
-        self.config['tools'] = self.tool
-        return super().retrieve_tools_information()
+        self.tools = self.register_tools(self.config['tools'])
+        # NOTE: only one tool so far, change when no longer true
+        self.tool = self.tools[0]
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
@@ -55,7 +53,7 @@ class ContentMetadataIndexer(ContentIndexer):
         yield from self.storage.content_metadata_missing((
             {
                 'id': sha1,
-                'indexer_configuration_id': self.tools['id'],
+                'indexer_configuration_id': self.tool['id'],
             } for sha1 in ids
         ))
 
@@ -74,11 +72,11 @@ class ContentMetadataIndexer(ContentIndexer):
         """
         result = {
             'id': id,
-            'indexer_configuration_id': self.tools['id'],
+            'indexer_configuration_id': self.tool['id'],
             'translated_metadata': None
         }
         try:
-            context = self.tools['tool_configuration']['context']
+            context = self.tool['tool_configuration']['context']
             result['translated_metadata'] = compute_metadata(context, data)
             # a twisted way to keep result with indexer object for get_results
             self.results.append(result)
@@ -142,6 +140,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
     def prepare(self):
         super().prepare()
+        self.tool = self.tools[0]
 
     def filter(self, sha1_gits):
         """Filter out known sha1s and return only missing ones.
@@ -150,7 +149,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         yield from self.storage.revision_metadata_missing((
             {
                 'id': sha1_git,
-                'indexer_configuration_id': self.tools['id'],
+                'indexer_configuration_id': self.tool['id'],
             } for sha1_git in sha1_gits
         ))
 
@@ -176,7 +175,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         try:
             result = {
                 'id': rev['id'],
-                'indexer_configuration_id': self.tools['id'],
+                'indexer_configuration_id': self.tool['id'],
                 'translated_metadata': None
             }
 
