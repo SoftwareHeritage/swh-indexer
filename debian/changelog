@@ -1,3 +1,10 @@
+swh-indexer (0.0.42-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.42
+  * swh.indexer: Make indexers register tools in prepare method
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 24 Nov 2017 11:26:03 +0100
+
 swh-indexer (0.0.41-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.41
