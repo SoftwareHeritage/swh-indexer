@@ -20,10 +20,10 @@ class _MockStorage():
         self.state = mimetypes
         self.conflict_update = conflict_update
 
-    def indexer_configuration_get(self, tool):
-        return {
+    def indexer_configuration_add(self, tools):
+        return [{
             'id': 10,
-        }
+        }]
 
 
 class TestMimetypeIndexer(ContentMimetypeIndexer):
@@ -50,10 +50,11 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
         self.task_destination = None
         self.rescheduling_task = self.config['rescheduling_task']
         self.destination_queue = self.config['destination_queue']
-        self.tools = self.retrieve_tools_information()
+        self.tools = self.register_tools(self.config['tools'])
+        self.tool = self.tools[0]
 
 
-class TestMimetypeIndexerWrongStorage(TestMimetypeIndexer):
+class TestMimetypeIndexerUnknownToolStorage(TestMimetypeIndexer):
     """Specific mimetype whose configuration is not enough to satisfy the
        indexing tests.
 
@@ -64,15 +65,11 @@ class TestMimetypeIndexerWrongStorage(TestMimetypeIndexer):
 
 
 class TestMimetypeIndexerWithErrors(unittest.TestCase):
-
     @istest
-    def test_index_fail_because_wrong_tool(self):
-        try:
-            TestMimetypeIndexerWrongStorage()
-        except ValueError:
-            pass
-        else:
-            self.fail('An error should be raised about wrong tool being used.')
+    def wrong_unknown_configuration_tool(self):
+        """Indexer with unknown configuration tool should fail the check"""
+        with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
+            TestMimetypeIndexerUnknownToolStorage()
 
 
 class TestMimetypeIndexerTest(unittest.TestCase):

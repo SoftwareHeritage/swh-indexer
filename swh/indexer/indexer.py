@@ -112,7 +112,7 @@ class BaseIndexer(SWHConfig,
       Configuration check for the indexer.  When overriding, this must call the
       `super().check()` instruction.
 
-    :func:`retrieve_tools_information`:
+    :func:`register_tools`:
       This should return a dict of the tool(s) to use when indexing or
       filtering.
 
@@ -199,7 +199,7 @@ class BaseIndexer(SWHConfig,
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
         l.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
-        self.tools = self.retrieve_tools_information()
+        self.tools = list(self.register_tools(self.config['tools']))
 
     def check(self):
         """Check the indexer's configuration is ok before proceeding.
@@ -208,21 +208,43 @@ class BaseIndexer(SWHConfig,
         """
         if not self.tools:
             raise ValueError('Tools %s is unknown, cannot continue' %
-                             self.config['tools'])
+                             self.tools)
 
-    def retrieve_tools_information(self):
-        """Permit to define how to retrieve tool information based on
-           configuration.
+    def _prepare_tool(self, tool):
+        """Prepare the tool dict to be compliant with the storage api.
+
+        """
+        return {'tool_%s' % key: value for key, value in tool.items()}
+
+    def register_tools(self, tools):
+        """Permit to register tools to the storage.
 
            Add a sensible default which can be overridden if not
            sufficient.  (For now, all indexers use only one tool)
 
+           Expects the self.config['tools'] property to be set with
+           one or more tools.
+
+        Args:
+            tools (dict/[dict]): Either a dict or a list of dict.
+
+        Returns:
+            List of dict with additional id key.
+
+        Raises:
+            ValueError if not a list nor a dict.
+
         """
-        tool = {
-            'tool_%s' % key: value for key, value
-            in self.config['tools'].items()
-        }
-        return self.storage.indexer_configuration_get(tool)
+        tools = self.config['tools']
+        if isinstance(tools, list):
+            tools = map(self._prepare_tool, tools)
+        elif isinstance(tools, dict):
+            tools = [self._prepare_tool(tools)]
+        else:
+            raise ValueError('Configuration tool(s) must be a dict or list!')
+
+        registered_tools = self.storage.indexer_configuration_add(tools)
+        return registered_tools
 
     @abc.abstractmethod
     def filter(self, ids):
