@@ -6,6 +6,7 @@
 import click
 import magic
 
+from swh.model import hashutil
 from swh.scheduler import utils
 
 from .indexer import ContentIndexer
@@ -87,11 +88,16 @@ class ContentMimetypeIndexer(ContentIndexer):
               - encoding (bytes): encoding in bytes
 
         """
-        properties = compute_mimetype_encoding(data)
-        properties.update({
-            'id': id,
-            'indexer_configuration_id': self.tool['id'],
-        })
+        try:
+            properties = compute_mimetype_encoding(data)
+            properties.update({
+                'id': id,
+                'indexer_configuration_id': self.tool['id'],
+                })
+        except TypeError:
+            self.log.error('Detecting mimetype error for id %s' % (
+                hashutil.hash_to_hex(id), ))
+            return None
 
         return properties
 
