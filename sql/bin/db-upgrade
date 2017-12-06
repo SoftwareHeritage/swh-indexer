@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Compute a draft upgrade script for the DB schema, based on Git revisions.
+
+# Depends: apgdiff
+
+set -e
+
+SQLS="swh-*.sql"
+VERSION_SQL="swh-schema.sql"
+UPGRADE_DIR="upgrades"
+DB_NAME="softwareheritage-dev"
+
+usage () {
+    echo "Usage: db-upgrade GIT_REV_FROM [GIT_REV_TO]"
+    echo "Example: db-upgrade HEAD^"
+    echo "         db-upgrade HEAD~4 HEAD~2"
+    echo "See also: gitrevisions(7)"
+    exit 1
+}
+
+pg_dump_revision () {
+    rev="$1"
+    dump="$2"
+
+    echo "checking out revision $rev, and dumping DB at the time..."
+    if [ "$rev" != "HEAD" ] ; then
+	git checkout --quiet "$rev"
+    fi
+    make distclean filldb > /dev/null
+    pg_dump "$DB_NAME" > "$dump"
+    if [ "$rev" != "HEAD" ] ; then
+	git checkout --quiet -
+    fi
+}
+
+# argument parsing
+if [ -z "$1" ] ; then
+    usage
+fi
+from_rev="$1"
+shift 1
+if [ -z "$1" ] ; then
+    to_rev="HEAD"
+else
+    to_rev="$1"
+    shift 1
+fi
+
+old_dump=$(mktemp tmp.swh-db-upgrade.XXXXXXXXXX)
+new_dump=$(mktemp tmp.swh-db-upgrade.XXXXXXXXXX)
+trap "rm -f $old_dump $new_dump" EXIT
+
+schema_version=$(grep -i -A 1 '^insert into dbversion' "$VERSION_SQL" | tail -n 1 \
+	      | sed -e 's/.*values(//i' -e 's/,.*//')
+upgrade_script=$(mktemp -p "$UPGRADE_DIR" $(printf '%.03d' ${schema_version}).XXXX.sql)
+pg_dump_revision "$from_rev" "$old_dump"
+pg_dump_revision "$to_rev" "$new_dump"
+
+cat > "$upgrade_script" <<EOF
+-- SWH DB schema upgrade
+-- from_version: XXX TODO
+-- to_version: ${schema_version}
+-- description: XXX TODO
+
+insert into dbversion(version, release, description)
+      values($schema_version, now(), 'Work In Progress');
+EOF
+echo "diffing dumps..."
+apgdiff "$old_dump" "$new_dump" >> "$upgrade_script"
+
+echo "all done."
+echo "Draft upgrade script is at: ${upgrade_script}"
