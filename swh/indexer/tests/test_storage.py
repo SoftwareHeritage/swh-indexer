@@ -13,11 +13,7 @@ from swh.core.tests.db_testing import DbTestFixture
 from .test_utils import StorageTestFixture
 
 
-@attr('db')
-class IndexerTestStorage(StorageTestFixture, DbTestFixture, unittest.TestCase):
-    """Base class for Indexer Storage testing.
-
-    """
+class BaseTestStorage(StorageTestFixture, DbTestFixture):
     def setUp(self):
         super().setUp()
 
@@ -54,6 +50,13 @@ class IndexerTestStorage(StorageTestFixture, DbTestFixture, unittest.TestCase):
             }
 
         return tools
+
+
+@attr('db')
+class CommonTestStorage(BaseTestStorage):
+    """Base class for Indexer Storage testing.
+
+    """
 
     @istest
     def check_config(self):
@@ -1437,3 +1440,7 @@ class IndexerTestStorage(StorageTestFixture, DbTestFixture, unittest.TestCase):
         expected_tool['id'] = actual_tool['id']
 
         self.assertEqual(expected_tool, actual_tool)
+
+
+class IndexerTestStorage(CommonTestStorage, unittest.TestCase):
+    pass
