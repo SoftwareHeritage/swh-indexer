@@ -24,7 +24,7 @@ class TestRemoteStorage(CommonTestStorage, ServerTestFixture,
 
     def setUp(self):
         self.config = {
-            'storage': {
+            'indexer_storage': {
                 'cls': 'local',
                 'args': {
                     'db': 'dbname=%s' % self.TEST_STORAGE_DB_NAME,

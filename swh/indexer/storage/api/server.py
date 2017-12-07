@@ -17,7 +17,7 @@ from swh.indexer import get_indexer_storage
 
 DEFAULT_CONFIG_PATH = 'storage/indexer'
 DEFAULT_CONFIG = {
-    'storage': ('dict', {
+    'indexer_storage': ('dict', {
         'cls': 'local',
         'args': {
             'db': 'dbname=softwareheritage-indexer-dev',
@@ -36,7 +36,7 @@ def my_error_handler(exception):
 
 @app.before_request
 def before_request():
-    g.storage = get_indexer_storage(**app.config['storage'])
+    g.storage = get_indexer_storage(**app.config['indexer_storage'])
 
 
 @app.route('/')
