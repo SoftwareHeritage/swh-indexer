@@ -1,0 +1,15 @@
+#!/bin/bash
+
+DOT_FILE="$1"
+DOT_EXTRA="$2"
+if [ -z "$DOT_FILE" -o -z "$DOT_EXTRA" ] ; then
+    echo "Usage: $0 DOT_FILE DOT_EXTRA"
+    exit 1
+fi
+
+schema_version=$(grep -i -A 1 '^insert into dbversion' swh-schema.sql | tail -n 1 \
+	      | sed -e 's/.*values(//i' -e 's/,.*//')
+
+head -n -1 "$DOT_FILE"  # all of $DOT_FILE but last line
+sed "s/@@VERSION@@/$schema_version/" "$DOT_EXTRA"
+echo "}"

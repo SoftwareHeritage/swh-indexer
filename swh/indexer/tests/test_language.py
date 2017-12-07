@@ -11,7 +11,7 @@ from swh.indexer.language import ContentLanguageIndexer
 from swh.indexer.tests.test_utils import MockObjStorage
 
 
-class MockStorage():
+class _MockIndexerStorage():
     """Mock storage to simplify reading indexers' outputs.
     """
     def content_language_add(self, languages, conflict_update=None):
@@ -42,7 +42,7 @@ class TestLanguageIndexer(ContentLanguageIndexer):
                 },
             }
         }
-        self.storage = MockStorage()
+        self.idx_storage = _MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.task_destination = None
@@ -81,7 +81,7 @@ class Language(unittest.TestCase):
 
         # when
         lang_indexer.run(sha1s, policy_update='ignore-dups')
-        results = lang_indexer.storage.state
+        results = lang_indexer.idx_storage.state
 
         expected_results = [{
             'id': '02fb2c89e14f7fab46701478c83779c7beb7b069',
@@ -100,7 +100,7 @@ class Language(unittest.TestCase):
 
         # when
         lang_indexer.run(sha1s, policy_update='ignore-dups')
-        results = lang_indexer.storage.state
+        results = lang_indexer.idx_storage.state
 
         expected_results = [{
             'id': '103bc087db1d26afc3a0283f38663d081e9b01e6',

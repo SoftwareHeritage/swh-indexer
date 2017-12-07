@@ -11,8 +11,8 @@ from swh.indexer.metadata_dictionary import compute_metadata
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata import ContentMetadataIndexer
 from swh.indexer.metadata import RevisionMetadataIndexer
-from swh.indexer.tests.test_utils import MockObjStorage
-from swh.indexer.tests.test_utils import MockStorage
+from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
+from swh.indexer.tests.test_utils import MockIndexerStorage
 
 
 class TestContentMetadataIndexer(ContentMetadataIndexer):
@@ -23,7 +23,7 @@ class TestContentMetadataIndexer(ContentMetadataIndexer):
         self.config.update({
             'rescheduling_task': None,
         })
-        self.storage = MockStorage()
+        self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.task_destination = None
@@ -40,6 +40,12 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
     def prepare(self):
         self.config = {
             'rescheduling_task': None,
+            'storage': {
+                'cls': 'remote',
+                'args': {
+                    'url': 'http://localhost:9999',
+                }
+            },
             'tools': {
                 'name': 'swh-metadata-detector',
                 'version': '0.0.1',
@@ -50,6 +56,7 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
             }
         }
         self.storage = MockStorage()
+        self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.task_destination = None
@@ -145,7 +152,7 @@ class Metadata(unittest.TestCase):
 
         # when
         metadata_indexer.run(sha1s, policy_update='ignore-dups')
-        results = metadata_indexer.storage.state
+        results = metadata_indexer.idx_storage.state
 
         expected_results = [{
             'indexer_configuration_id': 30,
@@ -256,7 +263,7 @@ class Metadata(unittest.TestCase):
         ]
         metadata_indexer.run(sha1_gits, 'update-dups')
 
-        results = metadata_indexer.storage.state
+        results = metadata_indexer.idx_storage.state
 
         expected_results = [{
             'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',

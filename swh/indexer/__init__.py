@@ -27,3 +27,29 @@ TASK_NAMES = {
 __all__ = [
     'INDEXER_CLASSES', 'TASK_NAMES',
 ]
+
+
+def get_indexer_storage(cls, args):
+    """Get an indexer storage object of class `storage_class` with
+    arguments `storage_args`.
+
+    Args:
+        storage (dict): dictionary with keys:
+        - cls (str): storage's class, either 'local' or 'remote'
+        - args (dict): dictionary with keys
+
+    Returns:
+        an instance of swh.indexer's storage (either local or remote)
+
+    Raises:
+        ValueError if passed an unknown storage class.
+
+    """
+    if cls == 'remote':
+        from .storage.api.client import RemoteStorage as IndexerStorage
+    elif cls == 'local':
+        from .storage import IndexerStorage
+    else:
+        raise ValueError('Unknown indexer storage class `%s`' % cls)
+
+    return IndexerStorage(**args)

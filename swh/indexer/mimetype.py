@@ -66,7 +66,7 @@ class ContentMimetypeIndexer(ContentIndexer):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.storage.content_mimetype_missing((
+        yield from self.idx_storage.content_mimetype_missing((
             {
                 'id': sha1,
                 'indexer_configuration_id': self.tool['id'],
@@ -116,7 +116,7 @@ class ContentMimetypeIndexer(ContentIndexer):
             respectively update duplicates or ignore them
 
         """
-        self.storage.content_mimetype_add(
+        self.idx_storage.content_mimetype_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
     def _filter_text(self, results):

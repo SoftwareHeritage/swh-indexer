@@ -13,8 +13,8 @@ from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
-from swh.storage import get_storage
 from swh.scheduler.utils import get_task
+from swh.indexer import get_indexer_storage
 
 
 class DiskIndexer:
@@ -120,12 +120,13 @@ class BaseIndexer(SWHConfig,
     CONFIG = 'indexer/base'
 
     DEFAULT_CONFIG = {
-        'storage': ('dict', {
-            'host': 'uffizi',
+        'indexer_storage': ('dict', {
             'cls': 'remote',
-            'args': {'root': '/tmp/softwareheritage/objects',
-                     'slicing': '0:2/2:4/4:6'}
+            'args': {
+                'db': 'service=swh-indexer-dev'
+            }
         }),
+
         # queue to reschedule if problem (none for no rescheduling,
         # the default)
         'rescheduling_task': ('str', None),
@@ -188,8 +189,8 @@ class BaseIndexer(SWHConfig,
             additional_configs=[self.ADDITIONAL_CONFIG])
         objstorage = self.config['objstorage']
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
-        storage = self.config['storage']
-        self.storage = get_storage(storage['cls'], storage['args'])
+        idx_storage = self.config['indexer_storage']
+        self.idx_storage = get_indexer_storage(**idx_storage)
         rescheduling_task = self.config['rescheduling_task']
         if rescheduling_task:
             self.rescheduling_task = get_task(rescheduling_task)
@@ -243,8 +244,7 @@ class BaseIndexer(SWHConfig,
         else:
             raise ValueError('Configuration tool(s) must be a dict or list!')
 
-        registered_tools = self.storage.indexer_configuration_add(tools)
-        return registered_tools
+        return self.idx_storage.indexer_configuration_add(tools)
 
     @abc.abstractmethod
     def filter(self, ids):
@@ -386,7 +386,6 @@ class RevisionIndexer(BaseIndexer):
     class.
 
     """
-
     def run(self, ids, policy_update):
         """Given a list of sha1_gits:
 
