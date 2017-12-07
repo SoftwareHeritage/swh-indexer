@@ -1,3 +1,10 @@
+swh-indexer (0.0.44-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.44
+  * swh.indexer: Make indexer use their own storage
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 07 Dec 2017 13:20:44 +0100
+
 swh-indexer (0.0.43-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.43
