@@ -5,6 +5,7 @@
 import click
 import logging
 
+from swh.indexer import INDEXER_CFG_KEY
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer
 from swh.indexer.metadata_dictionary import compute_metadata
 from swh.indexer.metadata_detector import detect_metadata
@@ -36,8 +37,8 @@ class ContentMetadataIndexer(ContentIndexer):
 
     def prepare(self):
         self.results = []
-        if self.config['indexer_storage']:
-            self.idx_storage = self.config['indexer_storage']
+        if self.config[INDEXER_CFG_KEY]:
+            self.idx_storage = self.config[INDEXER_CFG_KEY]
         if self.config['objstorage']:
             self.objstorage = self.config['objstorage']
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
@@ -240,7 +241,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         # -> get raw_contents
         # -> translate each content
         config = {
-            'indexer_storage': self.idx_storage,
+            INDEXER_CFG_KEY: self.idx_storage,
             'objstorage': self.objstorage
         }
         for context in detected_files.keys():
