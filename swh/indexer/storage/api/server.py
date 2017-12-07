@@ -12,12 +12,12 @@ from swh.core import config
 from swh.core.api import (SWHServerAPIApp, decode_request,
                           error_handler,
                           encode_data_server as encode_data)
-from swh.indexer import get_indexer_storage
+from swh.indexer import get_indexer_storage, INDEXER_CFG_KEY
 
 
 DEFAULT_CONFIG_PATH = 'storage/indexer'
 DEFAULT_CONFIG = {
-    'indexer_storage': ('dict', {
+    INDEXER_CFG_KEY: ('dict', {
         'cls': 'local',
         'args': {
             'db': 'dbname=softwareheritage-indexer-dev',
@@ -36,7 +36,7 @@ def my_error_handler(exception):
 
 @app.before_request
 def before_request():
-    g.storage = get_indexer_storage(**app.config['indexer_storage'])
+    g.storage = get_indexer_storage(**app.config[INDEXER_CFG_KEY])
 
 
 @app.route('/')

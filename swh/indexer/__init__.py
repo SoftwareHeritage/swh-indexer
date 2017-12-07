@@ -4,6 +4,8 @@
 # See top-level LICENSE file for more information
 
 
+INDEXER_CFG_KEY = 'indexer_storage'
+
 INDEXER_CLASSES = {
     'mimetype': 'swh.indexer.mimetype.ContentMimetypeIndexer',
     'language': 'swh.indexer.language.ContentLanguageIndexer',
@@ -34,7 +36,7 @@ def get_indexer_storage(cls, args):
     arguments `storage_args`.
 
     Args:
-        storage (dict): dictionary with keys:
+        args (dict): dictionary with keys:
         - cls (str): storage's class, either 'local' or 'remote'
         - args (dict): dictionary with keys
 

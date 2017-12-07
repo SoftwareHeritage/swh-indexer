@@ -5,10 +5,12 @@
 
 import unittest
 
-from .test_storage import CommonTestStorage
-from swh.storage.tests.server_testing import ServerTestFixture
+from swh.indexer import INDEXER_CFG_KEY
 from swh.indexer.storage.api.client import RemoteStorage
 from swh.indexer.storage.api.server import app
+
+from .test_storage import CommonTestStorage
+from swh.storage.tests.server_testing import ServerTestFixture
 
 
 class TestRemoteStorage(CommonTestStorage, ServerTestFixture,
@@ -24,7 +26,7 @@ class TestRemoteStorage(CommonTestStorage, ServerTestFixture,
 
     def setUp(self):
         self.config = {
-            'indexer_storage': {
+            INDEXER_CFG_KEY: {
                 'cls': 'local',
                 'args': {
                     'db': 'dbname=%s' % self.TEST_STORAGE_DB_NAME,

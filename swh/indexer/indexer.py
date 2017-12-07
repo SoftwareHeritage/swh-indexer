@@ -14,7 +14,7 @@ from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
 from swh.scheduler.utils import get_task
-from swh.indexer import get_indexer_storage
+from swh.indexer import get_indexer_storage, INDEXER_CFG_KEY
 
 
 class DiskIndexer:
@@ -120,7 +120,7 @@ class BaseIndexer(SWHConfig,
     CONFIG = 'indexer/base'
 
     DEFAULT_CONFIG = {
-        'indexer_storage': ('dict', {
+        INDEXER_CFG_KEY: ('dict', {
             'cls': 'remote',
             'args': {
                 'db': 'service=swh-indexer-dev'
@@ -189,7 +189,7 @@ class BaseIndexer(SWHConfig,
             additional_configs=[self.ADDITIONAL_CONFIG])
         objstorage = self.config['objstorage']
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
-        idx_storage = self.config['indexer_storage']
+        idx_storage = self.config[INDEXER_CFG_KEY]
         self.idx_storage = get_indexer_storage(**idx_storage)
         rescheduling_task = self.config['rescheduling_task']
         if rescheduling_task:
