@@ -36,8 +36,8 @@ class ContentMetadataIndexer(ContentIndexer):
 
     def prepare(self):
         self.results = []
-        if self.config['storage']:
-            self.storage = self.config['storage']
+        if self.config['indexer_storage']:
+            self.idx_storage = self.config['indexer_storage']
         if self.config['objstorage']:
             self.objstorage = self.config['objstorage']
         l = logging.getLogger('requests.packages.urllib3.connectionpool')
@@ -50,7 +50,7 @@ class ContentMetadataIndexer(ContentIndexer):
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
         """
-        yield from self.storage.content_metadata_missing((
+        yield from self.idx_storage.content_metadata_missing((
             {
                 'id': sha1,
                 'indexer_configuration_id': self.tool['id'],
@@ -97,7 +97,7 @@ class ContentMetadataIndexer(ContentIndexer):
             respectively update duplicates or ignore them
 
         """
-        self.storage.content_metadata_add(
+        self.idx_storage.content_metadata_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
     def get_results(self):
@@ -128,6 +128,12 @@ class RevisionMetadataIndexer(RevisionIndexer):
     CONFIG_BASE_FILENAME = 'indexer/metadata'
 
     ADDITIONAL_CONFIG = {
+        'storage': ('dict', {
+            'cls': 'remote',
+            'args': {
+                'url': 'http://localhost:5002/',
+            }
+        }),
         'tools': ('dict', {
             'name': 'swh-metadata-detector',
             'version': '0.0.1',
@@ -146,7 +152,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.storage.revision_metadata_missing((
+        yield from self.idx_storage.revision_metadata_missing((
             {
                 'id': sha1_git,
                 'indexer_configuration_id': self.tool['id'],
@@ -204,7 +210,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         """
         # TODO: add functions in storage to keep data in revision_metadata
-        self.storage.revision_metadata_add(
+        self.idx_storage.revision_metadata_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
     def translate_revision_metadata(self, detected_files):
@@ -234,7 +240,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         # -> get raw_contents
         # -> translate each content
         config = {
-            'storage': self.storage,
+            'indexer_storage': self.idx_storage,
             'objstorage': self.objstorage
         }
         for context in detected_files.keys():
@@ -242,8 +248,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
             c_metadata_indexer = ContentMetadataIndexer(tool, config)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
-            metadata_generator = self.storage.content_metadata_get(
-                                              detected_files[context])
+            metadata_generator = self.idx_storage.content_metadata_get(
+                detected_files[context])
             for c in metadata_generator:
                 # extracting translated_metadata
                 sha1 = c['id']

@@ -191,7 +191,6 @@ def compute_metadata(context, raw_content):
     # if fetched from storage should be done once for batch of sha1s
     dictionary = mapping_tool_fn[context]
     translated_metadata = dictionary.translate(raw_content)
-    # print(translated_metadata)
     return translated_metadata
 
 
