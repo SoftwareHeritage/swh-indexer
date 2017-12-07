@@ -1,8 +1,9 @@
-swh-indexer (0.0.46-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.47-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.47
+  * d/control: Fix runtime typo in packaging dependency
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 07 Dec 2017 16:18:04 +0100
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 07 Dec 2017 16:54:49 +0100
 
 swh-indexer (0.0.46-1~swh1) unstable-swh; urgency=medium
 
