@@ -64,6 +64,7 @@ class StorageTestFixture:
         db.conn.commit()
 
 
+@attr('db')
 class BaseTestStorage(StorageTestFixture, DbTestFixture):
     def setUp(self):
         super().setUp()
