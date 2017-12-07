@@ -1,3 +1,11 @@
+swh-indexer (0.0.46-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.46
+  * Split swh-indexer packages in 2 python3-swh.indexer.storage and
+  * python3-swh.indexer
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 07 Dec 2017 16:18:04 +0100
+
 swh-indexer (0.0.45-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.45
