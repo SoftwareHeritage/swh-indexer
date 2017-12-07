@@ -10,7 +10,7 @@ from nose.tools import istest
 from nose.plugins.attrib import attr
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer import get_indexer_storage
+from swh.indexer.storage import get_indexer_storage
 from swh.core.tests.db_testing import DbTestFixture
 
 
