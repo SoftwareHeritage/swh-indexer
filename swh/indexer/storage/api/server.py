@@ -12,7 +12,7 @@ from swh.core import config
 from swh.core.api import (SWHServerAPIApp, decode_request,
                           error_handler,
                           encode_data_server as encode_data)
-from swh.indexer import get_indexer_storage, INDEXER_CFG_KEY
+from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
 
 
 DEFAULT_CONFIG_PATH = 'storage/indexer'
