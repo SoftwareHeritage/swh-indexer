@@ -8,7 +8,7 @@ from swh.objstorage.exc import ObjNotFoundError
 
 
 class MockObjStorage:
-    """Mock objstorage with predefined contents.
+    """Mock an swh-objstorage objstorage with predefined contents.
 
     """
     data = {}
@@ -117,20 +117,10 @@ class MockObjStorage:
         return raw_content
 
 
-class MockStorage():
-    """Mock storage to simplify reading indexers' outputs.
+class MockIndexerStorage():
+    """Mock an swh-indexer storage.
+
     """
-    def content_metadata_missing(self, sha1s):
-        yield from []
-
-    def content_metadata_add(self, metadata, conflict_update=None):
-        self.state = metadata
-        self.conflict_update = conflict_update
-
-    def revision_metadata_add(self, metadata, conflict_update=None):
-        self.state = metadata
-        self.conflict_update = conflict_update
-
     def indexer_configuration_add(self, tools):
         tool = tools[0]
         if tool['tool_name'] == 'swh-metadata-translator':
@@ -154,6 +144,64 @@ class MockStorage():
                 },
             }]
 
+    def content_metadata_missing(self, sha1s):
+        yield from []
+
+    def content_metadata_add(self, metadata, conflict_update=None):
+        self.state = metadata
+        self.conflict_update = conflict_update
+
+    def revision_metadata_add(self, metadata, conflict_update=None):
+        self.state = metadata
+        self.conflict_update = conflict_update
+
+    def content_metadata_get(self, sha1s):
+        return [{
+            'tool': {
+                'configuration': {
+                    'type': 'local',
+                    'context': 'npm'
+                    },
+                'version': '0.0.1',
+                'id': 6,
+                'name': 'swh-metadata-translator'
+            },
+            'id': b'cde',
+            'translated_metadata': {
+                'issueTracker': {
+                    'url': 'https://github.com/librariesio/yarn-parser/issues'
+                },
+                'version': '1.0.0',
+                'name': 'yarn-parser',
+                'author': 'Andrew Nesbitt',
+                'url': 'https://github.com/librariesio/yarn-parser#readme',
+                'processorRequirements': {'node': '7.5'},
+                'other': {
+                    'scripts': {
+                                    'start': 'node index.js'
+                    },
+                    'main': 'index.js'
+                },
+                'license': 'AGPL-3.0',
+                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+                'codeRepository': {
+                    'type': 'git',
+                    'url': 'git+https://github.com/librariesio/yarn-parser.git'
+                },
+                'description': 'Tiny web service for parsing yarn.lock files',
+                'softwareRequirements': {
+                    'yarn': '^0.21.0',
+                    'express': '^4.14.0',
+                    'body-parser': '^1.15.2'}
+                }
+        }]
+
+
+class MockStorage():
+    """Mock a real swh-storage storage to simplify reading indexers'
+    outputs.
+
+    """
     def revision_get(self, revisions):
         return [{
             'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
@@ -211,44 +259,3 @@ class MockStorage():
                 'status': None,
                 'sha256': None
                 }]
-
-    def content_metadata_get(self, sha1s):
-        return [{
-            'tool': {
-                'configuration': {
-                    'type': 'local',
-                    'context': 'npm'
-                    },
-                'version': '0.0.1',
-                'id': 6,
-                'name': 'swh-metadata-translator'
-            },
-            'id': b'cde',
-            'translated_metadata': {
-                'issueTracker': {
-                    'url': 'https://github.com/librariesio/yarn-parser/issues'
-                },
-                'version': '1.0.0',
-                'name': 'yarn-parser',
-                'author': 'Andrew Nesbitt',
-                'url': 'https://github.com/librariesio/yarn-parser#readme',
-                'processorRequirements': {'node': '7.5'},
-                'other': {
-                    'scripts': {
-                                    'start': 'node index.js'
-                    },
-                    'main': 'index.js'
-                },
-                'license': 'AGPL-3.0',
-                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'codeRepository': {
-                    'type': 'git',
-                    'url': 'git+https://github.com/librariesio/yarn-parser.git'
-                },
-                'description': 'Tiny web service for parsing yarn.lock files',
-                'softwareRequirements': {
-                    'yarn': '^0.21.0',
-                    'express': '^4.14.0',
-                    'body-parser': '^1.15.2'}
-                }
-        }]

@@ -10,7 +10,7 @@ from nose.tools import istest
 from nose.plugins.attrib import attr
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer import get_storage
+from swh.indexer import get_indexer_storage
 from swh.core.tests.db_testing import DbTestFixture
 
 
@@ -51,7 +51,7 @@ class StorageTestFixture:
                 'db': self.test_db[self.TEST_STORAGE_DB_NAME].conn,
             },
         }
-        self.storage = get_storage(**self.storage_config)
+        self.storage = get_indexer_storage(**self.storage_config)
 
     def tearDown(self):
         super().tearDown()

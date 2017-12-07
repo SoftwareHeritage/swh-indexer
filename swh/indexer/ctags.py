@@ -85,7 +85,7 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.storage.content_ctags_missing((
+        yield from self.idx_storage.content_ctags_missing((
             {
                 'id': sha1,
                 'indexer_configuration_id': self.tool['id'],
@@ -146,7 +146,7 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
             respectively update duplicates or ignore them
 
         """
-        self.storage.content_ctags_add(
+        self.idx_storage.content_ctags_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
 

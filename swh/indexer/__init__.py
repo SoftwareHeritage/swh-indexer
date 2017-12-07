@@ -29,7 +29,7 @@ __all__ = [
 ]
 
 
-def get_storage(cls, args):
+def get_indexer_storage(cls, args):
     """Get an indexer storage object of class `storage_class` with
     arguments `storage_args`.
 
@@ -45,12 +45,11 @@ def get_storage(cls, args):
         ValueError if passed an unknown storage class.
 
     """
-
     if cls == 'remote':
         from .storage.api.client import RemoteStorage as IndexerStorage
     elif cls == 'local':
         from .storage import IndexerStorage
     else:
-        raise ValueError('Unknown storage class `%s`' % cls)
+        raise ValueError('Unknown indexer storage class `%s`' % cls)
 
     return IndexerStorage(**args)

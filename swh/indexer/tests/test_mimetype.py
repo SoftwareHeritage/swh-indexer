@@ -12,7 +12,7 @@ from swh.indexer.mimetype import ContentMimetypeIndexer
 from swh.indexer.tests.test_utils import MockObjStorage
 
 
-class _MockStorage():
+class _MockIndexerStorage():
     """Mock storage to simplify reading indexers' outputs.
 
     """
@@ -44,7 +44,7 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
                 },
             },
         }
-        self.storage = _MockStorage()
+        self.idx_storage = _MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.task_destination = None
@@ -100,8 +100,8 @@ class TestMimetypeIndexerTest(unittest.TestCase):
             'encoding': b'us-ascii',
         }]
 
-        self.assertFalse(self.indexer.storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.storage.state)
+        self.assertFalse(self.indexer.idx_storage.conflict_update)
+        self.assertEquals(expected_results, self.indexer.idx_storage.state)
 
     @istest
     def test_index_update(self):
@@ -133,8 +133,8 @@ class TestMimetypeIndexerTest(unittest.TestCase):
             'encoding': b'binary',
         }]
 
-        self.assertTrue(self.indexer.storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.storage.state)
+        self.assertTrue(self.indexer.idx_storage.conflict_update)
+        self.assertEquals(expected_results, self.indexer.idx_storage.state)
 
     @istest
     def test_index_one_unknown_sha1(self):
@@ -154,5 +154,5 @@ class TestMimetypeIndexerTest(unittest.TestCase):
             'encoding': b'us-ascii',
         }]
 
-        self.assertTrue(self.indexer.storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.storage.state)
+        self.assertTrue(self.indexer.idx_storage.conflict_update)
+        self.assertEquals(expected_results, self.indexer.idx_storage.state)

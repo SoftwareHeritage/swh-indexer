@@ -12,7 +12,7 @@ from swh.core import config
 from swh.core.api import (SWHServerAPIApp, decode_request,
                           error_handler,
                           encode_data_server as encode_data)
-from swh.indexer import get_storage
+from swh.indexer import get_indexer_storage
 
 
 DEFAULT_CONFIG = {
@@ -35,7 +35,7 @@ def my_error_handler(exception):
 
 @app.before_request
 def before_request():
-    g.storage = get_storage(**app.config['storage'])
+    g.storage = get_indexer_storage(**app.config['storage'])
 
 
 @app.route('/')
