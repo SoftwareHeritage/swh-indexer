@@ -5,7 +5,7 @@
 
 import unittest
 
-from swh.indexer import INDEXER_CFG_KEY
+from swh.indexer.storage import INDEXER_CFG_KEY
 from swh.indexer.storage.api.client import RemoteStorage
 from swh.indexer.storage.api.server import app
 

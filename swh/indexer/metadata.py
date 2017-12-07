@@ -5,11 +5,11 @@
 import click
 import logging
 
-from swh.indexer import INDEXER_CFG_KEY
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer
 from swh.indexer.metadata_dictionary import compute_metadata
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
+from swh.indexer.storage import INDEXER_CFG_KEY
 
 from swh.model import hashutil
 

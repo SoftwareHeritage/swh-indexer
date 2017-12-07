@@ -15,6 +15,35 @@ from .db import Db
 from . import converters
 
 
+INDEXER_CFG_KEY = 'indexer_storage'
+
+
+def get_indexer_storage(cls, args):
+    """Get an indexer storage object of class `storage_class` with
+    arguments `storage_args`.
+
+    Args:
+        args (dict): dictionary with keys:
+        - cls (str): storage's class, either 'local' or 'remote'
+        - args (dict): dictionary with keys
+
+    Returns:
+        an instance of swh.indexer's storage (either local or remote)
+
+    Raises:
+        ValueError if passed an unknown storage class.
+
+    """
+    if cls == 'remote':
+        from .api.client import RemoteStorage as IndexerStorage
+    elif cls == 'local':
+        from . import IndexerStorage
+    else:
+        raise ValueError('Unknown indexer storage class `%s`' % cls)
+
+    return IndexerStorage(**args)
+
+
 class IndexerStorage():
     """SWH Indexer Storage
 

@@ -14,7 +14,7 @@ from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
 from swh.scheduler.utils import get_task
-from swh.indexer import get_indexer_storage, INDEXER_CFG_KEY
+from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
 
 
 class DiskIndexer:
