@@ -8,7 +8,7 @@ import unittest
 from nose.tools import istest
 from nose.plugins.attrib import attr
 
-from swh.indexer import converters
+from swh.indexer.storage import converters
 
 
 @attr('!db')

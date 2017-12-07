@@ -7,8 +7,8 @@ import unittest
 
 from .test_storage import CommonTestStorage
 from swh.storage.tests.server_testing import ServerTestFixture
-from swh.indexer.api.client import RemoteStorage
-from swh.indexer.api.server import app
+from swh.indexer.storage.api.client import RemoteStorage
+from swh.indexer.storage.api.server import app
 
 
 class TestRemoteStorage(CommonTestStorage, ServerTestFixture,
@@ -17,7 +17,8 @@ class TestRemoteStorage(CommonTestStorage, ServerTestFixture,
 
     This class doesn't define any tests as we want identical
     functionality between local and remote storage. All the tests are
-    therefore defined in CommonTestStorage.
+    therefore defined in
+    `class`:swh.indexer.storage.test_storage.CommonTestStorage.
 
     """
 

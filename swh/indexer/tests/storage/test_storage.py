@@ -3,14 +3,65 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import pathlib
 import unittest
 
 from nose.tools import istest
 from nose.plugins.attrib import attr
 from swh.model.hashutil import hash_to_bytes
 
+from swh.indexer import get_storage
 from swh.core.tests.db_testing import DbTestFixture
-from .test_utils import StorageTestFixture
+
+
+PATH_TO_STORAGE_TEST_DATA = '../../../../../swh-storage-testdata'
+
+
+class StorageTestFixture:
+    """Mix this in a test subject class to get Storage testing support.
+
+    This fixture requires to come before DbTestFixture in the inheritance list
+    as it uses its methods to setup its own internal database.
+
+    Usage example:
+
+        class TestStorage(StorageTestFixture, DbTestFixture):
+            ...
+    """
+    TEST_STORAGE_DB_NAME = 'softwareheritage-test-indexer'
+
+    @classmethod
+    def setUpClass(cls):
+        if not hasattr(cls, 'DB_TEST_FIXTURE_IMPORTED'):
+            raise RuntimeError("StorageTestFixture needs to be followed by "
+                               "DbTestFixture in the inheritance list.")
+
+        test_dir = pathlib.Path(__file__).absolute().parent
+        test_data_dir = test_dir / PATH_TO_STORAGE_TEST_DATA
+        test_db_dump = (test_data_dir / 'dumps/swh-indexer.dump').absolute()
+        cls.add_db(cls.TEST_STORAGE_DB_NAME, str(test_db_dump), 'pg_dump')
+        super().setUpClass()
+
+    def setUp(self):
+        super().setUp()
+
+        self.storage_config = {
+            'cls': 'local',
+            'args': {
+                'db': self.test_db[self.TEST_STORAGE_DB_NAME].conn,
+            },
+        }
+        self.storage = get_storage(**self.storage_config)
+
+    def tearDown(self):
+        super().tearDown()
+
+    def reset_storage_tables(self):
+        excluded = {'indexer_configuration'}
+        self.reset_db_tables(self.TEST_STORAGE_DB_NAME, excluded=excluded)
+
+        db = self.test_db[self.TEST_STORAGE_DB_NAME]
+        db.conn.commit()
 
 
 class BaseTestStorage(StorageTestFixture, DbTestFixture):
@@ -1443,4 +1494,11 @@ class CommonTestStorage(BaseTestStorage):
 
 
 class IndexerTestStorage(CommonTestStorage, unittest.TestCase):
+    """Running the tests locally.
+
+    For the client api tests (remote storage), see
+    `class`:swh.indexer.storage.test_api_client:TestRemoteStorage
+    class.
+
+    """
     pass

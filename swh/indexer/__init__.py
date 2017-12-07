@@ -30,9 +30,8 @@ __all__ = [
 
 
 def get_storage(cls, args):
-    """
-    Get a storage object of class `storage_class` with arguments
-    `storage_args`.
+    """Get an indexer storage object of class `storage_class` with
+    arguments `storage_args`.
 
     Args:
         storage (dict): dictionary with keys:
@@ -48,7 +47,7 @@ def get_storage(cls, args):
     """
 
     if cls == 'remote':
-        from .api.client import RemoteStorage as IndexerStorage
+        from .storage.api.client import RemoteStorage as IndexerStorage
     elif cls == 'local':
         from .storage import IndexerStorage
     else:
