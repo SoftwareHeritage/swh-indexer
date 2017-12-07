@@ -12,11 +12,12 @@ from swh.core import config
 from swh.core.api import (SWHServerAPIApp, decode_request,
                           error_handler,
                           encode_data_server as encode_data)
-from swh.indexer import get_indexer_storage
+from swh.indexer import get_indexer_storage, INDEXER_CFG_KEY
 
 
+DEFAULT_CONFIG_PATH = 'storage/indexer'
 DEFAULT_CONFIG = {
-    'storage': ('dict', {
+    INDEXER_CFG_KEY: ('dict', {
         'cls': 'local',
         'args': {
             'db': 'dbname=softwareheritage-indexer-dev',
@@ -35,7 +36,7 @@ def my_error_handler(exception):
 
 @app.before_request
 def before_request():
-    g.storage = get_indexer_storage(**app.config['storage'])
+    g.storage = get_indexer_storage(**app.config[INDEXER_CFG_KEY])
 
 
 @app.route('/')
@@ -168,28 +169,25 @@ def revision_metadata_get():
         g.storage.revision_metadata_get(**decode_request(request)))
 
 
-def run_from_webserver(environ, start_response):
+def run_from_webserver(environ, start_response,
+                       config_path=DEFAULT_CONFIG_PATH):
     """Run the WSGI app from the webserver, loading the configuration."""
-
-    config_path = '/etc/softwareheritage/indexer/storage.yml'
-
-    app.config.update(config.read(config_path, DEFAULT_CONFIG))
-
+    cfg = config.load_named_config(config_path, DEFAULT_CONFIG)
+    app.config.update(cfg)
     handler = logging.StreamHandler()
     app.logger.addHandler(handler)
-
     return app(environ, start_response)
 
 
 @click.command()
-@click.argument('config-path', required=1)
 @click.option('--host', default='0.0.0.0', help="Host to run the server")
 @click.option('--port', default=5007, type=click.INT,
               help="Binding port of the server")
 @click.option('--debug/--nodebug', default=True,
               help="Indicates if the server should run in debug mode")
-def launch(config_path, host, port, debug):
-    app.config.update(config.read(config_path, DEFAULT_CONFIG))
+def launch(host, port, debug):
+    cfg = config.load_named_config(DEFAULT_CONFIG_PATH, DEFAULT_CONFIG)
+    app.config.update(cfg)
     app.run(host, port=int(port), debug=bool(debug))
 
 
