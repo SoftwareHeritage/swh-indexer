@@ -6,3 +6,5 @@
 __pycache__
 *.egg-info/
 version.txt
+/sql/createdb-stamp
+/sql/filldb-stamp
