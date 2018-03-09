@@ -80,7 +80,7 @@ class BaseMapping():
                     self.log.exception(
                         "Problem during item mapping")
                     continue
-        except:
+        except Exception:
             return None
         return translated_metadata
 

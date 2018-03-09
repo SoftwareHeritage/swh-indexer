@@ -81,7 +81,7 @@ class ContentMetadataIndexer(ContentIndexer):
             result['translated_metadata'] = compute_metadata(context, data)
             # a twisted way to keep result with indexer object for get_results
             self.results.append(result)
-        except:
+        except Exception:
             self.log.exception(
                 "Problem during tool retrieval of metadata translation")
         return result
