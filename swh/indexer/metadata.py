@@ -41,8 +41,8 @@ class ContentMetadataIndexer(ContentIndexer):
             self.idx_storage = self.config[INDEXER_CFG_KEY]
         if self.config['objstorage']:
             self.objstorage = self.config['objstorage']
-        l = logging.getLogger('requests.packages.urllib3.connectionpool')
-        l.setLevel(logging.WARN)
+        _log = logging.getLogger('requests.packages.urllib3.connectionpool')
+        _log.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
         self.tools = self.register_tools(self.config['tools'])
         # NOTE: only one tool so far, change when no longer true
@@ -81,7 +81,7 @@ class ContentMetadataIndexer(ContentIndexer):
             result['translated_metadata'] = compute_metadata(context, data)
             # a twisted way to keep result with indexer object for get_results
             self.results.append(result)
-        except:
+        except Exception:
             self.log.exception(
                 "Problem during tool retrieval of metadata translation")
         return result
