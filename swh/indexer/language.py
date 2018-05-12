@@ -171,13 +171,13 @@ class ContentLanguageIndexer(ContentIndexer):
         if not encoding:
             return result
 
-        l = len(data)
+        _len = len(data)
         for i in range(0, 9):
             max_size = self.max_content_size + i
 
             try:
                 result = compute_language_from_chunk(
-                    encoding, l, data, max_size, log=self.log)
+                    encoding, _len, data, max_size, log=self.log)
             except UnicodeDecodeError:
                 self.log.warn('Decoding failed on wrong byte chunk at [0-%s]'
                               ', trying again at next ending byte.' % max_size)
