@@ -197,8 +197,8 @@ class BaseIndexer(SWHConfig,
         else:
             self.rescheduling_task = None
 
-        l = logging.getLogger('requests.packages.urllib3.connectionpool')
-        l.setLevel(logging.WARN)
+        _log = logging.getLogger('requests.packages.urllib3.connectionpool')
+        _log.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
         self.tools = list(self.register_tools(self.config['tools']))
 

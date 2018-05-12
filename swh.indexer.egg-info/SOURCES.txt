@@ -35,7 +35,6 @@ sql/json/.gitignore
 sql/json/Makefile
 sql/json/indexer_configuration.tool_configuration.schema.json
 sql/json/revision_metadata.translated_metadata.json
-sql/upgrades/114.sql
 swh/__init__.py
 swh.indexer.egg-info/PKG-INFO
 swh.indexer.egg-info/SOURCES.txt

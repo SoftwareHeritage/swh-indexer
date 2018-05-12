@@ -1,3 +1,13 @@
+-- Postgresql index helper function
+create or replace function hash_sha1(text)
+    returns text
+    language sql strict immutable
+as $$
+    select encode(public.digest($1, 'sha1'), 'hex')
+$$;
+
+comment on function hash_sha1(text) is 'Compute sha1 hash as text';
+
 -- create a temporary table with a single "bytea" column for fast object lookup.
 create or replace function swh_mktemp_bytea()
     returns void
