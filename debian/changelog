@@ -1,3 +1,10 @@
+swh-indexer (0.0.48-1~swh1) unstable-swh; urgency=medium
+
+  * Release swh.indexer v0.0.48
+  * Update for new swh.storage
+
+ -- Nicolas Dandrimont <nicolas@dandrimont.eu>  Sat, 12 May 2018 18:30:10 +0200
+
 swh-indexer (0.0.47-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.47
