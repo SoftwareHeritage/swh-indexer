@@ -54,6 +54,7 @@ class StorageTestFixture:
         self.storage = get_indexer_storage(**self.storage_config)
 
     def tearDown(self):
+        self.storage = None
         super().tearDown()
 
     def reset_storage_tables(self):
