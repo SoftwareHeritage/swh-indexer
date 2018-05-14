@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2017  The Software Heritage developers
+# Copyright (C) 2015-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -48,23 +48,28 @@ class IndexerStorage():
     """SWH Indexer Storage
 
     """
-    def __init__(self, db):
+    def __init__(self, db, min_pool_conns=1, max_pool_conns=10):
         """
         Args:
             db_conn: either a libpq connection string, or a psycopg2 connection
-            obj_root: path to the root of the object storage
 
         """
         try:
             if isinstance(db, psycopg2.extensions.connection):
+                self._pool = None
                 self._db = Db(db)
             else:
-                self._db = Db.connect(db)
+                self._pool = psycopg2.pool.ThreadedConnectionPool(
+                    min_pool_conns, max_pool_conns, db
+                )
+                self._db = None
         except psycopg2.OperationalError as e:
             raise StorageDBError(e)
 
     def get_db(self):
-        return self._db
+        if self._db:
+            return self._db
+        return Db.from_pool(self._pool)
 
     def check_config(self, *, check_write):
         """Check that the storage is configured and ready to go."""
