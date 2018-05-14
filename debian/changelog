@@ -1,3 +1,14 @@
+swh-indexer (0.0.49-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.49
+  * test_storage: Instantiate the tools during tests' setUp phase
+  * test_storage: Deallocate storage during teardown step
+  * test_storage: Make storage test fixture connect to postgres itself
+  * storage.api.server: Only instantiate storage backend once per import
+  * Use thread-aware psycopg2 connection pooling for database access
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 14 May 2018 11:09:30 +0200
+
 swh-indexer (0.0.48-1~swh1) unstable-swh; urgency=medium
 
   * Release swh.indexer v0.0.48
