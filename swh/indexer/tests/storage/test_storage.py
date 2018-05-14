@@ -67,12 +67,9 @@ class StorageTestFixture:
 
 @attr('db')
 class BaseTestStorage(StorageTestFixture, DbTestFixture):
+
     def setUp(self):
         super().setUp()
-
-        db = self.test_db[self.TEST_STORAGE_DB_NAME]
-        self.conn = db.conn
-        self.cursor = db.cursor
 
         self.sha1_1 = hash_to_bytes('34973274ccef6ab4dfaaf86599792fa9c3fe4689')
         self.sha1_2 = hash_to_bytes('61c2b3a30496d329e21af70dd2d7e097046d07b7')
@@ -81,17 +78,13 @@ class BaseTestStorage(StorageTestFixture, DbTestFixture):
         self.revision_id_2 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904321')
 
-    def tearDown(self):
-        self.reset_storage_tables()
-        super().tearDown()
-
-    def fetch_tools(self):
+        cur = self.test_db[self.TEST_STORAGE_DB_NAME].cursor
         tools = {}
-        self.cursor.execute('''
+        cur.execute('''
             select tool_name, id, tool_version, tool_configuration
             from indexer_configuration
             order by id''')
-        for row in self.cursor.fetchall():
+        for row in cur.fetchall():
             key = row[0]
             while key in tools:
                 key = '_' + key
@@ -101,8 +94,11 @@ class BaseTestStorage(StorageTestFixture, DbTestFixture):
                 'version': row[2],
                 'configuration': row[3]
             }
+        self.tools = tools
 
-        return tools
+    def tearDown(self):
+        self.reset_storage_tables()
+        super().tearDown()
 
 
 @attr('db')
@@ -119,8 +115,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_mimetype_missing(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['file']['id']
+        tool_id = self.tools['file']['id']
 
         mimetypes = [
             {
@@ -158,8 +153,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_mimetype_add__drop_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['file']['id']
+        tool_id = self.tools['file']['id']
 
         mimetype_v1 = {
             'id': self.sha1_2,
@@ -180,7 +174,7 @@ class CommonTestStorage(BaseTestStorage):
             'id': self.sha1_2,
             'mimetype': b'text/plain',
             'encoding': b'utf-8',
-            'tool': tools['file'],
+            'tool': self.tools['file'],
         }]
         self.assertEqual(actual_mimetypes, expected_mimetypes_v1)
 
@@ -202,8 +196,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_mimetype_add__update_in_place_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['file']['id']
+        tool_id = self.tools['file']['id']
 
         mimetype_v1 = {
             'id': self.sha1_2,
@@ -223,7 +216,7 @@ class CommonTestStorage(BaseTestStorage):
             'id': self.sha1_2,
             'mimetype': b'text/plain',
             'encoding': b'utf-8',
-            'tool': tools['file'],
+            'tool': self.tools['file'],
         }]
 
         # then
@@ -259,8 +252,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_mimetype_get(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['file']['id']
+        tool_id = self.tools['file']['id']
 
         mimetypes = [self.sha1_2, self.sha1_1]
 
@@ -282,7 +274,7 @@ class CommonTestStorage(BaseTestStorage):
             'id': self.sha1_2,
             'mimetype': b'text/plain',
             'encoding': b'utf-8',
-            'tool': tools['file']
+            'tool': self.tools['file']
         }]
 
         self.assertEqual(actual_mimetypes, expected_mimetypes)
@@ -290,8 +282,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_language_missing(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['pygments']['id']
+        tool_id = self.tools['pygments']['id']
 
         languages = [
             {
@@ -329,8 +320,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_language_get(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['pygments']['id']
+        tool_id = self.tools['pygments']['id']
 
         language1 = {
             'id': self.sha1_2,
@@ -349,7 +339,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_languages = [{
             'id': self.sha1_2,
             'lang': 'common-lisp',
-            'tool': tools['pygments']
+            'tool': self.tools['pygments']
         }]
 
         self.assertEqual(actual_languages, expected_languages)
@@ -357,8 +347,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_language_add__drop_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['pygments']['id']
+        tool_id = self.tools['pygments']['id']
 
         language_v1 = {
             'id': self.sha1_2,
@@ -377,7 +366,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_languages_v1 = [{
             'id': self.sha1_2,
             'lang': 'emacslisp',
-            'tool': tools['pygments']
+            'tool': self.tools['pygments']
         }]
         self.assertEqual(actual_languages, expected_languages_v1)
 
@@ -398,8 +387,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_language_add__update_in_place_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['pygments']['id']
+        tool_id = self.tools['pygments']['id']
 
         language_v1 = {
             'id': self.sha1_2,
@@ -418,7 +406,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_languages_v1 = [{
             'id': self.sha1_2,
             'lang': 'common-lisp',
-            'tool': tools['pygments']
+            'tool': self.tools['pygments']
         }]
         self.assertEqual(actual_languages, expected_languages_v1)
 
@@ -437,7 +425,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_languages_v2 = [{
             'id': self.sha1_2,
             'lang': 'emacslisp',
-            'tool': tools['pygments']
+            'tool': self.tools['pygments']
         }]
 
         # language did change as the v2 was used to overwrite v1
@@ -446,8 +434,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_ctags_missing(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['universal-ctags']['id']
+        tool_id = self.tools['universal-ctags']['id']
 
         ctags = [
             {
@@ -492,8 +479,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_ctags_get(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['universal-ctags']['id']
+        tool_id = self.tools['universal-ctags']['id']
 
         ctags = [self.sha1_2, self.sha1_1]
 
@@ -526,7 +512,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_ctags = [
             {
                 'id': self.sha1_2,
-                'tool': tools['universal-ctags'],
+                'tool': self.tools['universal-ctags'],
                 'name': 'done',
                 'kind': 'variable',
                 'line': 100,
@@ -534,7 +520,7 @@ class CommonTestStorage(BaseTestStorage):
             },
             {
                 'id': self.sha1_2,
-                'tool': tools['universal-ctags'],
+                'tool': self.tools['universal-ctags'],
                 'name': 'main',
                 'kind': 'function',
                 'line': 119,
@@ -547,8 +533,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_ctags_search(self):
         # 1. given
-        tools = self.fetch_tools()
-        tool = tools['universal-ctags']
+        tool = self.tools['universal-ctags']
         tool_id = tool['id']
 
         ctag1 = {
@@ -664,8 +649,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_ctags_add__add_new_ctags_added(self):
         # given
-        tools = self.fetch_tools()
-        tool = tools['universal-ctags']
+        tool = self.tools['universal-ctags']
         tool_id = tool['id']
 
         ctag_v1 = {
@@ -740,8 +724,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_ctags_add__update_in_place(self):
         # given
-        tools = self.fetch_tools()
-        tool = tools['universal-ctags']
+        tool = self.tools['universal-ctags']
         tool_id = tool['id']
 
         ctag_v1 = {
@@ -823,8 +806,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_fossology_license_get(self):
         # given
-        tools = self.fetch_tools()
-        tool = tools['nomos']
+        tool = self.tools['nomos']
         tool_id = tool['id']
 
         license1 = {
@@ -852,8 +834,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_fossology_license_add__new_license_added(self):
         # given
-        tools = self.fetch_tools()
-        tool = tools['nomos']
+        tool = self.tools['nomos']
         tool_id = tool['id']
 
         license_v1 = {
@@ -900,8 +881,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_fossology_license_add__update_in_place_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool = tools['nomos']
+        tool = self.tools['nomos']
         tool_id = tool['id']
 
         license_v1 = {
@@ -948,8 +928,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_metadata_missing(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['swh-metadata-translator']['id']
+        tool_id = self.tools['swh-metadata-translator']['id']
 
         metadatas = [
             {
@@ -996,8 +975,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_metadata_get(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['swh-metadata-translator']['id']
+        tool_id = self.tools['swh-metadata-translator']['id']
 
         metadata1 = {
             'id': self.sha1_2,
@@ -1033,7 +1011,7 @@ class CommonTestStorage(BaseTestStorage):
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'tool': tools['swh-metadata-translator']
+            'tool': self.tools['swh-metadata-translator']
         }]
 
         self.assertEqual(actual_metadatas, expected_metadatas)
@@ -1041,8 +1019,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_metadata_add_drop_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['swh-metadata-translator']['id']
+        tool_id = self.tools['swh-metadata-translator']['id']
 
         metadata_v1 = {
             'id': self.sha1_2,
@@ -1068,7 +1045,7 @@ class CommonTestStorage(BaseTestStorage):
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'tool': tools['swh-metadata-translator']
+            'tool': self.tools['swh-metadata-translator']
         }]
 
         self.assertEqual(actual_metadatas, expected_metadatas_v1)
@@ -1095,8 +1072,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def content_metadata_add_update_in_place_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['swh-metadata-translator']['id']
+        tool_id = self.tools['swh-metadata-translator']['id']
 
         metadata_v1 = {
             'id': self.sha1_2,
@@ -1123,7 +1099,7 @@ class CommonTestStorage(BaseTestStorage):
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'tool': tools['swh-metadata-translator']
+            'tool': self.tools['swh-metadata-translator']
         }]
         self.assertEqual(actual_metadatas, expected_metadatas_v1)
 
@@ -1149,7 +1125,7 @@ class CommonTestStorage(BaseTestStorage):
                 'name': 'test_update_duplicated_metadata',
                 'version': '0.0.1'
             },
-            'tool': tools['swh-metadata-translator']
+            'tool': self.tools['swh-metadata-translator']
         }]
 
         # metadata did change as the v2 was used to overwrite v1
@@ -1158,8 +1134,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def revision_metadata_missing(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['swh-metadata-detector']['id']
+        tool_id = self.tools['swh-metadata-detector']['id']
 
         metadatas = [
             {
@@ -1216,8 +1191,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def revision_metadata_get(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['swh-metadata-detector']['id']
+        tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata_rev = {
             'id': self.revision_id_2,
@@ -1252,7 +1226,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_metadatas = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_rev['translated_metadata'],
-            'tool': tools['swh-metadata-detector']
+            'tool': self.tools['swh-metadata-detector']
         }]
 
         self.assertEqual(actual_metadatas, expected_metadatas)
@@ -1260,8 +1234,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def revision_metadata_add_drop_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['swh-metadata-detector']['id']
+        tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata_v1 = {
             'id': self.revision_id_1,
@@ -1296,7 +1269,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_metadatas_v1 = [{
             'id': self.revision_id_1,
             'translated_metadata':  metadata_v1['translated_metadata'],
-            'tool': tools['swh-metadata-detector']
+            'tool': self.tools['swh-metadata-detector']
         }]
 
         self.assertEqual(actual_metadatas, expected_metadatas_v1)
@@ -1322,8 +1295,7 @@ class CommonTestStorage(BaseTestStorage):
     @istest
     def revision_metadata_add_update_in_place_duplicate(self):
         # given
-        tools = self.fetch_tools()
-        tool_id = tools['swh-metadata-detector']['id']
+        tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata_v1 = {
             'id': self.revision_id_2,
@@ -1359,7 +1331,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_metadatas_v1 = [{
             'id': self.revision_id_2,
             'translated_metadata':  metadata_v1['translated_metadata'],
-            'tool': tools['swh-metadata-detector']
+            'tool': self.tools['swh-metadata-detector']
         }]
         self.assertEqual(actual_metadatas, expected_metadatas_v1)
 
@@ -1380,7 +1352,7 @@ class CommonTestStorage(BaseTestStorage):
         expected_metadatas_v2 = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_v2['translated_metadata'],
-            'tool': tools['swh-metadata-detector']
+            'tool': self.tools['swh-metadata-detector']
         }]
 
         # metadata did change as the v2 was used to overwrite v1
