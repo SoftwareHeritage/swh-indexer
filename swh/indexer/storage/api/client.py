@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2017  The Software Heritage developers
+# Copyright (C) 2015-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -11,8 +11,9 @@ from swh.storage.exc import StorageAPIError
 
 class RemoteStorage(SWHRemoteAPI):
     """Proxy to a remote storage API"""
-    def __init__(self, url):
-        super().__init__(api_exception=StorageAPIError, url=url)
+    def __init__(self, url, timeout=None):
+        super().__init__(
+            api_exception=StorageAPIError, url=url, timeout=timeout)
 
     def check_config(self, *, check_write):
         return self.post('check_config', {'check_write': check_write})
