@@ -88,7 +88,7 @@ class IndexerStorage():
 
         return True
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_mimetype_missing(self, mimetypes, db=None, cur=None):
         """List mimetypes missing from storage.
 
@@ -111,7 +111,7 @@ class IndexerStorage():
         for obj in db.content_mimetype_missing_from_temp(cur):
             yield obj[0]
 
-    @db_transaction
+    @db_transaction()
     def content_mimetype_add(self, mimetypes, conflict_update=False, db=None,
                              cur=None):
         """Add mimetypes not present in storage.
@@ -134,14 +134,14 @@ class IndexerStorage():
                    cur)
         db.content_mimetype_add_from_temp(conflict_update, cur)
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_mimetype_get(self, ids, db=None, cur=None):
         db.store_tmp_bytea(ids, cur)
         for c in db.content_mimetype_get_from_temp():
             yield converters.db_to_mimetype(
                 dict(zip(db.content_mimetype_cols, c)))
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_language_missing(self, languages, db=None, cur=None):
         """List languages missing from storage.
 
@@ -162,14 +162,14 @@ class IndexerStorage():
         for obj in db.content_language_missing_from_temp(cur):
             yield obj[0]
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_language_get(self, ids, db=None, cur=None):
         db.store_tmp_bytea(ids, cur)
         for c in db.content_language_get_from_temp():
             yield converters.db_to_language(
                 dict(zip(db.content_language_cols, c)))
 
-    @db_transaction
+    @db_transaction()
     def content_language_add(self, languages, conflict_update=False, db=None,
                              cur=None):
         """Add languages not present in storage.
@@ -197,7 +197,7 @@ class IndexerStorage():
 
         db.content_language_add_from_temp(conflict_update, cur)
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_ctags_missing(self, ctags, db=None, cur=None):
         """List ctags missing from storage.
 
@@ -220,7 +220,7 @@ class IndexerStorage():
         for obj in db.content_ctags_missing_from_temp(cur):
             yield obj[0]
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_ctags_get(self, ids, db=None, cur=None):
         """Retrieve ctags per id.
 
@@ -232,7 +232,7 @@ class IndexerStorage():
         for c in db.content_ctags_get_from_temp():
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
 
-    @db_transaction
+    @db_transaction()
     def content_ctags_add(self, ctags, conflict_update=False, db=None,
                           cur=None):
         """Add ctags not present in storage
@@ -261,7 +261,7 @@ class IndexerStorage():
 
         db.content_ctags_add_from_temp(conflict_update, cur)
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_ctags_search(self, expression,
                              limit=10, last_sha1=None, db=None, cur=None):
         """Search through content's raw ctags symbols.
@@ -279,7 +279,7 @@ class IndexerStorage():
                                            cur=cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_fossology_license_get(self, ids, db=None, cur=None):
         """Retrieve licenses per id.
 
@@ -299,7 +299,7 @@ class IndexerStorage():
             license = dict(zip(db.content_fossology_license_cols, c))
             yield converters.db_to_fossology_license(license)
 
-    @db_transaction
+    @db_transaction()
     def content_fossology_license_add(self, licenses, conflict_update=False,
                                       db=None, cur=None):
         """Add licenses not present in storage.
@@ -332,7 +332,7 @@ class IndexerStorage():
             cur=cur)
         db.content_fossology_license_add_from_temp(conflict_update, cur)
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_metadata_missing(self, metadatas, db=None, cur=None):
         """List metadatas missing from storage.
 
@@ -353,14 +353,14 @@ class IndexerStorage():
         for obj in db.content_metadata_missing_from_temp(cur):
             yield obj[0]
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def content_metadata_get(self, ids, db=None, cur=None):
         db.store_tmp_bytea(ids, cur)
         for c in db.content_metadata_get_from_temp():
             yield converters.db_to_metadata(
                 dict(zip(db.content_metadata_cols, c)))
 
-    @db_transaction
+    @db_transaction()
     def content_metadata_add(self, metadatas, conflict_update=False, db=None,
                              cur=None):
         """Add metadatas not present in storage.
@@ -383,7 +383,7 @@ class IndexerStorage():
                    cur)
         db.content_metadata_add_from_temp(conflict_update, cur)
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def revision_metadata_missing(self, metadatas, db=None, cur=None):
         """List metadatas missing from storage.
 
@@ -404,14 +404,14 @@ class IndexerStorage():
         for obj in db.revision_metadata_missing_from_temp(cur):
             yield obj[0]
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def revision_metadata_get(self, ids, db=None, cur=None):
         db.store_tmp_bytea(ids, cur)
         for c in db.revision_metadata_get_from_temp():
             yield converters.db_to_metadata(
                 dict(zip(db.revision_metadata_cols, c)))
 
-    @db_transaction
+    @db_transaction()
     def revision_metadata_add(self, metadatas, conflict_update=False, db=None,
                               cur=None):
         """Add metadatas not present in storage.
@@ -434,7 +434,7 @@ class IndexerStorage():
                    cur)
         db.revision_metadata_add_from_temp(conflict_update, cur)
 
-    @db_transaction
+    @db_transaction()
     def origin_metadata_add(self, origin_id, ts, provider, tool, metadata,
                             db=None, cur=None):
         """ Add an origin_metadata for the origin at ts with provenance and
@@ -456,7 +456,7 @@ class IndexerStorage():
         return db.origin_metadata_add(origin_id, ts, provider, tool,
                                       metadata, cur)
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def origin_metadata_get_by(self, origin_id, provider_type=None, db=None,
                                cur=None):
         """Retrieve list of all origin_metadata entries for the origin_id
@@ -482,7 +482,7 @@ class IndexerStorage():
         for line in db.origin_metadata_get_by(origin_id, provider_type, cur):
             yield dict(zip(db.origin_metadata_get_cols, line))
 
-    @db_transaction_generator
+    @db_transaction_generator()
     def indexer_configuration_add(self, tools, db=None, cur=None):
         """Add new tools to the storage.
 
@@ -510,7 +510,7 @@ class IndexerStorage():
         for line in tools:
             yield dict(zip(db.indexer_configuration_cols, line))
 
-    @db_transaction
+    @db_transaction()
     def indexer_configuration_get(self, tool, db=None, cur=None):
         """Retrieve tool information.
 
