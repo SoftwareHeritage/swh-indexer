@@ -1,3 +1,9 @@
+swh-indexer (0.0.51-1~swh1~bpo9+1) stretch-swh; urgency=medium
+
+  * Rebuild for stretch-backports.
+
+ -- Nicolas Dandrimont <nicolas@dandrimont.eu>  Tue, 05 Jun 2018 14:10:39 +0200
+
 swh-indexer (0.0.51-1~swh1) unstable-swh; urgency=medium
 
   * Release swh.indexer v0.0.51
