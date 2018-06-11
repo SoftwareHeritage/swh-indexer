@@ -29,3 +29,6 @@ drop type content_fossology_license_signature;
 
 drop function swh_mktemp_content_metadata_missing();
 drop function swh_content_metadata_missing();
+
+drop function swh_content_metadata_get();
+drop type content_metadata_signature;

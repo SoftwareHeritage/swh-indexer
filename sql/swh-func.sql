@@ -308,34 +308,6 @@ $$;
 
 comment on function swh_mktemp_content_metadata() is 'Helper table to add content metadata';
 
---
-create type content_metadata_signature as (
-    id sha1,
-    translated_metadata jsonb,
-    tool_id integer,
-    tool_name text,
-    tool_version text,
-    tool_configuration jsonb
-);
-
--- Retrieve list of content metadata from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea, 2. call this function
-create or replace function swh_content_metadata_get()
-    returns setof content_metadata_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, translated_metadata, i.id as tool_id, tool_name, tool_version, tool_configuration
-        from tmp_bytea t
-        inner join content_metadata c on c.id = t.id
-        inner join indexer_configuration i on i.id=c.indexer_configuration_id;
-    return;
-end
-$$;
-
-comment on function swh_content_metadata_get() is 'List content''s metadata';
 -- end content_metadata functions
 
 -- revision_metadata functions

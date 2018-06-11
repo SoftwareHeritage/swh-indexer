@@ -371,8 +371,20 @@ class IndexerStorage():
 
     @db_transaction_generator()
     def content_metadata_get(self, ids, db=None, cur=None):
-        db.store_tmp_bytea(ids, cur)
-        for c in db.content_metadata_get_from_temp():
+        """Retrieve metadata per id.
+
+        Args:
+            ids (iterable): sha1 checksums
+
+        Yields:
+            list: dictionaries with the following keys:
+
+            id (bytes)
+            translated_metadata (str): associated metadata
+            tool (dict): tool used for computing the metadata
+
+        """
+        for c in db.content_metadata_get_from_list(ids, cur):
             yield converters.db_to_metadata(
                 dict(zip(db.content_metadata_cols, c)))
 
