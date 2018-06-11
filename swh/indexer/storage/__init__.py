@@ -357,11 +357,11 @@ class IndexerStorage():
         db.content_fossology_license_add_from_temp(conflict_update, cur)
 
     @db_transaction_generator()
-    def content_metadata_missing(self, metadatas, db=None, cur=None):
-        """List metadatas missing from storage.
+    def content_metadata_missing(self, metadata, db=None, cur=None):
+        """List metadata missing from storage.
 
         Args:
-            metadatas (iterable): dictionaries with keys:
+            metadata (iterable): dictionaries with keys:
 
                 id (bytes): sha1 identifier
                 indexer_configuration_id (int): tool used to compute
@@ -372,7 +372,7 @@ class IndexerStorage():
             indexer_configuration_id)
 
         """
-        for obj in db.content_metadata_missing_from_list(metadatas, cur):
+        for obj in db.content_metadata_missing_from_list(metadata, cur):
             yield obj[0]
 
     @db_transaction_generator()
@@ -395,12 +395,12 @@ class IndexerStorage():
                 dict(zip(db.content_metadata_cols, c)))
 
     @db_transaction()
-    def content_metadata_add(self, metadatas, conflict_update=False, db=None,
+    def content_metadata_add(self, metadata, conflict_update=False, db=None,
                              cur=None):
-        """Add metadatas not present in storage.
+        """Add metadata not present in storage.
 
         Args:
-            metadatas (iterable): dictionaries with keys:
+            metadata (iterable): dictionaries with keys:
 
                 id: sha1
                 translated_metadata: bytes / jsonb ?
@@ -412,17 +412,17 @@ class IndexerStorage():
         db.mktemp_content_metadata(cur)
         # empty metadata is mapped to 'unknown'
 
-        db.copy_to(metadatas, 'tmp_content_metadata',
+        db.copy_to(metadata, 'tmp_content_metadata',
                    ['id', 'translated_metadata', 'indexer_configuration_id'],
                    cur)
         db.content_metadata_add_from_temp(conflict_update, cur)
 
     @db_transaction_generator()
-    def revision_metadata_missing(self, metadatas, db=None, cur=None):
-        """List metadatas missing from storage.
+    def revision_metadata_missing(self, metadata, db=None, cur=None):
+        """List metadata missing from storage.
 
         Args:
-            metadatas (iterable): dictionaries with keys:
+            metadata (iterable): dictionaries with keys:
 
                id (bytes): sha1_git revision identifier
                indexer_configuration_id (int): tool used to compute
@@ -432,7 +432,7 @@ class IndexerStorage():
             iterable: missing ids
 
         """
-        for obj in db.revision_metadata_missing_from_list(metadatas, cur):
+        for obj in db.revision_metadata_missing_from_list(metadata, cur):
             yield obj[0]
 
     @db_transaction_generator()
@@ -455,12 +455,12 @@ class IndexerStorage():
                 dict(zip(db.revision_metadata_cols, c)))
 
     @db_transaction()
-    def revision_metadata_add(self, metadatas, conflict_update=False, db=None,
+    def revision_metadata_add(self, metadata, conflict_update=False, db=None,
                               cur=None):
-        """Add metadatas not present in storage.
+        """Add metadata not present in storage.
 
         Args:
-            metadatas (iterable): dictionaries with keys:
+            metadata (iterable): dictionaries with keys:
 
                 - id: sha1_git of revision
                 - translated_metadata: bytes / jsonb ?
@@ -472,7 +472,7 @@ class IndexerStorage():
         db.mktemp_revision_metadata(cur)
         # empty metadata is mapped to 'unknown'
 
-        db.copy_to(metadatas, 'tmp_revision_metadata',
+        db.copy_to(metadata, 'tmp_revision_metadata',
                    ['id', 'translated_metadata', 'indexer_configuration_id'],
                    cur)
         db.revision_metadata_add_from_temp(conflict_update, cur)

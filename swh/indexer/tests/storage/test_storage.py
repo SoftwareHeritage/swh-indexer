@@ -930,7 +930,7 @@ class CommonTestStorage(BaseTestStorage):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
-        metadatas = [
+        metadata = [
             {
                 'id': self.sha1_2,
                 'indexer_configuration_id': tool_id,
@@ -942,7 +942,7 @@ class CommonTestStorage(BaseTestStorage):
         ]
 
         # when
-        actual_missing = list(self.storage.content_metadata_missing(metadatas))
+        actual_missing = list(self.storage.content_metadata_missing(metadata))
 
         # then
         self.assertEqual(list(actual_missing), [
@@ -967,7 +967,7 @@ class CommonTestStorage(BaseTestStorage):
         }])
 
         # when
-        actual_missing = list(self.storage.content_metadata_missing(metadatas))
+        actual_missing = list(self.storage.content_metadata_missing(metadata))
 
         # then
         self.assertEqual(actual_missing, [self.sha1_1])
@@ -996,10 +996,10 @@ class CommonTestStorage(BaseTestStorage):
         self.storage.content_metadata_add([metadata1])
 
         # then
-        actual_metadatas = list(self.storage.content_metadata_get(
+        actual_metadata = list(self.storage.content_metadata_get(
             [self.sha1_2, self.sha1_1]))
 
-        expected_metadatas = [{
+        expected_metadata = [{
             'id': self.sha1_2,
             'translated_metadata': {
                 'other': {},
@@ -1014,7 +1014,7 @@ class CommonTestStorage(BaseTestStorage):
             'tool': self.tools['swh-metadata-translator']
         }]
 
-        self.assertEqual(actual_metadatas, expected_metadatas)
+        self.assertEqual(actual_metadata, expected_metadata)
 
     @istest
     def content_metadata_add_drop_duplicate(self):
@@ -1035,10 +1035,10 @@ class CommonTestStorage(BaseTestStorage):
         self.storage.content_metadata_add([metadata_v1])
 
         # when
-        actual_metadatas = list(self.storage.content_metadata_get(
+        actual_metadata = list(self.storage.content_metadata_get(
             [self.sha1_2]))
 
-        expected_metadatas_v1 = [{
+        expected_metadata_v1 = [{
             'id': self.sha1_2,
             'translated_metadata': {
                 'other': {},
@@ -1048,7 +1048,7 @@ class CommonTestStorage(BaseTestStorage):
             'tool': self.tools['swh-metadata-translator']
         }]
 
-        self.assertEqual(actual_metadatas, expected_metadatas_v1)
+        self.assertEqual(actual_metadata, expected_metadata_v1)
 
         # given
         metadata_v2 = metadata_v1.copy()
@@ -1063,11 +1063,11 @@ class CommonTestStorage(BaseTestStorage):
         self.storage.content_metadata_add([metadata_v2])
 
         # then
-        actual_metadatas = list(self.storage.content_metadata_get(
+        actual_metadata = list(self.storage.content_metadata_get(
             [self.sha1_2]))
 
         # metadata did not change as the v2 was dropped.
-        self.assertEqual(actual_metadatas, expected_metadatas_v1)
+        self.assertEqual(actual_metadata, expected_metadata_v1)
 
     @istest
     def content_metadata_add_update_in_place_duplicate(self):
@@ -1088,11 +1088,11 @@ class CommonTestStorage(BaseTestStorage):
         self.storage.content_metadata_add([metadata_v1])
 
         # when
-        actual_metadatas = list(self.storage.content_metadata_get(
+        actual_metadata = list(self.storage.content_metadata_get(
             [self.sha1_2]))
 
         # then
-        expected_metadatas_v1 = [{
+        expected_metadata_v1 = [{
             'id': self.sha1_2,
             'translated_metadata': {
                 'other': {},
@@ -1101,7 +1101,7 @@ class CommonTestStorage(BaseTestStorage):
             },
             'tool': self.tools['swh-metadata-translator']
         }]
-        self.assertEqual(actual_metadatas, expected_metadatas_v1)
+        self.assertEqual(actual_metadata, expected_metadata_v1)
 
         # given
         metadata_v2 = metadata_v1.copy()
@@ -1114,11 +1114,11 @@ class CommonTestStorage(BaseTestStorage):
         })
         self.storage.content_metadata_add([metadata_v2], conflict_update=True)
 
-        actual_metadatas = list(self.storage.content_metadata_get(
+        actual_metadata = list(self.storage.content_metadata_get(
             [self.sha1_2]))
 
         # language did not change as the v2 was dropped.
-        expected_metadatas_v2 = [{
+        expected_metadata_v2 = [{
             'id': self.sha1_2,
             'translated_metadata': {
                 'other': {},
@@ -1129,14 +1129,14 @@ class CommonTestStorage(BaseTestStorage):
         }]
 
         # metadata did change as the v2 was used to overwrite v1
-        self.assertEqual(actual_metadatas, expected_metadatas_v2)
+        self.assertEqual(actual_metadata, expected_metadata_v2)
 
     @istest
     def revision_metadata_missing(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
-        metadatas = [
+        metadata = [
             {
                 'id': self.revision_id_1,
                 'indexer_configuration_id': tool_id,
@@ -1149,7 +1149,7 @@ class CommonTestStorage(BaseTestStorage):
 
         # when
         actual_missing = list(self.storage.revision_metadata_missing(
-                              metadatas))
+                              metadata))
 
         # then
         self.assertEqual(list(actual_missing), [
@@ -1183,7 +1183,7 @@ class CommonTestStorage(BaseTestStorage):
 
         # when
         actual_missing = list(self.storage.revision_metadata_missing(
-                              metadatas))
+                              metadata))
 
         # then
         self.assertEqual(actual_missing, [self.revision_id_2])
@@ -1220,16 +1220,16 @@ class CommonTestStorage(BaseTestStorage):
         self.storage.revision_metadata_add([metadata_rev])
 
         # then
-        actual_metadatas = list(self.storage.revision_metadata_get(
+        actual_metadata = list(self.storage.revision_metadata_get(
             [self.revision_id_2, self.revision_id_1]))
 
-        expected_metadatas = [{
+        expected_metadata = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_rev['translated_metadata'],
             'tool': self.tools['swh-metadata-detector']
         }]
 
-        self.assertEqual(actual_metadatas, expected_metadatas)
+        self.assertEqual(actual_metadata, expected_metadata)
 
     @istest
     def revision_metadata_add_drop_duplicate(self):
@@ -1263,16 +1263,16 @@ class CommonTestStorage(BaseTestStorage):
         self.storage.revision_metadata_add([metadata_v1])
 
         # when
-        actual_metadatas = list(self.storage.revision_metadata_get(
+        actual_metadata = list(self.storage.revision_metadata_get(
             [self.revision_id_1]))
 
-        expected_metadatas_v1 = [{
+        expected_metadata_v1 = [{
             'id': self.revision_id_1,
             'translated_metadata':  metadata_v1['translated_metadata'],
             'tool': self.tools['swh-metadata-detector']
         }]
 
-        self.assertEqual(actual_metadatas, expected_metadatas_v1)
+        self.assertEqual(actual_metadata, expected_metadata_v1)
 
         # given
         metadata_v2 = metadata_v1.copy()
@@ -1286,11 +1286,11 @@ class CommonTestStorage(BaseTestStorage):
         self.storage.revision_metadata_add([metadata_v2])
 
         # then
-        actual_metadatas = list(self.storage.revision_metadata_get(
+        actual_metadata = list(self.storage.revision_metadata_get(
             [self.revision_id_1]))
 
         # metadata did not change as the v2 was dropped.
-        self.assertEqual(actual_metadatas, expected_metadatas_v1)
+        self.assertEqual(actual_metadata, expected_metadata_v1)
 
     @istest
     def revision_metadata_add_update_in_place_duplicate(self):
@@ -1324,16 +1324,16 @@ class CommonTestStorage(BaseTestStorage):
         self.storage.revision_metadata_add([metadata_v1])
 
         # when
-        actual_metadatas = list(self.storage.revision_metadata_get(
+        actual_metadata = list(self.storage.revision_metadata_get(
             [self.revision_id_2]))
 
         # then
-        expected_metadatas_v1 = [{
+        expected_metadata_v1 = [{
             'id': self.revision_id_2,
             'translated_metadata':  metadata_v1['translated_metadata'],
             'tool': self.tools['swh-metadata-detector']
         }]
-        self.assertEqual(actual_metadatas, expected_metadatas_v1)
+        self.assertEqual(actual_metadata, expected_metadata_v1)
 
         # given
         metadata_v2 = metadata_v1.copy()
@@ -1345,18 +1345,18 @@ class CommonTestStorage(BaseTestStorage):
         })
         self.storage.revision_metadata_add([metadata_v2], conflict_update=True)
 
-        actual_metadatas = list(self.storage.revision_metadata_get(
+        actual_metadata = list(self.storage.revision_metadata_get(
             [self.revision_id_2]))
 
         # language did not change as the v2 was dropped.
-        expected_metadatas_v2 = [{
+        expected_metadata_v2 = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_v2['translated_metadata'],
             'tool': self.tools['swh-metadata-detector']
         }]
 
         # metadata did change as the v2 was used to overwrite v1
-        self.assertEqual(actual_metadatas, expected_metadatas_v2)
+        self.assertEqual(actual_metadata, expected_metadata_v2)
 
     @istest
     def indexer_configuration_add(self):
