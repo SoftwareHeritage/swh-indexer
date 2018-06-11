@@ -8,16 +8,6 @@ $$;
 
 comment on function hash_sha1(text) is 'Compute sha1 hash as text';
 
--- create a temporary table with a single "bytea" column for fast object lookup.
-create or replace function swh_mktemp_bytea()
-    returns void
-    language sql
-as $$
-    create temporary table tmp_bytea (
-      id bytea
-    ) on commit drop;
-$$;
-
 -- create a temporary table called tmp_TBLNAME, mimicking existing table
 -- TBLNAME
 --

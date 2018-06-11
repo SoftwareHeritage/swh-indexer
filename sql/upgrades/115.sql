@@ -38,3 +38,5 @@ drop function swh_revision_metadata_missing();
 
 drop function swh_revision_metadata_get();
 drop type revision_metadata_signature;
+
+drop function swh_mktemp_bytea();

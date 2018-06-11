@@ -13,17 +13,6 @@ class Db(BaseDb):
     """Proxy to the SWH Indexer DB, with wrappers around stored procedures
 
     """
-    @stored_procedure('swh_mktemp_bytea')
-    def mktemp_bytea(self, cur=None): pass
-
-    def store_tmp_bytea(self, ids, cur=None):
-        """Store the given identifiers in a new tmp_bytea table"""
-        cur = self._cursor(cur)
-
-        self.mktemp_bytea(cur)
-        self.copy_to(({'id': elem} for elem in ids), 'tmp_bytea',
-                     ['id'], cur)
-
     content_mimetype_hash_keys = ['id', 'indexer_configuration_id']
 
     def content_mimetype_missing_from_list(self, mimetypes, cur=None):
