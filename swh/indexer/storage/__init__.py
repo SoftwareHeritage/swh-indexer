@@ -160,9 +160,9 @@ class IndexerStorage():
         Args:
             languages (iterable): dictionaries with keys:
 
-                - id (bytes): sha1 identifier
-                - indexer_configuration_id (int): tool used to compute
-                  the results
+                id (bytes): sha1 identifier
+                indexer_configuration_id (int): tool used to compute
+                the results
 
         Yields:
             an iterable of missing id for the tuple (id,
@@ -174,8 +174,23 @@ class IndexerStorage():
 
     @db_transaction_generator()
     def content_language_get(self, ids, db=None, cur=None):
-        db.store_tmp_bytea(ids, cur)
-        for c in db.content_language_get_from_temp():
+        """Retrieve full content language per ids.
+
+        Args:
+            ids (iterable): sha1 identifier
+
+        Yields:
+            languages (iterable): dictionaries with keys:
+
+                id (bytes): sha1 identifier
+                lang (bytes): raw content's language
+                tool_id (id): tool's id used to compute the results
+                tool_name (str): tool's name
+                tool_version (str):  tool's version
+                tool_configuration: tool's configuration
+
+        """
+        for c in db.content_language_get_from_list(ids, cur):
             yield converters.db_to_language(
                 dict(zip(db.content_language_cols, c)))
 

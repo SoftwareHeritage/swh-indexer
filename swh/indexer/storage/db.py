@@ -124,12 +124,20 @@ class Db(BaseDb):
         self._cursor(cur).execute("SELECT swh_content_language_add(%s)",
                                   (conflict_update, ))
 
-    def content_language_get_from_temp(self, cur=None):
+    def content_language_get_from_list(self, ids, cur=None):
         cur = self._cursor(cur)
-        query = "SELECT %s FROM swh_content_language_get()" % (
-            ','.join(self.content_language_cols))
-        cur.execute(query)
-        yield from cursor_to_bytes(cur)
+        keys = map(self._convert_key, self.content_language_cols)
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s
+            from (values %%s) as t(id)
+            inner join content_language c
+                on c.id=t.id
+            inner join indexer_configuration i
+                on c.indexer_configuration_id=i.id;
+            """ % ', '.join(keys),
+            ((_id,) for _id in ids)
+        )
 
     content_ctags_cols = [
         'id', 'name', 'kind', 'line', 'lang',
