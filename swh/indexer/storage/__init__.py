@@ -438,8 +438,20 @@ class IndexerStorage():
 
     @db_transaction_generator()
     def revision_metadata_get(self, ids, db=None, cur=None):
-        db.store_tmp_bytea(ids, cur)
-        for c in db.revision_metadata_get_from_temp():
+        """Retrieve revision metadata per id.
+
+        Args:
+            ids (iterable): sha1 checksums
+
+        Yields:
+            list: dictionaries with the following keys:
+
+                id (bytes)
+                translated_metadata (str): associated metadata
+                tool (dict): tool used to compute metadata
+
+        """
+        for c in db.revision_metadata_get_from_list(ids, cur):
             yield converters.db_to_metadata(
                 dict(zip(db.revision_metadata_cols, c)))
 

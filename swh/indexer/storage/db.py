@@ -59,8 +59,13 @@ class Db(BaseDb):
         self._cursor(cur).execute("SELECT swh_content_mimetype_add(%s)",
                                   (conflict_update, ))
 
-    def _convert_key(self, key):
+    def _convert_key(self, key, main_table='c'):
         """Convert keys according to specific use in the module.
+        Args:
+            key (str): Key expression to change according to the alias
+                       used in the query
+            main_table (str): Alias to use for the main table. Default
+                              to c for content_{something}.
 
         Expected:
             Tables content_{something} being aliased as 'c' (something
@@ -69,14 +74,15 @@ class Db(BaseDb):
 
         """
         if key == 'id':
-            return 'c.id'
+            return '%s.id' % main_table
         elif key == 'tool_id':
             return 'i.id as tool_id'
         elif key == 'licenses':
-            return '''array(select name
-                            from fossology_license
-                            where id = ANY(
-                               array_agg(c.license_id))) as licenses'''
+            return '''
+                array(select name
+                      from fossology_license
+                      where id = ANY(
+                         array_agg(%s.license_id))) as licenses''' % main_table
         return key
 
     def content_mimetype_get_from_list(self, ids, cur=None):
@@ -335,12 +341,21 @@ class Db(BaseDb):
         self._cursor(cur).execute("SELECT swh_revision_metadata_add(%s)",
                                   (conflict_update, ))
 
-    def revision_metadata_get_from_temp(self, cur=None):
+    def revision_metadata_get_from_list(self, ids, cur=None):
         cur = self._cursor(cur)
-        query = "SELECT %s FROM swh_revision_metadata_get()" % (
-            ','.join(self.revision_metadata_cols))
-        cur.execute(query)
-        yield from cursor_to_bytes(cur)
+        keys = map(lambda k: self._convert_key(k, main_table='r'),
+                   self.revision_metadata_cols)
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s
+            from (values %%s) as t(id)
+            inner join revision_metadata r
+                on r.id=t.id
+            inner join indexer_configuration i
+                on r.indexer_configuration_id=i.id;
+            """ % ', '.join(keys),
+            ((_id,) for _id in ids)
+        )
 
     indexer_configuration_cols = ['id', 'tool_name', 'tool_version',
                                   'tool_configuration']

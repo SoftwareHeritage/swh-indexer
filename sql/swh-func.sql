@@ -356,33 +356,6 @@ $$;
 
 comment on function swh_mktemp_revision_metadata() is 'Helper table to add revision metadata';
 
---
-create type revision_metadata_signature as (
-    id sha1_git,
-    translated_metadata jsonb,
-    tool_id integer,
-    tool_name text,
-    tool_version text,
-    tool_configuration jsonb
-);
-
--- Retrieve list of revision metadata from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea, 2. call this function
-create or replace function swh_revision_metadata_get()
-    returns setof revision_metadata_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, translated_metadata, i.id as tool_id, tool_name, tool_version, tool_configuration
-        from tmp_bytea t
-        inner join revision_metadata c on c.id = t.id
-        inner join indexer_configuration i on i.id=c.indexer_configuration_id;
-    return;
-end
-$$;
-
 create or replace function swh_mktemp_indexer_configuration()
     returns void
     language sql
