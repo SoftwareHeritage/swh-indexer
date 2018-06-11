@@ -5,7 +5,6 @@
 
 
 import json
-import dateutil.parser
 import psycopg2
 
 from swh.storage.common import db_transaction_generator, db_transaction
