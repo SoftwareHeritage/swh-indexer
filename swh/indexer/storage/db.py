@@ -72,6 +72,11 @@ class Db(BaseDb):
             return 'c.id'
         elif key == 'tool_id':
             return 'i.id as tool_id'
+        elif key == 'licenses':
+            return '''array(select name
+                            from fossology_license
+                            where id = ANY(
+                               array_agg(c.license_id))) as licenses'''
         return key
 
     def content_mimetype_get_from_list(self, ids, cur=None):
@@ -226,15 +231,24 @@ class Db(BaseDb):
             "SELECT swh_content_fossology_license_add(%s)",
             (conflict_update, ))
 
-    def content_fossology_license_get_from_temp(self, cur=None):
-        """Retrieve licenses per content.
+    def content_fossology_license_get_from_list(self, ids, cur=None):
+        """Retrieve licenses per id.
 
         """
         cur = self._cursor(cur)
-        query = "SELECT %s FROM swh_content_fossology_license_get()" % (
-            ','.join(self.content_fossology_license_cols))
-        cur.execute(query)
-        yield from cursor_to_bytes(cur)
+        keys = map(self._convert_key, self.content_fossology_license_cols)
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s
+            from (values %%s) as t(id)
+            inner join content_fossology_license c on t.id=c.id
+            inner join indexer_configuration i
+                on i.id=c.indexer_configuration_id
+            group by c.id, i.id, i.tool_name, i.tool_version,
+                     i.tool_configuration;
+            """ % ', '.join(keys),
+            ((_id,) for _id in ids)
+        )
 
     content_metadata_cols = [
         'id', 'translated_metadata',

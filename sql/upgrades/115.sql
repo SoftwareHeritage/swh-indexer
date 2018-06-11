@@ -23,3 +23,6 @@ drop function swh_content_ctags_missing();
 
 drop function swh_content_ctags_get();
 --drop type content_ctags_signature;  -- still used in swh_content_ctags_search
+
+drop function swh_content_fossology_license_get();
+drop type content_fossology_license_signature;

@@ -313,9 +313,7 @@ class IndexerStorage():
             - licenses ([str]): associated licenses for that content
 
         """
-        db.store_tmp_bytea(ids, cur)
-
-        for c in db.content_fossology_license_get_from_temp():
+        for c in db.content_fossology_license_get_from_list(ids, cur):
             license = dict(zip(db.content_fossology_license_cols, c))
             yield converters.db_to_fossology_license(license)
 
