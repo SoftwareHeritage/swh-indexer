@@ -250,23 +250,36 @@ class Db(BaseDb):
             ((_id,) for _id in ids)
         )
 
+    content_metadata_hash_keys = ['id', 'indexer_configuration_id']
+
+    def content_metadata_missing_from_list(self, metadata, cur=None):
+        """List missing metadata.
+
+        """
+        cur = self._cursor(cur)
+        keys = ', '.join(self.content_metadata_hash_keys)
+        equality = ' AND '.join(
+            ('t.%s = c.%s' % (key, key))
+            for key in self.content_metadata_hash_keys
+        )
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s from (values %%s) as t(%s)
+            where not exists (
+                select 1 from content_metadata c
+                where %s
+            )
+            """ % (keys, keys, equality),
+            (tuple(m[k] for k in self.content_metadata_hash_keys)
+             for m in metadata)
+        )
+
     content_metadata_cols = [
         'id', 'translated_metadata',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     @stored_procedure('swh_mktemp_content_metadata')
     def mktemp_content_metadata(self, cur=None): pass
-
-    @stored_procedure('swh_mktemp_content_metadata_missing')
-    def mktemp_content_metadata_missing(self, cur=None): pass
-
-    def content_metadata_missing_from_temp(self, cur=None):
-        """List missing metadatas.
-
-        """
-        cur = self._cursor(cur)
-        cur.execute("SELECT * FROM swh_content_metadata_missing()")
-        yield from cursor_to_bytes(cur)
 
     def content_metadata_add_from_temp(self, conflict_update, cur=None):
         self._cursor(cur).execute("SELECT swh_content_metadata_add(%s)",

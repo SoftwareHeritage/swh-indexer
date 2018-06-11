@@ -357,18 +357,16 @@ class IndexerStorage():
         Args:
             metadatas (iterable): dictionaries with keys:
 
-                - id (bytes): sha1 identifier
-                - tool_name (str): tool used to compute the results
-                - tool_version (str): associated tool's version
+                id (bytes): sha1 identifier
+                indexer_configuration_id (int): tool used to compute
+                the results
 
-        Returns:
-            iterable: missing ids
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
 
         """
-        db.mktemp_content_metadata_missing(cur)
-        db.copy_to(metadatas, 'tmp_content_metadata_missing',
-                   ['id', 'indexer_configuration_id'], cur)
-        for obj in db.content_metadata_missing_from_temp(cur):
+        for obj in db.content_metadata_missing_from_list(metadatas, cur):
             yield obj[0]
 
     @db_transaction_generator()
