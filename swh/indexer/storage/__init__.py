@@ -132,8 +132,24 @@ class IndexerStorage():
 
     @db_transaction_generator()
     def content_mimetype_get(self, ids, db=None, cur=None):
-        db.store_tmp_bytea(ids, cur)
-        for c in db.content_mimetype_get_from_temp():
+        """Retrieve full content mimetype per ids.
+
+        Args:
+            ids (iterable): sha1 identifier
+
+        Yields:
+            mimetypes (iterable): dictionaries with keys:
+
+                id (bytes): sha1 identifier
+                mimetype (bytes): raw content's mimetype
+                encoding (bytes): raw content's encoding
+                tool_id (id): tool's id used to compute the results
+                tool_name (str): tool's name
+                tool_version (str):  tool's version
+                tool_configuration: tool's configuration
+
+        """
+        for c in db.content_mimetype_get_from_list(ids, cur):
             yield converters.db_to_mimetype(
                 dict(zip(db.content_mimetype_cols, c)))
 

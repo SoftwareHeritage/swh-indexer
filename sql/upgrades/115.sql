@@ -8,3 +8,6 @@ values(115, now(), 'Work In Progress');
 
 drop function swh_mktemp_content_mimetype_missing();
 drop function swh_content_mimetype_missing();
+
+drop function swh_content_mimetype_get();
+drop type content_mimetype_signature;

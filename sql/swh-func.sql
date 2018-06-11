@@ -85,37 +85,6 @@ $$;
 
 comment on function swh_content_mimetype_add(boolean) IS 'Add new content mimetypes';
 
-create type content_mimetype_signature as(
-    id sha1,
-    mimetype bytea,
-    encoding bytea,
-    tool_id integer,
-    tool_name text,
-    tool_version text,
-    tool_configuration jsonb
-);
-
--- Retrieve list of content mimetype from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_mimetype_get()
-    returns setof content_mimetype_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, mimetype, encoding,
-               i.id as tool_id, tool_name, tool_version, tool_configuration
-        from tmp_bytea t
-        inner join content_mimetype c on c.id=t.id
-        inner join indexer_configuration i on c.indexer_configuration_id=i.id;
-    return;
-end
-$$;
-
-comment on function swh_content_mimetype_get() IS 'List content''s mimetypes';
-
 -- create a temporary table for content_language tmp_content_language,
 create or replace function swh_mktemp_content_language_missing()
     returns void

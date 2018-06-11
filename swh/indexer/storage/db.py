@@ -59,12 +59,35 @@ class Db(BaseDb):
         self._cursor(cur).execute("SELECT swh_content_mimetype_add(%s)",
                                   (conflict_update, ))
 
-    def content_mimetype_get_from_temp(self, cur=None):
+    def _convert_key(self, key):
+        """Convert keys according to specific use in the module.
+
+        Expected:
+            Tables content_{something} being aliased as 'c' (something
+            in {language, mimetype, ...}), table indexer_configuration
+            being aliased as 'i'.
+
+        """
+        if key == 'id':
+            return 'c.id'
+        elif key == 'tool_id':
+            return 'i.id as tool_id'
+        return key
+
+    def content_mimetype_get_from_list(self, ids, cur=None):
         cur = self._cursor(cur)
-        query = "SELECT %s FROM swh_content_mimetype_get()" % (
-            ','.join(self.content_mimetype_cols))
-        cur.execute(query)
-        yield from cursor_to_bytes(cur)
+        keys = map(self._convert_key, self.content_mimetype_cols)
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s
+            from (values %%s) as t(id)
+            inner join content_mimetype c
+                on c.id=t.id
+            inner join indexer_configuration i
+                on c.indexer_configuration_id=i.id;
+            """ % ', '.join(keys),
+            ((_id,) for _id in ids)
+        )
 
     content_language_cols = [
         'id', 'lang',
