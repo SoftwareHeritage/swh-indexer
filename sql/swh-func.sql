@@ -185,27 +185,6 @@ create type content_ctags_signature as (
   tool_configuration jsonb
 );
 
--- Retrieve list of content ctags from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea, 2. call this function
-create or replace function swh_content_ctags_get()
-    returns setof content_ctags_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, c.name, c.kind, c.line, c.lang,
-               i.id as tool_id, i.tool_name, i.tool_version, i.tool_configuration
-        from tmp_bytea t
-        inner join content_ctags c using(id)
-        inner join indexer_configuration i on i.id = c.indexer_configuration_id
-        order by line;
-    return;
-end
-$$;
-
-comment on function swh_content_ctags_get() IS 'List content ctags';
-
 -- Search within ctags content.
 --
 create or replace function swh_content_ctags_search(

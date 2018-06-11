@@ -249,8 +249,7 @@ class IndexerStorage():
             ids (iterable): sha1 checksums
 
         """
-        db.store_tmp_bytea(ids, cur)
-        for c in db.content_ctags_get_from_temp():
+        for c in db.content_ctags_get_from_list(ids, cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
 
     @db_transaction()

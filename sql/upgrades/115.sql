@@ -20,3 +20,6 @@ drop type content_language_signature;
 
 drop function swh_mktemp_content_ctags_missing();
 drop function swh_content_ctags_missing();
+
+drop function swh_content_ctags_get();
+--drop type content_ctags_signature;  -- still used in swh_content_ctags_search
