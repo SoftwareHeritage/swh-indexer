@@ -85,39 +85,6 @@ $$;
 
 comment on function swh_content_mimetype_add(boolean) IS 'Add new content mimetypes';
 
--- create a temporary table for content_language tmp_content_language,
-create or replace function swh_mktemp_content_language_missing()
-    returns void
-    language sql
-as $$
-  create temporary table tmp_content_language_missing (
-    id sha1,
-    indexer_configuration_id integer
-  ) on commit drop;
-$$;
-
-comment on function swh_mktemp_content_language_missing() is 'Helper table to filter missing language';
-
--- check which entries of tmp_bytea are missing from content_language
---
--- operates in bulk: 0. swh_mktemp_bytea(), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_language_missing()
-    returns setof sha1
-    language plpgsql
-as $$
-begin
-    return query
-	select id::sha1 from tmp_content_language_missing as tmp
-	where not exists
-	    (select 1 from content_language as c
-             where c.id = tmp.id and c.indexer_configuration_id = tmp.indexer_configuration_id);
-    return;
-end
-$$;
-
-comment on function swh_content_language_missing() IS 'Filter missing content languages';
-
 -- add tmp_content_language entries to content_language, overwriting
 -- duplicates if conflict_update is true, skipping duplicates otherwise.
 --

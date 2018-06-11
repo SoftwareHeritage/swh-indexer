@@ -89,23 +89,36 @@ class Db(BaseDb):
             ((_id,) for _id in ids)
         )
 
+    content_language_hash_keys = ['id', 'indexer_configuration_id']
+
+    def content_language_missing_from_list(self, languages, cur=None):
+        """List missing languages.
+
+        """
+        cur = self._cursor(cur)
+        keys = ', '.join(self.content_language_hash_keys)
+        equality = ' AND '.join(
+            ('t.%s = c.%s' % (key, key))
+            for key in self.content_language_hash_keys
+        )
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s from (values %%s) as t(%s)
+            where not exists (
+                select 1 from content_language c
+                where %s
+            )
+            """ % (keys, keys, equality),
+            (tuple(l[k] for k in self.content_language_hash_keys)
+             for l in languages)
+        )
+
     content_language_cols = [
         'id', 'lang',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     @stored_procedure('swh_mktemp_content_language')
     def mktemp_content_language(self, cur=None): pass
-
-    @stored_procedure('swh_mktemp_content_language_missing')
-    def mktemp_content_language_missing(self, cur=None): pass
-
-    def content_language_missing_from_temp(self, cur=None):
-        """List missing languages.
-
-        """
-        cur = self._cursor(cur)
-        cur.execute("SELECT * FROM swh_content_language_missing()")
-        yield from cursor_to_bytes(cur)
 
     def content_language_add_from_temp(self, conflict_update, cur=None):
         self._cursor(cur).execute("SELECT swh_content_language_add(%s)",

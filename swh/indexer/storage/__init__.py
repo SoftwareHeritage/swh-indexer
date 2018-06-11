@@ -161,17 +161,15 @@ class IndexerStorage():
             languages (iterable): dictionaries with keys:
 
                 - id (bytes): sha1 identifier
-                - tool_name (str): tool used to compute the results
-                - tool_version (str): associated tool's version
+                - indexer_configuration_id (int): tool used to compute
+                  the results
 
-        Returns:
-            iterable: identifiers of missing languages
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
 
         """
-        db.mktemp_content_language_missing(cur)
-        db.copy_to(languages, 'tmp_content_language_missing',
-                   ['id', 'indexer_configuration_id'], cur)
-        for obj in db.content_language_missing_from_temp(cur):
+        for obj in db.content_language_missing_from_list(languages, cur):
             yield obj[0]
 
     @db_transaction_generator()

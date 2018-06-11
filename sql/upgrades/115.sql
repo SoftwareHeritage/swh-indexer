@@ -11,3 +11,6 @@ drop function swh_content_mimetype_missing();
 
 drop function swh_content_mimetype_get();
 drop type content_mimetype_signature;
+
+drop function swh_mktemp_content_language_missing();
+drop function swh_content_language_missing();
