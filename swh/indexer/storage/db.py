@@ -15,27 +15,42 @@ class Db(BaseDb):
     """
     content_mimetype_hash_keys = ['id', 'indexer_configuration_id']
 
-    def content_mimetype_missing_from_list(self, mimetypes, cur=None):
-        """List missing mimetypes.
+    def _missing_from_list(self, table, data, hash_keys, cur=None):
+        """Read from table the data with hash_keys that are missing.
+
+        Args:
+            table (str): Table name (e.g content_mimetype, content_language,
+                         etc...)
+            data (dict): Dict of data to read from
+            hash_keys ([str]): List of keys to read in the data dict.
+
+        Yields:
+            The data which is missing from the db.
 
         """
         cur = self._cursor(cur)
-        keys = ', '.join(self.content_mimetype_hash_keys)
+        keys = ', '.join(hash_keys)
         equality = ' AND '.join(
-            ('t.%s = c.%s' % (key, key))
-            for key in self.content_mimetype_hash_keys
+            ('t.%s = c.%s' % (key, key)) for key in hash_keys
         )
         yield from execute_values_to_bytes(
             cur, """
             select %s from (values %%s) as t(%s)
             where not exists (
-                select 1 from content_mimetype c
+                select 1 from %s c
                 where %s
             )
-            """ % (keys, keys, equality),
-            (tuple(m[k] for k in self.content_mimetype_hash_keys)
-             for m in mimetypes)
+            """ % (keys, keys, table, equality),
+            (tuple(m[k] for k in hash_keys) for m in data)
         )
+
+    def content_mimetype_missing_from_list(self, mimetypes, cur=None):
+        """List missing mimetypes.
+
+        """
+        yield from self._missing_from_list(
+            'content_mimetype', mimetypes, self.content_mimetype_hash_keys,
+            cur=cur)
 
     content_mimetype_cols = [
         'id', 'mimetype', 'encoding',
@@ -95,23 +110,9 @@ class Db(BaseDb):
         """List missing languages.
 
         """
-        cur = self._cursor(cur)
-        keys = ', '.join(self.content_language_hash_keys)
-        equality = ' AND '.join(
-            ('t.%s = c.%s' % (key, key))
-            for key in self.content_language_hash_keys
-        )
-        yield from execute_values_to_bytes(
-            cur, """
-            select %s from (values %%s) as t(%s)
-            where not exists (
-                select 1 from content_language c
-                where %s
-            )
-            """ % (keys, keys, equality),
-            (tuple(l[k] for k in self.content_language_hash_keys)
-             for l in languages)
-        )
+        yield from self._missing_from_list(
+            'content_language', languages, self.content_language_hash_keys,
+            cur=cur)
 
     content_language_cols = [
         'id', 'lang',
@@ -145,23 +146,9 @@ class Db(BaseDb):
         """List missing ctags.
 
         """
-        cur = self._cursor(cur)
-        keys = ', '.join(self.content_ctags_hash_keys)
-        equality = ' AND '.join(
-            ('t.%s = c.%s' % (key, key))
-            for key in self.content_ctags_hash_keys
-        )
-        yield from execute_values_to_bytes(
-            cur, """
-            select %s from (values %%s) as t(%s)
-            where not exists (
-                select 1 from content_ctags c
-                where %s
-            )
-            """ % (keys, keys, equality),
-            (tuple(c[k] for k in self.content_ctags_hash_keys)
-             for c in ctags)
-        )
+        yield from self._missing_from_list(
+            'content_ctags', ctags, self.content_ctags_hash_keys,
+            cur=cur)
 
     content_ctags_cols = [
         'id', 'name', 'kind', 'line', 'lang',
@@ -251,23 +238,9 @@ class Db(BaseDb):
         """List missing metadata.
 
         """
-        cur = self._cursor(cur)
-        keys = ', '.join(self.content_metadata_hash_keys)
-        equality = ' AND '.join(
-            ('t.%s = c.%s' % (key, key))
-            for key in self.content_metadata_hash_keys
-        )
-        yield from execute_values_to_bytes(
-            cur, """
-            select %s from (values %%s) as t(%s)
-            where not exists (
-                select 1 from content_metadata c
-                where %s
-            )
-            """ % (keys, keys, equality),
-            (tuple(m[k] for k in self.content_metadata_hash_keys)
-             for m in metadata)
-        )
+        yield from self._missing_from_list(
+            'content_metadata', metadata, self.content_metadata_hash_keys,
+            cur=cur)
 
     content_metadata_cols = [
         'id', 'translated_metadata',
@@ -295,29 +268,15 @@ class Db(BaseDb):
             ((_id,) for _id in ids)
         )
 
-    content_revision_metadata_hash_keys = ['id', 'indexer_configuration_id']
+    revision_metadata_hash_keys = ['id', 'indexer_configuration_id']
 
     def revision_metadata_missing_from_list(self, metadata, cur=None):
         """List missing metadata.
 
         """
-        cur = self._cursor(cur)
-        keys = ', '.join(self.content_revision_metadata_hash_keys)
-        equality = ' AND '.join(
-            ('t.%s = r.%s' % (key, key))
-            for key in self.content_revision_metadata_hash_keys
-        )
-        yield from execute_values_to_bytes(
-            cur, """
-            select %s from (values %%s) as t(%s)
-            where not exists (
-                select 1 from revision_metadata r
-                where %s
-            )
-            """ % (keys, keys, equality),
-            (tuple(m[k] for k in self.content_revision_metadata_hash_keys)
-             for m in metadata)
-        )
+        yield from self._missing_from_list(
+            'revision_metadata', metadata, self.revision_metadata_hash_keys,
+            cur=cur)
 
     revision_metadata_cols = [
         'id', 'translated_metadata',
