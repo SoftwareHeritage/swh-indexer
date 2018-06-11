@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2017  The Software Heritage developers
+# Copyright (C) 2015-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,7 +6,7 @@
 from swh.model import hashutil
 
 from swh.storage.db import BaseDb, stored_procedure, cursor_to_bytes
-from swh.storage.db import line_to_bytes
+from swh.storage.db import line_to_bytes, execute_values_to_bytes
 
 
 class Db(BaseDb):
@@ -24,20 +24,33 @@ class Db(BaseDb):
         self.copy_to(({'id': elem} for elem in ids), 'tmp_bytea',
                      ['id'], cur)
 
-    content_mimetype_cols = [
-        'id', 'mimetype', 'encoding',
-        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
+    content_mimetype_hash_keys = ['id', 'indexer_configuration_id']
 
-    @stored_procedure('swh_mktemp_content_mimetype_missing')
-    def mktemp_content_mimetype_missing(self, cur=None): pass
-
-    def content_mimetype_missing_from_temp(self, cur=None):
+    def content_mimetype_missing_from_list(self, mimetypes, cur=None):
         """List missing mimetypes.
 
         """
         cur = self._cursor(cur)
-        cur.execute("SELECT * FROM swh_content_mimetype_missing()")
-        yield from cursor_to_bytes(cur)
+        keys = ', '.join(self.content_mimetype_hash_keys)
+        equality = ' AND '.join(
+            ('t.%s = c.%s' % (key, key))
+            for key in self.content_mimetype_hash_keys
+        )
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s from (values %%s) as t(%s)
+            where not exists (
+                select 1 from content_mimetype c
+                where %s
+            )
+            """ % (keys, keys, equality),
+            (tuple(m[k] for k in self.content_mimetype_hash_keys)
+             for m in mimetypes)
+        )
+
+    content_mimetype_cols = [
+        'id', 'mimetype', 'encoding',
+        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     @stored_procedure('swh_mktemp_content_mimetype')
     def mktemp_content_mimetype(self, cur=None): pass

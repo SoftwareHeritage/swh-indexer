@@ -96,19 +96,15 @@ class IndexerStorage():
             mimetypes (iterable): iterable of dict with keys:
 
                 - id (bytes): sha1 identifier
-                - tool_name (str): tool used to compute the results
-                - tool_version (str): associated tool's version
+                - indexer_configuration_id (int): tool used to compute
+                  the results
 
-        Returns:
-            iterable: an iterable of missing id for the triplets id, tool_name,
-            tool_version
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
 
         """
-        db.mktemp_content_mimetype_missing(cur)
-        db.copy_to(mimetypes, 'tmp_content_mimetype_missing',
-                   ['id', 'indexer_configuration_id'],
-                   cur)
-        for obj in db.content_mimetype_missing_from_temp(cur):
+        for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
             yield obj[0]
 
     @db_transaction()

@@ -38,39 +38,6 @@ begin
 end
 $$;
 
--- create a temporary table for content_ctags tmp_content_mimetype_missing,
-create or replace function swh_mktemp_content_mimetype_missing()
-    returns void
-    language sql
-as $$
-  create temporary table tmp_content_mimetype_missing (
-    id sha1,
-    indexer_configuration_id bigint
-  ) on commit drop;
-$$;
-
-comment on function swh_mktemp_content_mimetype_missing() IS 'Helper table to filter existing mimetype information';
-
--- check which entries of tmp_bytea are missing from content_mimetype
---
--- operates in bulk: 0. swh_mktemp_bytea(), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_mimetype_missing()
-    returns setof sha1
-    language plpgsql
-as $$
-begin
-    return query
-	(select id::sha1 from tmp_content_mimetype_missing as tmp
-	 where not exists
-	     (select 1 from content_mimetype as c
-              where c.id = tmp.id and c.indexer_configuration_id = tmp.indexer_configuration_id));
-    return;
-end
-$$;
-
-comment on function swh_content_mimetype_missing() is 'Filter existing mimetype information';
-
 -- create a temporary table for content_mimetype tmp_content_mimetype,
 create or replace function swh_mktemp_content_mimetype()
     returns void
