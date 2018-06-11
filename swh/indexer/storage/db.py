@@ -300,23 +300,36 @@ class Db(BaseDb):
             ((_id,) for _id in ids)
         )
 
+    content_revision_metadata_hash_keys = ['id', 'indexer_configuration_id']
+
+    def revision_metadata_missing_from_list(self, metadata, cur=None):
+        """List missing metadata.
+
+        """
+        cur = self._cursor(cur)
+        keys = ', '.join(self.content_revision_metadata_hash_keys)
+        equality = ' AND '.join(
+            ('t.%s = r.%s' % (key, key))
+            for key in self.content_revision_metadata_hash_keys
+        )
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s from (values %%s) as t(%s)
+            where not exists (
+                select 1 from revision_metadata r
+                where %s
+            )
+            """ % (keys, keys, equality),
+            (tuple(m[k] for k in self.content_revision_metadata_hash_keys)
+             for m in metadata)
+        )
+
     revision_metadata_cols = [
         'id', 'translated_metadata',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     @stored_procedure('swh_mktemp_revision_metadata')
     def mktemp_revision_metadata(self, cur=None): pass
-
-    @stored_procedure('swh_mktemp_revision_metadata_missing')
-    def mktemp_revision_metadata_missing(self, cur=None): pass
-
-    def revision_metadata_missing_from_temp(self, cur=None):
-        """List missing metadatas.
-
-        """
-        cur = self._cursor(cur)
-        cur.execute("SELECT * FROM swh_revision_metadata_missing()")
-        yield from cursor_to_bytes(cur)
 
     def revision_metadata_add_from_temp(self, conflict_update, cur=None):
         self._cursor(cur).execute("SELECT swh_revision_metadata_add(%s)",

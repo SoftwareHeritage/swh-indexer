@@ -433,10 +433,7 @@ class IndexerStorage():
             iterable: missing ids
 
         """
-        db.mktemp_revision_metadata_missing(cur)
-        db.copy_to(metadatas, 'tmp_revision_metadata_missing',
-                   ['id', 'indexer_configuration_id'], cur)
-        for obj in db.revision_metadata_missing_from_temp(cur):
+        for obj in db.revision_metadata_missing_from_list(metadatas, cur):
             yield obj[0]
 
     @db_transaction_generator()
