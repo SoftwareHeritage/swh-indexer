@@ -89,20 +89,24 @@ class Db(BaseDb):
                          array_agg(%s.license_id))) as licenses''' % main_table
         return key
 
-    def content_mimetype_get_from_list(self, ids, cur=None):
+    def _get_from_list(self, table, ids, cols, cur=None):
         cur = self._cursor(cur)
-        keys = map(self._convert_key, self.content_mimetype_cols)
+        keys = map(self._convert_key, cols)
         yield from execute_values_to_bytes(
             cur, """
             select %s
             from (values %%s) as t(id)
-            inner join content_mimetype c
+            inner join %s c
                 on c.id=t.id
             inner join indexer_configuration i
                 on c.indexer_configuration_id=i.id;
-            """ % ', '.join(keys),
+            """ % (', '.join(keys), table),
             ((_id,) for _id in ids)
         )
+
+    def content_mimetype_get_from_list(self, ids, cur=None):
+        yield from self._get_from_list(
+            'content_mimetype', ids, self.content_mimetype_cols, cur=cur)
 
     content_language_hash_keys = ['id', 'indexer_configuration_id']
 
@@ -126,19 +130,8 @@ class Db(BaseDb):
                                   (conflict_update, ))
 
     def content_language_get_from_list(self, ids, cur=None):
-        cur = self._cursor(cur)
-        keys = map(self._convert_key, self.content_language_cols)
-        yield from execute_values_to_bytes(
-            cur, """
-            select %s
-            from (values %%s) as t(id)
-            inner join content_language c
-                on c.id=t.id
-            inner join indexer_configuration i
-                on c.indexer_configuration_id=i.id;
-            """ % ', '.join(keys),
-            ((_id,) for _id in ids)
-        )
+        yield from self._get_from_list(
+            'content_language', ids, self.content_language_cols, cur=cur)
 
     content_ctags_hash_keys = ['id', 'indexer_configuration_id']
 
@@ -175,7 +168,7 @@ class Db(BaseDb):
             order by line
             """ % ', '.join(keys),
             ((_id,) for _id in ids)
-        )
+         )
 
     def content_ctags_search(self, expression, last_sha1, limit, cur=None):
         cur = self._cursor(cur)
@@ -254,19 +247,8 @@ class Db(BaseDb):
                                   (conflict_update, ))
 
     def content_metadata_get_from_list(self, ids, cur=None):
-        cur = self._cursor(cur)
-        keys = map(self._convert_key, self.content_metadata_cols)
-        yield from execute_values_to_bytes(
-            cur, """
-            select %s
-            from (values %%s) as t(id)
-            inner join content_metadata c
-                on c.id=t.id
-            inner join indexer_configuration i
-                on c.indexer_configuration_id=i.id;
-            """ % ', '.join(keys),
-            ((_id,) for _id in ids)
-        )
+        yield from self._get_from_list(
+            'content_metadata', ids, self.content_metadata_cols, cur=cur)
 
     revision_metadata_hash_keys = ['id', 'indexer_configuration_id']
 
@@ -290,20 +272,8 @@ class Db(BaseDb):
                                   (conflict_update, ))
 
     def revision_metadata_get_from_list(self, ids, cur=None):
-        cur = self._cursor(cur)
-        keys = map(lambda k: self._convert_key(k, main_table='r'),
-                   self.revision_metadata_cols)
-        yield from execute_values_to_bytes(
-            cur, """
-            select %s
-            from (values %%s) as t(id)
-            inner join revision_metadata r
-                on r.id=t.id
-            inner join indexer_configuration i
-                on r.indexer_configuration_id=i.id;
-            """ % ', '.join(keys),
-            ((_id,) for _id in ids)
-        )
+        yield from self._get_from_list(
+            'revision_metadata', ids, self.revision_metadata_cols, cur=cur)
 
     indexer_configuration_cols = ['id', 'tool_name', 'tool_version',
                                   'tool_configuration']
