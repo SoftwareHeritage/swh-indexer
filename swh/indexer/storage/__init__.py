@@ -478,54 +478,6 @@ class IndexerStorage():
                    cur)
         db.revision_metadata_add_from_temp(conflict_update, cur)
 
-    @db_transaction()
-    def origin_metadata_add(self, origin_id, ts, provider, tool, metadata,
-                            db=None, cur=None):
-        """ Add an origin_metadata for the origin at ts with provenance and
-        metadata.
-
-        Args:
-            origin_id (int): the origin's id for which the metadata is added
-            ts (datetime): timestamp of the found metadata
-            provider (int): the provider of metadata (ex:'hal')
-            tool (int): tool used to extract metadata
-            metadata (jsonb): the metadata retrieved at the time and location
-
-        Returns:
-            id (int): the origin_metadata unique id
-        """
-        if isinstance(ts, str):
-            ts = dateutil.parser.parse(ts)
-
-        return db.origin_metadata_add(origin_id, ts, provider, tool,
-                                      metadata, cur)
-
-    @db_transaction_generator()
-    def origin_metadata_get_by(self, origin_id, provider_type=None, db=None,
-                               cur=None):
-        """Retrieve list of all origin_metadata entries for the origin_id
-
-        Args:
-            origin_id (int): the unique origin identifier
-            provider_type (str): (optional) type of provider
-
-        Returns:
-            list of dicts: the origin_metadata dictionary with the keys:
-
-            - id (int): origin_metadata's id
-            - origin_id (int): origin's id
-            - discovery_date (datetime): timestamp of discovery
-            - tool_id (int): metadata's extracting tool
-            - metadata (jsonb)
-            - provider_id (int): metadata's provider
-            - provider_name (str)
-            - provider_type (str)
-            - provider_url (str)
-
-        """
-        for line in db.origin_metadata_get_by(origin_id, provider_type, cur):
-            yield dict(zip(db.origin_metadata_get_cols, line))
-
     @db_transaction_generator()
     def indexer_configuration_add(self, tools, db=None, cur=None):
         """Add new tools to the storage.
