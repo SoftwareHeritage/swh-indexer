@@ -229,20 +229,16 @@ class IndexerStorage():
         Args:
             ctags (iterable): dicts with keys:
 
-            - id (bytes): sha1 identifier
-            - tool_name (str): tool name used
-            - tool_version (str): associated version
+                id (bytes): sha1 identifier
+                indexer_configuration_id (int): tool used to compute
+                the results
 
-        Returns:
-            an iterable of missing id
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
 
         """
-        db.mktemp_content_ctags_missing(cur)
-        db.copy_to(ctags,
-                   tblname='tmp_content_ctags_missing',
-                   columns=['id', 'indexer_configuration_id'],
-                   cur=cur)
-        for obj in db.content_ctags_missing_from_temp(cur):
+        for obj in db.content_ctags_missing_from_list(ctags, cur):
             yield obj[0]
 
     @db_transaction_generator()

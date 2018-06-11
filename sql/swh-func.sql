@@ -173,40 +173,6 @@ $$;
 
 comment on function swh_content_ctags_add(boolean) IS 'Add new ctags symbols per content';
 
--- create a temporary table for content_ctags missing routine
-create or replace function swh_mktemp_content_ctags_missing()
-    returns void
-    language sql
-as $$
-  create temporary table tmp_content_ctags_missing (
-    id           sha1,
-    indexer_configuration_id    integer
-  ) on commit drop;
-$$;
-
-comment on function swh_mktemp_content_ctags_missing() is 'Helper table to filter missing content ctags';
-
--- check which entries of tmp_bytea are missing from content_ctags
---
--- operates in bulk: 0. swh_mktemp_bytea(), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_ctags_missing()
-    returns setof sha1
-    language plpgsql
-as $$
-begin
-    return query
-	(select id::sha1 from tmp_content_ctags_missing as tmp
-	 where not exists
-	     (select 1 from content_ctags as c
-              where c.id = tmp.id and c.indexer_configuration_id=tmp.indexer_configuration_id
-              limit 1));
-    return;
-end
-$$;
-
-comment on function swh_content_ctags_missing() IS 'Filter missing content ctags';
-
 create type content_ctags_signature as (
   id sha1,
   name text,

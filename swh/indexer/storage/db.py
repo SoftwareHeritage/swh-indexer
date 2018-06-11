@@ -139,23 +139,36 @@ class Db(BaseDb):
             ((_id,) for _id in ids)
         )
 
+    content_ctags_hash_keys = ['id', 'indexer_configuration_id']
+
+    def content_ctags_missing_from_list(self, ctags, cur=None):
+        """List missing ctags.
+
+        """
+        cur = self._cursor(cur)
+        keys = ', '.join(self.content_ctags_hash_keys)
+        equality = ' AND '.join(
+            ('t.%s = c.%s' % (key, key))
+            for key in self.content_ctags_hash_keys
+        )
+        yield from execute_values_to_bytes(
+            cur, """
+            select %s from (values %%s) as t(%s)
+            where not exists (
+                select 1 from content_ctags c
+                where %s
+            )
+            """ % (keys, keys, equality),
+            (tuple(c[k] for k in self.content_ctags_hash_keys)
+             for c in ctags)
+        )
+
     content_ctags_cols = [
         'id', 'name', 'kind', 'line', 'lang',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     @stored_procedure('swh_mktemp_content_ctags')
     def mktemp_content_ctags(self, cur=None): pass
-
-    @stored_procedure('swh_mktemp_content_ctags_missing')
-    def mktemp_content_ctags_missing(self, cur=None): pass
-
-    def content_ctags_missing_from_temp(self, cur=None):
-        """List missing ctags.
-
-        """
-        cur = self._cursor(cur)
-        cur.execute("SELECT * FROM swh_content_ctags_missing()")
-        yield from cursor_to_bytes(cur)
 
     def content_ctags_add_from_temp(self, conflict_update, cur=None):
         self._cursor(cur).execute("SELECT swh_content_ctags_add(%s)",
