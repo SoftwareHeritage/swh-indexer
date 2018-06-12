@@ -823,9 +823,10 @@ class CommonTestStorage(BaseTestStorage):
             [self.sha1_2, self.sha1_1]))
 
         expected_license = {
-            'id': self.sha1_1,
-            'licenses': ['GPL-2.0+'],
-            'tool': tool,
+            self.sha1_1: [{
+                'licenses': ['GPL-2.0+'],
+                'tool': tool,
+            }]
         }
 
         # then
@@ -854,9 +855,10 @@ class CommonTestStorage(BaseTestStorage):
 
         # then
         expected_license = {
-            'id': self.sha1_1,
-            'licenses': ['Apache-2.0'],
-            'tool': tool,
+            self.sha1_1: [{
+                'licenses': ['Apache-2.0'],
+                'tool': tool,
+            }]
         }
         self.assertEqual(actual_licenses, [expected_license])
 
@@ -871,9 +873,12 @@ class CommonTestStorage(BaseTestStorage):
         actual_licenses = list(self.storage.content_fossology_license_get(
             [self.sha1_1]))
 
-        expected_license.update({
-            'licenses': ['Apache-2.0', 'BSD-2-Clause'],
-        })
+        expected_license = {
+            self.sha1_1: [{
+                'licenses': ['Apache-2.0', 'BSD-2-Clause'],
+                'tool': tool
+            }]
+        }
 
         # license did not change as the v2 was dropped.
         self.assertEqual(actual_licenses, [expected_license])
@@ -901,9 +906,10 @@ class CommonTestStorage(BaseTestStorage):
 
         # then
         expected_license = {
-            'id': self.sha1_1,
-            'licenses': ['CECILL'],
-            'tool': tool,
+            self.sha1_1: [{
+                'licenses': ['CECILL'],
+                'tool': tool,
+            }]
         }
         self.assertEqual(actual_licenses, [expected_license])
 
@@ -920,9 +926,12 @@ class CommonTestStorage(BaseTestStorage):
             [self.sha1_1]))
 
         # license did change as the v2 was used to overwrite v1
-        expected_license.update({
-            'licenses': ['CECILL-2.0']
-        })
+        expected_license = {
+            self.sha1_1: [{
+                'licenses': ['CECILL-2.0'],
+                'tool': tool,
+            }]
+        }
         self.assertEqual(actual_licenses, [expected_license])
 
     @istest

@@ -7,6 +7,8 @@
 import json
 import psycopg2
 
+from collections import defaultdict
+
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
 from .db import Db
@@ -319,9 +321,15 @@ class IndexerStorage():
                 tool (dict): Tool used to compute the license
 
         """
+        d = defaultdict(list)
         for c in db.content_fossology_license_get_from_list(ids, cur):
             license = dict(zip(db.content_fossology_license_cols, c))
-            yield converters.db_to_fossology_license(license)
+
+            id_ = license['id']
+            d[id_].append(converters.db_to_fossology_license(license))
+
+        for id_, facts in d.items():
+            yield {id_: facts}
 
     @db_transaction()
     def content_fossology_license_add(self, licenses, conflict_update=False,
