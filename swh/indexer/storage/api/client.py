@@ -70,26 +70,26 @@ class RemoteStorage(SWHRemoteAPI):
     def content_fossology_license_get(self, ids):
         return self.post('content/fossology_license', {'ids': ids})
 
-    def content_metadata_add(self, metadatas, conflict_update=False):
+    def content_metadata_add(self, metadata, conflict_update=False):
         return self.post('content_metadata/add', {
-            'metadatas': metadatas,
+            'metadata': metadata,
             'conflict_update': conflict_update,
         })
 
-    def content_metadata_missing(self, metadatas):
-        return self.post('content_metadata/missing', {'metadatas': metadatas})
+    def content_metadata_missing(self, metadata):
+        return self.post('content_metadata/missing', {'metadata': metadata})
 
     def content_metadata_get(self, ids):
         return self.post('content_metadata', {'ids': ids})
 
-    def revision_metadata_add(self, metadatas, conflict_update=False):
+    def revision_metadata_add(self, metadata, conflict_update=False):
         return self.post('revision_metadata/add', {
-            'metadatas': metadatas,
+            'metadata': metadata,
             'conflict_update': conflict_update,
         })
 
-    def revision_metadata_missing(self, metadatas):
-        return self.post('revision_metadata/missing', {'metadatas': metadatas})
+    def revision_metadata_missing(self, metadata):
+        return self.post('revision_metadata/missing', {'metadata': metadata})
 
     def revision_metadata_get(self, ids):
         return self.post('revision_metadata', {'ids': ids})
