@@ -1,3 +1,16 @@
+swh-indexer (0.0.52-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.52
+  * swh.indexer.storage: Refactor fossology license get (first external
+  * contribution, cf. /CONTRIBUTORS)
+  * swh.indexer.storage: Fix typo in invariable name metadata
+  * swh.indexer.storage: No longer use temp table when reading data
+  * swh.indexer.storage: Clean up unused import
+  * swh.indexer.storage: Remove dead entry points origin_metadata*
+  * swh.indexer.storage: Update docstrings information and format
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 13 Jun 2018 11:20:40 +0200
+
 swh-indexer (0.0.51-1~swh1) unstable-swh; urgency=medium
 
   * Release swh.indexer v0.0.51
