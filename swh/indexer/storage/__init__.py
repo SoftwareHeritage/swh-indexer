@@ -5,8 +5,9 @@
 
 
 import json
-import dateutil.parser
 import psycopg2
+
+from collections import defaultdict
 
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
@@ -95,20 +96,16 @@ class IndexerStorage():
         Args:
             mimetypes (iterable): iterable of dict with keys:
 
-                - id (bytes): sha1 identifier
-                - tool_name (str): tool used to compute the results
-                - tool_version (str): associated tool's version
+                id (bytes): sha1 identifier
+                indexer_configuration_id (int): tool used to compute
+                the results
 
-        Returns:
-            iterable: an iterable of missing id for the triplets id, tool_name,
-            tool_version
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
 
         """
-        db.mktemp_content_mimetype_missing(cur)
-        db.copy_to(mimetypes, 'tmp_content_mimetype_missing',
-                   ['id', 'indexer_configuration_id'],
-                   cur)
-        for obj in db.content_mimetype_missing_from_temp(cur):
+        for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
             yield obj[0]
 
     @db_transaction()
@@ -119,13 +116,14 @@ class IndexerStorage():
         Args:
             mimetypes (iterable): dictionaries with keys:
 
-                - id (bytes): sha1 identifier
-                - mimetype (bytes): raw content's mimetype
-                - encoding (bytes): raw content's encoding
-                - indexer_configuration_id (int): tool's id used to
-                  compute the results
-                - conflict_update: Flag to determine if we want to
-                  overwrite (true) or skip duplicates (false, the default)
+                id (bytes): sha1 identifier
+                mimetype (bytes): raw content's mimetype
+                encoding (bytes): raw content's encoding
+                indexer_configuration_id (int): tool's id used to
+                                                compute the results
+                conflict_update (bool): Flag to determine if we want to
+                                        overwrite (true) or skip duplicates
+                                        (false, the default)
 
         """
         db.mktemp_content_mimetype(cur)
@@ -136,8 +134,21 @@ class IndexerStorage():
 
     @db_transaction_generator()
     def content_mimetype_get(self, ids, db=None, cur=None):
-        db.store_tmp_bytea(ids, cur)
-        for c in db.content_mimetype_get_from_temp():
+        """Retrieve full content mimetype per ids.
+
+        Args:
+            ids (iterable): sha1 identifier
+
+        Yields:
+            mimetypes (iterable): dictionaries with keys:
+
+                id (bytes): sha1 identifier
+                mimetype (bytes): raw content's mimetype
+                encoding (bytes): raw content's encoding
+                tool (dict): Tool used to compute the language
+
+        """
+        for c in db.content_mimetype_get_from_list(ids, cur):
             yield converters.db_to_mimetype(
                 dict(zip(db.content_mimetype_cols, c)))
 
@@ -148,24 +159,34 @@ class IndexerStorage():
         Args:
             languages (iterable): dictionaries with keys:
 
-                - id (bytes): sha1 identifier
-                - tool_name (str): tool used to compute the results
-                - tool_version (str): associated tool's version
+                id (bytes): sha1 identifier
+                indexer_configuration_id (int): tool used to compute
+                the results
 
-        Returns:
-            iterable: identifiers of missing languages
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
 
         """
-        db.mktemp_content_language_missing(cur)
-        db.copy_to(languages, 'tmp_content_language_missing',
-                   ['id', 'indexer_configuration_id'], cur)
-        for obj in db.content_language_missing_from_temp(cur):
+        for obj in db.content_language_missing_from_list(languages, cur):
             yield obj[0]
 
     @db_transaction_generator()
     def content_language_get(self, ids, db=None, cur=None):
-        db.store_tmp_bytea(ids, cur)
-        for c in db.content_language_get_from_temp():
+        """Retrieve full content language per ids.
+
+        Args:
+            ids (iterable): sha1 identifier
+
+        Yields:
+            languages (iterable): dictionaries with keys:
+
+                id (bytes): sha1 identifier
+                lang (bytes): raw content's language
+                tool (dict): Tool used to compute the language
+
+        """
+        for c in db.content_language_get_from_list(ids, cur):
             yield converters.db_to_language(
                 dict(zip(db.content_language_cols, c)))
 
@@ -177,11 +198,12 @@ class IndexerStorage():
         Args:
             languages (iterable): dictionaries with keys:
 
-                - id: sha1
-                - lang: bytes
+                id (bytes): sha1
+                lang (bytes): language detected
 
-            conflict_update: Flag to determine if we want to overwrite (true)
-                or skip duplicates (false, the default)
+            conflict_update (bool): Flag to determine if we want to
+                overwrite (true) or skip duplicates (false, the
+                default)
 
         """
         db.mktemp_content_language(cur)
@@ -204,20 +226,16 @@ class IndexerStorage():
         Args:
             ctags (iterable): dicts with keys:
 
-            - id (bytes): sha1 identifier
-            - tool_name (str): tool name used
-            - tool_version (str): associated version
+                id (bytes): sha1 identifier
+                indexer_configuration_id (int): tool used to compute
+                                                the results
 
-        Returns:
-            an iterable of missing id
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
 
         """
-        db.mktemp_content_ctags_missing(cur)
-        db.copy_to(ctags,
-                   tblname='tmp_content_ctags_missing',
-                   columns=['id', 'indexer_configuration_id'],
-                   cur=cur)
-        for obj in db.content_ctags_missing_from_temp(cur):
+        for obj in db.content_ctags_missing_from_list(ctags, cur):
             yield obj[0]
 
     @db_transaction_generator()
@@ -227,9 +245,18 @@ class IndexerStorage():
         Args:
             ids (iterable): sha1 checksums
 
+        Yields:
+            Dictionaries with keys:
+
+                id (bytes): content's identifier
+                name (str): symbol's name
+                kind (str): symbol's kind
+                language (str): language for that content
+                tool (dict): tool used to compute the ctags' info
+
+
         """
-        db.store_tmp_bytea(ids, cur)
-        for c in db.content_ctags_get_from_temp():
+        for c in db.content_ctags_get_from_list(ids, cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
 
     @db_transaction()
@@ -240,9 +267,9 @@ class IndexerStorage():
         Args:
             ctags (iterable): dictionaries with keys:
 
-                - id (bytes): sha1
-                - ctags ([list): List of dictionary with keys: name, kind,
-                  line, language
+                id (bytes): sha1
+                ctags ([list): List of dictionary with keys: name, kind,
+                               line, language
 
         """
         def _convert_ctags(__ctags):
@@ -289,15 +316,20 @@ class IndexerStorage():
         Yields:
             list: dictionaries with the following keys:
 
-            - id (bytes)
-            - licenses ([str]): associated licenses for that content
+                id (bytes)
+                licenses ([str]): associated licenses for that content
+                tool (dict): Tool used to compute the license
 
         """
-        db.store_tmp_bytea(ids, cur)
-
-        for c in db.content_fossology_license_get_from_temp():
+        d = defaultdict(list)
+        for c in db.content_fossology_license_get_from_list(ids, cur):
             license = dict(zip(db.content_fossology_license_cols, c))
-            yield converters.db_to_fossology_license(license)
+
+            id_ = license['id']
+            d[id_].append(converters.db_to_fossology_license(license))
+
+        for id_, facts in d.items():
+            yield {id_: facts}
 
     @db_transaction()
     def content_fossology_license_add(self, licenses, conflict_update=False,
@@ -333,43 +365,53 @@ class IndexerStorage():
         db.content_fossology_license_add_from_temp(conflict_update, cur)
 
     @db_transaction_generator()
-    def content_metadata_missing(self, metadatas, db=None, cur=None):
-        """List metadatas missing from storage.
+    def content_metadata_missing(self, metadata, db=None, cur=None):
+        """List metadata missing from storage.
 
         Args:
-            metadatas (iterable): dictionaries with keys:
+            metadata (iterable): dictionaries with keys:
 
-                - id (bytes): sha1 identifier
-                - tool_name (str): tool used to compute the results
-                - tool_version (str): associated tool's version
+                id (bytes): sha1 identifier
+                indexer_configuration_id (int): tool used to compute
+                                                the results
 
-        Returns:
-            iterable: missing ids
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
 
         """
-        db.mktemp_content_metadata_missing(cur)
-        db.copy_to(metadatas, 'tmp_content_metadata_missing',
-                   ['id', 'indexer_configuration_id'], cur)
-        for obj in db.content_metadata_missing_from_temp(cur):
+        for obj in db.content_metadata_missing_from_list(metadata, cur):
             yield obj[0]
 
     @db_transaction_generator()
     def content_metadata_get(self, ids, db=None, cur=None):
-        db.store_tmp_bytea(ids, cur)
-        for c in db.content_metadata_get_from_temp():
+        """Retrieve metadata per id.
+
+        Args:
+            ids (iterable): sha1 checksums
+
+        Yields:
+            list: dictionaries with the following keys:
+
+                id (bytes)
+                translated_metadata (str): associated metadata
+                tool (dict): tool used to compute metadata
+
+        """
+        for c in db.content_metadata_get_from_list(ids, cur):
             yield converters.db_to_metadata(
                 dict(zip(db.content_metadata_cols, c)))
 
     @db_transaction()
-    def content_metadata_add(self, metadatas, conflict_update=False, db=None,
+    def content_metadata_add(self, metadata, conflict_update=False, db=None,
                              cur=None):
-        """Add metadatas not present in storage.
+        """Add metadata not present in storage.
 
         Args:
-            metadatas (iterable): dictionaries with keys:
+            metadata (iterable): dictionaries with keys:
 
-                - id: sha1
-                - translated_metadata: bytes / jsonb ?
+                id: sha1
+                translated_metadata: bytes / jsonb ?
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)
@@ -378,46 +420,55 @@ class IndexerStorage():
         db.mktemp_content_metadata(cur)
         # empty metadata is mapped to 'unknown'
 
-        db.copy_to(metadatas, 'tmp_content_metadata',
+        db.copy_to(metadata, 'tmp_content_metadata',
                    ['id', 'translated_metadata', 'indexer_configuration_id'],
                    cur)
         db.content_metadata_add_from_temp(conflict_update, cur)
 
     @db_transaction_generator()
-    def revision_metadata_missing(self, metadatas, db=None, cur=None):
-        """List metadatas missing from storage.
+    def revision_metadata_missing(self, metadata, db=None, cur=None):
+        """List metadata missing from storage.
 
         Args:
-            metadatas (iterable): dictionaries with keys:
+            metadata (iterable): dictionaries with keys:
 
-               - id (bytes): sha1_git revision identifier
-               - tool_name (str): tool used to compute the results
-               - tool_version (str): associated tool's version
+               id (bytes): sha1_git revision identifier
+               indexer_configuration_id (int): tool used to compute
+                                               the results
 
         Returns:
             iterable: missing ids
 
         """
-        db.mktemp_revision_metadata_missing(cur)
-        db.copy_to(metadatas, 'tmp_revision_metadata_missing',
-                   ['id', 'indexer_configuration_id'], cur)
-        for obj in db.revision_metadata_missing_from_temp(cur):
+        for obj in db.revision_metadata_missing_from_list(metadata, cur):
             yield obj[0]
 
     @db_transaction_generator()
     def revision_metadata_get(self, ids, db=None, cur=None):
-        db.store_tmp_bytea(ids, cur)
-        for c in db.revision_metadata_get_from_temp():
+        """Retrieve revision metadata per id.
+
+        Args:
+            ids (iterable): sha1 checksums
+
+        Yields:
+            list: dictionaries with the following keys:
+
+                id (bytes)
+                translated_metadata (str): associated metadata
+                tool (dict): tool used to compute metadata
+
+        """
+        for c in db.revision_metadata_get_from_list(ids, cur):
             yield converters.db_to_metadata(
                 dict(zip(db.revision_metadata_cols, c)))
 
     @db_transaction()
-    def revision_metadata_add(self, metadatas, conflict_update=False, db=None,
+    def revision_metadata_add(self, metadata, conflict_update=False, db=None,
                               cur=None):
-        """Add metadatas not present in storage.
+        """Add metadata not present in storage.
 
         Args:
-            metadatas (iterable): dictionaries with keys:
+            metadata (iterable): dictionaries with keys:
 
                 - id: sha1_git of revision
                 - translated_metadata: bytes / jsonb ?
@@ -429,58 +480,10 @@ class IndexerStorage():
         db.mktemp_revision_metadata(cur)
         # empty metadata is mapped to 'unknown'
 
-        db.copy_to(metadatas, 'tmp_revision_metadata',
+        db.copy_to(metadata, 'tmp_revision_metadata',
                    ['id', 'translated_metadata', 'indexer_configuration_id'],
                    cur)
         db.revision_metadata_add_from_temp(conflict_update, cur)
-
-    @db_transaction()
-    def origin_metadata_add(self, origin_id, ts, provider, tool, metadata,
-                            db=None, cur=None):
-        """ Add an origin_metadata for the origin at ts with provenance and
-        metadata.
-
-        Args:
-            origin_id (int): the origin's id for which the metadata is added
-            ts (datetime): timestamp of the found metadata
-            provider (int): the provider of metadata (ex:'hal')
-            tool (int): tool used to extract metadata
-            metadata (jsonb): the metadata retrieved at the time and location
-
-        Returns:
-            id (int): the origin_metadata unique id
-        """
-        if isinstance(ts, str):
-            ts = dateutil.parser.parse(ts)
-
-        return db.origin_metadata_add(origin_id, ts, provider, tool,
-                                      metadata, cur)
-
-    @db_transaction_generator()
-    def origin_metadata_get_by(self, origin_id, provider_type=None, db=None,
-                               cur=None):
-        """Retrieve list of all origin_metadata entries for the origin_id
-
-        Args:
-            origin_id (int): the unique origin identifier
-            provider_type (str): (optional) type of provider
-
-        Returns:
-            list of dicts: the origin_metadata dictionary with the keys:
-
-            - id (int): origin_metadata's id
-            - origin_id (int): origin's id
-            - discovery_date (datetime): timestamp of discovery
-            - tool_id (int): metadata's extracting tool
-            - metadata (jsonb)
-            - provider_id (int): metadata's provider
-            - provider_name (str)
-            - provider_type (str)
-            - provider_url (str)
-
-        """
-        for line in db.origin_metadata_get_by(origin_id, provider_type, cur):
-            yield dict(zip(db.origin_metadata_get_cols, line))
 
     @db_transaction_generator()
     def indexer_configuration_add(self, tools, db=None, cur=None):

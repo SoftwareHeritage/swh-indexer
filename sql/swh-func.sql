@@ -8,16 +8,6 @@ $$;
 
 comment on function hash_sha1(text) is 'Compute sha1 hash as text';
 
--- create a temporary table with a single "bytea" column for fast object lookup.
-create or replace function swh_mktemp_bytea()
-    returns void
-    language sql
-as $$
-    create temporary table tmp_bytea (
-      id bytea
-    ) on commit drop;
-$$;
-
 -- create a temporary table called tmp_TBLNAME, mimicking existing table
 -- TBLNAME
 --
@@ -37,39 +27,6 @@ begin
     return;
 end
 $$;
-
--- create a temporary table for content_ctags tmp_content_mimetype_missing,
-create or replace function swh_mktemp_content_mimetype_missing()
-    returns void
-    language sql
-as $$
-  create temporary table tmp_content_mimetype_missing (
-    id sha1,
-    indexer_configuration_id bigint
-  ) on commit drop;
-$$;
-
-comment on function swh_mktemp_content_mimetype_missing() IS 'Helper table to filter existing mimetype information';
-
--- check which entries of tmp_bytea are missing from content_mimetype
---
--- operates in bulk: 0. swh_mktemp_bytea(), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_mimetype_missing()
-    returns setof sha1
-    language plpgsql
-as $$
-begin
-    return query
-	(select id::sha1 from tmp_content_mimetype_missing as tmp
-	 where not exists
-	     (select 1 from content_mimetype as c
-              where c.id = tmp.id and c.indexer_configuration_id = tmp.indexer_configuration_id));
-    return;
-end
-$$;
-
-comment on function swh_content_mimetype_missing() is 'Filter existing mimetype information';
 
 -- create a temporary table for content_mimetype tmp_content_mimetype,
 create or replace function swh_mktemp_content_mimetype()
@@ -118,70 +75,6 @@ $$;
 
 comment on function swh_content_mimetype_add(boolean) IS 'Add new content mimetypes';
 
-create type content_mimetype_signature as(
-    id sha1,
-    mimetype bytea,
-    encoding bytea,
-    tool_id integer,
-    tool_name text,
-    tool_version text,
-    tool_configuration jsonb
-);
-
--- Retrieve list of content mimetype from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_mimetype_get()
-    returns setof content_mimetype_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, mimetype, encoding,
-               i.id as tool_id, tool_name, tool_version, tool_configuration
-        from tmp_bytea t
-        inner join content_mimetype c on c.id=t.id
-        inner join indexer_configuration i on c.indexer_configuration_id=i.id;
-    return;
-end
-$$;
-
-comment on function swh_content_mimetype_get() IS 'List content''s mimetypes';
-
--- create a temporary table for content_language tmp_content_language,
-create or replace function swh_mktemp_content_language_missing()
-    returns void
-    language sql
-as $$
-  create temporary table tmp_content_language_missing (
-    id sha1,
-    indexer_configuration_id integer
-  ) on commit drop;
-$$;
-
-comment on function swh_mktemp_content_language_missing() is 'Helper table to filter missing language';
-
--- check which entries of tmp_bytea are missing from content_language
---
--- operates in bulk: 0. swh_mktemp_bytea(), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_language_missing()
-    returns setof sha1
-    language plpgsql
-as $$
-begin
-    return query
-	select id::sha1 from tmp_content_language_missing as tmp
-	where not exists
-	    (select 1 from content_language as c
-             where c.id = tmp.id and c.indexer_configuration_id = tmp.indexer_configuration_id);
-    return;
-end
-$$;
-
-comment on function swh_content_language_missing() IS 'Filter missing content languages';
-
 -- add tmp_content_language entries to content_language, overwriting
 -- duplicates if conflict_update is true, skipping duplicates otherwise.
 --
@@ -228,34 +121,6 @@ $$;
 
 comment on function swh_mktemp_content_language() is 'Helper table to add content language';
 
-create type content_language_signature as (
-    id sha1,
-    lang languages,
-    tool_id integer,
-    tool_name text,
-    tool_version text,
-    tool_configuration jsonb
-);
-
--- Retrieve list of content language from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea, 2. call this function
-create or replace function swh_content_language_get()
-    returns setof content_language_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, lang, i.id as tool_id, tool_name, tool_version, tool_configuration
-        from tmp_bytea t
-        inner join content_language c on c.id = t.id
-        inner join indexer_configuration i on i.id=c.indexer_configuration_id;
-    return;
-end
-$$;
-
-comment on function swh_content_language_get() is 'List content''s language';
-
 
 -- create a temporary table for content_ctags tmp_content_ctags,
 create or replace function swh_mktemp_content_ctags()
@@ -298,40 +163,6 @@ $$;
 
 comment on function swh_content_ctags_add(boolean) IS 'Add new ctags symbols per content';
 
--- create a temporary table for content_ctags missing routine
-create or replace function swh_mktemp_content_ctags_missing()
-    returns void
-    language sql
-as $$
-  create temporary table tmp_content_ctags_missing (
-    id           sha1,
-    indexer_configuration_id    integer
-  ) on commit drop;
-$$;
-
-comment on function swh_mktemp_content_ctags_missing() is 'Helper table to filter missing content ctags';
-
--- check which entries of tmp_bytea are missing from content_ctags
---
--- operates in bulk: 0. swh_mktemp_bytea(), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_ctags_missing()
-    returns setof sha1
-    language plpgsql
-as $$
-begin
-    return query
-	(select id::sha1 from tmp_content_ctags_missing as tmp
-	 where not exists
-	     (select 1 from content_ctags as c
-              where c.id = tmp.id and c.indexer_configuration_id=tmp.indexer_configuration_id
-              limit 1));
-    return;
-end
-$$;
-
-comment on function swh_content_ctags_missing() IS 'Filter missing content ctags';
-
 create type content_ctags_signature as (
   id sha1,
   name text,
@@ -343,27 +174,6 @@ create type content_ctags_signature as (
   tool_version text,
   tool_configuration jsonb
 );
-
--- Retrieve list of content ctags from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea, 2. call this function
-create or replace function swh_content_ctags_get()
-    returns setof content_ctags_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, c.name, c.kind, c.line, c.lang,
-               i.id as tool_id, i.tool_name, i.tool_version, i.tool_configuration
-        from tmp_bytea t
-        inner join content_ctags c using(id)
-        inner join indexer_configuration i on i.id = c.indexer_configuration_id
-        order by line;
-    return;
-end
-$$;
-
-comment on function swh_content_ctags_get() IS 'List content ctags';
 
 -- Search within ctags content.
 --
@@ -440,77 +250,7 @@ $$;
 
 comment on function swh_content_fossology_license_add(boolean) IS 'Add new content licenses';
 
-create type content_fossology_license_signature as (
-  id                 sha1,
-  tool_id            integer,
-  tool_name          text,
-  tool_version       text,
-  tool_configuration jsonb,
-  licenses           text[]
-);
-
--- Retrieve list of content license from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_fossology_license_get()
-    returns setof content_fossology_license_signature
-    language plpgsql
-as $$
-begin
-    return query
-      select cl.id,
-             ic.id as tool_id,
-             ic.tool_name,
-             ic.tool_version,
-             ic.tool_configuration,
-             array(select name
-                   from fossology_license
-                   where id = ANY(array_agg(cl.license_id))) as licenses
-      from tmp_bytea tcl
-      inner join content_fossology_license cl using(id)
-      inner join indexer_configuration ic on ic.id=cl.indexer_configuration_id
-      group by cl.id, ic.id, ic.tool_name, ic.tool_version, ic.tool_configuration;
-    return;
-end
-$$;
-
-comment on function swh_content_fossology_license_get() IS 'List content licenses';
-
 -- content_metadata functions
---
--- create a temporary table for content_metadata tmp_content_metadata,
-create or replace function swh_mktemp_content_metadata_missing()
-    returns void
-    language sql
-as $$
-  create temporary table tmp_content_metadata_missing (
-    id sha1,
-    indexer_configuration_id integer
-  ) on commit drop;
-$$;
-
-comment on function swh_mktemp_content_metadata_missing() is 'Helper table to filter missing metadata in content_metadata';
-
--- check which entries of tmp_bytea are missing from content_metadata
---
--- operates in bulk: 0. swh_mktemp_bytea(), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_content_metadata_missing()
-    returns setof sha1
-    language plpgsql
-as $$
-begin
-    return query
-	select id::sha1 from tmp_content_metadata_missing as tmp
-	where not exists
-	    (select 1 from content_metadata as c
-             where c.id = tmp.id and c.indexer_configuration_id = tmp.indexer_configuration_id);
-    return;
-end
-$$;
-
-comment on function swh_content_metadata_missing() IS 'Filter missing content metadata';
 
 -- add tmp_content_metadata entries to content_metadata, overwriting
 -- duplicates if conflict_update is true, skipping duplicates otherwise.
@@ -558,70 +298,7 @@ $$;
 
 comment on function swh_mktemp_content_metadata() is 'Helper table to add content metadata';
 
---
-create type content_metadata_signature as (
-    id sha1,
-    translated_metadata jsonb,
-    tool_id integer,
-    tool_name text,
-    tool_version text,
-    tool_configuration jsonb
-);
-
--- Retrieve list of content metadata from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea, 2. call this function
-create or replace function swh_content_metadata_get()
-    returns setof content_metadata_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, translated_metadata, i.id as tool_id, tool_name, tool_version, tool_configuration
-        from tmp_bytea t
-        inner join content_metadata c on c.id = t.id
-        inner join indexer_configuration i on i.id=c.indexer_configuration_id;
-    return;
-end
-$$;
-
-comment on function swh_content_metadata_get() is 'List content''s metadata';
 -- end content_metadata functions
-
--- revision_metadata functions
---
--- create a temporary table for revision_metadata tmp_revision_metadata,
-create or replace function swh_mktemp_revision_metadata_missing()
-    returns void
-    language sql
-as $$
-  create temporary table tmp_revision_metadata_missing (
-    id sha1_git,
-    indexer_configuration_id integer
-  ) on commit drop;
-$$;
-
-comment on function swh_mktemp_revision_metadata_missing() is 'Helper table to filter missing metadata in revision_metadata';
-
--- check which entries of tmp_bytea are missing from revision_metadata
---
--- operates in bulk: 0. swh_mktemp_bytea(), 1. COPY to tmp_bytea,
--- 2. call this function
-create or replace function swh_revision_metadata_missing()
-    returns setof sha1
-    language plpgsql
-as $$
-begin
-    return query
-	select id::sha1 from tmp_revision_metadata_missing as tmp
-	where not exists
-	    (select 1 from revision_metadata as c
-             where c.id = tmp.id and c.indexer_configuration_id = tmp.indexer_configuration_id);
-    return;
-end
-$$;
-
-comment on function swh_revision_metadata_missing() IS 'Filter missing content metadata';
 
 -- add tmp_revision_metadata entries to revision_metadata, overwriting
 -- duplicates if conflict_update is true, skipping duplicates otherwise.
@@ -668,33 +345,6 @@ as $$
 $$;
 
 comment on function swh_mktemp_revision_metadata() is 'Helper table to add revision metadata';
-
---
-create type revision_metadata_signature as (
-    id sha1_git,
-    translated_metadata jsonb,
-    tool_id integer,
-    tool_name text,
-    tool_version text,
-    tool_configuration jsonb
-);
-
--- Retrieve list of revision metadata from the temporary table.
---
--- operates in bulk: 0. mktemp(tmp_bytea), 1. COPY to tmp_bytea, 2. call this function
-create or replace function swh_revision_metadata_get()
-    returns setof revision_metadata_signature
-    language plpgsql
-as $$
-begin
-    return query
-        select c.id, translated_metadata, i.id as tool_id, tool_name, tool_version, tool_configuration
-        from tmp_bytea t
-        inner join revision_metadata c on c.id = t.id
-        inner join indexer_configuration i on i.id=c.indexer_configuration_id;
-    return;
-end
-$$;
 
 create or replace function swh_mktemp_indexer_configuration()
     returns void
