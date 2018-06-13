@@ -158,7 +158,6 @@ class TestConverters(unittest.TestCase):
         }
 
         expected_license = {
-            'id': b'some-id',
             'licenses': ['GPL2.0'],
             'tool': {
                 'id': 20,
