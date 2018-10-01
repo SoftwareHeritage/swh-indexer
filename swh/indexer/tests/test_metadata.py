@@ -215,7 +215,7 @@ class Metadata(unittest.TestCase):
             'id': '02fb2c89e14f7fab46701478c83779c7beb7b069'
         }]
 
-        # The assertion bellow returns False sometimes because of nested lists
+        # The assertion below returns False sometimes because of nested lists
         self.assertEqual(expected_results, results)
 
     @istest

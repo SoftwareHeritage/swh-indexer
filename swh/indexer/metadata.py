@@ -120,7 +120,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
     - filtering revisions already indexed in revision_metadata table with
       defined computation tool
     - retrieve all entry_files in root directory
-    - use metadata_detector for file_names containig metadata
+    - use metadata_detector for file_names containing metadata
     - compute metadata translation if necessary and possible (depends on tool)
     - send sha1s to content indexing if possible
     - store the results for revision

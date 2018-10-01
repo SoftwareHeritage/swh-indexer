@@ -132,7 +132,7 @@ class RecomputeChecksums(SWHConfig):
                 if self.recompute_checksums:    # Recompute checksums provided
                                                 # in compute_checksums options
                     checksums_to_compute = list(self.compute_checksums)
-                else:   # Compute checkums provided in compute_checksums
+                else:   # Compute checksums provided in compute_checksums
                         # options not already defined for that content
                     checksums_to_compute = [h for h in self.compute_checksums
                                             if not content.get(h)]
