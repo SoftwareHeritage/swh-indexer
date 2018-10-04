@@ -13,7 +13,7 @@ Tools to compute multiple indexes on SWH's raw contents:
 
 # Context
 
-SWH has currently stored around 3B contents.  The table `content`
+SWH has currently stored around 5B contents.  The table `content`
 holds their checksums.
 
 Those contents are physically stored in an object storage (using
@@ -35,8 +35,8 @@ There exists 2 kinds:
 
 Orchestrators:
 - receive batch of sha1s
-- split those batches
-- broadcast those to indexers
+- split those batches into groups (according to setup)
+- broadcast those group to indexers
 
 There are 2 sorts:
 
