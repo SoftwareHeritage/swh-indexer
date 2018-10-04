@@ -11,6 +11,7 @@ from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.storage import INDEXER_CFG_KEY
 
+from swh.storage import get_storage
 from swh.model import hashutil
 
 
@@ -144,6 +145,10 @@ class RevisionMetadataIndexer(RevisionIndexer):
             },
         }),
     }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.storage = get_storage(**self.config['storage'])
 
     def prepare(self):
         super().prepare()
