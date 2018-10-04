@@ -123,7 +123,7 @@ class BaseIndexer(SWHConfig,
         INDEXER_CFG_KEY: ('dict', {
             'cls': 'remote',
             'args': {
-                'db': 'service=swh-indexer-dev'
+                'url': 'http://localhost:5007/'
             }
         }),
 
