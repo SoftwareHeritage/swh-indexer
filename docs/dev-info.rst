@@ -149,11 +149,6 @@ commands:
   	  - swh_loader_svn_archive
   	task_soft_time_limit: 0
 
-- [1] P233 - ~/.config/swh/loader/git-updater.yml
-- [2] P232 - list-sha1.sh
-
-
-
 
 Database
 --------
