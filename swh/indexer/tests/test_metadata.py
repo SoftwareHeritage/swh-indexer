@@ -9,6 +9,7 @@ from nose.tools import istest
 
 from swh.indexer.metadata_dictionary import compute_metadata
 from swh.indexer.metadata_detector import detect_metadata
+from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.metadata import ContentMetadataIndexer
 from swh.indexer.metadata import RevisionMetadataIndexer
 from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
@@ -133,6 +134,64 @@ class Metadata(unittest.TestCase):
         result = compute_metadata("npm", content)
         # then
         self.assertEqual(declared_metadata, result)
+
+    @istest
+    def test_extract_minimal_metadata_dict(self):
+        """
+        Test the creation of a coherent minimal metadata set
+        """
+        # given
+        metadata_list = [{
+            'name': 'test_1',
+            'version': '0.0.1',
+            'description': 'Simple package.json test for indexer',
+            'codeRepository': {
+                'type': 'git',
+                'url': 'https://github.com/moranegg/metadata_test'
+              },
+            'other': {}
+        }, {
+            'name': 'test_0_1',
+            'version': '0.0.1',
+            'description': 'Simple package.json test for indexer',
+            'codeRepository': {
+                'type': 'git',
+                'url': 'https://github.com/moranegg/metadata_test'
+              },
+            'other': {}
+        }, {
+            'name': 'test_metadata',
+            'version': '0.0.1',
+            'author': 'moranegg',
+            'other': {}
+        }]
+
+        # when
+        results = extract_minimal_metadata_dict(metadata_list)
+
+        # then
+        expected_results = {
+            "developmentStatus": None,
+            "version": ['0.0.1'],
+            "operatingSystem": None,
+            "description": ['Simple package.json test for indexer'],
+            "keywords": None,
+            "issueTracker": None,
+            "name": ['test_1', 'test_0_1', 'test_metadata'],
+            "author": ['moranegg'],
+            "relatedLink": None,
+            "url": None,
+            "license": None,
+            "maintainer": None,
+            "email": None,
+            "softwareRequirements": None,
+            "identifier": None,
+            "codeRepository": [{
+                'type': 'git',
+                'url': 'https://github.com/moranegg/metadata_test'
+              }]
+        }
+        self.assertEqual(expected_results, results)
 
     @istest
     def test_index_content_metadata_npm(self):
@@ -296,7 +355,6 @@ class Metadata(unittest.TestCase):
                 }],
                 'name': ['yarn-parser'],
                 'keywords': [['yarn', 'parse', 'lock', 'dependencies']],
-                'type': None,
                 'email': None
             },
             'indexer_configuration_id': 7

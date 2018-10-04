@@ -38,7 +38,7 @@ def extract_minimal_metadata_dict(metadata_list):
     Every item in the metadata_list is a dict of translated_metadata in the
     CodeMeta vocabulary
     we wish to extract a minimal set of terms and keep all values corresponding
-    to this term
+    to this term without duplication
     Args:
         - metadata_list (list): list of dicts of translated_metadata
 
@@ -56,7 +56,6 @@ def extract_minimal_metadata_dict(metadata_list):
         "author": [],
         "relatedLink": [],
         "url": [],
-        "type": [],
         "license": [],
         "maintainer": [],
         "email": [],
@@ -65,9 +64,10 @@ def extract_minimal_metadata_dict(metadata_list):
         "codeRepository": []
     }
     for term in minimal_dict.keys():
-        for metadata_dict in metadata_list:
-            if term in metadata_dict:
-                minimal_dict[term].append(metadata_dict[term])
+        for metadata_item in metadata_list:
+            if term in metadata_item:
+                if not metadata_item[term] in minimal_dict[term]:
+                    minimal_dict[term].append(metadata_item[term])
         if not minimal_dict[term]:
             minimal_dict[term] = None
     return minimal_dict
