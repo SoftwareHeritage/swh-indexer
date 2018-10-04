@@ -137,7 +137,7 @@ class BaseIndexer(SWHConfig,
                     'cls': 'filtered',
                     'args': {
                         'storage_conf': {
-                            'cls': 'azure-storage',
+                            'cls': 'azure',
                             'args': {
                                 'account_name': '0euwestswh',
                                 'api_secret_key': 'secret',
@@ -153,7 +153,7 @@ class BaseIndexer(SWHConfig,
                     'cls': 'filtered',
                     'args': {
                         'storage_conf': {
-                            'cls': 'azure-storage',
+                            'cls': 'azure',
                             'args': {
                                 'account_name': '1euwestswh',
                                 'api_secret_key': 'secret',
