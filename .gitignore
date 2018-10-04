@@ -5,6 +5,8 @@
 .eggs/
 __pycache__
 *.egg-info/
+build/
+dist/
 version.txt
 /sql/createdb-stamp
 /sql/filldb-stamp
