@@ -9,6 +9,7 @@ import logging
 import shutil
 import tempfile
 
+from swh.storage import get_storage
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
@@ -130,6 +131,12 @@ class BaseIndexer(SWHConfig,
         # queue to reschedule if problem (none for no rescheduling,
         # the default)
         'rescheduling_task': ('str', None),
+        'storage': ('dict', {
+            'cls': 'remote',
+            'args': {
+                'url': 'http://localhost:5002/',
+            }
+        }),
         'objstorage': ('dict', {
             'cls': 'multiplexer',
             'args': {
@@ -187,6 +194,8 @@ class BaseIndexer(SWHConfig,
         """
         self.config = self.parse_config_file(
             additional_configs=[self.ADDITIONAL_CONFIG])
+        if self.config['storage']:
+            self.storage = get_storage(**self.config['storage'])
         objstorage = self.config['objstorage']
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         idx_storage = self.config[INDEXER_CFG_KEY]
