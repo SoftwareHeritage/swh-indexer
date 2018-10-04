@@ -11,7 +11,7 @@ information from archive source code artifacts.
    :maxdepth: 1
    :caption: Contents:
 
-   ../../README
+   README
    dev-info.rst
 
 
