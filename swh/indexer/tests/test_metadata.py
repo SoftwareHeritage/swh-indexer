@@ -38,6 +38,9 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
     """Specific indexer whose configuration is enough to satisfy the
        indexing tests.
     """
+
+    ContentMetadataIndexer = TestContentMetadataIndexer
+
     def prepare(self):
         self.config = {
             'rescheduling_task': None,

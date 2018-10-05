@@ -35,19 +35,6 @@ class ContentMetadataIndexer(ContentIndexer):
         self.config['tools'] = tool
         super().__init__()
 
-    def prepare(self):
-        self.results = []
-        if self.config[INDEXER_CFG_KEY]:
-            self.idx_storage = self.config[INDEXER_CFG_KEY]
-        if self.config['objstorage']:
-            self.objstorage = self.config['objstorage']
-        _log = logging.getLogger('requests.packages.urllib3.connectionpool')
-        _log.setLevel(logging.WARN)
-        self.log = logging.getLogger('swh.indexer')
-        self.tools = self.register_tools(self.config['tools'])
-        # NOTE: only one tool so far, change when no longer true
-        self.tool = self.tools[0]
-
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
         """
@@ -138,6 +125,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
             },
         }),
     }
+
+    ContentMetadataIndexer = ContentMetadataIndexer
 
     def prepare(self):
         super().prepare()
@@ -240,7 +229,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         }
         for context in detected_files.keys():
             tool['configuration']['context'] = context
-            c_metadata_indexer = ContentMetadataIndexer(tool, config)
+            c_metadata_indexer = self.ContentMetadataIndexer(tool, config)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
             metadata_generator = self.idx_storage.content_metadata_get(
