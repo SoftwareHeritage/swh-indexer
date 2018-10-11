@@ -72,7 +72,7 @@ commands:
   	    slicing: 0:1/1:5
   	    root: /home/storage/swh-storage/
 
-  	destination_queue: swh.indexer.tasks.SWHOrchestratorTextContentsTask
+  	destination_task: swh.indexer.tasks.SWHOrchestratorTextContentsTask
   	rescheduling_task: swh.indexer.tasks.SWHContentMimetypeTask
 
 

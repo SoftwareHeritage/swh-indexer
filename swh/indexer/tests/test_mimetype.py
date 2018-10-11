@@ -33,7 +33,7 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
     """
     def prepare(self):
         self.config = {
-            'destination_queue': None,
+            'destination_task': None,
             'rescheduling_task': None,
             'tools': {
                 'name': 'file',
@@ -47,9 +47,9 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
         self.idx_storage = _MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.task_destination = None
+        self.destination_task = None
         self.rescheduling_task = self.config['rescheduling_task']
-        self.destination_queue = self.config['destination_queue']
+        self.destination_task = self.config['destination_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
 

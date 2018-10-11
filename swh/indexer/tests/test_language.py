@@ -30,7 +30,7 @@ class TestLanguageIndexer(ContentLanguageIndexer):
     """
     def prepare(self):
         self.config = {
-            'destination_queue': None,
+            'destination_task': None,
             'rescheduling_task': None,
             'tools':  {
                 'name': 'pygments',
@@ -45,7 +45,7 @@ class TestLanguageIndexer(ContentLanguageIndexer):
         self.idx_storage = _MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.task_destination = None
+        self.destination_task = None
         self.rescheduling_task = self.config['rescheduling_task']
         self.tool_config = self.config['tools']['configuration']
         self.max_content_size = self.tool_config['max_content_size']

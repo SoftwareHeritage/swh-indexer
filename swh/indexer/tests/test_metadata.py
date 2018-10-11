@@ -27,7 +27,7 @@ class TestContentMetadataIndexer(ContentMetadataIndexer):
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.task_destination = None
+        self.destination_task = None
         self.rescheduling_task = self.config['rescheduling_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
@@ -63,7 +63,7 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.task_destination = None
+        self.destination_task = None
         self.rescheduling_task = self.config['rescheduling_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
