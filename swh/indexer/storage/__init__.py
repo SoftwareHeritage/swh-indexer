@@ -9,6 +9,7 @@ import psycopg2
 
 from collections import defaultdict
 
+from swh.core.api import remote_api_endpoint
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
 from .db import Db
@@ -45,7 +46,7 @@ def get_indexer_storage(cls, args):
     return IndexerStorage(**args)
 
 
-class IndexerStorage():
+class IndexerStorage:
     """SWH Indexer Storage
 
     """
@@ -72,6 +73,7 @@ class IndexerStorage():
             return self._db
         return Db.from_pool(self._pool)
 
+    @remote_api_endpoint('check_config')
     def check_config(self, *, check_write):
         """Check that the storage is configured and ready to go."""
         # Check permissions on one of the tables
@@ -89,6 +91,7 @@ class IndexerStorage():
 
         return True
 
+    @remote_api_endpoint('content_mimetype/missing')
     @db_transaction_generator()
     def content_mimetype_missing(self, mimetypes, db=None, cur=None):
         """List mimetypes missing from storage.
@@ -108,6 +111,7 @@ class IndexerStorage():
         for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
             yield obj[0]
 
+    @remote_api_endpoint('content_mimetype/add')
     @db_transaction()
     def content_mimetype_add(self, mimetypes, conflict_update=False, db=None,
                              cur=None):
@@ -132,6 +136,7 @@ class IndexerStorage():
                    cur)
         db.content_mimetype_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('content_mimetype')
     @db_transaction_generator()
     def content_mimetype_get(self, ids, db=None, cur=None):
         """Retrieve full content mimetype per ids.
@@ -152,6 +157,7 @@ class IndexerStorage():
             yield converters.db_to_mimetype(
                 dict(zip(db.content_mimetype_cols, c)))
 
+    @remote_api_endpoint('content_language/missing')
     @db_transaction_generator()
     def content_language_missing(self, languages, db=None, cur=None):
         """List languages missing from storage.
@@ -171,6 +177,7 @@ class IndexerStorage():
         for obj in db.content_language_missing_from_list(languages, cur):
             yield obj[0]
 
+    @remote_api_endpoint('content_language')
     @db_transaction_generator()
     def content_language_get(self, ids, db=None, cur=None):
         """Retrieve full content language per ids.
@@ -190,6 +197,7 @@ class IndexerStorage():
             yield converters.db_to_language(
                 dict(zip(db.content_language_cols, c)))
 
+    @remote_api_endpoint('content_language/add')
     @db_transaction()
     def content_language_add(self, languages, conflict_update=False, db=None,
                              cur=None):
@@ -219,6 +227,7 @@ class IndexerStorage():
 
         db.content_language_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('content/ctags/missing')
     @db_transaction_generator()
     def content_ctags_missing(self, ctags, db=None, cur=None):
         """List ctags missing from storage.
@@ -238,6 +247,7 @@ class IndexerStorage():
         for obj in db.content_ctags_missing_from_list(ctags, cur):
             yield obj[0]
 
+    @remote_api_endpoint('content/ctags')
     @db_transaction_generator()
     def content_ctags_get(self, ids, db=None, cur=None):
         """Retrieve ctags per id.
@@ -259,6 +269,7 @@ class IndexerStorage():
         for c in db.content_ctags_get_from_list(ids, cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
 
+    @remote_api_endpoint('content/ctags/add')
     @db_transaction()
     def content_ctags_add(self, ctags, conflict_update=False, db=None,
                           cur=None):
@@ -288,6 +299,7 @@ class IndexerStorage():
 
         db.content_ctags_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('content/ctags/search')
     @db_transaction_generator()
     def content_ctags_search(self, expression,
                              limit=10, last_sha1=None, db=None, cur=None):
@@ -306,6 +318,7 @@ class IndexerStorage():
                                            cur=cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
 
+    @remote_api_endpoint('content/fossology_license')
     @db_transaction_generator()
     def content_fossology_license_get(self, ids, db=None, cur=None):
         """Retrieve licenses per id.
@@ -331,6 +344,7 @@ class IndexerStorage():
         for id_, facts in d.items():
             yield {id_: facts}
 
+    @remote_api_endpoint('content/fossology_license/add')
     @db_transaction()
     def content_fossology_license_add(self, licenses, conflict_update=False,
                                       db=None, cur=None):
@@ -364,6 +378,7 @@ class IndexerStorage():
             cur=cur)
         db.content_fossology_license_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('content_metadata/missing')
     @db_transaction_generator()
     def content_metadata_missing(self, metadata, db=None, cur=None):
         """List metadata missing from storage.
@@ -383,6 +398,7 @@ class IndexerStorage():
         for obj in db.content_metadata_missing_from_list(metadata, cur):
             yield obj[0]
 
+    @remote_api_endpoint('content_metadata')
     @db_transaction_generator()
     def content_metadata_get(self, ids, db=None, cur=None):
         """Retrieve metadata per id.
@@ -402,6 +418,7 @@ class IndexerStorage():
             yield converters.db_to_metadata(
                 dict(zip(db.content_metadata_cols, c)))
 
+    @remote_api_endpoint('content_metadata/add')
     @db_transaction()
     def content_metadata_add(self, metadata, conflict_update=False, db=None,
                              cur=None):
@@ -425,6 +442,7 @@ class IndexerStorage():
                    cur)
         db.content_metadata_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('revision_metadata/missing')
     @db_transaction_generator()
     def revision_metadata_missing(self, metadata, db=None, cur=None):
         """List metadata missing from storage.
@@ -443,6 +461,7 @@ class IndexerStorage():
         for obj in db.revision_metadata_missing_from_list(metadata, cur):
             yield obj[0]
 
+    @remote_api_endpoint('revision_metadata')
     @db_transaction_generator()
     def revision_metadata_get(self, ids, db=None, cur=None):
         """Retrieve revision metadata per id.
@@ -462,6 +481,7 @@ class IndexerStorage():
             yield converters.db_to_metadata(
                 dict(zip(db.revision_metadata_cols, c)))
 
+    @remote_api_endpoint('revision_metadata/add')
     @db_transaction()
     def revision_metadata_add(self, metadata, conflict_update=False, db=None,
                               cur=None):
@@ -485,6 +505,7 @@ class IndexerStorage():
                    cur)
         db.revision_metadata_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('indexer_configuration/add')
     @db_transaction_generator()
     def indexer_configuration_add(self, tools, db=None, cur=None):
         """Add new tools to the storage.
@@ -513,6 +534,7 @@ class IndexerStorage():
         for line in tools:
             yield dict(zip(db.indexer_configuration_cols, line))
 
+    @remote_api_endpoint('indexer_configuration/data')
     @db_transaction()
     def indexer_configuration_get(self, tool, db=None, cur=None):
         """Retrieve tool information.
