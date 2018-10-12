@@ -12,9 +12,7 @@ from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.storage import get_indexer_storage
 from swh.core.tests.db_testing import DbTestFixture
-
-
-PATH_TO_STORAGE_TEST_DATA = '../../../../../swh-storage-testdata'
+from swh.indexer.tests import DATA_DIR
 
 
 class StorageTestFixture:
@@ -36,10 +34,9 @@ class StorageTestFixture:
             raise RuntimeError("StorageTestFixture needs to be followed by "
                                "DbTestFixture in the inheritance list.")
 
-        test_dir = pathlib.Path(__file__).absolute().parent
-        test_data_dir = test_dir / PATH_TO_STORAGE_TEST_DATA
-        test_db_dump = (test_data_dir / 'dumps/swh-indexer.dump').absolute()
-        cls.add_db(cls.TEST_STORAGE_DB_NAME, str(test_db_dump), 'pg_dump')
+        test_data_dir = pathlib.Path(DATA_DIR).absolute()
+        test_db_dump = test_data_dir / 'dumps/swh-indexer.sql'
+        cls.add_db(cls.TEST_STORAGE_DB_NAME, str(test_db_dump), 'psql')
         super().setUpClass()
 
     def setUp(self):
