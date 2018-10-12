@@ -6,7 +6,6 @@
 import pathlib
 import unittest
 
-from nose.tools import istest
 from nose.plugins.attrib import attr
 from swh.model.hashutil import hash_to_bytes
 
@@ -104,13 +103,11 @@ class CommonTestStorage(BaseTestStorage):
 
     """
 
-    @istest
-    def check_config(self):
+    def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
         self.assertTrue(self.storage.check_config(check_write=False))
 
-    @istest
-    def content_mimetype_missing(self):
+    def test_content_mimetype_missing(self):
         # given
         tool_id = self.tools['file']['id']
 
@@ -147,8 +144,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(list(actual_missing), [self.sha1_1])
 
-    @istest
-    def content_mimetype_add__drop_duplicate(self):
+    def test_content_mimetype_add__drop_duplicate(self):
         # given
         tool_id = self.tools['file']['id']
 
@@ -190,8 +186,7 @@ class CommonTestStorage(BaseTestStorage):
         # mimetype did not change as the v2 was dropped.
         self.assertEqual(actual_mimetypes, expected_mimetypes_v1)
 
-    @istest
-    def content_mimetype_add__update_in_place_duplicate(self):
+    def test_content_mimetype_add__update_in_place_duplicate(self):
         # given
         tool_id = self.tools['file']['id']
 
@@ -246,8 +241,7 @@ class CommonTestStorage(BaseTestStorage):
         # mimetype did change as the v2 was used to overwrite v1
         self.assertEqual(actual_mimetypes, expected_mimetypes_v2)
 
-    @istest
-    def content_mimetype_get(self):
+    def test_content_mimetype_get(self):
         # given
         tool_id = self.tools['file']['id']
 
@@ -276,8 +270,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_mimetypes, expected_mimetypes)
 
-    @istest
-    def content_language_missing(self):
+    def test_content_language_missing(self):
         # given
         tool_id = self.tools['pygments']['id']
 
@@ -314,8 +307,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(actual_missing, [self.sha1_1])
 
-    @istest
-    def content_language_get(self):
+    def test_content_language_get(self):
         # given
         tool_id = self.tools['pygments']['id']
 
@@ -341,8 +333,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_languages, expected_languages)
 
-    @istest
-    def content_language_add__drop_duplicate(self):
+    def test_content_language_add__drop_duplicate(self):
         # given
         tool_id = self.tools['pygments']['id']
 
@@ -381,8 +372,7 @@ class CommonTestStorage(BaseTestStorage):
         # language did not change as the v2 was dropped.
         self.assertEqual(actual_languages, expected_languages_v1)
 
-    @istest
-    def content_language_add__update_in_place_duplicate(self):
+    def test_content_language_add__update_in_place_duplicate(self):
         # given
         tool_id = self.tools['pygments']['id']
 
@@ -428,8 +418,7 @@ class CommonTestStorage(BaseTestStorage):
         # language did change as the v2 was used to overwrite v1
         self.assertEqual(actual_languages, expected_languages_v2)
 
-    @istest
-    def content_ctags_missing(self):
+    def test_content_ctags_missing(self):
         # given
         tool_id = self.tools['universal-ctags']['id']
 
@@ -473,8 +462,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(list(actual_missing), [self.sha1_1])
 
-    @istest
-    def content_ctags_get(self):
+    def test_content_ctags_get(self):
         # given
         tool_id = self.tools['universal-ctags']['id']
 
@@ -527,8 +515,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_ctags, expected_ctags)
 
-    @istest
-    def content_ctags_search(self):
+    def test_content_ctags_search(self):
         # 1. given
         tool = self.tools['universal-ctags']
         tool_id = tool['id']
@@ -637,14 +624,12 @@ class CommonTestStorage(BaseTestStorage):
             'lang': 'Python',
         }])
 
-    @istest
-    def content_ctags_search_no_result(self):
+    def test_content_ctags_search_no_result(self):
         actual_ctags = list(self.storage.content_ctags_search('counter'))
 
         self.assertEquals(actual_ctags, [])
 
-    @istest
-    def content_ctags_add__add_new_ctags_added(self):
+    def test_content_ctags_add__add_new_ctags_added(self):
         # given
         tool = self.tools['universal-ctags']
         tool_id = tool['id']
@@ -718,8 +703,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_ctags, expected_ctags)
 
-    @istest
-    def content_ctags_add__update_in_place(self):
+    def test_content_ctags_add__update_in_place(self):
         # given
         tool = self.tools['universal-ctags']
         tool_id = tool['id']
@@ -800,8 +784,7 @@ class CommonTestStorage(BaseTestStorage):
         ]
         self.assertEqual(actual_ctags, expected_ctags)
 
-    @istest
-    def content_fossology_license_get(self):
+    def test_content_fossology_license_get(self):
         # given
         tool = self.tools['nomos']
         tool_id = tool['id']
@@ -829,8 +812,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(actual_licenses, [expected_license])
 
-    @istest
-    def content_fossology_license_add__new_license_added(self):
+    def test_content_fossology_license_add__new_license_added(self):
         # given
         tool = self.tools['nomos']
         tool_id = tool['id']
@@ -880,8 +862,7 @@ class CommonTestStorage(BaseTestStorage):
         # license did not change as the v2 was dropped.
         self.assertEqual(actual_licenses, [expected_license])
 
-    @istest
-    def content_fossology_license_add__update_in_place_duplicate(self):
+    def test_content_fossology_license_add__update_in_place_duplicate(self):
         # given
         tool = self.tools['nomos']
         tool_id = tool['id']
@@ -931,8 +912,7 @@ class CommonTestStorage(BaseTestStorage):
         }
         self.assertEqual(actual_licenses, [expected_license])
 
-    @istest
-    def content_metadata_missing(self):
+    def test_content_metadata_missing(self):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
@@ -978,8 +958,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(actual_missing, [self.sha1_1])
 
-    @istest
-    def content_metadata_get(self):
+    def test_content_metadata_get(self):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
@@ -1022,8 +1001,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_metadata, expected_metadata)
 
-    @istest
-    def content_metadata_add_drop_duplicate(self):
+    def test_content_metadata_add_drop_duplicate(self):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
@@ -1075,8 +1053,7 @@ class CommonTestStorage(BaseTestStorage):
         # metadata did not change as the v2 was dropped.
         self.assertEqual(actual_metadata, expected_metadata_v1)
 
-    @istest
-    def content_metadata_add_update_in_place_duplicate(self):
+    def test_content_metadata_add_update_in_place_duplicate(self):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
@@ -1137,8 +1114,7 @@ class CommonTestStorage(BaseTestStorage):
         # metadata did change as the v2 was used to overwrite v1
         self.assertEqual(actual_metadata, expected_metadata_v2)
 
-    @istest
-    def revision_metadata_missing(self):
+    def test_revision_metadata_missing(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
@@ -1194,8 +1170,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(actual_missing, [self.revision_id_2])
 
-    @istest
-    def revision_metadata_get(self):
+    def test_revision_metadata_get(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
@@ -1237,8 +1212,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_metadata, expected_metadata)
 
-    @istest
-    def revision_metadata_add_drop_duplicate(self):
+    def test_revision_metadata_add_drop_duplicate(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
@@ -1298,8 +1272,7 @@ class CommonTestStorage(BaseTestStorage):
         # metadata did not change as the v2 was dropped.
         self.assertEqual(actual_metadata, expected_metadata_v1)
 
-    @istest
-    def revision_metadata_add_update_in_place_duplicate(self):
+    def test_revision_metadata_add_update_in_place_duplicate(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
@@ -1364,8 +1337,7 @@ class CommonTestStorage(BaseTestStorage):
         # metadata did change as the v2 was used to overwrite v1
         self.assertEqual(actual_metadata, expected_metadata_v2)
 
-    @istest
-    def indexer_configuration_add(self):
+    def test_indexer_configuration_add(self):
         tool = {
             'tool_name': 'some-unknown-tool',
             'tool_version': 'some-version',
@@ -1392,8 +1364,7 @@ class CommonTestStorage(BaseTestStorage):
         self.assertEqual(new_id, new_id2)
         self.assertEqual(actual_tool, actual_tool2)
 
-    @istest
-    def indexer_configuration_add_multiple(self):
+    def test_indexer_configuration_add_multiple(self):
         tool = {
             'tool_name': 'some-unknown-tool',
             'tool_version': 'some-version',
@@ -1418,8 +1389,7 @@ class CommonTestStorage(BaseTestStorage):
             self.assertIsNotNone(_id)
             self.assertIn(tool, new_tools)
 
-    @istest
-    def indexer_configuration_get_missing(self):
+    def test_indexer_configuration_get_missing(self):
         tool = {
             'tool_name': 'unknown-tool',
             'tool_version': '3.1.0rc2-31-ga2cbb8c',
@@ -1430,8 +1400,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertIsNone(actual_tool)
 
-    @istest
-    def indexer_configuration_get(self):
+    def test_indexer_configuration_get(self):
         tool = {
             'tool_name': 'nomos',
             'tool_version': '3.1.0rc2-31-ga2cbb8c',
@@ -1445,8 +1414,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(expected_tool, actual_tool)
 
-    @istest
-    def indexer_configuration_metadata_get_missing_context(self):
+    def test_indexer_configuration_metadata_get_missing_context(self):
         tool = {
             'tool_name': 'swh-metadata-translator',
             'tool_version': '0.0.1',
@@ -1457,8 +1425,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertIsNone(actual_tool)
 
-    @istest
-    def indexer_configuration_metadata_get(self):
+    def test_indexer_configuration_metadata_get(self):
         tool = {
             'tool_name': 'swh-metadata-translator',
             'tool_version': '0.0.1',

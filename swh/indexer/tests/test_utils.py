@@ -21,7 +21,6 @@ class MockObjStorage:
             '02fb2c89e14f7fab46701478c83779c7beb7b069': b"""
             import unittest
             import logging
-            from nose.tools import istest
             from swh.indexer.mimetype import ContentMimetypeIndexer
             from swh.indexer.tests.test_utils import MockObjStorage
 

@@ -5,7 +5,6 @@
 
 import unittest
 import logging
-from nose.tools import istest
 
 from swh.indexer.metadata_dictionary import compute_metadata
 from swh.indexer.metadata_detector import detect_metadata
@@ -88,7 +87,6 @@ class Metadata(unittest.TestCase):
             }
         }
 
-    @istest
     def test_compute_metadata_none(self):
         """
         testing content empty content is empty
@@ -105,7 +103,6 @@ class Metadata(unittest.TestCase):
         # then
         self.assertEqual(declared_metadata, result)
 
-    @istest
     def test_compute_metadata_npm(self):
         """
         testing only computation of metadata with hard_mapping_npm
@@ -138,7 +135,6 @@ class Metadata(unittest.TestCase):
         # then
         self.assertEqual(declared_metadata, result)
 
-    @istest
     def test_extract_minimal_metadata_dict(self):
         """
         Test the creation of a coherent minimal metadata set
@@ -196,7 +192,6 @@ class Metadata(unittest.TestCase):
         }
         self.assertEqual(expected_results, results)
 
-    @istest
     def test_index_content_metadata_npm(self):
         """
         testing NPM with package.json
@@ -280,7 +275,6 @@ class Metadata(unittest.TestCase):
         # The assertion below returns False sometimes because of nested lists
         self.assertEqual(expected_results, results)
 
-    @istest
     def test_detect_metadata_package_json(self):
         # given
         df = [{
@@ -316,7 +310,6 @@ class Metadata(unittest.TestCase):
         # then
         self.assertEqual(expected_results, results)
 
-    @istest
     def test_revision_metadata_indexer(self):
         metadata_indexer = TestRevisionMetadataIndexer()
 

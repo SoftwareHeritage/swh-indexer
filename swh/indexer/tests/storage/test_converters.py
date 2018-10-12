@@ -5,7 +5,6 @@
 
 import unittest
 
-from nose.tools import istest
 from nose.plugins.attrib import attr
 
 from swh.indexer.storage import converters
@@ -16,8 +15,7 @@ class TestConverters(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @istest
-    def ctags_to_db(self):
+    def test_ctags_to_db(self):
         input_ctag = {
             'id': b'some-id',
             'indexer_configuration_id': 100,
@@ -59,8 +57,7 @@ class TestConverters(unittest.TestCase):
         # then
         self.assertEquals(actual_ctags, expected_ctags)
 
-    @istest
-    def db_to_ctags(self):
+    def test_db_to_ctags(self):
         input_ctags = {
             'id': b'some-id',
             'name': 'some-name',
@@ -92,8 +89,7 @@ class TestConverters(unittest.TestCase):
         # then
         self.assertEquals(actual_ctags, expected_ctags)
 
-    @istest
-    def db_to_mimetype(self):
+    def test_db_to_mimetype(self):
         input_mimetype = {
             'id': b'some-id',
             'tool_id': 10,
@@ -120,8 +116,7 @@ class TestConverters(unittest.TestCase):
 
         self.assertEquals(actual_mimetype, expected_mimetype)
 
-    @istest
-    def db_to_language(self):
+    def test_db_to_language(self):
         input_language = {
             'id': b'some-id',
             'tool_id': 20,
@@ -146,8 +141,7 @@ class TestConverters(unittest.TestCase):
 
         self.assertEquals(actual_language, expected_language)
 
-    @istest
-    def db_to_fossology_license(self):
+    def test_db_to_fossology_license(self):
         input_license = {
             'id': b'some-id',
             'tool_id': 20,
@@ -171,8 +165,7 @@ class TestConverters(unittest.TestCase):
 
         self.assertEquals(actual_license, expected_license)
 
-    @istest
-    def db_to_metadata(self):
+    def test_db_to_metadata(self):
         input_metadata = {
             'id': b'some-id',
             'tool_id': 20,

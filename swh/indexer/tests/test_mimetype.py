@@ -5,7 +5,6 @@
 
 import unittest
 import logging
-from nose.tools import istest
 
 from swh.indexer.mimetype import ContentMimetypeIndexer
 
@@ -65,8 +64,7 @@ class TestMimetypeIndexerUnknownToolStorage(TestMimetypeIndexer):
 
 
 class TestMimetypeIndexerWithErrors(unittest.TestCase):
-    @istest
-    def wrong_unknown_configuration_tool(self):
+    def test_wrong_unknown_configuration_tool(self):
         """Indexer with unknown configuration tool should fail the check"""
         with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
             TestMimetypeIndexerUnknownToolStorage()
@@ -76,7 +74,6 @@ class TestMimetypeIndexerTest(unittest.TestCase):
     def setUp(self):
         self.indexer = TestMimetypeIndexer()
 
-    @istest
     def test_index_no_update(self):
         # given
         sha1s = [
@@ -103,7 +100,6 @@ class TestMimetypeIndexerTest(unittest.TestCase):
         self.assertFalse(self.indexer.idx_storage.conflict_update)
         self.assertEquals(expected_results, self.indexer.idx_storage.state)
 
-    @istest
     def test_index_update(self):
         # given
         sha1s = [
@@ -136,7 +132,6 @@ class TestMimetypeIndexerTest(unittest.TestCase):
         self.assertTrue(self.indexer.idx_storage.conflict_update)
         self.assertEquals(expected_results, self.indexer.idx_storage.state)
 
-    @istest
     def test_index_one_unknown_sha1(self):
         # given
         sha1s = ['688a5ef812c53907562fe379d4b3851e69c7cb15',

@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import unittest
-from nose.tools import istest
 
 from swh.indexer.orchestrator import BaseOrchestratorIndexer
 from swh.indexer.indexer import RevisionIndexer
@@ -106,8 +105,7 @@ class TestOrchestrator12(BaseOrchestratorIndexer):
 class OrchestratorTest(unittest.TestCase):
     maxDiff = None
 
-    @istest
-    def orchestrator_filter(self):
+    def test_orchestrator_filter(self):
         o = TestOrchestrator12()
         o.prepare()
         o.run(['id12', 'id2'])
@@ -130,8 +128,7 @@ class OrchestratorTest(unittest.TestCase):
                    'task': 'swh.indexer.tests.test_orchestrator.Indexer2Task'},
                 ])
 
-    @istest
-    def orchestrator_batch(self):
+    def test_orchestrator_batch(self):
         o = TestOrchestrator12()
         o.prepare()
         o.run(['id12', 'id2a', 'id2b', 'id2c'])
