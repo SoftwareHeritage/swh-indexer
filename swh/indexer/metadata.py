@@ -268,9 +268,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
 @click.command()
 @click.option('--revs', '-i',
-              default=['8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
-                       '026040ea79dec1b49b4e3e7beda9132b6b26b51b',
-                       '9699072e21eded4be8d45e3b8d543952533fa190'],
               help='Default sha1_git to lookup', multiple=True)
 def main(revs):
     _git_sha1s = list(map(hashutil.hash_to_bytes, revs))

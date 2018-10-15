@@ -142,6 +142,15 @@ class MockIndexerStorage():
                     'context': 'npm'
                 },
             }]
+        elif tool['tool_name'] == 'origin-metadata':
+            return [{
+                'id': 8,
+                'tool_name': 'origin-metadata',
+                'tool_version': '0.0.1',
+                'tool_configuration': {},
+            }]
+        else:
+            assert False, 'Unknown tool {tool_name}'.format(**tool)
 
     def content_metadata_missing(self, sha1s):
         yield from []

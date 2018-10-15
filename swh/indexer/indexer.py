@@ -79,15 +79,15 @@ class BaseIndexer(SWHConfig,
       storage.
 
     To implement a new object type indexer, inherit from the
-    BaseIndexer and implement the process of indexation:
+    BaseIndexer and implement indexing:
 
     :func:`run`:
       object_ids are different depending on object. For example: sha1 for
       content, sha1_git for revision, directory, release, and id for origin
 
     To implement a new concrete indexer, inherit from the object level
-    classes: :class:`ContentIndexer`, :class:`RevisionIndexer` (later
-    on :class:`OriginIndexer` will also be available)
+    classes: :class:`ContentIndexer`, :class:`RevisionIndexer`,
+    :class:`OriginIndexer`.
 
     Then you need to implement the following functions:
 
@@ -337,8 +337,7 @@ class BaseIndexer(SWHConfig,
 
 class ContentIndexer(BaseIndexer):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
-    implements the process of indexation for Contents using the run
-    method
+    implements Content indexing using the run method
 
     Note: the :class:`ContentIndexer` is not an instantiable
     object. To use it in another context, one should inherit from this
@@ -384,10 +383,68 @@ class ContentIndexer(BaseIndexer):
                 self.rescheduling_task.delay(ids, policy_update)
 
 
+class OriginIndexer(BaseIndexer):
+    """An object type indexer, inherits from the :class:`BaseIndexer` and
+    implements Origin indexing using the run method
+
+    Note: the :class:`OriginIndexer` is not an instantiable object.
+    To use it in another context one should inherit from this class
+    and override the methods mentioned in the :class:`BaseIndexer`
+    class.
+
+    """
+    def run(self, ids, policy_update, parse_ids=False):
+        """Given a list of origin ids:
+
+        - retrieve origins from storage
+        - execute the indexing computations
+        - store the results (according to policy_update)
+
+        Args:
+            ids ([Union[int, Tuple[str, bytes]]]): list of origin ids or
+                                                   (type, url) tuples.
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+                                   respectively update duplicates or ignore
+                                   them
+            parse_ids ([bool]: If `True`, will try to convert `ids`
+                               from a human input to the valid type.
+
+        """
+        if parse_ids:
+            ids = [
+                    o.split('+', 1) if ':' in o else int(o)  # type+url or id
+                    for o in ids]
+
+        results = []
+
+        for id_ in ids:
+            if isinstance(id_, (tuple, list)):
+                if len(id_) != 2:
+                    raise TypeError('Expected a (type, url) tuple.')
+                (type_, url) = id_
+                params = {'type': type_, 'url': url}
+            elif isinstance(id_, int):
+                params = {'id': id_}
+            else:
+                raise TypeError('Invalid value for "ids": %r' % id_)
+            origin = self.storage.origin_get(params)
+            if not origin:
+                self.log.warn('Origins %s not found in storage' %
+                              list(ids))
+                continue
+            try:
+                res = self.index(origin)
+                if origin:  # If no results, skip it
+                    results.append(res)
+            except Exception:
+                self.log.exception(
+                        'Problem when processing origin %s' % id_)
+        self.persist_index_computations(results, policy_update)
+
+
 class RevisionIndexer(BaseIndexer):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
-    implements the process of indexation for Revisions using the run
-    method
+    implements Revision indexing using the run method
 
     Note: the :class:`RevisionIndexer` is not an instantiable object.
     To use it in another context one should inherit from this class
