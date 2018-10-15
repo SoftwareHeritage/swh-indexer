@@ -3,69 +3,37 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import pathlib
+import os
 import unittest
 
 from nose.plugins.attrib import attr
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.storage import get_indexer_storage
-from swh.core.tests.db_testing import DbTestFixture
-from swh.indexer.tests import DATA_DIR
-
-
-class StorageTestFixture:
-    """Mix this in a test subject class to get Storage testing support.
-
-    This fixture requires to come before DbTestFixture in the inheritance list
-    as it uses its methods to setup its own internal database.
-
-    Usage example:
-
-        class TestStorage(StorageTestFixture, DbTestFixture):
-            ...
-    """
-    TEST_STORAGE_DB_NAME = 'softwareheritage-test-indexer'
-
-    @classmethod
-    def setUpClass(cls):
-        if not hasattr(cls, 'DB_TEST_FIXTURE_IMPORTED'):
-            raise RuntimeError("StorageTestFixture needs to be followed by "
-                               "DbTestFixture in the inheritance list.")
-
-        test_data_dir = pathlib.Path(DATA_DIR).absolute()
-        test_db_dump = test_data_dir / 'dumps/swh-indexer.sql'
-        cls.add_db(cls.TEST_STORAGE_DB_NAME, str(test_db_dump), 'psql')
-        super().setUpClass()
-
-    def setUp(self):
-        super().setUp()
-
-        self.storage_config = {
-            'cls': 'local',
-            'args': {
-                'db': 'dbname=%s' % self.TEST_STORAGE_DB_NAME,
-            },
-        }
-        self.storage = get_indexer_storage(**self.storage_config)
-
-    def tearDown(self):
-        self.storage = None
-        super().tearDown()
-
-    def reset_storage_tables(self):
-        excluded = {'indexer_configuration'}
-        self.reset_db_tables(self.TEST_STORAGE_DB_NAME, excluded=excluded)
-
-        db = self.test_db[self.TEST_STORAGE_DB_NAME]
-        db.conn.commit()
+from swh.core.tests.db_testing import SingleDbTestFixture
+from swh.indexer.tests import SQL_DIR
 
 
 @attr('db')
-class BaseTestStorage(StorageTestFixture, DbTestFixture):
+class BaseTestStorage(SingleDbTestFixture):
+    """Base test class for most indexer tests.
+
+    It adds support for Storage testing to the SingleDbTestFixture class.
+    It will also build the database from the swh-indexed/sql/*.sql files.
+    """
+
+    TEST_DB_NAME = 'softwareheritage-test-indexer'
+    TEST_DB_DUMP = os.path.join(SQL_DIR, '*.sql')
 
     def setUp(self):
         super().setUp()
+        self.storage_config = {
+            'cls': 'local',
+            'args': {
+                'db': 'dbname=%s' % self.TEST_DB_NAME,
+            },
+        }
+        self.storage = get_indexer_storage(**self.storage_config)
 
         self.sha1_1 = hash_to_bytes('34973274ccef6ab4dfaaf86599792fa9c3fe4689')
         self.sha1_2 = hash_to_bytes('61c2b3a30496d329e21af70dd2d7e097046d07b7')
@@ -74,7 +42,7 @@ class BaseTestStorage(StorageTestFixture, DbTestFixture):
         self.revision_id_2 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904321')
 
-        cur = self.test_db[self.TEST_STORAGE_DB_NAME].cursor
+        cur = self.test_db[self.TEST_DB_NAME].cursor
         tools = {}
         cur.execute('''
             select tool_name, id, tool_version, tool_configuration
@@ -94,7 +62,15 @@ class BaseTestStorage(StorageTestFixture, DbTestFixture):
 
     def tearDown(self):
         self.reset_storage_tables()
+        self.storage = None
         super().tearDown()
+
+    def reset_storage_tables(self):
+        excluded = {'indexer_configuration'}
+        self.reset_db_tables(self.TEST_DB_NAME, excluded=excluded)
+
+        db = self.test_db[self.TEST_DB_NAME]
+        db.conn.commit()
 
 
 @attr('db')

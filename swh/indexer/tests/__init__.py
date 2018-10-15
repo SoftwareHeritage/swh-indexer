@@ -1,2 +1,5 @@
 from os import path
-DATA_DIR = path.join(path.dirname(__file__), 'data')
+import swh.indexer
+
+
+SQL_DIR = path.join(path.dirname(swh.indexer.__file__), 'sql')

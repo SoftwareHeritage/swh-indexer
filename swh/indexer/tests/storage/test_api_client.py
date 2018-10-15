@@ -29,7 +29,7 @@ class TestRemoteStorage(CommonTestStorage, ServerTestFixture,
             INDEXER_CFG_KEY: {
                 'cls': 'local',
                 'args': {
-                    'db': 'dbname=%s' % self.TEST_STORAGE_DB_NAME,
+                    'db': 'dbname=%s' % self.TEST_DB_NAME,
                 }
             }
         }
