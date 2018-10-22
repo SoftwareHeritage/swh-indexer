@@ -126,13 +126,15 @@ comment on column revision_metadata.id is 'sha1_git of revision';
 comment on column revision_metadata.translated_metadata is 'result of detection and translation with defined format';
 comment on column revision_metadata.indexer_configuration_id is 'tool used for detection';
 
-create table origin_metadata_translation(
-  id         bigserial     not null,  -- PK origin_metadata identifier
-  result     jsonb,
-  tool_id    bigint
+create table origin_intrinsic_metadata(
+  origin_id                 bigserial  not null,
+  metadata                  jsonb,
+  indexer_configuration_id  bigint     not null,
+  from_revision             sha1_git   not null
 );
 
-comment on table origin_metadata_translation is 'keeps translated for an origin_metadata entry';
-comment on column origin_metadata_translation.id is 'the entry id in origin_metadata';
-comment on column origin_metadata_translation.result is 'translated_metadata result after translation with tool';
-comment on column origin_metadata_translation.tool_id is 'tool used for translation';
+comment on table origin_intrinsic_metadata is 'keeps intrinsic metadata for an origin';
+comment on column origin_intrinsic_metadata.origin_id is 'the entry id in origin';
+comment on column origin_intrinsic_metadata.metadata is 'metadata extracted from a revision';
+comment on column origin_intrinsic_metadata.indexer_configuration_id is 'tool used to generate this metadata';
+comment on column origin_intrinsic_metadata.from_revision is 'sha1 of the revision this metadata was copied from.';

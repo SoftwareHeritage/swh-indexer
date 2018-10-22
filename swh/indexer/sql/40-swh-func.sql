@@ -346,6 +346,18 @@ $$;
 
 comment on function swh_mktemp_revision_metadata() is 'Helper table to add revision metadata';
 
+-- create a temporary table for retrieving origin_intrinsic_metadata
+create or replace function swh_mktemp_origin_intrinsic_metadata()
+    returns void
+    language sql
+as $$
+  create temporary table tmp_origin_intrinsic_metadata (
+    like origin_intrinsic_metadata including defaults
+  ) on commit drop;
+$$;
+
+comment on function swh_mktemp_origin_intrinsic_metadata() is 'Helper table to add origin intrinsic metadata';
+
 create or replace function swh_mktemp_indexer_configuration()
     returns void
     language sql
@@ -379,3 +391,39 @@ begin
       return;
 end
 $$;
+
+-- add tmp_origin_intrinsic_metadata entries to origin_intrinsic_metadata,
+-- overwriting duplicates if conflict_update is true, skipping duplicates
+-- otherwise.
+--
+-- If filtering duplicates is in order, the call to
+-- swh_origin_intrinsic_metadata_missing must take place before calling this
+-- function.
+--
+-- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
+-- tmp_origin_intrinsic_metadata, 2. call this function
+create or replace function swh_origin_intrinsic_metadata_add(
+        conflict_update boolean)
+    returns void
+    language plpgsql
+as $$
+begin
+    if conflict_update then
+      insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision)
+      select origin_id, metadata, indexer_configuration_id, from_revision
+    	from tmp_origin_intrinsic_metadata
+            on conflict(origin_id, indexer_configuration_id)
+                do update set metadata = excluded.metadata;
+
+    else
+        insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision)
+        select origin_id, metadata, indexer_configuration_id, from_revision
+    	from tmp_origin_intrinsic_metadata
+            on conflict(origin_id, indexer_configuration_id)
+            do nothing;
+    end if;
+    return;
+end
+$$;
+
+comment on function swh_origin_intrinsic_metadata_add(boolean) IS 'Add new origin intrinsic metadata';

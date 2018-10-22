@@ -428,14 +428,13 @@ class IndexerStorage:
             metadata (iterable): dictionaries with keys:
 
                 id: sha1
-                translated_metadata: bytes / jsonb ?
+                translated_metadata: arbitrary dict
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)
 
         """
         db.mktemp_content_metadata(cur)
-        # empty metadata is mapped to 'unknown'
 
         db.copy_to(metadata, 'tmp_content_metadata',
                    ['id', 'translated_metadata', 'indexer_configuration_id'],
@@ -491,19 +490,65 @@ class IndexerStorage:
             metadata (iterable): dictionaries with keys:
 
                 - id: sha1_git of revision
-                - translated_metadata: bytes / jsonb ?
+                - translated_metadata: arbitrary dict
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
 
         """
         db.mktemp_revision_metadata(cur)
-        # empty metadata is mapped to 'unknown'
 
         db.copy_to(metadata, 'tmp_revision_metadata',
                    ['id', 'translated_metadata', 'indexer_configuration_id'],
                    cur)
         db.revision_metadata_add_from_temp(conflict_update, cur)
+
+    @remote_api_endpoint('origin_intrinsic_metadata')
+    @db_transaction_generator()
+    def origin_intrinsic_metadata_get(self, ids, db=None, cur=None):
+        """Retrieve origin metadata per id.
+
+        Args:
+            ids (iterable): origin identifiers
+
+        Yields:
+            list: dictionaries with the following keys:
+
+                id (int)
+                translated_metadata (str): associated metadata
+                tool (dict): tool used to compute metadata
+
+        """
+        for c in db.origin_intrinsic_metadata_get_from_list(ids, cur):
+            yield converters.db_to_metadata(
+                dict(zip(db.origin_intrinsic_metadata_cols, c)))
+
+    @remote_api_endpoint('origin_intrinsic_metadata/add')
+    @db_transaction()
+    def origin_intrinsic_metadata_add(self, metadata,
+                                      conflict_update=False, db=None,
+                                      cur=None):
+        """Add origin metadata not present in storage.
+
+        Args:
+            metadata (iterable): dictionaries with keys:
+
+                - origin_id: origin identifier
+                - from_revision: sha1 id of the revision used to generate
+                                 these metadata.
+                - metadata: arbitrary dict
+
+            conflict_update: Flag to determine if we want to overwrite (true)
+              or skip duplicates (false, the default)
+
+        """
+        db.mktemp_origin_intrinsic_metadata(cur)
+
+        db.copy_to(metadata, 'tmp_origin_intrinsic_metadata',
+                   ['origin_id', 'metadata', 'indexer_configuration_id',
+                       'from_revision'],
+                   cur)
+        db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)
 
     @remote_api_endpoint('indexer_configuration/add')
     @db_transaction_generator()

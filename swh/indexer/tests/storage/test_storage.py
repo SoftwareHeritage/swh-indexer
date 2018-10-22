@@ -41,6 +41,7 @@ class BaseTestStorage(SingleDbTestFixture):
             '7026b7c1a2af56521e951c01ed20f255fa054238')
         self.revision_id_2 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904321')
+        self.origin_id_1 = 54974445
 
         cur = self.test_db[self.TEST_DB_NAME].cursor
         tools = {}
@@ -1129,7 +1130,6 @@ class CommonTestStorage(BaseTestStorage):
                 'author': None,
                 'relatedLink': None,
                 'url': None,
-                'type': None,
                 'license': None,
                 'maintainer': None,
                 'email': None,
@@ -1163,7 +1163,6 @@ class CommonTestStorage(BaseTestStorage):
                 'author': None,
                 'relatedLink': None,
                 'url': None,
-                'type': None,
                 'license': None,
                 'maintainer': None,
                 'email': None,
@@ -1205,7 +1204,6 @@ class CommonTestStorage(BaseTestStorage):
                 'author': None,
                 'relatedLink': None,
                 'url': None,
-                'type': None,
                 'license': None,
                 'maintainer': None,
                 'email': None,
@@ -1265,7 +1263,6 @@ class CommonTestStorage(BaseTestStorage):
                 'author': None,
                 'relatedLink': None,
                 'url': None,
-                'type': None,
                 'license': None,
                 'maintainer': None,
                 'email': None,
@@ -1303,11 +1300,210 @@ class CommonTestStorage(BaseTestStorage):
         actual_metadata = list(self.storage.revision_metadata_get(
             [self.revision_id_2]))
 
-        # language did not change as the v2 was dropped.
         expected_metadata_v2 = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_v2['translated_metadata'],
             'tool': self.tools['swh-metadata-detector']
+        }]
+
+        # metadata did change as the v2 was used to overwrite v1
+        self.assertEqual(actual_metadata, expected_metadata_v2)
+
+    def test_origin_intrinsic_metadata_get(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata = {
+            'developmentStatus': None,
+            'version': None,
+            'operatingSystem': None,
+            'description': None,
+            'keywords': None,
+            'issueTracker': None,
+            'name': None,
+            'author': None,
+            'relatedLink': None,
+            'url': None,
+            'license': None,
+            'maintainer': None,
+            'email': None,
+            'softwareRequirements': None,
+            'identifier': None,
+        }
+        metadata_rev = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata,
+            'indexer_configuration_id': tool_id,
+        }
+        metadata_origin = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata,
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_2,
+            }
+
+        # when
+        self.storage.revision_metadata_add([metadata_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin])
+
+        # then
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1, 42]))
+
+        expected_metadata = [{
+            'origin_id': self.origin_id_1,
+            'metadata': metadata,
+            'tool': self.tools['swh-metadata-detector'],
+            'from_revision': self.revision_id_2,
+        }]
+
+        self.assertEqual(actual_metadata, expected_metadata)
+
+    def test_origin_intrinsic_metadata_add_drop_duplicate(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata_v1 = {
+            'developmentStatus': None,
+            'version': None,
+            'operatingSystem': None,
+            'description': None,
+            'keywords': None,
+            'issueTracker': None,
+            'name': None,
+            'author': None,
+            'relatedLink': None,
+            'url': None,
+            'license': None,
+            'maintainer': None,
+            'email': None,
+            'softwareRequirements': None,
+            'identifier': None
+        }
+        metadata_rev_v1 = {
+            'id': self.revision_id_1,
+            'translated_metadata': metadata_v1.copy(),
+            'indexer_configuration_id': tool_id,
+        }
+        metadata_origin_v1 = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v1.copy(),
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_1,
+        }
+
+        # given
+        self.storage.revision_metadata_add([metadata_rev_v1])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin_v1])
+
+        # when
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1, 42]))
+
+        expected_metadata_v1 = [{
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v1,
+            'tool': self.tools['swh-metadata-detector'],
+            'from_revision': self.revision_id_1,
+        }]
+
+        self.assertEqual(actual_metadata, expected_metadata_v1)
+
+        # given
+        metadata_v2 = metadata_v1.copy()
+        metadata_v2.update({
+            'name': 'test_metadata',
+            'author': 'MG',
+        })
+        metadata_rev_v2 = metadata_rev_v1.copy()
+        metadata_origin_v2 = metadata_origin_v1.copy()
+        metadata_rev_v2['translated_metadata'] = metadata_v2
+        metadata_origin_v2['translated_metadata'] = metadata_v2
+
+        self.storage.revision_metadata_add([metadata_rev_v2])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin_v2])
+
+        # then
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1]))
+
+        # metadata did not change as the v2 was dropped.
+        self.assertEqual(actual_metadata, expected_metadata_v1)
+
+    def test_origin_intrinsic_metadata_add_update_in_place_duplicate(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata_v1 = {
+            'developmentStatus': None,
+            'version': None,
+            'operatingSystem': None,
+            'description': None,
+            'keywords': None,
+            'issueTracker': None,
+            'name': None,
+            'author': None,
+            'relatedLink': None,
+            'url': None,
+            'license': None,
+            'maintainer': None,
+            'email': None,
+            'softwareRequirements': None,
+            'identifier': None
+        }
+        metadata_rev_v1 = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata_v1,
+            'indexer_configuration_id': tool_id,
+        }
+        metadata_origin_v1 = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v1.copy(),
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_2,
+        }
+
+        # given
+        self.storage.revision_metadata_add([metadata_rev_v1])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin_v1])
+
+        # when
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1]))
+
+        # then
+        expected_metadata_v1 = [{
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v1,
+            'tool': self.tools['swh-metadata-detector'],
+            'from_revision': self.revision_id_2,
+        }]
+        self.assertEqual(actual_metadata, expected_metadata_v1)
+
+        # given
+        metadata_v2 = metadata_v1.copy()
+        metadata_v2.update({
+            'name': 'test_update_duplicated_metadata',
+            'author': 'MG',
+        })
+        metadata_rev_v2 = metadata_rev_v1.copy()
+        metadata_origin_v2 = metadata_origin_v1.copy()
+        metadata_rev_v2['translated_metadata'] = metadata_v2
+        metadata_origin_v2['metadata'] = metadata_v2
+
+        self.storage.revision_metadata_add([metadata_rev_v2],
+                                           conflict_update=True)
+        self.storage.origin_intrinsic_metadata_add([metadata_origin_v2],
+                                                   conflict_update=True)
+
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1]))
+
+        expected_metadata_v2 = [{
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v2,
+            'tool': self.tools['swh-metadata-detector'],
+            'from_revision': self.revision_id_2,
         }]
 
         # metadata did change as the v2 was used to overwrite v1
