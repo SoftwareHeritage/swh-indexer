@@ -93,6 +93,7 @@ class BaseOrchestratorIndexer(SWHConfig):
         self.tasks = tasks
 
     def run(self, ids):
+        all_results = []
         for name, (idx_class, filtering, batch_size) in self.indexers.items():
             if filtering:
                 policy_update = 'ignore-dups'
@@ -111,10 +112,12 @@ class BaseOrchestratorIndexer(SWHConfig):
                     policy_update=policy_update)
                 celery_tasks.append(celery_task)
 
-            self._run_tasks(celery_tasks)
+            all_results.append(self._run_tasks(celery_tasks))
+
+        return all_results
 
     def _run_tasks(self, celery_tasks):
-        group(celery_tasks).delay()
+        return group(celery_tasks).delay()
 
 
 class OrchestratorAllContentsIndexer(BaseOrchestratorIndexer):
