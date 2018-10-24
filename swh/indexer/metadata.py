@@ -118,7 +118,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
     ADDITIONAL_CONFIG = {
         'tools': ('dict', {
             'name': 'swh-metadata-detector',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'configuration': {
                 'type': 'local',
                 'context': ['npm', 'codemeta']
@@ -214,7 +214,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         translated_metadata = []
         tool = {
                 'name': 'swh-metadata-translator',
-                'version': '0.0.1',
+                'version': '0.0.2',
                 'configuration': {
                     'type': 'local',
                     'context': None

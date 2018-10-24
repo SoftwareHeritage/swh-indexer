@@ -2,7 +2,47 @@
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
+
+import csv
 import json
+import os.path
+
+import swh.indexer
+
+CROSSWALK_TABLE_PATH = os.path.join(os.path.dirname(swh.indexer.__file__),
+                                    'data', 'codemeta', 'crosswalk.csv')
+
+
+def read_crosstable(fd):
+    reader = csv.reader(fd)
+    try:
+        header = next(reader)
+    except StopIteration:
+        raise ValueError('empty file')
+
+    data_sources = set(header) - {'Parent Type', 'Property',
+                                  'Type', 'Description'}
+    assert 'codemeta-V1' in data_sources
+
+    codemeta_translation = {data_source: {} for data_source in data_sources}
+
+    for line in reader:  # For each canonical name
+        canonical_name = dict(zip(header, line))['Property']
+        for (col, value) in zip(header, line):  # For each cell in the row
+            if col in data_sources:
+                # If that's not the parentType/property/type/description
+                for local_name in value.split('/'):
+                    # For each of the data source's properties that maps
+                    # to this canonical name
+                    if local_name.strip():
+                        codemeta_translation[col][local_name.strip()] = \
+                                canonical_name
+
+    return codemeta_translation
+
+
+with open(CROSSWALK_TABLE_PATH) as fd:
+    CROSSWALK_TABLE = read_crosstable(fd)
 
 
 def convert(raw_content):
@@ -89,26 +129,7 @@ class NpmMapping(BaseMapping):
     """
     dedicated class for NPM (package.json) mapping and translation
     """
-    mapping = {
-        'repository': 'codeRepository',
-        'os': 'operatingSystem',
-        'cpu': 'processorRequirements',
-        'engines': 'processorRequirements',
-        'dependencies': 'softwareRequirements',
-        'bundleDependencies': 'softwareRequirements',
-        'peerDependencies': 'softwareRequirements',
-        'author': 'author',
-        'contributor': 'contributor',
-        'keywords': 'keywords',
-        'license': 'license',
-        'version': 'version',
-        'description': 'description',
-        'name': 'name',
-        'devDependencies': 'softwareSuggestions',
-        'optionalDependencies': 'softwareSuggestions',
-        'bugs': 'issueTracker',
-        'homepage': 'url'
-    }
+    mapping = CROSSWALK_TABLE['NodeJS']
 
     def translate(self, raw_content):
         content_dict = convert(raw_content)
@@ -119,17 +140,7 @@ class MavenMapping(BaseMapping):
     """
     dedicated class for Maven (pom.xml) mapping and translation
     """
-    mapping = {
-        'license': 'license',
-        'version': 'version',
-        'description': 'description',
-        'name': 'name',
-        'prerequisites': 'softwareRequirements',
-        'repositories': 'codeRepository',
-        'groupId': 'identifier',
-        'ciManagement': 'contIntegration',
-        'issuesManagement': 'issueTracker',
-    }
+    mapping = CROSSWALK_TABLE['Java (Maven)']
 
     def translate(self, raw_content):
         content = convert(raw_content)

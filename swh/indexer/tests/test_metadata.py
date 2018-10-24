@@ -6,7 +6,7 @@
 import unittest
 import logging
 
-from swh.indexer.metadata_dictionary import compute_metadata
+from swh.indexer.metadata_dictionary import compute_metadata, CROSSWALK_TABLE
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.metadata import ContentMetadataIndexer
@@ -51,7 +51,7 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
             },
             'tools': {
                 'name': 'swh-metadata-detector',
-                'version': '0.0.1',
+                'version': '0.0.2',
                 'configuration': {
                     'type': 'local',
                     'context': 'npm'
@@ -80,13 +80,38 @@ class Metadata(unittest.TestCase):
         self.maxDiff = None
         self.content_tool = {
             'name': 'swh-metadata-translator',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'configuration': {
                 'type': 'local',
                 'context': 'npm'
             }
         }
         MockIndexerStorage.added_data = []
+
+    def test_crosstable(self):
+        self.assertEqual(CROSSWALK_TABLE['NodeJS'], {
+            'repository': 'codeRepository',
+            'os': 'operatingSystem',
+            'cpu': 'processorRequirements',
+            'engines': 'processorRequirements',
+            'dependencies': 'softwareRequirements',
+            'bundleDependencies': 'softwareRequirements',
+            'bundledDependencies': 'softwareRequirements',
+            'peerDependencies': 'softwareRequirements',
+            'author': 'creator',
+            'author.email': 'email',
+            'author.name': 'name',
+            'contributor': 'contributor',
+            'keywords': 'keywords',
+            'license': 'license',
+            'version': 'version',
+            'description': 'description',
+            'name': 'name',
+            'devDependencies': 'softwareSuggestions',
+            'optionalDependencies': 'softwareSuggestions',
+            'bugs': 'issueTracker',
+            'homepage': 'url'
+        })
 
     def test_compute_metadata_none(self):
         """
@@ -112,7 +137,7 @@ class Metadata(unittest.TestCase):
         content = b"""
             {
                 "name": "test_metadata",
-                "version": "0.0.1",
+                "version": "0.0.2",
                 "description": "Simple package.json test for indexer",
                   "repository": {
                     "type": "git",
@@ -122,7 +147,7 @@ class Metadata(unittest.TestCase):
         """
         declared_metadata = {
             'name': 'test_metadata',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
             'codeRepository': {
                 'type': 'git',
@@ -143,7 +168,7 @@ class Metadata(unittest.TestCase):
         # given
         metadata_list = [{
             'name': 'test_1',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
             'codeRepository': {
                 'type': 'git',
@@ -152,7 +177,7 @@ class Metadata(unittest.TestCase):
             'other': {}
         }, {
             'name': 'test_0_1',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
             'codeRepository': {
                 'type': 'git',
@@ -161,7 +186,7 @@ class Metadata(unittest.TestCase):
             'other': {}
         }, {
             'name': 'test_metadata',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'author': 'moranegg',
             'other': {}
         }]
@@ -172,7 +197,7 @@ class Metadata(unittest.TestCase):
         # then
         expected_results = {
             "developmentStatus": None,
-            "version": ['0.0.1'],
+            "version": ['0.0.2'],
             "operatingSystem": None,
             "description": ['Simple package.json test for indexer'],
             "keywords": None,
@@ -238,7 +263,7 @@ class Metadata(unittest.TestCase):
                 'issueTracker': {
                     'url': 'https://github.com/npm/npm/issues'
                 },
-                'author':
+                'creator':
                     'Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)',
                 'codeRepository': {
                     'type': 'git',
