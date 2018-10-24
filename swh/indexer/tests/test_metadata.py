@@ -6,7 +6,7 @@
 import unittest
 import logging
 
-from swh.indexer.metadata_dictionary import compute_metadata, CROSSWALK_TABLE
+from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.metadata import ContentMetadataIndexer
@@ -54,7 +54,7 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
                 'version': '0.0.2',
                 'configuration': {
                     'type': 'local',
-                    'context': 'npm'
+                    'context': 'NpmMapping'
                 }
             }
         }
@@ -83,7 +83,7 @@ class Metadata(unittest.TestCase):
             'version': '0.0.2',
             'configuration': {
                 'type': 'local',
-                'context': 'npm'
+                'context': 'NpmMapping'
             }
         }
         MockIndexerStorage.added_data = []
@@ -120,12 +120,11 @@ class Metadata(unittest.TestCase):
         """
         # given
         content = b""
-        context = "npm"
 
         # None if no metadata was found or an error occurred
         declared_metadata = None
         # when
-        result = compute_metadata(context, content)
+        result = MAPPINGS["NpmMapping"].translate(content)
         # then
         self.assertEqual(declared_metadata, result)
 
@@ -157,7 +156,7 @@ class Metadata(unittest.TestCase):
         }
 
         # when
-        result = compute_metadata("npm", content)
+        result = MAPPINGS["NpmMapping"].translate(content)
         # then
         self.assertEqual(declared_metadata, result)
 
@@ -329,7 +328,7 @@ class Metadata(unittest.TestCase):
         results = detect_metadata(df)
 
         expected_results = {
-            'npm': [
+            'NpmMapping': [
                 b'cde'
             ]
         }

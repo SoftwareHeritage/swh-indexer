@@ -248,7 +248,7 @@ class MockIndexerStorage():
                 'tool_version': '0.0.1',
                 'tool_configuration': {
                     'type': 'local',
-                    'context': 'npm'
+                    'context': 'NpmMapping'
                 },
             }]
         elif tool['tool_name'] == 'swh-metadata-detector':
@@ -258,7 +258,7 @@ class MockIndexerStorage():
                 'tool_version': '0.0.1',
                 'tool_configuration': {
                     'type': 'local',
-                    'context': 'npm'
+                    'context': 'NpmMapping'
                 },
             }]
         elif tool['tool_name'] == 'origin-metadata':
@@ -291,7 +291,7 @@ class MockIndexerStorage():
             'tool': {
                 'configuration': {
                     'type': 'local',
-                    'context': 'npm'
+                    'context': 'NpmMapping'
                     },
                 'version': '0.0.1',
                 'id': 6,

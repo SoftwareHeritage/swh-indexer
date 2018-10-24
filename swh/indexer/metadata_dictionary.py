@@ -3,9 +3,11 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import abc
 import csv
 import json
 import os.path
+import logging
 
 import swh.indexer
 
@@ -45,55 +47,66 @@ with open(CROSSWALK_TABLE_PATH) as fd:
     CROSSWALK_TABLE = read_crosstable(fd)
 
 
-def convert(raw_content):
-    """
-    convert raw_content recursively:
-
-    - from bytes to string
-    - from string to dict
-
-    Args:
-        raw_content (bytes / string / dict)
-
-    Returns:
-        dict: content (if string was json, otherwise returns string)
-
-    """
-    if isinstance(raw_content, bytes):
-        return convert(raw_content.decode())
-    if isinstance(raw_content, str):
-        try:
-            content = json.loads(raw_content)
-            if content:
-                return content
-            else:
-                return raw_content
-        except json.decoder.JSONDecodeError:
-            return raw_content
-    if isinstance(raw_content, dict):
-        return raw_content
+MAPPINGS = {}
 
 
-class BaseMapping():
+def register_mapping(cls):
+    MAPPINGS[cls.__name__] = cls()
+    return cls
+
+
+class BaseMapping(metaclass=abc.ABCMeta):
     """Base class for mappings to inherit from
 
     To implement a new mapping:
 
     - inherit this class
-    - add a local property self.mapping
     - override translate function
     """
+    def __init__(self):
+        self.log = logging.getLogger('%s.%s' % (
+            self.__class__.__module__,
+            self.__class__.__name__))
 
-    def translate(self, content_dict):
+    @abc.abstractmethod
+    def detect_metadata_files(self, files):
         """
-        Tranlsates content  by parsing content to a json object
-        and translating with the npm mapping (for now hard_coded mapping)
-
+        Detects files potentially containing metadata
         Args:
-            context_text (text): should be json
+            - file_entries (list): list of files
 
         Returns:
-            dict: translated metadata in jsonb form needed for the indexer
+            - empty list if nothing was found
+            - list of sha1 otherwise
+        """
+        pass
+
+    @abc.abstractmethod
+    def translate(self, file_content):
+        pass
+
+
+class DictMapping(BaseMapping):
+    """Base class for mappings that take as input a file that is mostly
+    a key-value store (eg. a shallow JSON dict)."""
+
+    @property
+    @abc.abstractmethod
+    def mapping(self):
+        """A translation dict to map dict keys into a canonical name."""
+        pass
+
+    def translate_dict(self, content_dict):
+        """
+        Translates content  by parsing content from a dict object
+        and translating with the appropriate mapping
+
+        Args:
+            content_dict (dict)
+
+        Returns:
+            dict: translated metadata in json-friendly form needed for
+                  the indexer
 
         """
         translated_metadata = {}
@@ -121,88 +134,68 @@ class BaseMapping():
                         "Problem during item mapping")
                     continue
         except Exception:
+            raise
             return None
         return translated_metadata
 
 
-class NpmMapping(BaseMapping):
+class JsonMapping(DictMapping):
+    """Base class for all mappings that use a JSON file as input."""
+
+    @property
+    @abc.abstractmethod
+    def filename(self):
+        """The .json file to extract metadata from."""
+        pass
+
+    def detect_metadata_files(self, file_entries):
+        for entry in file_entries:
+            if entry['name'] == self.filename:
+                return [entry['sha1']]
+        return []
+
+    def translate(self, raw_content):
+        """
+        Translates content by parsing content from a bytestring containing
+        json data and translating with the appropriate mapping
+
+        Args:
+            raw_content: bytes
+
+        Returns:
+            dict: translated metadata in json-friendly form needed for
+                  the indexer
+
+        """
+        try:
+            raw_content = raw_content.decode()
+        except UnicodeDecodeError:
+            self.log.warning('Error unidecoding %r', raw_content)
+            return
+        try:
+            content_dict = json.loads(raw_content)
+        except json.JSONDecodeError:
+            self.log.warning('Error unjsoning %r' % raw_content)
+            return
+        return self.translate_dict(content_dict)
+
+
+@register_mapping
+class NpmMapping(JsonMapping):
     """
     dedicated class for NPM (package.json) mapping and translation
     """
     mapping = CROSSWALK_TABLE['NodeJS']
-
-    def translate(self, raw_content):
-        content_dict = convert(raw_content)
-        return super().translate(content_dict)
+    filename = b'package.json'
 
 
-class MavenMapping(BaseMapping):
+@register_mapping
+class CodemetaMapping(JsonMapping):
     """
-    dedicated class for Maven (pom.xml) mapping and translation
+    dedicated class for CodeMeta (codemeta.json) mapping and translation
     """
-    mapping = CROSSWALK_TABLE['Java (Maven)']
-
-    def translate(self, raw_content):
-        content = convert(raw_content)
-        # parse content from xml to dict
-        return super().translate(content)
-
-
-class DoapMapping(BaseMapping):
-    mapping = {
-
-    }
-
-    def translate(self, raw_content):
-        content = convert(raw_content)
-        # parse content from xml to dict
-        return super().translate(content)
-
-
-def parse_xml(content):
-    """
-    Parses content from xml to a python dict
-    Args:
-        - content (text): the string form of the raw_content ( in xml)
-
-    Returns:
-        - parsed_xml (dict): a python dict of the content after parsing
-    """
-    # check if xml
-    # use xml parser to dict
-    return content
-
-
-mapping_tool_fn = {
-    "npm": NpmMapping(),
-    "maven": MavenMapping(),
-    "doap_xml": DoapMapping()
-}
-
-
-def compute_metadata(context, raw_content):
-    """
-    first landing method: a dispatcher that sends content
-    to the right function to carry out the real parsing of syntax
-    and translation of terms
-
-    Args:
-        context (text): defines to which function/tool the content is sent
-        content (text): the string form of the raw_content
-
-    Returns:
-        dict: translated metadata jsonb dictionary needed for the indexer to
-          store in storage
-
-    """
-    if raw_content is None or raw_content is b"":
-        return None
-
-    # TODO: keep mapping not in code (maybe fetch crosswalk from storage?)
-    # if fetched from storage should be done once for batch of sha1s
-    dictionary = mapping_tool_fn[context]
-    translated_metadata = dictionary.translate(raw_content)
-    return translated_metadata
+    mapping = CROSSWALK_TABLE['codemeta-V1']
+    filename = b'codemeta.json'
 
 
 def main():
@@ -210,8 +203,8 @@ def main():
     raw_content1 = b"""{"name": "test_name",
                         "unknown_term": "ut",
                         "prerequisites" :"packageXYZ"}"""
-    result = compute_metadata("npm", raw_content)
-    result1 = compute_metadata("maven", raw_content1)
+    result = MAPPINGS["NpmMapping"].translate(raw_content)
+    result1 = MAPPINGS["MavenMapping"].translate(raw_content1)
 
     print(result)
     print(result1)

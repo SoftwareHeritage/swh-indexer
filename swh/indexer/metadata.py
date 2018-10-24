@@ -6,7 +6,7 @@ import click
 import logging
 
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
-from swh.indexer.metadata_dictionary import compute_metadata
+from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.storage import INDEXER_CFG_KEY
@@ -64,8 +64,9 @@ class ContentMetadataIndexer(ContentIndexer):
             'translated_metadata': None
         }
         try:
-            context = self.tool['tool_configuration']['context']
-            result['translated_metadata'] = compute_metadata(context, data)
+            mapping_name = self.tool['tool_configuration']['context']
+            result['translated_metadata'] = MAPPINGS[mapping_name] \
+                .translate(data)
             # a twisted way to keep result with indexer object for get_results
             self.results.append(result)
         except Exception:
@@ -121,7 +122,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
             'version': '0.0.2',
             'configuration': {
                 'type': 'local',
-                'context': ['npm', 'codemeta']
+                'context': ['NpmMapping', 'CodemetaMapping']
             },
         }),
     }

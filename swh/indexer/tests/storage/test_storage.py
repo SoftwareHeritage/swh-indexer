@@ -1601,7 +1601,7 @@ class CommonTestStorage(BaseTestStorage):
         tool = {
             'tool_name': 'swh-metadata-translator',
             'tool_version': '0.0.1',
-            'tool_configuration': {"type": "local", "context": "npm"},
+            'tool_configuration': {"type": "local", "context": "NpmMapping"},
         }
 
         actual_tool = self.storage.indexer_configuration_get(tool)
