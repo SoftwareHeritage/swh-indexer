@@ -5,7 +5,7 @@
 import click
 import logging
 
-from swh.indexer.indexer import ContentIndexer, RevisionIndexer
+from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
 from swh.indexer.metadata_dictionary import compute_metadata
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
@@ -264,6 +264,62 @@ class RevisionMetadataIndexer(RevisionIndexer):
         # transform translated_metadata into min set with swh-metadata-detector
         min_metadata = extract_minimal_metadata_dict(translated_metadata)
         return min_metadata
+
+
+class OriginMetadataIndexer(OriginIndexer):
+    def filter(self, ids):
+        return ids
+
+    def run(self, revisions_metadata, policy_update, *, origin_head_pairs):
+        """Expected to be called with the result of RevisionMetadataIndexer
+        as first argument; ie. not a list of ids as other indexers would.
+
+        Args:
+
+            * `revisions_metadata` (List[dict]): contains metadata from
+              revisions, along with the respective revision ids. It is
+              passed by RevisionMetadataIndexer via a Celery chain
+              triggered by OriginIndexer.next_step.
+            * `policy_update`: `'ignore-dups'` or `'update-dups'`
+            * `origin_head_pairs` (List[dict]): list of dictionaries with
+              keys `origin_id` and `revision_id`, which is the result
+              of OriginHeadIndexer.
+        """
+        origin_head_map = {pair['origin_id']: pair['revision_id']
+                           for pair in origin_head_pairs}
+
+        # Fix up the argument order. revisions_metadata has to be the
+        # first argument because of celery.chain; the next line calls
+        # run() with the usual order, ie. origin ids first.
+        return super().run(ids=list(origin_head_map),
+                           policy_update=policy_update,
+                           revisions_metadata=revisions_metadata,
+                           origin_head_map=origin_head_map)
+
+    def index(self, origin, *, revisions_metadata, origin_head_map):
+        # Get the last revision of the origin.
+        revision_id = origin_head_map[origin['id']]
+
+        # Get the metadata of that revision, and return it
+        for revision_metadata in revisions_metadata:
+            if revision_metadata['id'] == revision_id:
+                return {
+                        'origin_id': origin['id'],
+                        'metadata': revision_metadata['translated_metadata'],
+                        'from_revision': revision_id,
+                        'indexer_configuration_id':
+                        revision_metadata['indexer_configuration_id'],
+                        }
+
+        # If you get this KeyError with a message like this:
+        #   'foo' not in [b'foo']
+        # you should check you're not using JSON as task serializer
+        raise KeyError('%r not in %r' %
+                       (revision_id, [r['id'] for r in revisions_metadata]))
+
+    def persist_index_computations(self, results, policy_update):
+        self.idx_storage.origin_intrinsic_metadata_add(
+            results, conflict_update=(policy_update == 'update-dups'))
 
 
 @click.command()

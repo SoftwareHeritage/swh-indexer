@@ -34,9 +34,6 @@
           "url": {
               "type": "list"
           },
-          "type": {
-              "type": "list"
-          },
           "license": {
               "type": "list"
           },

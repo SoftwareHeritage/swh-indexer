@@ -6,6 +6,123 @@
 
 from swh.objstorage.exc import ObjNotFoundError
 
+ORIGINS = [
+        {
+            'id': 52189575,
+            'lister': None,
+            'project': None,
+            'type': 'git',
+            'url': 'https://github.com/SoftwareHeritage/swh-storage'},
+        {
+            'id': 4423668,
+            'lister': None,
+            'project': None,
+            'type': 'ftp',
+            'url': 'rsync://ftp.gnu.org/gnu/3dldf'},
+        {
+            'id': 77775770,
+            'lister': None,
+            'project': None,
+            'type': 'deposit',
+            'url': 'https://forge.softwareheritage.org/source/jesuisgpl/'},
+        {
+            'id': 85072327,
+            'lister': None,
+            'project': None,
+            'type': 'pypi',
+            'url': 'https://pypi.org/project/limnoria/'},
+        {
+            'id': 49908349,
+            'lister': None,
+            'project': None,
+            'type': 'svn',
+            'url': 'http://0-512-md.googlecode.com/svn/'},
+        {
+            'id': 54974445,
+            'lister': None,
+            'project': None,
+            'type': 'git',
+            'url': 'https://github.com/librariesio/yarn-parser'},
+        ]
+
+SNAPSHOTS = {
+        52189575: {
+            'branches': {
+                b'refs/heads/add-revision-origin-cache': {
+                    'target': b'L[\xce\x1c\x88\x8eF\t\xf1"\x19\x1e\xfb\xc0'
+                              b's\xe7/\xe9l\x1e',
+                    'target_type': 'revision'},
+                b'HEAD': {
+                    'target': b'8K\x12\x00d\x03\xcc\xe4]bS\xe3\x8f{\xd7}'
+                              b'\xac\xefrm',
+                    'target_type': 'revision'},
+                b'refs/tags/v0.0.103': {
+                    'target': b'\xb6"Im{\xfdLb\xb0\x94N\xea\x96m\x13x\x88+'
+                              b'\x0f\xdd',
+                    'target_type': 'release'},
+                }},
+        4423668: {
+            'branches': {
+                b'3DLDF-1.1.4.tar.gz': {
+                    'target': b'dJ\xfb\x1c\x91\xf4\x82B%]6\xa2\x90|\xd3\xfc'
+                              b'"G\x99\x11',
+                    'target_type': 'revision'},
+                b'3DLDF-2.0.2.tar.gz': {
+                    'target': b'\xb6\x0e\xe7\x9e9\xac\xaa\x19\x9e='
+                              b'\xd1\xc5\x00\\\xc6\xfc\xe0\xa6\xb4V',
+                    'target_type': 'revision'},
+                b'3DLDF-2.0.3-examples.tar.gz': {
+                    'target': b'!H\x19\xc0\xee\x82-\x12F1\xbd\x97'
+                              b'\xfe\xadZ\x80\x80\xc1\x83\xff',
+                    'target_type': 'revision'},
+                b'3DLDF-2.0.3.tar.gz': {
+                    'target': b'\x8e\xa9\x8e/\xea}\x9feF\xf4\x9f\xfd\xee'
+                              b'\xcc\x1a\xb4`\x8c\x8by',
+                    'target_type': 'revision'},
+                b'3DLDF-2.0.tar.gz': {
+                    'target': b'F6*\xff(?\x19a\xef\xb6\xc2\x1fv$S\xe3G'
+                              b'\xd3\xd1m',
+                    b'target_type': 'revision'}
+                }},
+        77775770: {
+            'branches': {
+                b'master': {
+                    'target': b'\xe7n\xa4\x9c\x9f\xfb\xb7\xf76\x11\x08{'
+                              b'\xa6\xe9\x99\xb1\x9e]q\xeb',
+                    'target_type': 'revision'}
+            },
+            'id': b"h\xc0\xd2a\x04\xd4~'\x8d\xd6\xbe\x07\xeda\xfa\xfbV"
+                  b"\x1d\r "},
+        85072327: {
+            'branches': {
+                b'HEAD': {
+                    'target': b'releases/2018.09.09',
+                    'target_type': 'alias'},
+                b'releases/2018.09.01': {
+                    'target': b'<\xee1(\xe8\x8d_\xc1\xc9\xa6rT\xf1\x1d'
+                              b'\xbb\xdfF\xfdw\xcf',
+                    'target_type': 'revision'},
+                b'releases/2018.09.09': {
+                    'target': b'\x83\xb9\xb6\xc7\x05\xb1%\xd0\xfem\xd8k'
+                              b'A\x10\x9d\xc5\xfa2\xf8t',
+                    'target_type': 'revision'}},
+            'id': b'{\xda\x8e\x84\x7fX\xff\x92\x80^\x93V\x18\xa3\xfay'
+                  b'\x12\x9e\xd6\xb3'},
+        49908349: {
+                'branches': {
+                    b'master': {
+                        'target': b'\xe4?r\xe1,\x88\xab\xec\xe7\x9a\x87\xb8'
+                                  b'\xc9\xad#.\x1bw=\x18',
+                        'target_type': 'revision'}},
+                'id': b'\xa1\xa2\x8c\n\xb3\x87\xa8\xf9\xe0a\x8c\xb7'
+                      b'\x05\xea\xb8\x1f\xc4H\xf4s'},
+        54974445: {
+                'branches': {
+                    b'HEAD': {
+                        'target': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+                        'target_type': 'revision'}}}
+        }
+
 
 class MockObjStorage:
     """Mock an swh-objstorage objstorage with predefined contents.
@@ -120,6 +237,8 @@ class MockIndexerStorage():
     """Mock an swh-indexer storage.
 
     """
+    added_data = []
+
     def indexer_configuration_add(self, tools):
         tool = tools[0]
         if tool['tool_name'] == 'swh-metadata-translator':
@@ -156,12 +275,16 @@ class MockIndexerStorage():
         yield from []
 
     def content_metadata_add(self, metadata, conflict_update=None):
-        self.state = metadata
-        self.conflict_update = conflict_update
+        self.added_data.append(
+                ('content_metadata', conflict_update, metadata))
 
     def revision_metadata_add(self, metadata, conflict_update=None):
-        self.state = metadata
-        self.conflict_update = conflict_update
+        self.added_data.append(
+                ('revision_metadata', conflict_update, metadata))
+
+    def origin_intrinsic_metadata_add(self, metadata, conflict_update=None):
+        self.added_data.append(
+                ('origin_intrinsic_metadata', conflict_update, metadata))
 
     def content_metadata_get(self, sha1s):
         return [{
@@ -210,6 +333,23 @@ class MockStorage():
     outputs.
 
     """
+    def origin_get(self, id_):
+        for origin in ORIGINS:
+            for (k, v) in id_.items():
+                if origin[k] != v:
+                    break
+            else:
+                # This block is run iff we didn't break, ie. if all supplied
+                # parts of the id are set to the expected value.
+                return origin
+        assert False, id_
+
+    def snapshot_get_latest(self, origin_id):
+        if origin_id in SNAPSHOTS:
+            return SNAPSHOTS[origin_id]
+        else:
+            assert False, origin_id
+
     def revision_get(self, revisions):
         return [{
             'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',

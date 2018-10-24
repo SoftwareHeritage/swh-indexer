@@ -5,13 +5,13 @@
 
 import unittest
 
+import celery
+
 from swh.indexer.orchestrator import BaseOrchestratorIndexer
 from swh.indexer.indexer import BaseIndexer
 from swh.indexer.tests.test_utils import MockIndexerStorage, MockStorage
-from swh.scheduler.task import Task
 from swh.scheduler.tests.celery_testing import CeleryTestFixture
-
-from . import start_worker_thread
+from swh.indexer.tests import start_worker_thread
 
 
 class BaseTestIndexer(BaseIndexer):
@@ -70,26 +70,26 @@ class Indexer3(BaseTestIndexer):
         return super().filter([id_ for id_ in ids if '3' in id_])
 
 
-class Indexer1Task(Task):
-    def run(self, *args, **kwargs):
-        return Indexer1().run(*args, **kwargs)
+@celery.task
+def indexer1_task(*args, **kwargs):
+    return Indexer1().run(*args, **kwargs)
 
 
-class Indexer2Task(Task):
-    def run(self, *args, **kwargs):
-        return Indexer2().run(*args, **kwargs)
+@celery.task
+def indexer2_task(*args, **kwargs):
+    return Indexer2().run(*args, **kwargs)
 
 
-class Indexer3Task(Task):
-    def run(self, *args, **kwargs):
-        return Indexer3().run(*args, **kwargs)
+@celery.task
+def indexer3_task(self, *args, **kwargs):
+    return Indexer3().run(*args, **kwargs)
 
 
 class TestOrchestrator12(BaseOrchestratorIndexer):
     TASK_NAMES = {
-            'indexer1': 'swh.indexer.tests.test_orchestrator.Indexer1Task',
-            'indexer2': 'swh.indexer.tests.test_orchestrator.Indexer2Task',
-            'indexer3': 'swh.indexer.tests.test_orchestrator.Indexer3Task',
+            'indexer1': 'swh.indexer.tests.test_orchestrator.indexer1_task',
+            'indexer2': 'swh.indexer.tests.test_orchestrator.indexer2_task',
+            'indexer3': 'swh.indexer.tests.test_orchestrator.indexer3_task',
             }
 
     INDEXER_CLASSES = {
@@ -130,7 +130,7 @@ class OrchestratorTest(CeleryTestFixture, unittest.TestCase):
             o.prepare()
             promises = o.run(['id12', 'id2'])
             results = []
-            for promise in promises:
+            for promise in reversed(promises):
                 results.append(promise.get(timeout=10))
             self.assertCountEqual(
                     results,
@@ -149,51 +149,51 @@ class MockedOrchestratorTest(unittest.TestCase):
         o.prepare()
         o.run(['id12', 'id2'])
         self.assertCountEqual(o.running_tasks, [
-                  {'args': (),
-                   'chord_size': None,
-                   'immutable': False,
-                   'kwargs': {'ids': ['id12'],
-                              'policy_update': 'ignore-dups'},
-                   'options': {},
-                   'subtask_type': None,
-                   'task': 'swh.indexer.tests.test_orchestrator.Indexer1Task'},
-                  {'args': (),
-                   'chord_size': None,
-                   'immutable': False,
-                   'kwargs': {'ids': ['id12', 'id2'],
-                              'policy_update': 'ignore-dups'},
-                   'options': {},
-                   'subtask_type': None,
-                   'task': 'swh.indexer.tests.test_orchestrator.Indexer2Task'},
-                ])
+              {'args': (),
+               'chord_size': None,
+               'immutable': False,
+               'kwargs': {'ids': ['id12'],
+                          'policy_update': 'ignore-dups'},
+               'options': {},
+               'subtask_type': None,
+               'task': 'swh.indexer.tests.test_orchestrator.indexer1_task'},
+              {'args': (),
+               'chord_size': None,
+               'immutable': False,
+               'kwargs': {'ids': ['id12', 'id2'],
+                          'policy_update': 'ignore-dups'},
+               'options': {},
+               'subtask_type': None,
+               'task': 'swh.indexer.tests.test_orchestrator.indexer2_task'},
+            ])
 
     def test_mocked_orchestrator_batch(self):
         o = MockedTestOrchestrator12()
         o.prepare()
         o.run(['id12', 'id2a', 'id2b', 'id2c'])
         self.assertCountEqual(o.running_tasks, [
-                  {'args': (),
-                   'chord_size': None,
-                   'immutable': False,
-                   'kwargs': {'ids': ['id12'],
-                              'policy_update': 'ignore-dups'},
-                   'options': {},
-                   'subtask_type': None,
-                   'task': 'swh.indexer.tests.test_orchestrator.Indexer1Task'},
-                  {'args': (),
-                   'chord_size': None,
-                   'immutable': False,
-                   'kwargs': {'ids': ['id12', 'id2a'],
-                              'policy_update': 'ignore-dups'},
-                   'options': {},
-                   'subtask_type': None,
-                   'task': 'swh.indexer.tests.test_orchestrator.Indexer2Task'},
-                  {'args': (),
-                   'chord_size': None,
-                   'immutable': False,
-                   'kwargs': {'ids': ['id2b', 'id2c'],
-                              'policy_update': 'ignore-dups'},
-                   'options': {},
-                   'subtask_type': None,
-                   'task': 'swh.indexer.tests.test_orchestrator.Indexer2Task'},
-                ])
+              {'args': (),
+               'chord_size': None,
+               'immutable': False,
+               'kwargs': {'ids': ['id12'],
+                          'policy_update': 'ignore-dups'},
+               'options': {},
+               'subtask_type': None,
+               'task': 'swh.indexer.tests.test_orchestrator.indexer1_task'},
+              {'args': (),
+               'chord_size': None,
+               'immutable': False,
+               'kwargs': {'ids': ['id12', 'id2a'],
+                          'policy_update': 'ignore-dups'},
+               'options': {},
+               'subtask_type': None,
+               'task': 'swh.indexer.tests.test_orchestrator.indexer2_task'},
+              {'args': (),
+               'chord_size': None,
+               'immutable': False,
+               'kwargs': {'ids': ['id2b', 'id2c'],
+                          'policy_update': 'ignore-dups'},
+               'options': {},
+               'subtask_type': None,
+               'task': 'swh.indexer.tests.test_orchestrator.indexer2_task'},
+            ])

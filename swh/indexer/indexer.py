@@ -319,7 +319,7 @@ class BaseIndexer(SWHConfig,
         pass
 
     @abc.abstractmethod
-    def run(self, ids, policy_update):
+    def run(self, ids, policy_update, **kwargs):
         """Given a list of ids:
 
         - retrieves the data from the storage
@@ -330,6 +330,7 @@ class BaseIndexer(SWHConfig,
             ids ([bytes]): id's identifier list
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
             respectively update duplicates or ignore them
+            **kwargs: passed to the `index` method
 
         """
         pass
@@ -346,7 +347,7 @@ class ContentIndexer(BaseIndexer):
 
     """
 
-    def run(self, ids, policy_update):
+    def run(self, ids, policy_update, **kwargs):
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -358,6 +359,7 @@ class ContentIndexer(BaseIndexer):
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
                                    respectively update duplicates or ignore
                                    them
+            **kwargs: passed to the `index` method
 
         """
         results = []
@@ -369,12 +371,13 @@ class ContentIndexer(BaseIndexer):
                     self.log.warn('Content %s not found in objstorage' %
                                   hashutil.hash_to_hex(sha1))
                     continue
-                res = self.index(sha1, raw_content)
+                res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
                     results.append(res)
 
             self.persist_index_computations(results, policy_update)
-            self.next_step(results)
+            self.results = results
+            return self.next_step(results)
         except Exception:
             self.log.exception(
                 'Problem when reading contents metadata.')
@@ -393,7 +396,7 @@ class OriginIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, ids, policy_update, parse_ids=False):
+    def run(self, ids, policy_update, parse_ids=False, **kwargs):
         """Given a list of origin ids:
 
         - retrieve origins from storage
@@ -408,6 +411,7 @@ class OriginIndexer(BaseIndexer):
                                    them
             parse_ids ([bool]: If `True`, will try to convert `ids`
                                from a human input to the valid type.
+            **kwargs: passed to the `index` method
 
         """
         if parse_ids:
@@ -426,20 +430,22 @@ class OriginIndexer(BaseIndexer):
             elif isinstance(id_, int):
                 params = {'id': id_}
             else:
-                raise TypeError('Invalid value for "ids": %r' % id_)
+                raise TypeError('Invalid value in "ids": %r' % id_)
             origin = self.storage.origin_get(params)
             if not origin:
                 self.log.warn('Origins %s not found in storage' %
                               list(ids))
                 continue
             try:
-                res = self.index(origin)
+                res = self.index(origin, **kwargs)
                 if origin:  # If no results, skip it
                     results.append(res)
             except Exception:
                 self.log.exception(
                         'Problem when processing origin %s' % id_)
         self.persist_index_computations(results, policy_update)
+        self.results = results
+        return self.next_step(results)
 
 
 class RevisionIndexer(BaseIndexer):
@@ -482,3 +488,5 @@ class RevisionIndexer(BaseIndexer):
                 self.log.exception(
                         'Problem when processing revision')
         self.persist_index_computations(results, policy_update)
+        self.results = results
+        return self.next_step(results)

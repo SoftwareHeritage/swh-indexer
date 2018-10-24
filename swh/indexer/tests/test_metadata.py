@@ -86,6 +86,7 @@ class Metadata(unittest.TestCase):
                 'context': 'npm'
             }
         }
+        MockIndexerStorage.added_data = []
 
     def test_compute_metadata_none(self):
         """
@@ -209,9 +210,9 @@ class Metadata(unittest.TestCase):
 
         # when
         metadata_indexer.run(sha1s, policy_update='ignore-dups')
-        results = metadata_indexer.idx_storage.state
+        results = metadata_indexer.idx_storage.added_data
 
-        expected_results = [{
+        expected_results = [('content_metadata', False, [{
             'indexer_configuration_id': 30,
             'translated_metadata': {
                 'other': {},
@@ -270,7 +271,7 @@ class Metadata(unittest.TestCase):
             'indexer_configuration_id': 30,
             'translated_metadata': None,
             'id': '02fb2c89e14f7fab46701478c83779c7beb7b069'
-        }]
+        }])]
 
         # The assertion below returns False sometimes because of nested lists
         self.assertEqual(expected_results, results)
@@ -318,9 +319,9 @@ class Metadata(unittest.TestCase):
         ]
         metadata_indexer.run(sha1_gits, 'update-dups')
 
-        results = metadata_indexer.idx_storage.state
+        results = metadata_indexer.idx_storage.added_data
 
-        expected_results = [{
+        expected_results = [('revision_metadata', True, [{
             'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
             'translated_metadata': {
                 'identifier': None,
@@ -354,6 +355,6 @@ class Metadata(unittest.TestCase):
                 'email': None
             },
             'indexer_configuration_id': 7
-        }]
+        }])]
         # then
         self.assertEqual(expected_results, results)

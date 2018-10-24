@@ -5,7 +5,7 @@
 
 import logging
 
-from swh.scheduler.task import Task
+import celery
 
 from .orchestrator import OrchestratorAllContentsIndexer
 from .orchestrator import OrchestratorTextContentsIndexer
@@ -14,43 +14,61 @@ from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import ContentFossologyLicenseIndexer
 from .rehash import RecomputeChecksums
+from .metadata import RevisionMetadataIndexer, OriginMetadataIndexer
 
 logging.basicConfig(level=logging.INFO)
 
 
-class SWHOrchestratorAllContentsTask(Task):
+class Task(celery.Task):
+    def run_task(self, *args, **kwargs):
+        indexer = self.Indexer().run(*args, **kwargs)
+        return indexer.results
+
+
+class OrchestratorAllContents(Task):
     """Main task in charge of reading batch contents (of any type) and
     broadcasting them back to other tasks.
 
     """
     task_queue = 'swh_indexer_orchestrator_content_all'
 
-    def run_task(self, *args, **kwargs):
-        OrchestratorAllContentsIndexer().run(*args, **kwargs)
+    Indexer = OrchestratorAllContentsIndexer
 
 
-class SWHOrchestratorTextContentsTask(Task):
+class OrchestratorTextContents(Task):
     """Main task in charge of reading batch contents (of type text) and
     broadcasting them back to other tasks.
 
     """
     task_queue = 'swh_indexer_orchestrator_content_text'
 
-    def run_task(self, *args, **kwargs):
-        OrchestratorTextContentsIndexer().run(*args, **kwargs)
+    Indexer = OrchestratorTextContentsIndexer
 
 
-class SWHContentMimetypeTask(Task):
+class RevisionMetadata(Task):
+    task_queue = 'swh_indexer_revision_metadata'
+
+    serializer = 'msgpack'
+
+    Indexer = RevisionMetadataIndexer
+
+
+class OriginMetadata(Task):
+    task_queue = 'swh_indexer_origin_intrinsic_metadata'
+
+    Indexer = OriginMetadataIndexer
+
+
+class ContentMimetype(Task):
     """Task which computes the mimetype, encoding from the sha1's content.
 
     """
     task_queue = 'swh_indexer_content_mimetype'
 
-    def run_task(self, *args, **kwargs):
-        ContentMimetypeIndexer().run(*args, **kwargs)
+    Indexer = ContentMimetypeIndexer
 
 
-class SWHContentLanguageTask(Task):
+class ContentLanguage(Task):
     """Task which computes the language from the sha1's content.
 
     """
@@ -60,31 +78,28 @@ class SWHContentLanguageTask(Task):
         ContentLanguageIndexer().run(*args, **kwargs)
 
 
-class SWHCtagsTask(Task):
+class Ctags(Task):
     """Task which computes ctags from the sha1's content.
 
     """
     task_queue = 'swh_indexer_content_ctags'
 
-    def run_task(self, *args, **kwargs):
-        CtagsIndexer().run(*args, **kwargs)
+    Indexer = CtagsIndexer
 
 
-class SWHContentFossologyLicenseTask(Task):
+class ContentFossologyLicense(Task):
     """Task which computes licenses from the sha1's content.
 
     """
     task_queue = 'swh_indexer_content_fossology_license'
 
-    def run_task(self, *args, **kwargs):
-        ContentFossologyLicenseIndexer().run(*args, **kwargs)
+    Indexer = ContentFossologyLicenseIndexer
 
 
-class SWHRecomputeChecksumsTask(Task):
+class RecomputeChecksums(Task):
     """Task which recomputes hashes and possibly new ones.
 
     """
     task_queue = 'swh_indexer_content_rehash'
 
-    def run_task(self, *args, **kwargs):
-        RecomputeChecksums().run(*args, **kwargs)
+    Indexer = RecomputeChecksums

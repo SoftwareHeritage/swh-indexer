@@ -7,7 +7,10 @@ import re
 import click
 import logging
 
+from celery import chain
+
 from swh.indexer.indexer import OriginIndexer
+from swh.indexer.tasks import OriginMetadata, RevisionMetadata
 
 
 class OriginHeadIndexer(OriginIndexer):
@@ -26,13 +29,42 @@ class OriginHeadIndexer(OriginIndexer):
         }),
     }
 
+    CONFIG_BASE_FILENAME = 'indexer/origin_head'
+
+    revision_metadata_task = RevisionMetadata()
+    origin_intrinsic_metadata_task = OriginMetadata()
+
     def filter(self, ids):
         yield from ids
 
     def persist_index_computations(self, results, policy_update):
-        """Do nothing. The indexer's results are not persistant, they
+        """Do nothing. The indexer's results are not persistent, they
         should only be piped to another indexer via the orchestrator."""
         pass
+
+    def next_step(self, results):
+        """Once the head is found, call the RevisionMetadataIndexer
+        on these revisions, then call the OriginMetadataIndexer with
+        both the origin_id and the revision metadata, so it can copy the
+        revision metadata to the origin's metadata.
+
+        Args:
+            results (Iterable[dict]): Iterable of return values from `index`.
+
+        """
+        if self.revision_metadata_task is None and \
+                self.origin_intrinsic_metadata_task is None:
+            return
+        assert self.revision_metadata_task is not None
+        assert self.origin_intrinsic_metadata_task is not None
+        return chain(
+                self.revision_metadata_task.s(
+                    ids=[res['revision_id'] for res in results],
+                    policy_update='update-dups'),
+                self.origin_intrinsic_metadata_task.s(
+                    origin_head_pairs=results,
+                    policy_update='update-dups'),
+                )()
 
     # Dispatch
 
