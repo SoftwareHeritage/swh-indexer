@@ -605,7 +605,7 @@ class CommonTestStorage(BaseTestStorage):
     def test_content_ctags_search_no_result(self):
         actual_ctags = list(self.storage.content_ctags_search('counter'))
 
-        self.assertEquals(actual_ctags, [])
+        self.assertEqual(actual_ctags, [])
 
     def test_content_ctags_add__add_new_ctags_added(self):
         # given
@@ -1523,11 +1523,11 @@ class CommonTestStorage(BaseTestStorage):
         # add it
         actual_tools = list(self.storage.indexer_configuration_add([tool]))
 
-        self.assertEquals(len(actual_tools), 1)
+        self.assertEqual(len(actual_tools), 1)
         actual_tool = actual_tools[0]
         self.assertIsNotNone(actual_tool)  # now it exists
         new_id = actual_tool.pop('id')
-        self.assertEquals(actual_tool, tool)
+        self.assertEqual(actual_tool, tool)
 
         actual_tools2 = list(self.storage.indexer_configuration_add([tool]))
         actual_tool2 = actual_tools2[0]

@@ -1,4 +1,4 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -98,7 +98,7 @@ class TestMimetypeIndexerTest(unittest.TestCase):
         }]
 
         self.assertFalse(self.indexer.idx_storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.idx_storage.state)
+        self.assertEqual(expected_results, self.indexer.idx_storage.state)
 
     def test_index_update(self):
         # given
@@ -130,7 +130,7 @@ class TestMimetypeIndexerTest(unittest.TestCase):
         }]
 
         self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.idx_storage.state)
+        self.assertEqual(expected_results, self.indexer.idx_storage.state)
 
     def test_index_one_unknown_sha1(self):
         # given
@@ -150,4 +150,4 @@ class TestMimetypeIndexerTest(unittest.TestCase):
         }]
 
         self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.idx_storage.state)
+        self.assertEqual(expected_results, self.indexer.idx_storage.state)

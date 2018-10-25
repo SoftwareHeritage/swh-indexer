@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2017  The Software Heritage developers
+# Copyright (C) 2015-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -52,7 +52,7 @@ class TestConverters(unittest.TestCase):
         actual_ctags = list(converters.ctags_to_db(input_ctag))
 
         # then
-        self.assertEquals(actual_ctags, expected_ctags)
+        self.assertEqual(actual_ctags, expected_ctags)
 
     def test_db_to_ctags(self):
         input_ctags = {
@@ -84,7 +84,7 @@ class TestConverters(unittest.TestCase):
         actual_ctags = converters.db_to_ctags(input_ctags)
 
         # then
-        self.assertEquals(actual_ctags, expected_ctags)
+        self.assertEqual(actual_ctags, expected_ctags)
 
     def test_db_to_mimetype(self):
         input_mimetype = {
@@ -111,7 +111,7 @@ class TestConverters(unittest.TestCase):
 
         actual_mimetype = converters.db_to_mimetype(input_mimetype)
 
-        self.assertEquals(actual_mimetype, expected_mimetype)
+        self.assertEqual(actual_mimetype, expected_mimetype)
 
     def test_db_to_language(self):
         input_language = {
@@ -136,7 +136,7 @@ class TestConverters(unittest.TestCase):
 
         actual_language = converters.db_to_language(input_language)
 
-        self.assertEquals(actual_language, expected_language)
+        self.assertEqual(actual_language, expected_language)
 
     def test_db_to_fossology_license(self):
         input_license = {
@@ -160,7 +160,7 @@ class TestConverters(unittest.TestCase):
 
         actual_license = converters.db_to_fossology_license(input_license)
 
-        self.assertEquals(actual_license, expected_license)
+        self.assertEqual(actual_license, expected_license)
 
     def test_db_to_metadata(self):
         input_metadata = {
@@ -185,4 +185,4 @@ class TestConverters(unittest.TestCase):
 
         actual_metadata = converters.db_to_metadata(input_metadata)
 
-        self.assertEquals(actual_metadata, expected_metadata)
+        self.assertEqual(actual_metadata, expected_metadata)
