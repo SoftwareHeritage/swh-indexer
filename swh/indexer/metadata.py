@@ -172,7 +172,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
             root_dir = rev['directory']
             dir_ls = self.storage.directory_ls(root_dir, recursive=False)
-            files = (entry for entry in dir_ls if entry['type'] == 'file')
+            files = [entry for entry in dir_ls if entry['type'] == 'file']
             detected_files = detect_metadata(files)
             result['translated_metadata'] = self.translate_revision_metadata(
                                                                 detected_files)
