@@ -5,7 +5,7 @@
 
 import logging
 
-import celery
+from swh.scheduler.task import Task as SchedulerTask
 
 from .orchestrator import OrchestratorAllContentsIndexer
 from .orchestrator import OrchestratorTextContentsIndexer
@@ -19,7 +19,7 @@ from .metadata import RevisionMetadataIndexer, OriginMetadataIndexer
 logging.basicConfig(level=logging.INFO)
 
 
-class Task(celery.Task):
+class Task(SchedulerTask):
     def run_task(self, *args, **kwargs):
         indexer = self.Indexer().run(*args, **kwargs)
         return indexer.results
