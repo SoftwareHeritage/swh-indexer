@@ -175,7 +175,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
             detected_files = detect_metadata(files)
             result['translated_metadata'] = self.translate_revision_metadata(
                                                                 detected_files)
-        except Exception as e:
+        except Exception:
             self.log.exception(
                 'Problem when indexing rev')
         return result

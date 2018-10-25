@@ -99,12 +99,12 @@ class OriginHeadIndexer(OriginIndexer):
     # Tarballs
 
     _archive_filename_re = re.compile(
-            b'^'
-            b'(?P<pkgname>.*)[-_]'
-            b'(?P<version>[0-9]+(\.[0-9])*)'
-            b'(?P<preversion>[-+][a-zA-Z0-9.~]+?)?'
-            b'(?P<extension>(\.[a-zA-Z0-9]+)+)'
-            b'$')
+            rb'^'
+            rb'(?P<pkgname>.*)[-_]'
+            rb'(?P<version>[0-9]+(\.[0-9])*)'
+            rb'(?P<preversion>[-+][a-zA-Z0-9.~]+?)?'
+            rb'(?P<extension>(\.[a-zA-Z0-9]+)+)'
+            rb'$')
 
     @classmethod
     def _parse_version(cls, filename):
