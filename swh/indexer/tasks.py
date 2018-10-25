@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2017  The Software Heritage developers
+# Copyright (C) 2016-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -22,7 +22,9 @@ logging.basicConfig(level=logging.INFO)
 class Task(SchedulerTask):
     def run_task(self, *args, **kwargs):
         indexer = self.Indexer().run(*args, **kwargs)
-        return indexer.results
+        if hasattr(indexer, 'results'):  # indexer tasks
+            return indexer.results
+        return indexer
 
 
 class OrchestratorAllContents(Task):
