@@ -6,15 +6,16 @@
 import os
 import unittest
 
-from nose.plugins.attrib import attr
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.storage import get_indexer_storage
 from swh.core.tests.db_testing import SingleDbTestFixture
 from swh.indexer.tests import SQL_DIR
 
+import pytest
 
-@attr('db')
+
+@pytest.mark.db
 class BaseTestStorage(SingleDbTestFixture):
     """Base test class for most indexer tests.
 
@@ -74,7 +75,7 @@ class BaseTestStorage(SingleDbTestFixture):
         db.conn.commit()
 
 
-@attr('db')
+@pytest.mark.db
 class CommonTestStorage(BaseTestStorage):
     """Base class for Indexer Storage testing.
 

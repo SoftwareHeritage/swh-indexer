@@ -5,7 +5,6 @@
 
 import unittest
 import logging
-from nose.tools import istest
 
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.tests.test_utils import MockIndexerStorage, MockStorage
@@ -40,7 +39,6 @@ class TestOriginHeadIndexer(OriginHeadIndexer):
 
 
 class OriginHead(unittest.TestCase):
-    @istest
     def test_git(self):
         indexer = TestOriginHeadIndexer()
         indexer.run(
@@ -51,7 +49,6 @@ class OriginHead(unittest.TestCase):
                            b'\xd7}\xac\xefrm',
             'origin_id': 52189575}])
 
-    @istest
     def test_ftp(self):
         indexer = TestOriginHeadIndexer()
         indexer.run(
@@ -62,7 +59,6 @@ class OriginHead(unittest.TestCase):
                            b'\xcc\x1a\xb4`\x8c\x8by',
             'origin_id': 4423668}])
 
-    @istest
     def test_deposit(self):
         indexer = TestOriginHeadIndexer()
         indexer.run(
@@ -74,7 +70,6 @@ class OriginHead(unittest.TestCase):
                            b'\xa6\xe9\x99\xb1\x9e]q\xeb',
             'origin_id': 77775770}])
 
-    @istest
     def test_pypi(self):
         indexer = TestOriginHeadIndexer()
         indexer.run(
@@ -85,7 +80,6 @@ class OriginHead(unittest.TestCase):
                            b'A\x10\x9d\xc5\xfa2\xf8t',
             'origin_id': 85072327}])
 
-    @istest
     def test_svn(self):
         indexer = TestOriginHeadIndexer()
         indexer.run(

@@ -43,22 +43,22 @@ class TestOriginMetadataIndexer(OriginMetadataIndexer):
 
 
 @task
-def test_revision_metadata_task(*args, **kwargs):
+def revision_metadata_test_task(*args, **kwargs):
     indexer = TestRevisionMetadataIndexer()
     indexer.run(*args, **kwargs)
     return indexer.results
 
 
 @task
-def test_origin_intrinsic_metadata_task(*args, **kwargs):
+def origin_intrinsic_metadata_test_task(*args, **kwargs):
     indexer = TestOriginMetadataIndexer()
     indexer.run(*args, **kwargs)
     return indexer.results
 
 
 class TestOriginHeadIndexer(TestOriginHeadIndexer):
-    revision_metadata_task = test_revision_metadata_task
-    origin_intrinsic_metadata_task = test_origin_intrinsic_metadata_task
+    revision_metadata_task = revision_metadata_test_task
+    origin_intrinsic_metadata_task = origin_intrinsic_metadata_test_task
 
 
 class TestOriginMetadata(CeleryTestFixture, unittest.TestCase):
