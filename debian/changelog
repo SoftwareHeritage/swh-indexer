@@ -1,8 +1,9 @@
-swh-indexer (0.0.53-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.54-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.54
+  * swh.indexer.tasks: Fix task to use the scheduler's
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 25 Oct 2018 19:03:56 +0200
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Thu, 25 Oct 2018 20:13:51 +0200
 
 swh-indexer (0.0.53-1~swh1) unstable-swh; urgency=medium
 
