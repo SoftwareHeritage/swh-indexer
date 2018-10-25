@@ -102,20 +102,19 @@ class TestOrchestrator12(BaseOrchestratorIndexer):
         super().__init__()
         self.running_tasks = []
 
-    def prepare(self):
-        self.config = {
-                'indexers': {
-                    'indexer1': {
-                        'batch_size': 2,
-                        'check_presence': True,
-                        },
-                    'indexer2': {
-                        'batch_size': 2,
-                        'check_presence': True,
-                        },
-                    }
-                }
-        self.prepare_tasks()
+    def parse_config_file(self):
+        return {
+            'indexers': {
+                'indexer1': {
+                    'batch_size': 2,
+                    'check_presence': True,
+                },
+                'indexer2': {
+                    'batch_size': 2,
+                    'check_presence': True,
+                },
+            }
+        }
 
 
 class MockedTestOrchestrator12(TestOrchestrator12):
@@ -127,7 +126,6 @@ class OrchestratorTest(CeleryTestFixture, unittest.TestCase):
     def test_orchestrator_filter(self):
         with start_worker_thread():
             o = TestOrchestrator12()
-            o.prepare()
             promises = o.run(['id12', 'id2'])
             results = []
             for promise in reversed(promises):
@@ -146,7 +144,6 @@ class MockedOrchestratorTest(unittest.TestCase):
 
     def test_mocked_orchestrator_filter(self):
         o = MockedTestOrchestrator12()
-        o.prepare()
         o.run(['id12', 'id2'])
         self.assertCountEqual(o.running_tasks, [
               {'args': (),
@@ -169,7 +166,6 @@ class MockedOrchestratorTest(unittest.TestCase):
 
     def test_mocked_orchestrator_batch(self):
         o = MockedTestOrchestrator12()
-        o.prepare()
         o.run(['id12', 'id2a', 'id2b', 'id2c'])
         self.assertCountEqual(o.running_tasks, [
               {'args': (),
