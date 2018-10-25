@@ -89,18 +89,27 @@ class Db(BaseDb):
                          array_agg(%s.license_id))) as licenses''' % main_table
         return key
 
-    def _get_from_list(self, table, ids, cols, cur=None):
+    def _get_from_list(self, table, ids, cols, cur=None, id_col='id'):
+        """Fetches entries from the `table` such that their `id` field
+        (or whatever is given to `id_col`) is in `ids`.
+        Returns the columns `cols`.
+        The `cur`sor is used to connect to the database.
+        """
         cur = self._cursor(cur)
         keys = map(self._convert_key, cols)
-        yield from execute_values_to_bytes(
-            cur, """
-            select %s
-            from (values %%s) as t(id)
-            inner join %s c
-                on c.id=t.id
+        query = """
+            select {keys}
+            from (values %s) as t(id)
+            inner join {table} c
+                on c.{id_col}=t.id
             inner join indexer_configuration i
                 on c.indexer_configuration_id=i.id;
-            """ % (', '.join(keys), table),
+            """.format(
+                keys=', '.join(keys),
+                id_col=id_col,
+                table=table)
+        yield from execute_values_to_bytes(
+            cur, query,
             ((_id,) for _id in ids)
         )
 
@@ -274,6 +283,26 @@ class Db(BaseDb):
     def revision_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
             'revision_metadata', ids, self.revision_metadata_cols, cur=cur)
+
+    origin_intrinsic_metadata_cols = [
+        'origin_id', 'metadata', 'from_revision',
+        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
+
+    @stored_procedure('swh_mktemp_origin_intrinsic_metadata')
+    def mktemp_origin_intrinsic_metadata(self, cur=None): pass
+
+    def origin_intrinsic_metadata_add_from_temp(
+            self, conflict_update, cur=None):
+        cur = self._cursor(cur)
+        cur.execute(
+                "SELECT swh_origin_intrinsic_metadata_add(%s)",
+                (conflict_update, ))
+
+    def origin_intrinsic_metadata_get_from_list(self, orig_ids, cur=None):
+        yield from self._get_from_list(
+            'origin_intrinsic_metadata', orig_ids,
+            self.origin_intrinsic_metadata_cols, cur=cur,
+            id_col='origin_id')
 
     indexer_configuration_cols = ['id', 'tool_name', 'tool_version',
                                   'tool_configuration']

@@ -1,12 +1,18 @@
 .. _swh-indexer:
 
-Software Heritage - Development Documentation
-=============================================
+Software Heritage - Indexer
+===========================
+
+Tools and workers used to mine the content of the archive and extract derived
+information from archive source code artifacts.
+
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
+   README
+   dev-info.rst
 
 
 Indices and tables
