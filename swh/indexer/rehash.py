@@ -23,9 +23,10 @@ class RecomputeChecksums(SWHConfig):
     Hashes to compute are defined across 2 configuration options:
 
     compute_checksums ([str])
-      list of hash algorithms that py:func:`swh.model.hashutil.hash_data`
-      function should be able to deal with. For variable-length checksums, a
-      desired checksum length should also be provided. Their format is
+      list of hash algorithms that
+      py:func:`swh.model.hashutil.MultiHash.from_data` function should
+      be able to deal with. For variable-length checksums, a desired
+      checksum length should also be provided. Their format is
       <algorithm's name>:<variable-length> e.g: blake2:512
 
     recompute_checksums (bool)
@@ -132,7 +133,7 @@ class RecomputeChecksums(SWHConfig):
                 if self.recompute_checksums:    # Recompute checksums provided
                                                 # in compute_checksums options
                     checksums_to_compute = list(self.compute_checksums)
-                else:   # Compute checkums provided in compute_checksums
+                else:   # Compute checksums provided in compute_checksums
                         # options not already defined for that content
                     checksums_to_compute = [h for h in self.compute_checksums
                                             if not content.get(h)]
@@ -147,10 +148,9 @@ class RecomputeChecksums(SWHConfig):
                                   content['sha1'])
                     continue
 
-                # Actually computing the checksums for that content
-                updated_content = hashutil.hash_data(
-                    raw_content, algorithms=checksums_to_compute)
-                content.update(updated_content)
+                content_hashes = hashutil.MultiHash.from_data(
+                    raw_content, hash_names=checksums_to_compute).digest()
+                content.update(content_hashes)
                 yield content, checksums_to_compute
 
     def run(self, contents):

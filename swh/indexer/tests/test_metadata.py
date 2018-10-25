@@ -5,10 +5,10 @@
 
 import unittest
 import logging
-from nose.tools import istest
 
-from swh.indexer.metadata_dictionary import compute_metadata
+from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
 from swh.indexer.metadata_detector import detect_metadata
+from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.metadata import ContentMetadataIndexer
 from swh.indexer.metadata import RevisionMetadataIndexer
 from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
@@ -26,7 +26,7 @@ class TestContentMetadataIndexer(ContentMetadataIndexer):
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.task_destination = None
+        self.destination_task = None
         self.rescheduling_task = self.config['rescheduling_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
@@ -37,6 +37,9 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
     """Specific indexer whose configuration is enough to satisfy the
        indexing tests.
     """
+
+    ContentMetadataIndexer = TestContentMetadataIndexer
+
     def prepare(self):
         self.config = {
             'rescheduling_task': None,
@@ -48,10 +51,10 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
             },
             'tools': {
                 'name': 'swh-metadata-detector',
-                'version': '0.0.1',
+                'version': '0.0.2',
                 'configuration': {
                     'type': 'local',
-                    'context': 'npm'
+                    'context': 'NpmMapping'
                 }
             }
         }
@@ -59,7 +62,7 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.task_destination = None
+        self.destination_task = None
         self.rescheduling_task = self.config['rescheduling_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
@@ -77,14 +80,39 @@ class Metadata(unittest.TestCase):
         self.maxDiff = None
         self.content_tool = {
             'name': 'swh-metadata-translator',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'configuration': {
                 'type': 'local',
-                'context': 'npm'
+                'context': 'NpmMapping'
             }
         }
+        MockIndexerStorage.added_data = []
 
-    @istest
+    def test_crosstable(self):
+        self.assertEqual(CROSSWALK_TABLE['NodeJS'], {
+            'repository': 'codeRepository',
+            'os': 'operatingSystem',
+            'cpu': 'processorRequirements',
+            'engines': 'processorRequirements',
+            'dependencies': 'softwareRequirements',
+            'bundleDependencies': 'softwareRequirements',
+            'bundledDependencies': 'softwareRequirements',
+            'peerDependencies': 'softwareRequirements',
+            'author': 'creator',
+            'author.email': 'email',
+            'author.name': 'name',
+            'contributor': 'contributor',
+            'keywords': 'keywords',
+            'license': 'license',
+            'version': 'version',
+            'description': 'description',
+            'name': 'name',
+            'devDependencies': 'softwareSuggestions',
+            'optionalDependencies': 'softwareSuggestions',
+            'bugs': 'issueTracker',
+            'homepage': 'url'
+        })
+
     def test_compute_metadata_none(self):
         """
         testing content empty content is empty
@@ -92,16 +120,14 @@ class Metadata(unittest.TestCase):
         """
         # given
         content = b""
-        context = "npm"
 
         # None if no metadata was found or an error occurred
         declared_metadata = None
         # when
-        result = compute_metadata(context, content)
+        result = MAPPINGS["NpmMapping"].translate(content)
         # then
         self.assertEqual(declared_metadata, result)
 
-    @istest
     def test_compute_metadata_npm(self):
         """
         testing only computation of metadata with hard_mapping_npm
@@ -110,7 +136,7 @@ class Metadata(unittest.TestCase):
         content = b"""
             {
                 "name": "test_metadata",
-                "version": "0.0.1",
+                "version": "0.0.2",
                 "description": "Simple package.json test for indexer",
                   "repository": {
                     "type": "git",
@@ -120,7 +146,7 @@ class Metadata(unittest.TestCase):
         """
         declared_metadata = {
             'name': 'test_metadata',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
             'codeRepository': {
                 'type': 'git',
@@ -130,11 +156,67 @@ class Metadata(unittest.TestCase):
         }
 
         # when
-        result = compute_metadata("npm", content)
+        result = MAPPINGS["NpmMapping"].translate(content)
         # then
         self.assertEqual(declared_metadata, result)
 
-    @istest
+    def test_extract_minimal_metadata_dict(self):
+        """
+        Test the creation of a coherent minimal metadata set
+        """
+        # given
+        metadata_list = [{
+            'name': 'test_1',
+            'version': '0.0.2',
+            'description': 'Simple package.json test for indexer',
+            'codeRepository': {
+                'type': 'git',
+                'url': 'https://github.com/moranegg/metadata_test'
+              },
+            'other': {}
+        }, {
+            'name': 'test_0_1',
+            'version': '0.0.2',
+            'description': 'Simple package.json test for indexer',
+            'codeRepository': {
+                'type': 'git',
+                'url': 'https://github.com/moranegg/metadata_test'
+              },
+            'other': {}
+        }, {
+            'name': 'test_metadata',
+            'version': '0.0.2',
+            'author': 'moranegg',
+            'other': {}
+        }]
+
+        # when
+        results = extract_minimal_metadata_dict(metadata_list)
+
+        # then
+        expected_results = {
+            "developmentStatus": None,
+            "version": ['0.0.2'],
+            "operatingSystem": None,
+            "description": ['Simple package.json test for indexer'],
+            "keywords": None,
+            "issueTracker": None,
+            "name": ['test_1', 'test_0_1', 'test_metadata'],
+            "author": ['moranegg'],
+            "relatedLink": None,
+            "url": None,
+            "license": None,
+            "maintainer": None,
+            "email": None,
+            "softwareRequirements": None,
+            "identifier": None,
+            "codeRepository": [{
+                'type': 'git',
+                'url': 'https://github.com/moranegg/metadata_test'
+              }]
+        }
+        self.assertEqual(expected_results, results)
+
     def test_index_content_metadata_npm(self):
         """
         testing NPM with package.json
@@ -152,9 +234,9 @@ class Metadata(unittest.TestCase):
 
         # when
         metadata_indexer.run(sha1s, policy_update='ignore-dups')
-        results = metadata_indexer.idx_storage.state
+        results = metadata_indexer.idx_storage.added_data
 
-        expected_results = [{
+        expected_results = [('content_metadata', False, [{
             'indexer_configuration_id': 30,
             'translated_metadata': {
                 'other': {},
@@ -180,7 +262,7 @@ class Metadata(unittest.TestCase):
                 'issueTracker': {
                     'url': 'https://github.com/npm/npm/issues'
                 },
-                'author':
+                'creator':
                     'Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)',
                 'codeRepository': {
                     'type': 'git',
@@ -213,12 +295,11 @@ class Metadata(unittest.TestCase):
             'indexer_configuration_id': 30,
             'translated_metadata': None,
             'id': '02fb2c89e14f7fab46701478c83779c7beb7b069'
-        }]
+        }])]
 
-        # The assertion bellow returns False sometimes because of nested lists
+        # The assertion below returns False sometimes because of nested lists
         self.assertEqual(expected_results, results)
 
-    @istest
     def test_detect_metadata_package_json(self):
         # given
         df = [{
@@ -247,14 +328,13 @@ class Metadata(unittest.TestCase):
         results = detect_metadata(df)
 
         expected_results = {
-            'npm': [
+            'NpmMapping': [
                 b'cde'
             ]
         }
         # then
         self.assertEqual(expected_results, results)
 
-    @istest
     def test_revision_metadata_indexer(self):
         metadata_indexer = TestRevisionMetadataIndexer()
 
@@ -263,9 +343,9 @@ class Metadata(unittest.TestCase):
         ]
         metadata_indexer.run(sha1_gits, 'update-dups')
 
-        results = metadata_indexer.idx_storage.state
+        results = metadata_indexer.idx_storage.added_data
 
-        expected_results = [{
+        expected_results = [('revision_metadata', True, [{
             'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
             'translated_metadata': {
                 'identifier': None,
@@ -296,10 +376,9 @@ class Metadata(unittest.TestCase):
                 }],
                 'name': ['yarn-parser'],
                 'keywords': [['yarn', 'parse', 'lock', 'dependencies']],
-                'type': None,
                 'email': None
             },
             'indexer_configuration_id': 7
-        }]
+        }])]
         # then
         self.assertEqual(expected_results, results)

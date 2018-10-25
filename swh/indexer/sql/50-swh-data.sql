@@ -14,10 +14,10 @@ insert into indexer_configuration(tool_name, tool_version, tool_configuration)
 values ('pygments', '2.0.1+dfsg-1.1+deb8u1', '{"type": "library", "debian-package": "python3-pygments", "max_content_size": 10240}');
 
 insert into indexer_configuration(tool_name, tool_version, tool_configuration)
-values ('swh-metadata-translator', '0.0.1', '{"type": "local", "context": "npm"}');
+values ('swh-metadata-translator', '0.0.1', '{"type": "local", "context": "NpmMapping"}');
 
 insert into indexer_configuration(tool_name, tool_version, tool_configuration)
-values ('swh-metadata-detector', '0.0.1', '{"type": "local", "context": ["npm", "codemeta"]}');
+values ('swh-metadata-detector', '0.0.1', '{"type": "local", "context": ["NpmMapping", "CodemetaMapping"]}');
 
 insert into indexer_configuration(tool_name, tool_version, tool_configuration)
 values ('swh-deposit', '0.0.1', '{"sword_version": "2"}');

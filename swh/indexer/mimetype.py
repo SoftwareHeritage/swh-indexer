@@ -40,7 +40,7 @@ class ContentMimetypeIndexer(ContentIndexer):
 
     """
     ADDITIONAL_CONFIG = {
-        'destination_queue': ('str', None),
+        'destination_task': ('str', None),
         'tools': ('dict', {
             'name': 'file',
             'version': '1:5.30-1+deb9u1',
@@ -55,11 +55,11 @@ class ContentMimetypeIndexer(ContentIndexer):
 
     def prepare(self):
         super().prepare()
-        destination_queue = self.config.get('destination_queue')
-        if destination_queue:
-            self.task_destination = utils.get_task(destination_queue)
+        destination_task = self.config.get('destination_task')
+        if destination_task:
+            self.destination_task = utils.get_task(destination_task)
         else:
-            self.task_destination = None
+            self.destination_task = None
         self.tool = self.tools[0]
 
     def filter(self, ids):
@@ -141,8 +141,8 @@ class ContentMimetypeIndexer(ContentIndexer):
               - encoding (bytes): encoding in bytes
 
         """
-        if self.task_destination:
-            self.task_destination.delay(list(self._filter_text(results)))
+        if self.destination_task:
+            self.destination_task.delay(list(self._filter_text(results)))
 
 
 @click.command()

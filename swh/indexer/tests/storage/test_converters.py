@@ -1,23 +1,18 @@
-# Copyright (C) 2015-2017  The Software Heritage developers
+# Copyright (C) 2015-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import unittest
 
-from nose.tools import istest
-from nose.plugins.attrib import attr
-
 from swh.indexer.storage import converters
 
 
-@attr('!db')
 class TestConverters(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @istest
-    def ctags_to_db(self):
+    def test_ctags_to_db(self):
         input_ctag = {
             'id': b'some-id',
             'indexer_configuration_id': 100,
@@ -57,10 +52,9 @@ class TestConverters(unittest.TestCase):
         actual_ctags = list(converters.ctags_to_db(input_ctag))
 
         # then
-        self.assertEquals(actual_ctags, expected_ctags)
+        self.assertEqual(actual_ctags, expected_ctags)
 
-    @istest
-    def db_to_ctags(self):
+    def test_db_to_ctags(self):
         input_ctags = {
             'id': b'some-id',
             'name': 'some-name',
@@ -90,10 +84,9 @@ class TestConverters(unittest.TestCase):
         actual_ctags = converters.db_to_ctags(input_ctags)
 
         # then
-        self.assertEquals(actual_ctags, expected_ctags)
+        self.assertEqual(actual_ctags, expected_ctags)
 
-    @istest
-    def db_to_mimetype(self):
+    def test_db_to_mimetype(self):
         input_mimetype = {
             'id': b'some-id',
             'tool_id': 10,
@@ -118,10 +111,9 @@ class TestConverters(unittest.TestCase):
 
         actual_mimetype = converters.db_to_mimetype(input_mimetype)
 
-        self.assertEquals(actual_mimetype, expected_mimetype)
+        self.assertEqual(actual_mimetype, expected_mimetype)
 
-    @istest
-    def db_to_language(self):
+    def test_db_to_language(self):
         input_language = {
             'id': b'some-id',
             'tool_id': 20,
@@ -144,10 +136,9 @@ class TestConverters(unittest.TestCase):
 
         actual_language = converters.db_to_language(input_language)
 
-        self.assertEquals(actual_language, expected_language)
+        self.assertEqual(actual_language, expected_language)
 
-    @istest
-    def db_to_fossology_license(self):
+    def test_db_to_fossology_license(self):
         input_license = {
             'id': b'some-id',
             'tool_id': 20,
@@ -169,10 +160,9 @@ class TestConverters(unittest.TestCase):
 
         actual_license = converters.db_to_fossology_license(input_license)
 
-        self.assertEquals(actual_license, expected_license)
+        self.assertEqual(actual_license, expected_license)
 
-    @istest
-    def db_to_metadata(self):
+    def test_db_to_metadata(self):
         input_metadata = {
             'id': b'some-id',
             'tool_id': 20,
@@ -195,4 +185,4 @@ class TestConverters(unittest.TestCase):
 
         actual_metadata = converters.db_to_metadata(input_metadata)
 
-        self.assertEquals(actual_metadata, expected_metadata)
+        self.assertEqual(actual_metadata, expected_metadata)

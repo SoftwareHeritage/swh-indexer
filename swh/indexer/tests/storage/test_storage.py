@@ -3,73 +3,38 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import pathlib
+import os
 import unittest
 
-from nose.tools import istest
-from nose.plugins.attrib import attr
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.storage import get_indexer_storage
-from swh.core.tests.db_testing import DbTestFixture
+from swh.core.tests.db_testing import SingleDbTestFixture
+from swh.indexer.tests import SQL_DIR
+
+import pytest
 
 
-PATH_TO_STORAGE_TEST_DATA = '../../../../../swh-storage-testdata'
+@pytest.mark.db
+class BaseTestStorage(SingleDbTestFixture):
+    """Base test class for most indexer tests.
 
-
-class StorageTestFixture:
-    """Mix this in a test subject class to get Storage testing support.
-
-    This fixture requires to come before DbTestFixture in the inheritance list
-    as it uses its methods to setup its own internal database.
-
-    Usage example:
-
-        class TestStorage(StorageTestFixture, DbTestFixture):
-            ...
+    It adds support for Storage testing to the SingleDbTestFixture class.
+    It will also build the database from the swh-indexed/sql/*.sql files.
     """
-    TEST_STORAGE_DB_NAME = 'softwareheritage-test-indexer'
 
-    @classmethod
-    def setUpClass(cls):
-        if not hasattr(cls, 'DB_TEST_FIXTURE_IMPORTED'):
-            raise RuntimeError("StorageTestFixture needs to be followed by "
-                               "DbTestFixture in the inheritance list.")
-
-        test_dir = pathlib.Path(__file__).absolute().parent
-        test_data_dir = test_dir / PATH_TO_STORAGE_TEST_DATA
-        test_db_dump = (test_data_dir / 'dumps/swh-indexer.dump').absolute()
-        cls.add_db(cls.TEST_STORAGE_DB_NAME, str(test_db_dump), 'pg_dump')
-        super().setUpClass()
+    TEST_DB_NAME = 'softwareheritage-test-indexer'
+    TEST_DB_DUMP = os.path.join(SQL_DIR, '*.sql')
 
     def setUp(self):
         super().setUp()
-
         self.storage_config = {
             'cls': 'local',
             'args': {
-                'db': 'dbname=%s' % self.TEST_STORAGE_DB_NAME,
+                'db': 'dbname=%s' % self.TEST_DB_NAME,
             },
         }
         self.storage = get_indexer_storage(**self.storage_config)
-
-    def tearDown(self):
-        self.storage = None
-        super().tearDown()
-
-    def reset_storage_tables(self):
-        excluded = {'indexer_configuration'}
-        self.reset_db_tables(self.TEST_STORAGE_DB_NAME, excluded=excluded)
-
-        db = self.test_db[self.TEST_STORAGE_DB_NAME]
-        db.conn.commit()
-
-
-@attr('db')
-class BaseTestStorage(StorageTestFixture, DbTestFixture):
-
-    def setUp(self):
-        super().setUp()
 
         self.sha1_1 = hash_to_bytes('34973274ccef6ab4dfaaf86599792fa9c3fe4689')
         self.sha1_2 = hash_to_bytes('61c2b3a30496d329e21af70dd2d7e097046d07b7')
@@ -77,8 +42,9 @@ class BaseTestStorage(StorageTestFixture, DbTestFixture):
             '7026b7c1a2af56521e951c01ed20f255fa054238')
         self.revision_id_2 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904321')
+        self.origin_id_1 = 54974445
 
-        cur = self.test_db[self.TEST_STORAGE_DB_NAME].cursor
+        cur = self.test_db[self.TEST_DB_NAME].cursor
         tools = {}
         cur.execute('''
             select tool_name, id, tool_version, tool_configuration
@@ -98,22 +64,28 @@ class BaseTestStorage(StorageTestFixture, DbTestFixture):
 
     def tearDown(self):
         self.reset_storage_tables()
+        self.storage = None
         super().tearDown()
 
+    def reset_storage_tables(self):
+        excluded = {'indexer_configuration'}
+        self.reset_db_tables(self.TEST_DB_NAME, excluded=excluded)
 
-@attr('db')
+        db = self.test_db[self.TEST_DB_NAME]
+        db.conn.commit()
+
+
+@pytest.mark.db
 class CommonTestStorage(BaseTestStorage):
     """Base class for Indexer Storage testing.
 
     """
 
-    @istest
-    def check_config(self):
+    def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
         self.assertTrue(self.storage.check_config(check_write=False))
 
-    @istest
-    def content_mimetype_missing(self):
+    def test_content_mimetype_missing(self):
         # given
         tool_id = self.tools['file']['id']
 
@@ -150,8 +122,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(list(actual_missing), [self.sha1_1])
 
-    @istest
-    def content_mimetype_add__drop_duplicate(self):
+    def test_content_mimetype_add__drop_duplicate(self):
         # given
         tool_id = self.tools['file']['id']
 
@@ -193,8 +164,7 @@ class CommonTestStorage(BaseTestStorage):
         # mimetype did not change as the v2 was dropped.
         self.assertEqual(actual_mimetypes, expected_mimetypes_v1)
 
-    @istest
-    def content_mimetype_add__update_in_place_duplicate(self):
+    def test_content_mimetype_add__update_in_place_duplicate(self):
         # given
         tool_id = self.tools['file']['id']
 
@@ -249,8 +219,7 @@ class CommonTestStorage(BaseTestStorage):
         # mimetype did change as the v2 was used to overwrite v1
         self.assertEqual(actual_mimetypes, expected_mimetypes_v2)
 
-    @istest
-    def content_mimetype_get(self):
+    def test_content_mimetype_get(self):
         # given
         tool_id = self.tools['file']['id']
 
@@ -279,8 +248,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_mimetypes, expected_mimetypes)
 
-    @istest
-    def content_language_missing(self):
+    def test_content_language_missing(self):
         # given
         tool_id = self.tools['pygments']['id']
 
@@ -317,8 +285,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(actual_missing, [self.sha1_1])
 
-    @istest
-    def content_language_get(self):
+    def test_content_language_get(self):
         # given
         tool_id = self.tools['pygments']['id']
 
@@ -344,8 +311,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_languages, expected_languages)
 
-    @istest
-    def content_language_add__drop_duplicate(self):
+    def test_content_language_add__drop_duplicate(self):
         # given
         tool_id = self.tools['pygments']['id']
 
@@ -384,8 +350,7 @@ class CommonTestStorage(BaseTestStorage):
         # language did not change as the v2 was dropped.
         self.assertEqual(actual_languages, expected_languages_v1)
 
-    @istest
-    def content_language_add__update_in_place_duplicate(self):
+    def test_content_language_add__update_in_place_duplicate(self):
         # given
         tool_id = self.tools['pygments']['id']
 
@@ -431,8 +396,7 @@ class CommonTestStorage(BaseTestStorage):
         # language did change as the v2 was used to overwrite v1
         self.assertEqual(actual_languages, expected_languages_v2)
 
-    @istest
-    def content_ctags_missing(self):
+    def test_content_ctags_missing(self):
         # given
         tool_id = self.tools['universal-ctags']['id']
 
@@ -476,8 +440,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(list(actual_missing), [self.sha1_1])
 
-    @istest
-    def content_ctags_get(self):
+    def test_content_ctags_get(self):
         # given
         tool_id = self.tools['universal-ctags']['id']
 
@@ -530,8 +493,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_ctags, expected_ctags)
 
-    @istest
-    def content_ctags_search(self):
+    def test_content_ctags_search(self):
         # 1. given
         tool = self.tools['universal-ctags']
         tool_id = tool['id']
@@ -640,14 +602,12 @@ class CommonTestStorage(BaseTestStorage):
             'lang': 'Python',
         }])
 
-    @istest
-    def content_ctags_search_no_result(self):
+    def test_content_ctags_search_no_result(self):
         actual_ctags = list(self.storage.content_ctags_search('counter'))
 
-        self.assertEquals(actual_ctags, [])
+        self.assertEqual(actual_ctags, [])
 
-    @istest
-    def content_ctags_add__add_new_ctags_added(self):
+    def test_content_ctags_add__add_new_ctags_added(self):
         # given
         tool = self.tools['universal-ctags']
         tool_id = tool['id']
@@ -721,8 +681,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_ctags, expected_ctags)
 
-    @istest
-    def content_ctags_add__update_in_place(self):
+    def test_content_ctags_add__update_in_place(self):
         # given
         tool = self.tools['universal-ctags']
         tool_id = tool['id']
@@ -803,8 +762,7 @@ class CommonTestStorage(BaseTestStorage):
         ]
         self.assertEqual(actual_ctags, expected_ctags)
 
-    @istest
-    def content_fossology_license_get(self):
+    def test_content_fossology_license_get(self):
         # given
         tool = self.tools['nomos']
         tool_id = tool['id']
@@ -832,8 +790,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(actual_licenses, [expected_license])
 
-    @istest
-    def content_fossology_license_add__new_license_added(self):
+    def test_content_fossology_license_add__new_license_added(self):
         # given
         tool = self.tools['nomos']
         tool_id = tool['id']
@@ -883,8 +840,7 @@ class CommonTestStorage(BaseTestStorage):
         # license did not change as the v2 was dropped.
         self.assertEqual(actual_licenses, [expected_license])
 
-    @istest
-    def content_fossology_license_add__update_in_place_duplicate(self):
+    def test_content_fossology_license_add__update_in_place_duplicate(self):
         # given
         tool = self.tools['nomos']
         tool_id = tool['id']
@@ -934,8 +890,7 @@ class CommonTestStorage(BaseTestStorage):
         }
         self.assertEqual(actual_licenses, [expected_license])
 
-    @istest
-    def content_metadata_missing(self):
+    def test_content_metadata_missing(self):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
@@ -981,8 +936,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(actual_missing, [self.sha1_1])
 
-    @istest
-    def content_metadata_get(self):
+    def test_content_metadata_get(self):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
@@ -1025,8 +979,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_metadata, expected_metadata)
 
-    @istest
-    def content_metadata_add_drop_duplicate(self):
+    def test_content_metadata_add_drop_duplicate(self):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
@@ -1078,8 +1031,7 @@ class CommonTestStorage(BaseTestStorage):
         # metadata did not change as the v2 was dropped.
         self.assertEqual(actual_metadata, expected_metadata_v1)
 
-    @istest
-    def content_metadata_add_update_in_place_duplicate(self):
+    def test_content_metadata_add_update_in_place_duplicate(self):
         # given
         tool_id = self.tools['swh-metadata-translator']['id']
 
@@ -1140,8 +1092,7 @@ class CommonTestStorage(BaseTestStorage):
         # metadata did change as the v2 was used to overwrite v1
         self.assertEqual(actual_metadata, expected_metadata_v2)
 
-    @istest
-    def revision_metadata_missing(self):
+    def test_revision_metadata_missing(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
@@ -1180,7 +1131,6 @@ class CommonTestStorage(BaseTestStorage):
                 'author': None,
                 'relatedLink': None,
                 'url': None,
-                'type': None,
                 'license': None,
                 'maintainer': None,
                 'email': None,
@@ -1197,8 +1147,7 @@ class CommonTestStorage(BaseTestStorage):
         # then
         self.assertEqual(actual_missing, [self.revision_id_2])
 
-    @istest
-    def revision_metadata_get(self):
+    def test_revision_metadata_get(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
@@ -1215,7 +1164,6 @@ class CommonTestStorage(BaseTestStorage):
                 'author': None,
                 'relatedLink': None,
                 'url': None,
-                'type': None,
                 'license': None,
                 'maintainer': None,
                 'email': None,
@@ -1240,8 +1188,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(actual_metadata, expected_metadata)
 
-    @istest
-    def revision_metadata_add_drop_duplicate(self):
+    def test_revision_metadata_add_drop_duplicate(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
@@ -1258,7 +1205,6 @@ class CommonTestStorage(BaseTestStorage):
                 'author': None,
                 'relatedLink': None,
                 'url': None,
-                'type': None,
                 'license': None,
                 'maintainer': None,
                 'email': None,
@@ -1301,8 +1247,7 @@ class CommonTestStorage(BaseTestStorage):
         # metadata did not change as the v2 was dropped.
         self.assertEqual(actual_metadata, expected_metadata_v1)
 
-    @istest
-    def revision_metadata_add_update_in_place_duplicate(self):
+    def test_revision_metadata_add_update_in_place_duplicate(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
@@ -1319,7 +1264,6 @@ class CommonTestStorage(BaseTestStorage):
                 'author': None,
                 'relatedLink': None,
                 'url': None,
-                'type': None,
                 'license': None,
                 'maintainer': None,
                 'email': None,
@@ -1357,7 +1301,6 @@ class CommonTestStorage(BaseTestStorage):
         actual_metadata = list(self.storage.revision_metadata_get(
             [self.revision_id_2]))
 
-        # language did not change as the v2 was dropped.
         expected_metadata_v2 = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_v2['translated_metadata'],
@@ -1367,8 +1310,207 @@ class CommonTestStorage(BaseTestStorage):
         # metadata did change as the v2 was used to overwrite v1
         self.assertEqual(actual_metadata, expected_metadata_v2)
 
-    @istest
-    def indexer_configuration_add(self):
+    def test_origin_intrinsic_metadata_get(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata = {
+            'developmentStatus': None,
+            'version': None,
+            'operatingSystem': None,
+            'description': None,
+            'keywords': None,
+            'issueTracker': None,
+            'name': None,
+            'author': None,
+            'relatedLink': None,
+            'url': None,
+            'license': None,
+            'maintainer': None,
+            'email': None,
+            'softwareRequirements': None,
+            'identifier': None,
+        }
+        metadata_rev = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata,
+            'indexer_configuration_id': tool_id,
+        }
+        metadata_origin = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata,
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_2,
+            }
+
+        # when
+        self.storage.revision_metadata_add([metadata_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin])
+
+        # then
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1, 42]))
+
+        expected_metadata = [{
+            'origin_id': self.origin_id_1,
+            'metadata': metadata,
+            'tool': self.tools['swh-metadata-detector'],
+            'from_revision': self.revision_id_2,
+        }]
+
+        self.assertEqual(actual_metadata, expected_metadata)
+
+    def test_origin_intrinsic_metadata_add_drop_duplicate(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata_v1 = {
+            'developmentStatus': None,
+            'version': None,
+            'operatingSystem': None,
+            'description': None,
+            'keywords': None,
+            'issueTracker': None,
+            'name': None,
+            'author': None,
+            'relatedLink': None,
+            'url': None,
+            'license': None,
+            'maintainer': None,
+            'email': None,
+            'softwareRequirements': None,
+            'identifier': None
+        }
+        metadata_rev_v1 = {
+            'id': self.revision_id_1,
+            'translated_metadata': metadata_v1.copy(),
+            'indexer_configuration_id': tool_id,
+        }
+        metadata_origin_v1 = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v1.copy(),
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_1,
+        }
+
+        # given
+        self.storage.revision_metadata_add([metadata_rev_v1])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin_v1])
+
+        # when
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1, 42]))
+
+        expected_metadata_v1 = [{
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v1,
+            'tool': self.tools['swh-metadata-detector'],
+            'from_revision': self.revision_id_1,
+        }]
+
+        self.assertEqual(actual_metadata, expected_metadata_v1)
+
+        # given
+        metadata_v2 = metadata_v1.copy()
+        metadata_v2.update({
+            'name': 'test_metadata',
+            'author': 'MG',
+        })
+        metadata_rev_v2 = metadata_rev_v1.copy()
+        metadata_origin_v2 = metadata_origin_v1.copy()
+        metadata_rev_v2['translated_metadata'] = metadata_v2
+        metadata_origin_v2['translated_metadata'] = metadata_v2
+
+        self.storage.revision_metadata_add([metadata_rev_v2])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin_v2])
+
+        # then
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1]))
+
+        # metadata did not change as the v2 was dropped.
+        self.assertEqual(actual_metadata, expected_metadata_v1)
+
+    def test_origin_intrinsic_metadata_add_update_in_place_duplicate(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata_v1 = {
+            'developmentStatus': None,
+            'version': None,
+            'operatingSystem': None,
+            'description': None,
+            'keywords': None,
+            'issueTracker': None,
+            'name': None,
+            'author': None,
+            'relatedLink': None,
+            'url': None,
+            'license': None,
+            'maintainer': None,
+            'email': None,
+            'softwareRequirements': None,
+            'identifier': None
+        }
+        metadata_rev_v1 = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata_v1,
+            'indexer_configuration_id': tool_id,
+        }
+        metadata_origin_v1 = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v1.copy(),
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_2,
+        }
+
+        # given
+        self.storage.revision_metadata_add([metadata_rev_v1])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin_v1])
+
+        # when
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1]))
+
+        # then
+        expected_metadata_v1 = [{
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v1,
+            'tool': self.tools['swh-metadata-detector'],
+            'from_revision': self.revision_id_2,
+        }]
+        self.assertEqual(actual_metadata, expected_metadata_v1)
+
+        # given
+        metadata_v2 = metadata_v1.copy()
+        metadata_v2.update({
+            'name': 'test_update_duplicated_metadata',
+            'author': 'MG',
+        })
+        metadata_rev_v2 = metadata_rev_v1.copy()
+        metadata_origin_v2 = metadata_origin_v1.copy()
+        metadata_rev_v2['translated_metadata'] = metadata_v2
+        metadata_origin_v2['metadata'] = metadata_v2
+
+        self.storage.revision_metadata_add([metadata_rev_v2],
+                                           conflict_update=True)
+        self.storage.origin_intrinsic_metadata_add([metadata_origin_v2],
+                                                   conflict_update=True)
+
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1]))
+
+        expected_metadata_v2 = [{
+            'origin_id': self.origin_id_1,
+            'metadata': metadata_v2,
+            'tool': self.tools['swh-metadata-detector'],
+            'from_revision': self.revision_id_2,
+        }]
+
+        # metadata did change as the v2 was used to overwrite v1
+        self.assertEqual(actual_metadata, expected_metadata_v2)
+
+    def test_indexer_configuration_add(self):
         tool = {
             'tool_name': 'some-unknown-tool',
             'tool_version': 'some-version',
@@ -1381,11 +1523,11 @@ class CommonTestStorage(BaseTestStorage):
         # add it
         actual_tools = list(self.storage.indexer_configuration_add([tool]))
 
-        self.assertEquals(len(actual_tools), 1)
+        self.assertEqual(len(actual_tools), 1)
         actual_tool = actual_tools[0]
         self.assertIsNotNone(actual_tool)  # now it exists
         new_id = actual_tool.pop('id')
-        self.assertEquals(actual_tool, tool)
+        self.assertEqual(actual_tool, tool)
 
         actual_tools2 = list(self.storage.indexer_configuration_add([tool]))
         actual_tool2 = actual_tools2[0]
@@ -1395,8 +1537,7 @@ class CommonTestStorage(BaseTestStorage):
         self.assertEqual(new_id, new_id2)
         self.assertEqual(actual_tool, actual_tool2)
 
-    @istest
-    def indexer_configuration_add_multiple(self):
+    def test_indexer_configuration_add_multiple(self):
         tool = {
             'tool_name': 'some-unknown-tool',
             'tool_version': 'some-version',
@@ -1421,8 +1562,7 @@ class CommonTestStorage(BaseTestStorage):
             self.assertIsNotNone(_id)
             self.assertIn(tool, new_tools)
 
-    @istest
-    def indexer_configuration_get_missing(self):
+    def test_indexer_configuration_get_missing(self):
         tool = {
             'tool_name': 'unknown-tool',
             'tool_version': '3.1.0rc2-31-ga2cbb8c',
@@ -1433,8 +1573,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertIsNone(actual_tool)
 
-    @istest
-    def indexer_configuration_get(self):
+    def test_indexer_configuration_get(self):
         tool = {
             'tool_name': 'nomos',
             'tool_version': '3.1.0rc2-31-ga2cbb8c',
@@ -1448,8 +1587,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(expected_tool, actual_tool)
 
-    @istest
-    def indexer_configuration_metadata_get_missing_context(self):
+    def test_indexer_configuration_metadata_get_missing_context(self):
         tool = {
             'tool_name': 'swh-metadata-translator',
             'tool_version': '0.0.1',
@@ -1460,12 +1598,11 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertIsNone(actual_tool)
 
-    @istest
-    def indexer_configuration_metadata_get(self):
+    def test_indexer_configuration_metadata_get(self):
         tool = {
             'tool_name': 'swh-metadata-translator',
             'tool_version': '0.0.1',
-            'tool_configuration': {"type": "local", "context": "npm"},
+            'tool_configuration': {"type": "local", "context": "NpmMapping"},
         }
 
         actual_tool = self.storage.indexer_configuration_get(tool)

@@ -5,7 +5,6 @@
 
 import unittest
 import logging
-from nose.tools import istest
 from swh.indexer import language
 from swh.indexer.language import ContentLanguageIndexer
 from swh.indexer.tests.test_utils import MockObjStorage
@@ -30,7 +29,7 @@ class TestLanguageIndexer(ContentLanguageIndexer):
     """
     def prepare(self):
         self.config = {
-            'destination_queue': None,
+            'destination_task': None,
             'rescheduling_task': None,
             'tools':  {
                 'name': 'pygments',
@@ -45,7 +44,7 @@ class TestLanguageIndexer(ContentLanguageIndexer):
         self.idx_storage = _MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.task_destination = None
+        self.destination_task = None
         self.rescheduling_task = self.config['rescheduling_task']
         self.tool_config = self.config['tools']['configuration']
         self.max_content_size = self.tool_config['max_content_size']
@@ -60,7 +59,6 @@ class Language(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
 
-    @istest
     def test_compute_language_none(self):
         # given
         self.content = ""
@@ -72,7 +70,6 @@ class Language(unittest.TestCase):
         # then
         self.assertEqual(self.declared_language, result)
 
-    @istest
     def test_index_content_language_python(self):
         # given
         # testing python
@@ -91,7 +88,6 @@ class Language(unittest.TestCase):
         # then
         self.assertEqual(expected_results, results)
 
-    @istest
     def test_index_content_language_c(self):
         # given
         # testing c

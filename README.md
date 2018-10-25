@@ -1,5 +1,5 @@
 swh-indexer
-===========
+============
 
 Tools to compute multiple indexes on SWH's raw contents:
 - content:
@@ -11,9 +11,9 @@ Tools to compute multiple indexes on SWH's raw contents:
 - revision:
   - metadata
 
-# Context
+## Context
 
-SWH has currently stored around 3B contents.  The table `content`
+SWH has currently stored around 5B contents.  The table `content`
 holds their checksums.
 
 Those contents are physically stored in an object storage (using
@@ -25,20 +25,24 @@ storages.  As such, we will use that opportunity to trigger the
 computations on these contents once those have been copied over.
 
 
-# Workers
+## Workers
 
-There exists 2 kinds:
+There are two types of workers:
 - orchestrators (orchestrator, orchestrator-text)
 - indexer (mimetype, language, ctags, fossology-license)
 
-## Orchestrator
+### Orchestrator
 
-Orchestrators:
+
+The orchestrator is in charge of dispatching a batch of sha1 hashes to
+different indexers.
+
+Orchestration procedure:
 - receive batch of sha1s
-- split those batches
-- broadcast those to indexers
+- split those batches into groups (according to setup)
+- broadcast those group to indexers
 
-There are 2 sorts:
+There are two types of orchestrators:
 
 - orchestrator (swh_indexer_orchestrator_content_all): Receives and
   broadcast sha1 ids (of contents) to indexers (currently only the
@@ -50,9 +54,17 @@ There are 2 sorts:
   indexers).
 
 
-## Indexers
+### Indexers
 
-Indexers:
+
+An indexer is in charge of the content retrieval and indexation of the
+extracted information in the swh-indexer db.
+
+There are two types of indexers:
+  - content indexer: works with content sha1 hashes
+  - revision indexer: works with revision sha1 hashes
+
+Indexation procedure:
 - receive batch of ids
 - retrieve the associated data depending on object type
 - compute for that object some index
