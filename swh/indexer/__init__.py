@@ -14,13 +14,16 @@ INDEXER_CLASSES = {
 
 
 TASK_NAMES = {
-    'orchestrator_all': 'swh.indexer.tasks.SWHOrchestratorAllContentsTask',
-    'orchestrator_text': 'swh.indexer.tasks.SWHOrchestratorTextContentsTask',
-    'mimetype': 'swh.indexer.tasks.SWHContentMimetypeTask',
-    'language': 'swh.indexer.tasks.SWHContentLanguageTask',
-    'ctags': 'swh.indexer.tasks.SWHCtagsTask',
-    'fossology_license': 'swh.indexer.tasks.SWHContentFossologyLicenseTask',
-    'rehash': 'swh.indexer.tasks.SWHRecomputeChecksumsTask',
+    'orchestrator_all': 'swh.indexer.tasks.OrchestratorAllContents',
+    'orchestrator_text': 'swh.indexer.tasks.OrchestratorTextContents',
+    'mimetype': 'swh.indexer.tasks.ContentMimetype',
+    'language': 'swh.indexer.tasks.ContentLanguage',
+    'ctags': 'swh.indexer.tasks.Ctags',
+    'fossology_license': 'swh.indexer.tasks.ContentFossologyLicense',
+    'rehash': 'swh.indexer.tasks.RecomputeChecksums',
+    'revision_metadata': 'swh.indexer.tasks.RevisionMetadata',
+    'origin_intrinsic_metadata':
+    'swh.indexer.tasks.OriginMetadata',
 }
 
 

@@ -115,16 +115,15 @@ def db_to_metadata(metadata):
     """Convert a metadata entry into a ready metadata output.
 
     """
-    return {
-        'id': metadata['id'],
-        'translated_metadata': metadata['translated_metadata'],
-        'tool': {
-            'id': metadata['tool_id'],
-            'name': metadata['tool_name'],
-            'version': metadata['tool_version'],
-            'configuration': metadata['tool_configuration']
-        }
+    metadata['tool'] = {
+        'id': metadata['tool_id'],
+        'name': metadata['tool_name'],
+        'version': metadata['tool_version'],
+        'configuration': metadata['tool_configuration']
     }
+    del metadata['tool_id'], metadata['tool_configuration']
+    del metadata['tool_version'], metadata['tool_name']
+    return metadata
 
 
 def db_to_fossology_license(license):

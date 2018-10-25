@@ -1,11 +1,10 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import unittest
 import logging
-from nose.tools import istest
 
 from swh.indexer.mimetype import ContentMimetypeIndexer
 
@@ -33,7 +32,7 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
     """
     def prepare(self):
         self.config = {
-            'destination_queue': None,
+            'destination_task': None,
             'rescheduling_task': None,
             'tools': {
                 'name': 'file',
@@ -47,9 +46,9 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
         self.idx_storage = _MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.task_destination = None
+        self.destination_task = None
         self.rescheduling_task = self.config['rescheduling_task']
-        self.destination_queue = self.config['destination_queue']
+        self.destination_task = self.config['destination_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
 
@@ -65,8 +64,7 @@ class TestMimetypeIndexerUnknownToolStorage(TestMimetypeIndexer):
 
 
 class TestMimetypeIndexerWithErrors(unittest.TestCase):
-    @istest
-    def wrong_unknown_configuration_tool(self):
+    def test_wrong_unknown_configuration_tool(self):
         """Indexer with unknown configuration tool should fail the check"""
         with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
             TestMimetypeIndexerUnknownToolStorage()
@@ -76,7 +74,6 @@ class TestMimetypeIndexerTest(unittest.TestCase):
     def setUp(self):
         self.indexer = TestMimetypeIndexer()
 
-    @istest
     def test_index_no_update(self):
         # given
         sha1s = [
@@ -101,9 +98,8 @@ class TestMimetypeIndexerTest(unittest.TestCase):
         }]
 
         self.assertFalse(self.indexer.idx_storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.idx_storage.state)
+        self.assertEqual(expected_results, self.indexer.idx_storage.state)
 
-    @istest
     def test_index_update(self):
         # given
         sha1s = [
@@ -134,9 +130,8 @@ class TestMimetypeIndexerTest(unittest.TestCase):
         }]
 
         self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.idx_storage.state)
+        self.assertEqual(expected_results, self.indexer.idx_storage.state)
 
-    @istest
     def test_index_one_unknown_sha1(self):
         # given
         sha1s = ['688a5ef812c53907562fe379d4b3851e69c7cb15',
@@ -155,4 +150,4 @@ class TestMimetypeIndexerTest(unittest.TestCase):
         }]
 
         self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assertEquals(expected_results, self.indexer.idx_storage.state)
+        self.assertEqual(expected_results, self.indexer.idx_storage.state)

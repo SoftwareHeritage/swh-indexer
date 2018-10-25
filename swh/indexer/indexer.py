@@ -9,6 +9,7 @@ import logging
 import shutil
 import tempfile
 
+from swh.storage import get_storage
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
@@ -78,15 +79,15 @@ class BaseIndexer(SWHConfig,
       storage.
 
     To implement a new object type indexer, inherit from the
-    BaseIndexer and implement the process of indexation:
+    BaseIndexer and implement indexing:
 
     :func:`run`:
       object_ids are different depending on object. For example: sha1 for
       content, sha1_git for revision, directory, release, and id for origin
 
     To implement a new concrete indexer, inherit from the object level
-    classes: :class:`ContentIndexer`, :class:`RevisionIndexer` (later
-    on :class:`OriginIndexer` will also be available)
+    classes: :class:`ContentIndexer`, :class:`RevisionIndexer`,
+    :class:`OriginIndexer`.
 
     Then you need to implement the following functions:
 
@@ -123,13 +124,19 @@ class BaseIndexer(SWHConfig,
         INDEXER_CFG_KEY: ('dict', {
             'cls': 'remote',
             'args': {
-                'db': 'service=swh-indexer-dev'
+                'url': 'http://localhost:5007/'
             }
         }),
 
         # queue to reschedule if problem (none for no rescheduling,
         # the default)
         'rescheduling_task': ('str', None),
+        'storage': ('dict', {
+            'cls': 'remote',
+            'args': {
+                'url': 'http://localhost:5002/',
+            }
+        }),
         'objstorage': ('dict', {
             'cls': 'multiplexer',
             'args': {
@@ -137,7 +144,7 @@ class BaseIndexer(SWHConfig,
                     'cls': 'filtered',
                     'args': {
                         'storage_conf': {
-                            'cls': 'azure-storage',
+                            'cls': 'azure',
                             'args': {
                                 'account_name': '0euwestswh',
                                 'api_secret_key': 'secret',
@@ -153,7 +160,7 @@ class BaseIndexer(SWHConfig,
                     'cls': 'filtered',
                     'args': {
                         'storage_conf': {
-                            'cls': 'azure-storage',
+                            'cls': 'azure',
                             'args': {
                                 'account_name': '1euwestswh',
                                 'api_secret_key': 'secret',
@@ -187,6 +194,8 @@ class BaseIndexer(SWHConfig,
         """
         self.config = self.parse_config_file(
             additional_configs=[self.ADDITIONAL_CONFIG])
+        if self.config['storage']:
+            self.storage = get_storage(**self.config['storage'])
         objstorage = self.config['objstorage']
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         idx_storage = self.config[INDEXER_CFG_KEY]
@@ -310,7 +319,7 @@ class BaseIndexer(SWHConfig,
         pass
 
     @abc.abstractmethod
-    def run(self, ids, policy_update):
+    def run(self, ids, policy_update, **kwargs):
         """Given a list of ids:
 
         - retrieves the data from the storage
@@ -321,6 +330,7 @@ class BaseIndexer(SWHConfig,
             ids ([bytes]): id's identifier list
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
             respectively update duplicates or ignore them
+            **kwargs: passed to the `index` method
 
         """
         pass
@@ -328,8 +338,7 @@ class BaseIndexer(SWHConfig,
 
 class ContentIndexer(BaseIndexer):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
-    implements the process of indexation for Contents using the run
-    method
+    implements Content indexing using the run method
 
     Note: the :class:`ContentIndexer` is not an instantiable
     object. To use it in another context, one should inherit from this
@@ -338,7 +347,7 @@ class ContentIndexer(BaseIndexer):
 
     """
 
-    def run(self, ids, policy_update):
+    def run(self, ids, policy_update, **kwargs):
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -350,6 +359,7 @@ class ContentIndexer(BaseIndexer):
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
                                    respectively update duplicates or ignore
                                    them
+            **kwargs: passed to the `index` method
 
         """
         results = []
@@ -361,12 +371,13 @@ class ContentIndexer(BaseIndexer):
                     self.log.warn('Content %s not found in objstorage' %
                                   hashutil.hash_to_hex(sha1))
                     continue
-                res = self.index(sha1, raw_content)
+                res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
                     results.append(res)
 
             self.persist_index_computations(results, policy_update)
-            self.next_step(results)
+            self.results = results
+            return self.next_step(results)
         except Exception:
             self.log.exception(
                 'Problem when reading contents metadata.')
@@ -375,10 +386,71 @@ class ContentIndexer(BaseIndexer):
                 self.rescheduling_task.delay(ids, policy_update)
 
 
+class OriginIndexer(BaseIndexer):
+    """An object type indexer, inherits from the :class:`BaseIndexer` and
+    implements Origin indexing using the run method
+
+    Note: the :class:`OriginIndexer` is not an instantiable object.
+    To use it in another context one should inherit from this class
+    and override the methods mentioned in the :class:`BaseIndexer`
+    class.
+
+    """
+    def run(self, ids, policy_update, parse_ids=False, **kwargs):
+        """Given a list of origin ids:
+
+        - retrieve origins from storage
+        - execute the indexing computations
+        - store the results (according to policy_update)
+
+        Args:
+            ids ([Union[int, Tuple[str, bytes]]]): list of origin ids or
+                                                   (type, url) tuples.
+            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+                                   respectively update duplicates or ignore
+                                   them
+            parse_ids ([bool]: If `True`, will try to convert `ids`
+                               from a human input to the valid type.
+            **kwargs: passed to the `index` method
+
+        """
+        if parse_ids:
+            ids = [
+                    o.split('+', 1) if ':' in o else int(o)  # type+url or id
+                    for o in ids]
+
+        results = []
+
+        for id_ in ids:
+            if isinstance(id_, (tuple, list)):
+                if len(id_) != 2:
+                    raise TypeError('Expected a (type, url) tuple.')
+                (type_, url) = id_
+                params = {'type': type_, 'url': url}
+            elif isinstance(id_, int):
+                params = {'id': id_}
+            else:
+                raise TypeError('Invalid value in "ids": %r' % id_)
+            origin = self.storage.origin_get(params)
+            if not origin:
+                self.log.warn('Origins %s not found in storage' %
+                              list(ids))
+                continue
+            try:
+                res = self.index(origin, **kwargs)
+                if origin:  # If no results, skip it
+                    results.append(res)
+            except Exception:
+                self.log.exception(
+                        'Problem when processing origin %s' % id_)
+        self.persist_index_computations(results, policy_update)
+        self.results = results
+        return self.next_step(results)
+
+
 class RevisionIndexer(BaseIndexer):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
-    implements the process of indexation for Revisions using the run
-    method
+    implements Revision indexing using the run method
 
     Note: the :class:`RevisionIndexer` is not an instantiable object.
     To use it in another context one should inherit from this class
@@ -416,3 +488,5 @@ class RevisionIndexer(BaseIndexer):
                 self.log.exception(
                         'Problem when processing revision')
         self.persist_index_computations(results, policy_update)
+        self.results = results
+        return self.next_step(results)

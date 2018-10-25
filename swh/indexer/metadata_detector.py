@@ -4,10 +4,7 @@
 # See top-level LICENSE file for more information
 
 
-mapping_filenames = {
-    b"package.json": "npm",
-    b"codemeta.json": "codemeta"
-}
+from swh.indexer.metadata_dictionary import MAPPINGS
 
 
 def detect_metadata(files):
@@ -21,15 +18,10 @@ def detect_metadata(files):
         - dictionary {mapping_filenames[name]:f['sha1']}
     """
     results = {}
-    for f in files:
-        name = f['name'].lower().strip()
-        # TODO: possibility to detect extensions
-        if name in mapping_filenames:
-            tool = mapping_filenames[name]
-            if tool in results:
-                results[tool].append(f['sha1'])
-            else:
-                results[tool] = [f['sha1']]
+    for (mapping_name, mapping) in MAPPINGS.items():
+        matches = mapping.detect_metadata_files(files)
+        if matches:
+            results[mapping_name] = matches
     return results
 
 
@@ -38,7 +30,7 @@ def extract_minimal_metadata_dict(metadata_list):
     Every item in the metadata_list is a dict of translated_metadata in the
     CodeMeta vocabulary
     we wish to extract a minimal set of terms and keep all values corresponding
-    to this term
+    to this term without duplication
     Args:
         - metadata_list (list): list of dicts of translated_metadata
 
@@ -56,7 +48,6 @@ def extract_minimal_metadata_dict(metadata_list):
         "author": [],
         "relatedLink": [],
         "url": [],
-        "type": [],
         "license": [],
         "maintainer": [],
         "email": [],
@@ -65,9 +56,10 @@ def extract_minimal_metadata_dict(metadata_list):
         "codeRepository": []
     }
     for term in minimal_dict.keys():
-        for metadata_dict in metadata_list:
-            if term in metadata_dict:
-                minimal_dict[term].append(metadata_dict[term])
+        for metadata_item in metadata_list:
+            if term in metadata_item:
+                if not metadata_item[term] in minimal_dict[term]:
+                    minimal_dict[term].append(metadata_item[term])
         if not minimal_dict[term]:
             minimal_dict[term] = None
     return minimal_dict

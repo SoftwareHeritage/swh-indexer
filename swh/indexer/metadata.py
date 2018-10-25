@@ -5,8 +5,8 @@
 import click
 import logging
 
-from swh.indexer.indexer import ContentIndexer, RevisionIndexer
-from swh.indexer.metadata_dictionary import compute_metadata
+from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
+from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.storage import INDEXER_CFG_KEY
@@ -34,19 +34,6 @@ class ContentMetadataIndexer(ContentIndexer):
         self.config = config
         self.config['tools'] = tool
         super().__init__()
-
-    def prepare(self):
-        self.results = []
-        if self.config[INDEXER_CFG_KEY]:
-            self.idx_storage = self.config[INDEXER_CFG_KEY]
-        if self.config['objstorage']:
-            self.objstorage = self.config['objstorage']
-        _log = logging.getLogger('requests.packages.urllib3.connectionpool')
-        _log.setLevel(logging.WARN)
-        self.log = logging.getLogger('swh.indexer')
-        self.tools = self.register_tools(self.config['tools'])
-        # NOTE: only one tool so far, change when no longer true
-        self.tool = self.tools[0]
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
@@ -77,8 +64,9 @@ class ContentMetadataIndexer(ContentIndexer):
             'translated_metadata': None
         }
         try:
-            context = self.tool['tool_configuration']['context']
-            result['translated_metadata'] = compute_metadata(context, data)
+            mapping_name = self.tool['tool_configuration']['context']
+            result['translated_metadata'] = MAPPINGS[mapping_name] \
+                .translate(data)
             # a twisted way to keep result with indexer object for get_results
             self.results.append(result)
         except Exception:
@@ -120,7 +108,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
     - filtering revisions already indexed in revision_metadata table with
       defined computation tool
     - retrieve all entry_files in root directory
-    - use metadata_detector for file_names containig metadata
+    - use metadata_detector for file_names containing metadata
     - compute metadata translation if necessary and possible (depends on tool)
     - send sha1s to content indexing if possible
     - store the results for revision
@@ -129,21 +117,17 @@ class RevisionMetadataIndexer(RevisionIndexer):
     CONFIG_BASE_FILENAME = 'indexer/metadata'
 
     ADDITIONAL_CONFIG = {
-        'storage': ('dict', {
-            'cls': 'remote',
-            'args': {
-                'url': 'http://localhost:5002/',
-            }
-        }),
         'tools': ('dict', {
             'name': 'swh-metadata-detector',
-            'version': '0.0.1',
+            'version': '0.0.2',
             'configuration': {
                 'type': 'local',
-                'context': ['npm', 'codemeta']
+                'context': ['NpmMapping', 'CodemetaMapping']
             },
         }),
     }
+
+    ContentMetadataIndexer = ContentMetadataIndexer
 
     def prepare(self):
         super().prepare()
@@ -188,11 +172,11 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
             root_dir = rev['directory']
             dir_ls = self.storage.directory_ls(root_dir, recursive=False)
-            files = (entry for entry in dir_ls if entry['type'] == 'file')
+            files = [entry for entry in dir_ls if entry['type'] == 'file']
             detected_files = detect_metadata(files)
             result['translated_metadata'] = self.translate_revision_metadata(
                                                                 detected_files)
-        except Exception as e:
+        except Exception:
             self.log.exception(
                 'Problem when indexing rev')
         return result
@@ -231,7 +215,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         translated_metadata = []
         tool = {
                 'name': 'swh-metadata-translator',
-                'version': '0.0.1',
+                'version': '0.0.2',
                 'configuration': {
                     'type': 'local',
                     'context': None
@@ -246,7 +230,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         }
         for context in detected_files.keys():
             tool['configuration']['context'] = context
-            c_metadata_indexer = ContentMetadataIndexer(tool, config)
+            c_metadata_indexer = self.ContentMetadataIndexer(tool, config)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
             metadata_generator = self.idx_storage.content_metadata_get(
@@ -283,11 +267,64 @@ class RevisionMetadataIndexer(RevisionIndexer):
         return min_metadata
 
 
+class OriginMetadataIndexer(OriginIndexer):
+    def filter(self, ids):
+        return ids
+
+    def run(self, revisions_metadata, policy_update, *, origin_head_pairs):
+        """Expected to be called with the result of RevisionMetadataIndexer
+        as first argument; ie. not a list of ids as other indexers would.
+
+        Args:
+
+            * `revisions_metadata` (List[dict]): contains metadata from
+              revisions, along with the respective revision ids. It is
+              passed by RevisionMetadataIndexer via a Celery chain
+              triggered by OriginIndexer.next_step.
+            * `policy_update`: `'ignore-dups'` or `'update-dups'`
+            * `origin_head_pairs` (List[dict]): list of dictionaries with
+              keys `origin_id` and `revision_id`, which is the result
+              of OriginHeadIndexer.
+        """
+        origin_head_map = {pair['origin_id']: pair['revision_id']
+                           for pair in origin_head_pairs}
+
+        # Fix up the argument order. revisions_metadata has to be the
+        # first argument because of celery.chain; the next line calls
+        # run() with the usual order, ie. origin ids first.
+        return super().run(ids=list(origin_head_map),
+                           policy_update=policy_update,
+                           revisions_metadata=revisions_metadata,
+                           origin_head_map=origin_head_map)
+
+    def index(self, origin, *, revisions_metadata, origin_head_map):
+        # Get the last revision of the origin.
+        revision_id = origin_head_map[origin['id']]
+
+        # Get the metadata of that revision, and return it
+        for revision_metadata in revisions_metadata:
+            if revision_metadata['id'] == revision_id:
+                return {
+                        'origin_id': origin['id'],
+                        'metadata': revision_metadata['translated_metadata'],
+                        'from_revision': revision_id,
+                        'indexer_configuration_id':
+                        revision_metadata['indexer_configuration_id'],
+                        }
+
+        # If you get this KeyError with a message like this:
+        #   'foo' not in [b'foo']
+        # you should check you're not using JSON as task serializer
+        raise KeyError('%r not in %r' %
+                       (revision_id, [r['id'] for r in revisions_metadata]))
+
+    def persist_index_computations(self, results, policy_update):
+        self.idx_storage.origin_intrinsic_metadata_add(
+            results, conflict_update=(policy_update == 'update-dups'))
+
+
 @click.command()
 @click.option('--revs', '-i',
-              default=['8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
-                       '026040ea79dec1b49b4e3e7beda9132b6b26b51b',
-                       '9699072e21eded4be8d45e3b8d543952533fa190'],
               help='Default sha1_git to lookup', multiple=True)
 def main(revs):
     _git_sha1s = list(map(hashutil.hash_to_bytes, revs))
