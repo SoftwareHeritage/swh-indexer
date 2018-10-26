@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2017  The Software Heritage developers
+# Copyright (C) 2016-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -16,8 +16,6 @@ from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
-from swh.scheduler.utils import get_task
-from swh.scheduler import get_scheduler
 from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
 
 
@@ -66,8 +64,7 @@ class DiskIndexer:
         shutil.rmtree(temp_dir)
 
 
-class BaseIndexer(SWHConfig,
-                  metaclass=abc.ABCMeta):
+class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
 
     The main entry point is the :func:`run` function which is in
@@ -130,10 +127,6 @@ class BaseIndexer(SWHConfig,
                 'url': 'http://localhost:5007/'
             }
         }),
-
-        # queue to reschedule if problem (none for no rescheduling,
-        # the default)
-        'rescheduling_task': ('str', None),
         'storage': ('dict', {
             'cls': 'remote',
             'args': {
@@ -203,11 +196,6 @@ class BaseIndexer(SWHConfig,
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         idx_storage = self.config[INDEXER_CFG_KEY]
         self.idx_storage = get_indexer_storage(**idx_storage)
-        rescheduling_task = self.config['rescheduling_task']
-        if rescheduling_task:
-            self.rescheduling_task = get_task(rescheduling_task)
-        else:
-            self.rescheduling_task = None
 
         _log = logging.getLogger('requests.packages.urllib3.connectionpool')
         _log.setLevel(logging.WARN)
@@ -404,9 +392,6 @@ class ContentIndexer(BaseIndexer):
         except Exception:
             self.log.exception(
                 'Problem when reading contents metadata.')
-            if self.rescheduling_task:
-                self.log.warn('Rescheduling batch')
-                self.rescheduling_task.delay(ids, policy_update)
 
 
 class OriginIndexer(BaseIndexer):
