@@ -10,8 +10,7 @@ import celery
 from swh.indexer.orchestrator import BaseOrchestratorIndexer
 from swh.indexer.indexer import BaseIndexer
 from swh.indexer.tests.test_utils import MockIndexerStorage, MockStorage
-from swh.scheduler.tests.celery_testing import CeleryTestFixture
-from swh.indexer.tests import start_worker_thread
+from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
 
 
 class BaseTestIndexer(BaseIndexer):
@@ -104,6 +103,12 @@ class TestOrchestrator12(BaseOrchestratorIndexer):
 
     def parse_config_file(self):
         return {
+            'scheduler': {
+                'cls': 'remote',
+                'args': {
+                    'url': 'http://localhost:9999',
+                },
+            },
             'indexers': {
                 'indexer1': {
                     'batch_size': 2,
@@ -118,25 +123,36 @@ class TestOrchestrator12(BaseOrchestratorIndexer):
 
 
 class MockedTestOrchestrator12(TestOrchestrator12):
-    def _run_tasks(self, celery_tasks):
-        self.running_tasks.extend(celery_tasks)
+    def __init__(self):
+        super().__init__()
+        self.created_tasks = []
+
+    def _create_tasks(self, celery_tasks):
+        self.created_tasks.extend(celery_tasks)
+
+    def prepare_scheduler(self):
+        pass
 
 
-class OrchestratorTest(CeleryTestFixture, unittest.TestCase):
+class OrchestratorTest(SchedulerTestFixture, unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.add_scheduler_task_type(
+            'indexer1',
+            'swh.indexer.tests.test_orchestrator.indexer1_task')
+        self.add_scheduler_task_type(
+            'indexer2',
+            'swh.indexer.tests.test_orchestrator.indexer2_task')
+
     def test_orchestrator_filter(self):
-        with start_worker_thread():
-            o = TestOrchestrator12()
-            promises = o.run(['id12', 'id2'])
-            results = []
-            for promise in reversed(promises):
-                results.append(promise.get(timeout=10))
-            self.assertCountEqual(
-                    results,
-                    [[['id12_indexed_by_Indexer1']],
-                     [['id12_indexed_by_Indexer2',
-                       'id2_indexed_by_Indexer2']]])
-            self.assertEqual(Indexer2.indexed, [['id12', 'id2']])
-            self.assertEqual(Indexer1.indexed, [['id12']])
+        o = TestOrchestrator12()
+        o.scheduler = self.scheduler
+        o.run(['id12', 'id2'])
+        self.assertEqual(Indexer2.indexed, [])
+        self.assertEqual(Indexer1.indexed, [])
+        self.run_ready_tasks()
+        self.assertEqual(Indexer2.indexed, [['id12', 'id2']])
+        self.assertEqual(Indexer1.indexed, [['id12']])
 
 
 class MockedOrchestratorTest(unittest.TestCase):
@@ -145,51 +161,55 @@ class MockedOrchestratorTest(unittest.TestCase):
     def test_mocked_orchestrator_filter(self):
         o = MockedTestOrchestrator12()
         o.run(['id12', 'id2'])
-        self.assertCountEqual(o.running_tasks, [
-              {'args': (),
-               'chord_size': None,
-               'immutable': False,
-               'kwargs': {'ids': ['id12'],
-                          'policy_update': 'ignore-dups'},
-               'options': {},
-               'subtask_type': None,
-               'task': 'swh.indexer.tests.test_orchestrator.indexer1_task'},
-              {'args': (),
-               'chord_size': None,
-               'immutable': False,
-               'kwargs': {'ids': ['id12', 'id2'],
-                          'policy_update': 'ignore-dups'},
-               'options': {},
-               'subtask_type': None,
-               'task': 'swh.indexer.tests.test_orchestrator.indexer2_task'},
+        for task in o.created_tasks:
+            del task['next_run']  # not worth the trouble testing it properly
+        self.assertCountEqual(o.created_tasks, [
+            {'type': 'indexer1',
+             'arguments': {
+                 'args': [],
+                 'kwargs': {
+                     'ids': ['id12'],
+                     'policy_update': 'ignore-dups'}},
+             'priority': None,
+             'policy': 'oneshot'},
+            {'type': 'indexer2',
+             'arguments': {
+                 'args': [],
+                 'kwargs': {
+                     'ids': ['id12', 'id2'],
+                     'policy_update': 'ignore-dups'}},
+             'priority': None,
+             'policy': 'oneshot'},
             ])
 
     def test_mocked_orchestrator_batch(self):
         o = MockedTestOrchestrator12()
         o.run(['id12', 'id2a', 'id2b', 'id2c'])
-        self.assertCountEqual(o.running_tasks, [
-              {'args': (),
-               'chord_size': None,
-               'immutable': False,
-               'kwargs': {'ids': ['id12'],
-                          'policy_update': 'ignore-dups'},
-               'options': {},
-               'subtask_type': None,
-               'task': 'swh.indexer.tests.test_orchestrator.indexer1_task'},
-              {'args': (),
-               'chord_size': None,
-               'immutable': False,
-               'kwargs': {'ids': ['id12', 'id2a'],
-                          'policy_update': 'ignore-dups'},
-               'options': {},
-               'subtask_type': None,
-               'task': 'swh.indexer.tests.test_orchestrator.indexer2_task'},
-              {'args': (),
-               'chord_size': None,
-               'immutable': False,
-               'kwargs': {'ids': ['id2b', 'id2c'],
-                          'policy_update': 'ignore-dups'},
-               'options': {},
-               'subtask_type': None,
-               'task': 'swh.indexer.tests.test_orchestrator.indexer2_task'},
+        for task in o.created_tasks:
+            del task['next_run']  # not worth the trouble testing it properly
+        self.assertCountEqual(o.created_tasks, [
+            {'type': 'indexer1',
+             'arguments': {
+                 'args': [],
+                 'kwargs': {
+                     'ids': ['id12'],
+                     'policy_update': 'ignore-dups'}},
+             'priority': None,
+             'policy': 'oneshot'},
+            {'type': 'indexer2',
+             'arguments': {
+                 'args': [],
+                 'kwargs': {
+                     'ids': ['id12', 'id2a'],
+                     'policy_update': 'ignore-dups'}},
+             'priority': None,
+             'policy': 'oneshot'},
+            {'type': 'indexer2',
+             'arguments': {
+                 'args': [],
+                 'kwargs': {
+                     'ids': ['id2b', 'id2c'],
+                     'policy_update': 'ignore-dups'}},
+             'priority': None,
+             'policy': 'oneshot'},
             ])
