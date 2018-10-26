@@ -8,6 +8,8 @@ import os
 import logging
 import shutil
 import tempfile
+import datetime
+from copy import deepcopy
 
 from swh.storage import get_storage
 from swh.core.config import SWHConfig
@@ -15,6 +17,7 @@ from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
 from swh.scheduler.utils import get_task
+from swh.scheduler import get_scheduler
 from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
 
 
@@ -302,7 +305,7 @@ class BaseIndexer(SWHConfig,
         """
         pass
 
-    def next_step(self, results):
+    def next_step(self, results, task):
         """Do something else with computations results (e.g. send to another
         queue, ...).
 
@@ -311,15 +314,28 @@ class BaseIndexer(SWHConfig,
         Args:
             results ([result]): List of results (dict) as returned
                                 by index function.
+            task (dict): a dict in the form expected by
+                        `scheduler.backend.SchedulerBackend.create_tasks`
+                        without `next_run`, plus a `result_name` key.
 
         Returns:
             None
 
         """
-        pass
+        if task:
+            if getattr(self, 'scheduler', None):
+                scheduler = self.scheduler
+            else:
+                scheduler = get_scheduler(**self.config['scheduler'])
+            task = deepcopy(task)
+            result_name = task.pop('result_name')
+            task['next_run'] = datetime.datetime.now()
+            task['arguments']['kwargs'][result_name] = self.results
+            scheduler.create_tasks([task])
 
     @abc.abstractmethod
-    def run(self, ids, policy_update, **kwargs):
+    def run(self, ids, policy_update,
+            next_step=None, **kwargs):
         """Given a list of ids:
 
         - retrieves the data from the storage
@@ -328,8 +344,11 @@ class BaseIndexer(SWHConfig,
 
         Args:
             ids ([bytes]): id's identifier list
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update (str): either 'update-dups' or 'ignore-dups' to
             respectively update duplicates or ignore them
+            next_step (dict): a dict in the form expected by
+                        `scheduler.backend.SchedulerBackend.create_tasks`
+                        without `next_run`, plus a `result_name` key.
             **kwargs: passed to the `index` method
 
         """
@@ -347,7 +366,8 @@ class ContentIndexer(BaseIndexer):
 
     """
 
-    def run(self, ids, policy_update, **kwargs):
+    def run(self, ids, policy_update,
+            next_step=None, **kwargs):
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -356,9 +376,12 @@ class ContentIndexer(BaseIndexer):
 
         Args:
             ids ([bytes]): sha1's identifier list
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-                                   respectively update duplicates or ignore
-                                   them
+            policy_update (str): either 'update-dups' or 'ignore-dups' to
+                                 respectively update duplicates or ignore
+                                 them
+            next_step (dict): a dict in the form expected by
+                        `scheduler.backend.SchedulerBackend.create_tasks`
+                        without `next_run`, plus a `result_name` key.
             **kwargs: passed to the `index` method
 
         """
@@ -377,7 +400,7 @@ class ContentIndexer(BaseIndexer):
 
             self.persist_index_computations(results, policy_update)
             self.results = results
-            return self.next_step(results)
+            return self.next_step(results, task=next_step)
         except Exception:
             self.log.exception(
                 'Problem when reading contents metadata.')
@@ -396,7 +419,8 @@ class OriginIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, ids, policy_update, parse_ids=False, **kwargs):
+    def run(self, ids, policy_update,
+            parse_ids=False, next_step=None, **kwargs):
         """Given a list of origin ids:
 
         - retrieve origins from storage
@@ -406,11 +430,14 @@ class OriginIndexer(BaseIndexer):
         Args:
             ids ([Union[int, Tuple[str, bytes]]]): list of origin ids or
                                                    (type, url) tuples.
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update (str): either 'update-dups' or 'ignore-dups' to
                                    respectively update duplicates or ignore
                                    them
-            parse_ids ([bool]: If `True`, will try to convert `ids`
+            parse_ids (bool: If `True`, will try to convert `ids`
                                from a human input to the valid type.
+            next_step (dict): a dict in the form expected by
+                        `scheduler.backend.SchedulerBackend.create_tasks`
+                        without `next_run`, plus a `result_name` key.
             **kwargs: passed to the `index` method
 
         """
@@ -445,7 +472,7 @@ class OriginIndexer(BaseIndexer):
                         'Problem when processing origin %s' % id_)
         self.persist_index_computations(results, policy_update)
         self.results = results
-        return self.next_step(results)
+        return self.next_step(results, task=next_step)
 
 
 class RevisionIndexer(BaseIndexer):
@@ -458,7 +485,7 @@ class RevisionIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, ids, policy_update):
+    def run(self, ids, policy_update, next_step=None):
         """Given a list of sha1_gits:
 
         - retrieve revisions from storage
@@ -466,13 +493,15 @@ class RevisionIndexer(BaseIndexer):
         - store the results (according to policy_update)
 
         Args:
-            ids ([bytes]): sha1_git's identifier list
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-                                   respectively update duplicates or ignore
-                                   them
+            ids ([bytes or str]): sha1_git's identifier list
+            policy_update (str): either 'update-dups' or 'ignore-dups' to
+                                 respectively update duplicates or ignore
+                                 them
 
         """
         results = []
+        ids = [id_.encode() if isinstance(id_, str) else id_
+               for id_ in ids]
         revs = self.storage.revision_get(ids)
 
         for rev in revs:
@@ -489,4 +518,4 @@ class RevisionIndexer(BaseIndexer):
                         'Problem when processing revision')
         self.persist_index_computations(results, policy_update)
         self.results = results
-        return self.next_step(results)
+        return self.next_step(results, task=next_step)

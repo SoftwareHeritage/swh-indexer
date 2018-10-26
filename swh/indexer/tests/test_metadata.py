@@ -346,7 +346,7 @@ class Metadata(unittest.TestCase):
         results = metadata_indexer.idx_storage.added_data
 
         expected_results = [('revision_metadata', True, [{
-            'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
             'translated_metadata': {
                 'identifier': None,
                 'maintainer': None,
