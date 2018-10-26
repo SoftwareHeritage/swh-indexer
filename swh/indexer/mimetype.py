@@ -7,7 +7,8 @@ import click
 import magic
 
 from swh.model import hashutil
-from swh.scheduler import utils
+from swh.scheduler import get_scheduler
+from swh.scheduler.utils import create_task_dict
 
 from .indexer import ContentIndexer
 
@@ -40,6 +41,12 @@ class ContentMimetypeIndexer(ContentIndexer):
 
     """
     ADDITIONAL_CONFIG = {
+        'scheduler': {
+            'cls': 'remote',
+            'args': {
+                'url': 'http://localhost:5008',
+            },
+        },
         'destination_task': ('str', None),
         'tools': ('dict', {
             'name': 'file',
@@ -55,11 +62,8 @@ class ContentMimetypeIndexer(ContentIndexer):
 
     def prepare(self):
         super().prepare()
-        destination_task = self.config.get('destination_task')
-        if destination_task:
-            self.destination_task = utils.get_task(destination_task)
-        else:
-            self.destination_task = None
+        self.destination_task = self.config.get('destination_task')
+        self.scheduler = get_scheduler(**self.config['scheduler'])
         self.tool = self.tools[0]
 
     def filter(self, ids):
@@ -142,7 +146,12 @@ class ContentMimetypeIndexer(ContentIndexer):
 
         """
         if self.destination_task:
-            self.destination_task.delay(list(self._filter_text(results)))
+            assert self.scheduler
+            self.scheduler.create_tasks([create_task_dict(
+                self.destination_task,
+                'oneshot',
+                list(self._filter_text(results))
+                )])
 
 
 @click.command()
