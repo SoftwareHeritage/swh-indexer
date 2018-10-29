@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2017  The Software Heritage developers
+# Copyright (C) 2016-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -8,13 +8,15 @@ import os
 import logging
 import shutil
 import tempfile
+import datetime
+from copy import deepcopy
 
+from swh.scheduler import get_scheduler
 from swh.storage import get_storage
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
-from swh.scheduler.utils import get_task
 from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
 
 
@@ -63,8 +65,7 @@ class DiskIndexer:
         shutil.rmtree(temp_dir)
 
 
-class BaseIndexer(SWHConfig,
-                  metaclass=abc.ABCMeta):
+class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
 
     The main entry point is the :func:`run` function which is in
@@ -127,10 +128,6 @@ class BaseIndexer(SWHConfig,
                 'url': 'http://localhost:5007/'
             }
         }),
-
-        # queue to reschedule if problem (none for no rescheduling,
-        # the default)
-        'rescheduling_task': ('str', None),
         'storage': ('dict', {
             'cls': 'remote',
             'args': {
@@ -200,11 +197,6 @@ class BaseIndexer(SWHConfig,
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         idx_storage = self.config[INDEXER_CFG_KEY]
         self.idx_storage = get_indexer_storage(**idx_storage)
-        rescheduling_task = self.config['rescheduling_task']
-        if rescheduling_task:
-            self.rescheduling_task = get_task(rescheduling_task)
-        else:
-            self.rescheduling_task = None
 
         _log = logging.getLogger('requests.packages.urllib3.connectionpool')
         _log.setLevel(logging.WARN)
@@ -302,7 +294,7 @@ class BaseIndexer(SWHConfig,
         """
         pass
 
-    def next_step(self, results):
+    def next_step(self, results, task):
         """Do something else with computations results (e.g. send to another
         queue, ...).
 
@@ -311,15 +303,28 @@ class BaseIndexer(SWHConfig,
         Args:
             results ([result]): List of results (dict) as returned
                                 by index function.
+            task (dict): a dict in the form expected by
+                        `scheduler.backend.SchedulerBackend.create_tasks`
+                        without `next_run`, plus a `result_name` key.
 
         Returns:
             None
 
         """
-        pass
+        if task:
+            if getattr(self, 'scheduler', None):
+                scheduler = self.scheduler
+            else:
+                scheduler = get_scheduler(**self.config['scheduler'])
+            task = deepcopy(task)
+            result_name = task.pop('result_name')
+            task['next_run'] = datetime.datetime.now()
+            task['arguments']['kwargs'][result_name] = self.results
+            scheduler.create_tasks([task])
 
     @abc.abstractmethod
-    def run(self, ids, policy_update, **kwargs):
+    def run(self, ids, policy_update,
+            next_step=None, **kwargs):
         """Given a list of ids:
 
         - retrieves the data from the storage
@@ -328,8 +333,11 @@ class BaseIndexer(SWHConfig,
 
         Args:
             ids ([bytes]): id's identifier list
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update (str): either 'update-dups' or 'ignore-dups' to
             respectively update duplicates or ignore them
+            next_step (dict): a dict in the form expected by
+                        `scheduler.backend.SchedulerBackend.create_tasks`
+                        without `next_run`, plus a `result_name` key.
             **kwargs: passed to the `index` method
 
         """
@@ -347,7 +355,8 @@ class ContentIndexer(BaseIndexer):
 
     """
 
-    def run(self, ids, policy_update, **kwargs):
+    def run(self, ids, policy_update,
+            next_step=None, **kwargs):
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -356,9 +365,12 @@ class ContentIndexer(BaseIndexer):
 
         Args:
             ids ([bytes]): sha1's identifier list
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-                                   respectively update duplicates or ignore
-                                   them
+            policy_update (str): either 'update-dups' or 'ignore-dups' to
+                                 respectively update duplicates or ignore
+                                 them
+            next_step (dict): a dict in the form expected by
+                        `scheduler.backend.SchedulerBackend.create_tasks`
+                        without `next_run`, plus a `result_name` key.
             **kwargs: passed to the `index` method
 
         """
@@ -368,8 +380,8 @@ class ContentIndexer(BaseIndexer):
                 try:
                     raw_content = self.objstorage.get(sha1)
                 except ObjNotFoundError:
-                    self.log.warn('Content %s not found in objstorage' %
-                                  hashutil.hash_to_hex(sha1))
+                    self.log.warning('Content %s not found in objstorage' %
+                                     hashutil.hash_to_hex(sha1))
                     continue
                 res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
@@ -377,13 +389,10 @@ class ContentIndexer(BaseIndexer):
 
             self.persist_index_computations(results, policy_update)
             self.results = results
-            return self.next_step(results)
+            return self.next_step(results, task=next_step)
         except Exception:
             self.log.exception(
                 'Problem when reading contents metadata.')
-            if self.rescheduling_task:
-                self.log.warn('Rescheduling batch')
-                self.rescheduling_task.delay(ids, policy_update)
 
 
 class OriginIndexer(BaseIndexer):
@@ -396,7 +405,8 @@ class OriginIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, ids, policy_update, parse_ids=False, **kwargs):
+    def run(self, ids, policy_update,
+            parse_ids=False, next_step=None, **kwargs):
         """Given a list of origin ids:
 
         - retrieve origins from storage
@@ -406,11 +416,14 @@ class OriginIndexer(BaseIndexer):
         Args:
             ids ([Union[int, Tuple[str, bytes]]]): list of origin ids or
                                                    (type, url) tuples.
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update (str): either 'update-dups' or 'ignore-dups' to
                                    respectively update duplicates or ignore
                                    them
-            parse_ids ([bool]: If `True`, will try to convert `ids`
+            parse_ids (bool: If `True`, will try to convert `ids`
                                from a human input to the valid type.
+            next_step (dict): a dict in the form expected by
+                        `scheduler.backend.SchedulerBackend.create_tasks`
+                        without `next_run`, plus a `result_name` key.
             **kwargs: passed to the `index` method
 
         """
@@ -433,8 +446,8 @@ class OriginIndexer(BaseIndexer):
                 raise TypeError('Invalid value in "ids": %r' % id_)
             origin = self.storage.origin_get(params)
             if not origin:
-                self.log.warn('Origins %s not found in storage' %
-                              list(ids))
+                self.log.warning('Origins %s not found in storage' %
+                                 list(ids))
                 continue
             try:
                 res = self.index(origin, **kwargs)
@@ -445,7 +458,7 @@ class OriginIndexer(BaseIndexer):
                         'Problem when processing origin %s' % id_)
         self.persist_index_computations(results, policy_update)
         self.results = results
-        return self.next_step(results)
+        return self.next_step(results, task=next_step)
 
 
 class RevisionIndexer(BaseIndexer):
@@ -458,7 +471,7 @@ class RevisionIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, ids, policy_update):
+    def run(self, ids, policy_update, next_step=None):
         """Given a list of sha1_gits:
 
         - retrieve revisions from storage
@@ -466,19 +479,21 @@ class RevisionIndexer(BaseIndexer):
         - store the results (according to policy_update)
 
         Args:
-            ids ([bytes]): sha1_git's identifier list
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-                                   respectively update duplicates or ignore
-                                   them
+            ids ([bytes or str]): sha1_git's identifier list
+            policy_update (str): either 'update-dups' or 'ignore-dups' to
+                                 respectively update duplicates or ignore
+                                 them
 
         """
         results = []
+        ids = [id_.encode() if isinstance(id_, str) else id_
+               for id_ in ids]
         revs = self.storage.revision_get(ids)
 
         for rev in revs:
             if not rev:
-                self.log.warn('Revisions %s not found in storage' %
-                              list(map(hashutil.hash_to_hex, ids)))
+                self.log.warning('Revisions %s not found in storage' %
+                                 list(map(hashutil.hash_to_hex, ids)))
                 continue
             try:
                 res = self.index(rev)
@@ -489,4 +504,4 @@ class RevisionIndexer(BaseIndexer):
                         'Problem when processing revision')
         self.persist_index_computations(results, policy_update)
         self.results = results
-        return self.next_step(results)
+        return self.next_step(results, task=next_step)
