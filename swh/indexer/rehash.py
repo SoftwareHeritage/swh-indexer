@@ -131,8 +131,8 @@ class RecomputeChecksums(SWHConfig):
                 try:
                     raw_content = self.objstorage.get(content['sha1'])
                 except ObjNotFoundError:
-                    self.log.warn('Content %s not found in objstorage!' %
-                                  content['sha1'])
+                    self.log.warning('Content %s not found in objstorage!' %
+                                     content['sha1'])
                     continue
 
                 content_hashes = hashutil.MultiHash.from_data(

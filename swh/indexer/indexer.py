@@ -379,8 +379,8 @@ class ContentIndexer(BaseIndexer):
                 try:
                     raw_content = self.objstorage.get(sha1)
                 except ObjNotFoundError:
-                    self.log.warn('Content %s not found in objstorage' %
-                                  hashutil.hash_to_hex(sha1))
+                    self.log.warning('Content %s not found in objstorage' %
+                                     hashutil.hash_to_hex(sha1))
                     continue
                 res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
@@ -445,8 +445,8 @@ class OriginIndexer(BaseIndexer):
                 raise TypeError('Invalid value in "ids": %r' % id_)
             origin = self.storage.origin_get(params)
             if not origin:
-                self.log.warn('Origins %s not found in storage' %
-                              list(ids))
+                self.log.warning('Origins %s not found in storage' %
+                                 list(ids))
                 continue
             try:
                 res = self.index(origin, **kwargs)
@@ -491,8 +491,8 @@ class RevisionIndexer(BaseIndexer):
 
         for rev in revs:
             if not rev:
-                self.log.warn('Revisions %s not found in storage' %
-                              list(map(hashutil.hash_to_hex, ids)))
+                self.log.warning('Revisions %s not found in storage' %
+                                 list(map(hashutil.hash_to_hex, ids)))
                 continue
             try:
                 res = self.index(rev)

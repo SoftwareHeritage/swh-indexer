@@ -260,7 +260,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
                         translated_metadata.append(local_metadata)
 
                 except Exception as e:
-                    self.log.warn("""Exception while indexing content""", e)
+                    self.log.warning("""Exception while indexing content""", e)
 
         # transform translated_metadata into min set with swh-metadata-detector
         min_metadata = extract_minimal_metadata_dict(translated_metadata)
