@@ -25,7 +25,7 @@ class _MockIndexerStorage():
         }]
 
 
-class TestMimetypeIndexer(ContentMimetypeIndexer):
+class MimetypeTestIndexer(ContentMimetypeIndexer):
     """Specific mimetype whose configuration is enough to satisfy the
        indexing tests.
 
@@ -50,7 +50,7 @@ class TestMimetypeIndexer(ContentMimetypeIndexer):
         self.tool = self.tools[0]
 
 
-class TestMimetypeIndexerUnknownToolStorage(TestMimetypeIndexer):
+class MimetypeIndexerUnknownToolTestStorage(MimetypeTestIndexer):
     """Specific mimetype whose configuration is not enough to satisfy the
        indexing tests.
 
@@ -64,12 +64,12 @@ class TestMimetypeIndexerWithErrors(unittest.TestCase):
     def test_wrong_unknown_configuration_tool(self):
         """Indexer with unknown configuration tool should fail the check"""
         with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
-            TestMimetypeIndexerUnknownToolStorage()
+            MimetypeIndexerUnknownToolTestStorage()
 
 
-class TestMimetypeIndexerTest(unittest.TestCase):
+class TestMimetypeIndexer(unittest.TestCase):
     def setUp(self):
-        self.indexer = TestMimetypeIndexer()
+        self.indexer = MimetypeTestIndexer()
 
     def test_index_no_update(self):
         # given

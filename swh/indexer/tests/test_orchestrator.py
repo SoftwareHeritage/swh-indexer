@@ -84,7 +84,7 @@ def indexer3_task(self, *args, **kwargs):
     return Indexer3().run(*args, **kwargs)
 
 
-class TestOrchestrator12(BaseOrchestratorIndexer):
+class BaseTestOrchestrator12(BaseOrchestratorIndexer):
     TASK_NAMES = {
             'indexer1': 'swh.indexer.tests.test_orchestrator.indexer1_task',
             'indexer2': 'swh.indexer.tests.test_orchestrator.indexer2_task',
@@ -122,7 +122,7 @@ class TestOrchestrator12(BaseOrchestratorIndexer):
         }
 
 
-class MockedTestOrchestrator12(TestOrchestrator12):
+class MockedTestOrchestrator12(BaseTestOrchestrator12):
     def __init__(self):
         super().__init__()
         self.created_tasks = []
@@ -145,7 +145,7 @@ class OrchestratorTest(SchedulerTestFixture, unittest.TestCase):
             'swh.indexer.tests.test_orchestrator.indexer2_task')
 
     def test_orchestrator_filter(self):
-        o = TestOrchestrator12()
+        o = BaseTestOrchestrator12()
         o.scheduler = self.scheduler
         o.run(['id12', 'id2'])
         self.assertEqual(Indexer2.indexed, [])

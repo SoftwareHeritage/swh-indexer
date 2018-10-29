@@ -11,13 +11,13 @@ from celery import task
 from swh.indexer.metadata import OriginMetadataIndexer
 from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
 from swh.indexer.tests.test_utils import MockIndexerStorage
-from swh.indexer.tests.test_origin_head import TestOriginHeadIndexer
-from swh.indexer.tests.test_metadata import TestRevisionMetadataIndexer
+from swh.indexer.tests.test_origin_head import OriginHeadTestIndexer
+from swh.indexer.tests.test_metadata import RevisionMetadataTestIndexer
 
 from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
 
 
-class TestOriginMetadataIndexer(OriginMetadataIndexer):
+class OriginMetadataTestIndexer(OriginMetadataIndexer):
     def prepare(self):
         self.config = {
             'storage': {
@@ -44,19 +44,19 @@ class TestOriginMetadataIndexer(OriginMetadataIndexer):
 
 @task
 def revision_metadata_test_task(*args, **kwargs):
-    indexer = TestRevisionMetadataIndexer()
+    indexer = RevisionMetadataTestIndexer()
     indexer.run(*args, **kwargs)
     return indexer.results
 
 
 @task
 def origin_intrinsic_metadata_test_task(*args, **kwargs):
-    indexer = TestOriginMetadataIndexer()
+    indexer = OriginMetadataTestIndexer()
     indexer.run(*args, **kwargs)
     return indexer.results
 
 
-class TestOriginHeadIndexer(TestOriginHeadIndexer):
+class OriginHeadTestIndexer(OriginHeadTestIndexer):
     revision_metadata_task = 'revision_metadata_test_task'
     origin_intrinsic_metadata_task = 'origin_intrinsic_metadata_test_task'
 
@@ -74,14 +74,14 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
             'origin_intrinsic_metadata_test_task',
             'swh.indexer.tests.test_origin_metadata.'
             'origin_intrinsic_metadata_test_task')
-        TestRevisionMetadataIndexer.scheduler = self.scheduler
+        RevisionMetadataTestIndexer.scheduler = self.scheduler
 
     def tearDown(self):
-        del TestRevisionMetadataIndexer.scheduler
+        del RevisionMetadataTestIndexer.scheduler
         super().tearDown()
 
     def test_pipeline(self):
-        indexer = TestOriginHeadIndexer()
+        indexer = OriginHeadTestIndexer()
         indexer.scheduler = self.scheduler
         indexer.run(
                 ["git+https://github.com/librariesio/yarn-parser"],

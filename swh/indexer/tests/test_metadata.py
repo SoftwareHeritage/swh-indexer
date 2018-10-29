@@ -15,7 +15,7 @@ from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
 from swh.indexer.tests.test_utils import MockIndexerStorage
 
 
-class TestContentMetadataIndexer(ContentMetadataIndexer):
+class ContentMetadataTestIndexer(ContentMetadataIndexer):
     """Specific Metadata whose configuration is enough to satisfy the
        indexing tests.
     """
@@ -29,12 +29,12 @@ class TestContentMetadataIndexer(ContentMetadataIndexer):
         self.results = []
 
 
-class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
+class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
     """Specific indexer whose configuration is enough to satisfy the
        indexing tests.
     """
 
-    ContentMetadataIndexer = TestContentMetadataIndexer
+    ContentMetadataIndexer = ContentMetadataTestIndexer
 
     def prepare(self):
         self.config = {
@@ -223,7 +223,7 @@ class Metadata(unittest.TestCase):
                  '02fb2c89e14f7fab46701478c83779c7beb7b069']
         # this metadata indexer computes only metadata for package.json
         # in npm context with a hard mapping
-        metadata_indexer = TestContentMetadataIndexer(
+        metadata_indexer = ContentMetadataTestIndexer(
             tool=self.content_tool, config={})
 
         # when
@@ -330,7 +330,7 @@ class Metadata(unittest.TestCase):
         self.assertEqual(expected_results, results)
 
     def test_revision_metadata_indexer(self):
-        metadata_indexer = TestRevisionMetadataIndexer()
+        metadata_indexer = RevisionMetadataTestIndexer()
 
         sha1_gits = [
             b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',

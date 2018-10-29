@@ -23,7 +23,7 @@ class _MockIndexerStorage():
         }]
 
 
-class TestLanguageIndexer(ContentLanguageIndexer):
+class LanguageTestIndexer(ContentLanguageIndexer):
     """Specific language whose configuration is enough to satisfy the
        indexing tests.
     """
@@ -72,7 +72,7 @@ class Language(unittest.TestCase):
         # given
         # testing python
         sha1s = ['02fb2c89e14f7fab46701478c83779c7beb7b069']
-        lang_indexer = TestLanguageIndexer()
+        lang_indexer = LanguageTestIndexer()
 
         # when
         lang_indexer.run(sha1s, policy_update='ignore-dups')
@@ -90,7 +90,7 @@ class Language(unittest.TestCase):
         # given
         # testing c
         sha1s = ['103bc087db1d26afc3a0283f38663d081e9b01e6']
-        lang_indexer = TestLanguageIndexer()
+        lang_indexer = LanguageTestIndexer()
 
         # when
         lang_indexer.run(sha1s, policy_update='ignore-dups')
