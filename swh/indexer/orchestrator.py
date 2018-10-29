@@ -41,10 +41,10 @@ class BaseOrchestratorIndexer(SWHConfig):
     For example::
 
         indexers:
-          mimetype:
+          indexer_mimetype:
             batch_size: 10
             check_presence: false
-          language:
+          indexer_language:
             batch_size: 2
             check_presence: true
 
@@ -67,7 +67,7 @@ class BaseOrchestratorIndexer(SWHConfig):
             },
         },
         'indexers': ('dict', {
-            'mimetype': {
+            'indexer_mimetype': {
                 'batch_size': 10,
                 'check_presence': True,
             },
