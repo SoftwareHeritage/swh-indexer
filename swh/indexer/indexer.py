@@ -11,6 +11,7 @@ import tempfile
 import datetime
 from copy import deepcopy
 
+from swh.scheduler import get_scheduler
 from swh.storage import get_storage
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
