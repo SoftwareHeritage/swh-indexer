@@ -22,12 +22,16 @@ with open(CODEMETA_CONTEXT_PATH) as fd:
 
 CODEMETA_CONTEXT_URL = 'https://doi.org/10.5063/schema/codemeta-2.0'
 CODEMETA_URI = 'https://codemeta.github.io/terms/'
+SCHEMA_URI = 'http://schema.org/'
 
 
-# CodeMeta properties that we cannot properly represent.
 PROPERTY_BLACKLIST = {
-    'https://codemeta.github.io/terms/softwareRequirements',
-    'https://codemeta.github.io/terms/softwareSuggestions',
+    # CodeMeta properties that we cannot properly represent.
+    CODEMETA_URI + 'softwareRequirements',
+    CODEMETA_URI + 'softwareSuggestions',
+
+    # Duplicate of 'author'
+    CODEMETA_URI + 'creator',
     }
 
 

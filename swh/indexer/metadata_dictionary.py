@@ -3,11 +3,12 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import re
 import abc
 import json
 import logging
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, compact
+from swh.indexer.codemeta import CROSSWALK_TABLE, CODEMETA_URI, compact
 
 
 MAPPINGS = {}
@@ -145,11 +146,63 @@ class NpmMapping(JsonMapping):
     mapping = CROSSWALK_TABLE['NodeJS']
     filename = b'package.json'
 
+    _schema_shortcuts = {
+            'github': 'https://github.com/',
+            'gist': 'https://gist.github.com/',
+            'bitbucket': 'https://bitbucket.org/',
+            'gitlab': 'https://gitlab.com/',
+            }
+
     def normalize_repository(self, d):
-        return '{type}+{url}'.format(**d)
+        """https://docs.npmjs.com/files/package.json#repository"""
+        if isinstance(d, dict):
+            return '{type}+{url}'.format(**d)
+        elif isinstance(d, str):
+            if '://' in d:
+                return d
+            elif ':' in d:
+                (schema, rest) = d.split(':', 1)
+                if schema in self._schema_shortcuts:
+                    return self._schema_shortcuts[schema] + rest
+                else:
+                    return None
+            else:
+                return self._schema_shortcuts['github'] + d
+
+        else:
+            return None
 
     def normalize_bugs(self, d):
         return '{url}'.format(**d)
+
+    _parse_author = re.compile(r'^ *'
+                               r'(?P<name>.*?)'
+                               r'( +<(?P<email>.*)>)?'
+                               r'( +\((?P<url>.*)\))?'
+                               r' *$')
+
+    def normalize_author(self, d):
+        'https://docs.npmjs.com/files/package.json' \
+                '#people-fields-author-contributors'
+        author = {'@type': CODEMETA_URI+'Person'}
+        if isinstance(d, dict):
+            name = d.get('name', None)
+            email = d.get('email', None)
+            url = d.get('url', None)
+        elif isinstance(d, str):
+            match = self._parse_author.match(d)
+            name = match.group('name')
+            email = match.group('email')
+            url = match.group('url')
+        else:
+            return None
+        if name:
+            author[CODEMETA_URI+'name'] = name
+        if email:
+            author[CODEMETA_URI+'email'] = email
+        if url:
+            author[CODEMETA_URI+'url'] = url
+        return author
 
 
 @register_mapping

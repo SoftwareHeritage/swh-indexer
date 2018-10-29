@@ -89,7 +89,7 @@ class Metadata(unittest.TestCase):
             'cpu': 'https://codemeta.github.io/terms/processorRequirements',
             'engines':
                 'https://codemeta.github.io/terms/processorRequirements',
-            'author': 'https://codemeta.github.io/terms/creator',
+            'author': 'https://codemeta.github.io/terms/author',
             'author.email': 'https://codemeta.github.io/terms/email',
             'author.name': 'https://codemeta.github.io/terms/name',
             'contributor': 'https://codemeta.github.io/terms/contributor',
@@ -130,6 +130,10 @@ class Metadata(unittest.TestCase):
                   "repository": {
                     "type": "git",
                     "url": "https://github.com/moranegg/metadata_test"
+                },
+                "author": {
+                    "email": "moranegg@example.com",
+                    "name": "Morane G"
                 }
             }
         """
@@ -140,6 +144,11 @@ class Metadata(unittest.TestCase):
             'codemeta:description': 'Simple package.json test for indexer',
             'codemeta:codeRepository':
                 'git+https://github.com/moranegg/metadata_test',
+            'codemeta:author': {
+                'type': 'codemeta:Person',
+                'codemeta:name': 'Morane G',
+                'codemeta:email': 'moranegg@example.com',
+            },
         }
 
         # when
@@ -224,8 +233,12 @@ class Metadata(unittest.TestCase):
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'codemeta:issueTracker':
                     'https://github.com/npm/npm/issues',
-                'codemeta:creator':
-                    'Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)',
+                'codemeta:author': {
+                    'type': 'codemeta:Person',
+                    'codemeta:name': 'Isaac Z. Schlueter',
+                    'codemeta:email': 'i@izs.me',
+                    'codemeta:url': 'http://blog.izs.me',
+                },
                 'codemeta:codeRepository':
                     'git+https://github.com/npm/npm',
                 'codemeta:description': 'a package manager for JavaScript',
