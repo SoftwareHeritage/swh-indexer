@@ -5,24 +5,24 @@
 
 
 INDEXER_CLASSES = {
-    'mimetype': 'swh.indexer.mimetype.ContentMimetypeIndexer',
-    'language': 'swh.indexer.language.ContentLanguageIndexer',
-    'ctags': 'swh.indexer.ctags.CtagsIndexer',
-    'fossology_license':
+    'indexer_mimetype': 'swh.indexer.mimetype.ContentMimetypeIndexer',
+    'indexer_language': 'swh.indexer.language.ContentLanguageIndexer',
+    'indexer_ctags': 'swh.indexer.ctags.CtagsIndexer',
+    'indexer_fossology_license':
     'swh.indexer.fossology_license.ContentFossologyLicenseIndexer',
 }
 
 
 TASK_NAMES = {
-    'orchestrator_all': 'swh.indexer.tasks.OrchestratorAllContents',
-    'orchestrator_text': 'swh.indexer.tasks.OrchestratorTextContents',
-    'mimetype': 'swh.indexer.tasks.ContentMimetype',
-    'language': 'swh.indexer.tasks.ContentLanguage',
-    'ctags': 'swh.indexer.tasks.Ctags',
-    'fossology_license': 'swh.indexer.tasks.ContentFossologyLicense',
-    'rehash': 'swh.indexer.tasks.RecomputeChecksums',
-    'revision_metadata': 'swh.indexer.tasks.RevisionMetadata',
-    'origin_intrinsic_metadata': 'swh.indexer.tasks.OriginMetadata',
+    'indexer_orchestrator_all': 'swh.indexer.tasks.OrchestratorAllContents',
+    'indexer_orchestrator_text': 'swh.indexer.tasks.OrchestratorTextContents',
+    'indexer_mimetype': 'swh.indexer.tasks.ContentMimetype',
+    'indexer_language': 'swh.indexer.tasks.ContentLanguage',
+    'indexer_ctags': 'swh.indexer.tasks.Ctags',
+    'indexer_fossology_license': 'swh.indexer.tasks.ContentFossologyLicense',
+    'indexer_rehash': 'swh.indexer.tasks.RecomputeChecksums',
+    'indexer_revision_metadata': 'swh.indexer.tasks.RevisionMetadata',
+    'indexer_origin_intrinsic_metadata': 'swh.indexer.tasks.OriginMetadata',
 }
 
 
