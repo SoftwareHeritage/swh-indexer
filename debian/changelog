@@ -1,3 +1,13 @@
+swh-indexer (0.0.55-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.55
+  * swh.indexer: Let task reschedule itself through the scheduler
+  * Use swh.scheduler instead of celery leaking all around
+  * swh.indexer.orchestrator: Fix orchestrator initialization step
+  * swh.indexer.tasks: Fix type error when no result or list result
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 29 Oct 2018 10:41:54 +0100
+
 swh-indexer (0.0.54-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.54
