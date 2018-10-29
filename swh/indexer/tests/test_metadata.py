@@ -1,4 +1,4 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -20,14 +20,10 @@ class TestContentMetadataIndexer(ContentMetadataIndexer):
        indexing tests.
     """
     def prepare(self):
-        self.config.update({
-            'rescheduling_task': None,
-        })
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.destination_task = None
-        self.rescheduling_task = self.config['rescheduling_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
         self.results = []
@@ -42,7 +38,6 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
 
     def prepare(self):
         self.config = {
-            'rescheduling_task': None,
             'storage': {
                 'cls': 'remote',
                 'args': {
@@ -63,7 +58,6 @@ class TestRevisionMetadataIndexer(RevisionMetadataIndexer):
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.destination_task = None
-        self.rescheduling_task = self.config['rescheduling_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
         self.results = []
@@ -346,7 +340,7 @@ class Metadata(unittest.TestCase):
         results = metadata_indexer.idx_storage.added_data
 
         expected_results = [('revision_metadata', True, [{
-            'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
             'translated_metadata': {
                 'identifier': None,
                 'maintainer': None,

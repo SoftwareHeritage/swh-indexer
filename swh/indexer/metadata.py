@@ -158,14 +158,14 @@ class RevisionMetadataIndexer(RevisionIndexer):
         Returns:
             dict: dictionary representing a revision_metadata, with keys:
 
-                - id (bytes): rev's identifier (sha1_git)
+                - id (str): rev's identifier (sha1_git)
                 - indexer_configuration_id (bytes): tool used
                 - translated_metadata (bytes): dict of retrieved metadata
 
         """
         try:
             result = {
-                'id': rev['id'],
+                'id': rev['id'].decode(),
                 'indexer_configuration_id': self.tool['id'],
                 'translated_metadata': None
             }
@@ -176,9 +176,9 @@ class RevisionMetadataIndexer(RevisionIndexer):
             detected_files = detect_metadata(files)
             result['translated_metadata'] = self.translate_revision_metadata(
                                                                 detected_files)
-        except Exception:
+        except Exception as e:
             self.log.exception(
-                'Problem when indexing rev')
+                'Problem when indexing rev: %r', e)
         return result
 
     def persist_index_computations(self, results, policy_update):
@@ -260,7 +260,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
                         translated_metadata.append(local_metadata)
 
                 except Exception as e:
-                    self.log.warn("""Exception while indexing content""", e)
+                    self.log.warning("""Exception while indexing content""", e)
 
         # transform translated_metadata into min set with swh-metadata-detector
         min_metadata = extract_minimal_metadata_dict(translated_metadata)
@@ -271,7 +271,7 @@ class OriginMetadataIndexer(OriginIndexer):
     def filter(self, ids):
         return ids
 
-    def run(self, revisions_metadata, policy_update, *, origin_head_pairs):
+    def run(self, revisions_metadata, policy_update, *, origin_head):
         """Expected to be called with the result of RevisionMetadataIndexer
         as first argument; ie. not a list of ids as other indexers would.
 
@@ -282,12 +282,12 @@ class OriginMetadataIndexer(OriginIndexer):
               passed by RevisionMetadataIndexer via a Celery chain
               triggered by OriginIndexer.next_step.
             * `policy_update`: `'ignore-dups'` or `'update-dups'`
-            * `origin_head_pairs` (List[dict]): list of dictionaries with
+            * `origin_head` (dict): {str(origin_id): rev_id.encode()}
               keys `origin_id` and `revision_id`, which is the result
               of OriginHeadIndexer.
         """
-        origin_head_map = {pair['origin_id']: pair['revision_id']
-                           for pair in origin_head_pairs}
+        origin_head_map = {int(origin_id): rev_id
+                           for (origin_id, rev_id) in origin_head.items()}
 
         # Fix up the argument order. revisions_metadata has to be the
         # first argument because of celery.chain; the next line calls
@@ -312,9 +312,6 @@ class OriginMetadataIndexer(OriginIndexer):
                         revision_metadata['indexer_configuration_id'],
                         }
 
-        # If you get this KeyError with a message like this:
-        #   'foo' not in [b'foo']
-        # you should check you're not using JSON as task serializer
         raise KeyError('%r not in %r' %
                        (revision_id, [r['id'] for r in revisions_metadata]))
 

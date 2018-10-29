@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import time
 import logging
 import unittest
 from celery import task
@@ -13,8 +14,7 @@ from swh.indexer.tests.test_utils import MockIndexerStorage
 from swh.indexer.tests.test_origin_head import TestOriginHeadIndexer
 from swh.indexer.tests.test_metadata import TestRevisionMetadataIndexer
 
-from swh.scheduler.tests.celery_testing import CeleryTestFixture
-from swh.indexer.tests import start_worker_thread
+from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
 
 
 class TestOriginMetadataIndexer(OriginMetadataIndexer):
@@ -57,24 +57,40 @@ def origin_intrinsic_metadata_test_task(*args, **kwargs):
 
 
 class TestOriginHeadIndexer(TestOriginHeadIndexer):
-    revision_metadata_task = revision_metadata_test_task
-    origin_intrinsic_metadata_task = origin_intrinsic_metadata_test_task
+    revision_metadata_task = 'revision_metadata_test_task'
+    origin_intrinsic_metadata_task = 'origin_intrinsic_metadata_test_task'
 
 
-class TestOriginMetadata(CeleryTestFixture, unittest.TestCase):
+class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.maxDiff = None
         MockIndexerStorage.added_data = []
+        self.add_scheduler_task_type(
+            'revision_metadata_test_task',
+            'swh.indexer.tests.test_origin_metadata.'
+            'revision_metadata_test_task')
+        self.add_scheduler_task_type(
+            'origin_intrinsic_metadata_test_task',
+            'swh.indexer.tests.test_origin_metadata.'
+            'origin_intrinsic_metadata_test_task')
+        TestRevisionMetadataIndexer.scheduler = self.scheduler
+
+    def tearDown(self):
+        del TestRevisionMetadataIndexer.scheduler
+        super().tearDown()
 
     def test_pipeline(self):
         indexer = TestOriginHeadIndexer()
-        with start_worker_thread():
-            promise = indexer.run(
-                    ["git+https://github.com/librariesio/yarn-parser"],
-                    policy_update='update-dups',
-                    parse_ids=True)
-            promise.get()
+        indexer.scheduler = self.scheduler
+        indexer.run(
+                ["git+https://github.com/librariesio/yarn-parser"],
+                policy_update='update-dups',
+                parse_ids=True)
+
+        self.run_ready_tasks()  # Run the first task
+        time.sleep(0.1)  # Give it time to complete and schedule the 2nd one
+        self.run_ready_tasks()  # Run the second task
 
         metadata = {
             'identifier': None,
@@ -108,13 +124,13 @@ class TestOriginMetadata(CeleryTestFixture, unittest.TestCase):
             'email': None
         }
         rev_metadata = {
-            'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
             'translated_metadata': metadata,
             'indexer_configuration_id': 7,
         }
         origin_metadata = {
             'origin_id': 54974445,
-            'from_revision': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'from_revision': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
             'metadata': metadata,
             'indexer_configuration_id': 7,
         }

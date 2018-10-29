@@ -1,15 +1,15 @@
-# Copyright (C) 2016-2017  The Software Heritage developers
+# Copyright (C) 2016-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import random
 
-from celery import group
-
 from swh.core.config import SWHConfig
 from swh.core.utils import grouper
 from swh.scheduler import utils
+from swh.scheduler import get_scheduler
+from swh.scheduler.utils import create_task_dict
 
 
 def get_class(clazz):
@@ -60,6 +60,12 @@ class BaseOrchestratorIndexer(SWHConfig):
     from . import TASK_NAMES, INDEXER_CLASSES
 
     DEFAULT_CONFIG = {
+        'scheduler': {
+            'cls': 'remote',
+            'args': {
+                'url': 'http://localhost:5008',
+            },
+        },
         'indexers': ('dict', {
             'mimetype': {
                 'batch_size': 10,
@@ -68,9 +74,14 @@ class BaseOrchestratorIndexer(SWHConfig):
         }),
     }
 
-    def prepare(self):
-        super().prepare()
+    def __init__(self):
+        super().__init__()
+        self.config = self.parse_config_file()
         self.prepare_tasks()
+        self.prepare_scheduler()
+
+    def prepare_scheduler(self):
+        self.scheduler = get_scheduler(**self.config['scheduler'])
 
     def prepare_tasks(self):
         indexer_names = list(self.config['indexers'])
@@ -93,8 +104,8 @@ class BaseOrchestratorIndexer(SWHConfig):
         self.tasks = tasks
 
     def run(self, ids):
-        all_results = []
-        for name, (idx_class, filtering, batch_size) in self.indexers.items():
+        for task_name, task_attrs in self.indexers.items():
+            (idx_class, filtering, batch_size) = task_attrs
             if filtering:
                 policy_update = 'ignore-dups'
                 indexer_class = get_class(idx_class)
@@ -105,19 +116,18 @@ class BaseOrchestratorIndexer(SWHConfig):
                 policy_update = 'update-dups'
                 ids_filtered = ids
 
-            celery_tasks = []
+            tasks = []
             for ids_to_send in grouper(ids_filtered, batch_size):
-                celery_task = self.tasks[name].s(
+                tasks.append(create_task_dict(
+                    task_name,
+                    'oneshot',
                     ids=list(ids_to_send),
-                    policy_update=policy_update)
-                celery_tasks.append(celery_task)
+                    policy_update=policy_update,
+                    ))
+            self._create_tasks(tasks)
 
-            all_results.append(self._run_tasks(celery_tasks))
-
-        return all_results
-
-    def _run_tasks(self, celery_tasks):
-        return group(celery_tasks).delay()
+    def _create_tasks(self, tasks):
+        self.scheduler.create_tasks(tasks)
 
 
 class OrchestratorAllContentsIndexer(BaseOrchestratorIndexer):
