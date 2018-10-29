@@ -339,8 +339,9 @@ class MockStorage():
                 if origin[k] != v:
                     break
             else:
-                # This block is run iff we didn't break, ie. if all supplied
-                # parts of the id are set to the expected value.
+                # This block is run if and only if we didn't break,
+                # ie. if all supplied parts of the id are set to the
+                # expected value.
                 return origin
         assert False, id_
 

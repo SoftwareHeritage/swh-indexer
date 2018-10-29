@@ -1,4 +1,4 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -14,7 +14,6 @@ from swh.model import hashutil
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.storage import get_storage
-from swh.scheduler.utils import get_task
 
 
 class RecomputeChecksums(SWHConfig):
@@ -61,8 +60,6 @@ class RecomputeChecksums(SWHConfig):
         'batch_size_retrieve_content': ('int', 10),
         # Number of contents to update at the same time
         'batch_size_update': ('int', 100),
-        # Rescheduling task on error (if None, nothing is done)
-        'rescheduling_task': ('str', None),
     }
 
     CONFIG_BASE_FILENAME = 'indexer/rehash'
@@ -79,12 +76,6 @@ class RecomputeChecksums(SWHConfig):
         self.batch_size_update = self.config[
             'batch_size_update']
         self.log = logging.getLogger('swh.indexer.rehash')
-
-        rescheduling_task = self.config['rescheduling_task']
-        if rescheduling_task:
-            self.rescheduling_task = get_task(rescheduling_task)
-        else:
-            self.rescheduling_task = None
 
         if not self.compute_checksums:
             raise ValueError('Checksums list should not be empty.')
@@ -123,10 +114,6 @@ class RecomputeChecksums(SWHConfig):
             except Exception:
                 self.log.exception(
                     'Problem when reading contents metadata.')
-                if self.rescheduling_task:
-                    self.log.warn('Rescheduling batch.')
-                    cs = [{'sha1': sha1} for sha1 in contents_iter[1]]
-                    self.rescheduling_task.delay(cs)
                 continue
 
             for content in content_metadata:
@@ -144,8 +131,8 @@ class RecomputeChecksums(SWHConfig):
                 try:
                     raw_content = self.objstorage.get(content['sha1'])
                 except ObjNotFoundError:
-                    self.log.warn('Content %s not found in objstorage!' %
-                                  content['sha1'])
+                    self.log.warning('Content %s not found in objstorage!' %
+                                     content['sha1'])
                     continue
 
                 content_hashes = hashutil.MultiHash.from_data(
@@ -182,8 +169,4 @@ class RecomputeChecksums(SWHConfig):
                                                 keys=keys)
                 except Exception:
                     self.log.exception('Problem during update.')
-                    if self.rescheduling_task:
-                        self.log.warn('Rescheduling batch.')
-                        cs = [{'sha1': c['sha1']} for c in contents]
-                        self.rescheduling_task.delay(cs)
                     continue

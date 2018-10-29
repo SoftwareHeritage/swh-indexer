@@ -1,4 +1,4 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -30,7 +30,6 @@ class TestLanguageIndexer(ContentLanguageIndexer):
     def prepare(self):
         self.config = {
             'destination_task': None,
-            'rescheduling_task': None,
             'tools':  {
                 'name': 'pygments',
                 'version': '2.0.1+dfsg-1.1+deb8u1',
@@ -45,7 +44,6 @@ class TestLanguageIndexer(ContentLanguageIndexer):
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.destination_task = None
-        self.rescheduling_task = self.config['rescheduling_task']
         self.tool_config = self.config['tools']['configuration']
         self.max_content_size = self.tool_config['max_content_size']
         self.tools = self.register_tools(self.config['tools'])
