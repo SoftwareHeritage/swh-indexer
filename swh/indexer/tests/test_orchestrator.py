@@ -170,7 +170,6 @@ class MockedOrchestratorTest(unittest.TestCase):
                  'kwargs': {
                      'ids': ['id12'],
                      'policy_update': 'ignore-dups'}},
-             'priority': None,
              'policy': 'oneshot'},
             {'type': 'indexer2',
              'arguments': {
@@ -178,7 +177,6 @@ class MockedOrchestratorTest(unittest.TestCase):
                  'kwargs': {
                      'ids': ['id12', 'id2'],
                      'policy_update': 'ignore-dups'}},
-             'priority': None,
              'policy': 'oneshot'},
             ])
 
@@ -194,7 +192,6 @@ class MockedOrchestratorTest(unittest.TestCase):
                  'kwargs': {
                      'ids': ['id12'],
                      'policy_update': 'ignore-dups'}},
-             'priority': None,
              'policy': 'oneshot'},
             {'type': 'indexer2',
              'arguments': {
@@ -202,7 +199,6 @@ class MockedOrchestratorTest(unittest.TestCase):
                  'kwargs': {
                      'ids': ['id12', 'id2a'],
                      'policy_update': 'ignore-dups'}},
-             'priority': None,
              'policy': 'oneshot'},
             {'type': 'indexer2',
              'arguments': {
@@ -210,6 +206,5 @@ class MockedOrchestratorTest(unittest.TestCase):
                  'kwargs': {
                      'ids': ['id2b', 'id2c'],
                      'policy_update': 'ignore-dups'}},
-             'priority': None,
              'policy': 'oneshot'},
             ])
