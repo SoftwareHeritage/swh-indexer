@@ -300,19 +300,20 @@ class MockIndexerStorage():
             'id': b'cde',
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+                'type': 'SoftwareSourceCode',
                 'codemeta:issueTracker':
                     'https://github.com/librariesio/yarn-parser/issues',
-                'codemeta:version': '1.0.0',
-                'codemeta:name': 'yarn-parser',
-                'codemeta:author': 'Andrew Nesbitt',
-                'codemeta:url':
+                'version': '1.0.0',
+                'name': 'yarn-parser',
+                'schema:author': 'Andrew Nesbitt',
+                'url':
                     'https://github.com/librariesio/yarn-parser#readme',
-                'codemeta:processorRequirements': {'node': '7.5'},
-                'codemeta:license': 'AGPL-3.0',
-                'codemeta:keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'codemeta:codeRepository':
+                'processorRequirements': {'node': '7.5'},
+                'license': 'AGPL-3.0',
+                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+                'schema:codeRepository':
                     'git+https://github.com/librariesio/yarn-parser.git',
-                'codemeta:description':
+                'description':
                     'Tiny web service for parsing yarn.lock files',
                 }
         }]

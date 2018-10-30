@@ -3,12 +3,15 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import os
 import re
 import abc
 import json
 import logging
+import xmltodict
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, CODEMETA_URI, compact
+from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.codemeta import compact, expand
 
 
 MAPPINGS = {}
@@ -53,6 +56,22 @@ class BaseMapping(metaclass=abc.ABCMeta):
         return compact(metadata)
 
 
+class SingleFileMapping(BaseMapping):
+    """Base class for all mappings that use a single file as input."""
+
+    @property
+    @abc.abstractmethod
+    def filename(self):
+        """The .json file to extract metadata from."""
+        pass
+
+    def detect_metadata_files(self, file_entries):
+        for entry in file_entries:
+            if entry['name'] == self.filename:
+                return [entry['sha1']]
+        return []
+
+
 class DictMapping(BaseMapping):
     """Base class for mappings that take as input a file that is mostly
     a key-value store (eg. a shallow JSON dict)."""
@@ -63,7 +82,7 @@ class DictMapping(BaseMapping):
         """A translation dict to map dict keys into a canonical name."""
         pass
 
-    def translate_dict(self, content_dict):
+    def translate_dict(self, content_dict, *, normalize=True):
         """
         Translates content  by parsing content from a dict object
         and translating with the appropriate mapping
@@ -76,7 +95,7 @@ class DictMapping(BaseMapping):
                   the indexer
 
         """
-        translated_metadata = {}
+        translated_metadata = {'@type': SCHEMA_URI + 'SoftwareSourceCode'}
         for k, v in content_dict.items():
             # First, check if there is a specific translation
             # method for this key
@@ -94,23 +113,14 @@ class DictMapping(BaseMapping):
 
                 # set the translation metadata with the normalized value
                 translated_metadata[self.mapping[k]] = v
-        return self.normalize_translation(translated_metadata)
+        if normalize:
+            return self.normalize_translation(translated_metadata)
+        else:
+            return translated_metadata
 
 
-class JsonMapping(DictMapping):
+class JsonMapping(DictMapping, SingleFileMapping):
     """Base class for all mappings that use a JSON file as input."""
-
-    @property
-    @abc.abstractmethod
-    def filename(self):
-        """The .json file to extract metadata from."""
-        pass
-
-    def detect_metadata_files(self, file_entries):
-        for entry in file_entries:
-            if entry['name'] == self.filename:
-                return [entry['sha1']]
-        return []
 
     def translate(self, raw_content):
         """
@@ -184,7 +194,7 @@ class NpmMapping(JsonMapping):
     def normalize_author(self, d):
         'https://docs.npmjs.com/files/package.json' \
                 '#people-fields-author-contributors'
-        author = {'@type': CODEMETA_URI+'Person'}
+        author = {'@type': SCHEMA_URI+'Person'}
         if isinstance(d, dict):
             name = d.get('name', None)
             email = d.get('email', None)
@@ -197,21 +207,65 @@ class NpmMapping(JsonMapping):
         else:
             return None
         if name:
-            author[CODEMETA_URI+'name'] = name
+            author[SCHEMA_URI+'name'] = name
         if email:
-            author[CODEMETA_URI+'email'] = email
+            author[SCHEMA_URI+'email'] = email
         if url:
-            author[CODEMETA_URI+'url'] = url
+            author[SCHEMA_URI+'url'] = url
         return author
 
 
 @register_mapping
-class CodemetaMapping(JsonMapping):
+class CodemetaMapping(SingleFileMapping):
     """
     dedicated class for CodeMeta (codemeta.json) mapping and translation
     """
-    mapping = CROSSWALK_TABLE['codemeta-V1']
     filename = b'codemeta.json'
+
+    def translate(self, content):
+        return self.normalize_translation(expand(json.loads(content.decode())))
+
+
+@register_mapping
+class MavenMapping(DictMapping, SingleFileMapping):
+    """
+    dedicated class for Maven (pom.xml) mapping and translation
+    """
+    filename = b'pom.xml'
+    mapping = CROSSWALK_TABLE['Java (Maven)']
+
+    def translate(self, content):
+        d = xmltodict.parse(content)['project']
+        metadata = self.translate_dict(d, normalize=False)
+        metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
+        return self.normalize_translation(metadata)
+
+    _default_repository = {'url': 'https://repo.maven.apache.org/maven2/'}
+
+    def parse_repositories(self, d):
+        """https://maven.apache.org/pom.html#Repositories"""
+        if 'repositories' not in d:
+            return [self.parse_repository(d, self._default_repository)]
+        else:
+            repositories = d['repositories'].get('repository', [])
+            if not isinstance(repositories, list):
+                repositories = [repositories]
+            results = []
+            for repo in repositories:
+                res = self.parse_repository(d, repo)
+                if res:
+                    results.append(res)
+            return results
+
+    def parse_repository(self, d, repo):
+        if repo.get('layout', 'default') != 'default':
+            return  # TODO ?
+        url = repo['url']
+        if d['groupId']:
+            url = os.path.join(url, *d['groupId'].split('.'))
+            if d['artifactId']:
+                url = os.path.join(url, d['artifactId'])
+        return url
 
 
 def main():

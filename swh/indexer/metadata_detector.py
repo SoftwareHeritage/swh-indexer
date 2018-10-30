@@ -3,7 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from swh.indexer.codemeta import compact, expand, CODEMETA_URI
+from swh.indexer.codemeta import compact, expand
+from swh.indexer.codemeta import make_absolute_uri
 from swh.indexer.metadata_dictionary import MAPPINGS
 
 
@@ -31,7 +32,8 @@ _MINIMAL_PROPERTY_SET = {
     "url", "license", "maintainer", "email", "identifier",
     "codeRepository"}
 
-MINIMAL_METADATA_SET = {CODEMETA_URI+prop for prop in _MINIMAL_PROPERTY_SET}
+MINIMAL_METADATA_SET = {make_absolute_uri(prop)
+                        for prop in _MINIMAL_PROPERTY_SET}
 
 
 def extract_minimal_metadata_dict(metadata_list):

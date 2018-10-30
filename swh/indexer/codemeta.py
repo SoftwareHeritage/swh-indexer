@@ -27,12 +27,30 @@ SCHEMA_URI = 'http://schema.org/'
 
 PROPERTY_BLACKLIST = {
     # CodeMeta properties that we cannot properly represent.
-    CODEMETA_URI + 'softwareRequirements',
+    SCHEMA_URI + 'softwareRequirements',
     CODEMETA_URI + 'softwareSuggestions',
 
     # Duplicate of 'author'
-    CODEMETA_URI + 'creator',
+    SCHEMA_URI + 'creator',
     }
+
+
+def make_absolute_uri(local_name):
+    definition = CODEMETA_CONTEXT['@context'][local_name]
+    if isinstance(definition, str):
+        return definition
+    elif isinstance(definition, dict):
+        prefixed_name = definition['@id']
+        (prefix, local_name) = prefixed_name.split(':')
+        if prefix == 'schema':
+            canonical_name = SCHEMA_URI + local_name
+        elif prefix == 'codemeta':
+            canonical_name = CODEMETA_URI + local_name
+        else:
+            assert False, prefix
+        return canonical_name
+    else:
+        assert False, definition
 
 
 def _read_crosstable(fd):
@@ -49,7 +67,10 @@ def _read_crosstable(fd):
     codemeta_translation = {data_source: {} for data_source in data_sources}
 
     for line in reader:  # For each canonical name
-        canonical_name = CODEMETA_URI + dict(zip(header, line))['Property']
+        local_name = dict(zip(header, line))['Property']
+        if not local_name:
+            continue
+        canonical_name = make_absolute_uri(local_name)
         if canonical_name in PROPERTY_BLACKLIST:
             continue
         for (col, value) in zip(header, line):  # For each cell in the row

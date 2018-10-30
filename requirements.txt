@@ -4,3 +4,4 @@ click
 chardet
 file_magic
 pyld
+xmltodict

@@ -94,19 +94,19 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
 
         metadata = {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'codemeta:url':
+            'url':
                 'https://github.com/librariesio/yarn-parser#readme',
-            'codemeta:codeRepository':
+            'schema:codeRepository':
                 'git+https://github.com/librariesio/yarn-parser.git',
-            'codemeta:author': 'Andrew Nesbitt',
-            'codemeta:license': 'AGPL-3.0',
-            'codemeta:version': '1.0.0',
-            'codemeta:description':
+            'schema:author': 'Andrew Nesbitt',
+            'license': 'AGPL-3.0',
+            'version': '1.0.0',
+            'description':
                 'Tiny web service for parsing yarn.lock files',
             'codemeta:issueTracker':
                 'https://github.com/librariesio/yarn-parser/issues',
-            'codemeta:name': 'yarn-parser',
-            'codemeta:keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+            'name': 'yarn-parser',
+            'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
         }
         rev_metadata = {
             'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
