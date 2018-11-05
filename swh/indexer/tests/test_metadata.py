@@ -84,27 +84,22 @@ class Metadata(unittest.TestCase):
 
     def test_crosstable(self):
         self.assertEqual(CROSSWALK_TABLE['NodeJS'], {
-            'repository': 'codeRepository',
-            'os': 'operatingSystem',
-            'cpu': 'processorRequirements',
-            'engines': 'processorRequirements',
-            'dependencies': 'softwareRequirements',
-            'bundleDependencies': 'softwareRequirements',
-            'bundledDependencies': 'softwareRequirements',
-            'peerDependencies': 'softwareRequirements',
-            'author': 'creator',
-            'author.email': 'email',
-            'author.name': 'name',
-            'contributor': 'contributor',
-            'keywords': 'keywords',
-            'license': 'license',
-            'version': 'version',
-            'description': 'description',
-            'name': 'name',
-            'devDependencies': 'softwareSuggestions',
-            'optionalDependencies': 'softwareSuggestions',
-            'bugs': 'issueTracker',
-            'homepage': 'url'
+            'repository': 'https://codemeta.github.io/terms/codeRepository',
+            'os': 'https://codemeta.github.io/terms/operatingSystem',
+            'cpu': 'https://codemeta.github.io/terms/processorRequirements',
+            'engines':
+                'https://codemeta.github.io/terms/processorRequirements',
+            'author': 'https://codemeta.github.io/terms/creator',
+            'author.email': 'https://codemeta.github.io/terms/email',
+            'author.name': 'https://codemeta.github.io/terms/name',
+            'contributor': 'https://codemeta.github.io/terms/contributor',
+            'keywords': 'https://codemeta.github.io/terms/keywords',
+            'license': 'https://codemeta.github.io/terms/license',
+            'version': 'https://codemeta.github.io/terms/version',
+            'description': 'https://codemeta.github.io/terms/description',
+            'name': 'https://codemeta.github.io/terms/name',
+            'bugs': 'https://codemeta.github.io/terms/issueTracker',
+            'homepage': 'https://codemeta.github.io/terms/url'
         })
 
     def test_compute_metadata_none(self):
@@ -139,14 +134,12 @@ class Metadata(unittest.TestCase):
             }
         """
         declared_metadata = {
-            'name': 'test_metadata',
-            'version': '0.0.2',
-            'description': 'Simple package.json test for indexer',
-            'codeRepository': {
-                'type': 'git',
-                'url': 'https://github.com/moranegg/metadata_test'
-              },
-            'other': {}
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'codemeta:name': 'test_metadata',
+            'codemeta:version': '0.0.2',
+            'codemeta:description': 'Simple package.json test for indexer',
+            'codemeta:codeRepository':
+                'git+https://github.com/moranegg/metadata_test',
         }
 
         # when
@@ -160,28 +153,24 @@ class Metadata(unittest.TestCase):
         """
         # given
         metadata_list = [{
-            'name': 'test_1',
-            'version': '0.0.2',
-            'description': 'Simple package.json test for indexer',
-            'codeRepository': {
-                'type': 'git',
-                'url': 'https://github.com/moranegg/metadata_test'
-              },
-            'other': {}
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'codemeta:name': 'test_1',
+            'codemeta:version': '0.0.2',
+            'codemeta:description': 'Simple package.json test for indexer',
+            'codemeta:codeRepository':
+                'git+https://github.com/moranegg/metadata_test',
         }, {
-            'name': 'test_0_1',
-            'version': '0.0.2',
-            'description': 'Simple package.json test for indexer',
-            'codeRepository': {
-                'type': 'git',
-                'url': 'https://github.com/moranegg/metadata_test'
-              },
-            'other': {}
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'codemeta:name': 'test_0_1',
+            'codemeta:version': '0.0.2',
+            'codemeta:description': 'Simple package.json test for indexer',
+            'codemeta:codeRepository':
+                'git+https://github.com/moranegg/metadata_test'
         }, {
-            'name': 'test_metadata',
-            'version': '0.0.2',
-            'author': 'moranegg',
-            'other': {}
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'codemeta:name': 'test_metadata',
+            'codemeta:version': '0.0.2',
+            'codemeta:author': 'moranegg',
         }]
 
         # when
@@ -189,25 +178,13 @@ class Metadata(unittest.TestCase):
 
         # then
         expected_results = {
-            "developmentStatus": None,
-            "version": ['0.0.2'],
-            "operatingSystem": None,
-            "description": ['Simple package.json test for indexer'],
-            "keywords": None,
-            "issueTracker": None,
-            "name": ['test_1', 'test_0_1', 'test_metadata'],
-            "author": ['moranegg'],
-            "relatedLink": None,
-            "url": None,
-            "license": None,
-            "maintainer": None,
-            "email": None,
-            "softwareRequirements": None,
-            "identifier": None,
-            "codeRepository": [{
-                'type': 'git',
-                'url': 'https://github.com/moranegg/metadata_test'
-              }]
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            "codemeta:version": '0.0.2',
+            "codemeta:description": 'Simple package.json test for indexer',
+            "codemeta:name": ['test_1', 'test_0_1', 'test_metadata'],
+            "codemeta:author": 'moranegg',
+            "codemeta:codeRepository":
+                'git+https://github.com/moranegg/metadata_test',
         }
         self.assertEqual(expected_results, results)
 
@@ -233,56 +210,35 @@ class Metadata(unittest.TestCase):
         expected_results = [('content_metadata', False, [{
             'indexer_configuration_id': 30,
             'translated_metadata': {
-                'other': {},
-                'codeRepository': {
-                    'type': 'git',
-                    'url': 'https://github.com/moranegg/metadata_test'
-                },
-                'description': 'Simple package.json test for indexer',
-                'name': 'test_metadata',
-                'version': '0.0.1'
+                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+                'codemeta:codeRepository':
+                    'git+https://github.com/moranegg/metadata_test',
+                'codemeta:description': 'Simple package.json test for indexer',
+                'codemeta:name': 'test_metadata',
+                'codemeta:version': '0.0.1'
             },
             'id': '26a9f72a7c87cc9205725cfd879f514ff4f3d8d5'
             }, {
             'indexer_configuration_id': 30,
             'translated_metadata': {
-                'softwareRequirements': {
-                        'JSONStream': '~1.3.1',
-                        'abbrev': '~1.1.0',
-                        'ansi-regex': '~2.1.1',
-                        'ansicolors': '~0.3.2',
-                        'ansistyles': '~0.1.3'
-                },
-                'issueTracker': {
-                    'url': 'https://github.com/npm/npm/issues'
-                },
-                'creator':
+                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+                'codemeta:issueTracker':
+                    'https://github.com/npm/npm/issues',
+                'codemeta:creator':
                     'Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)',
-                'codeRepository': {
-                    'type': 'git',
-                    'url': 'https://github.com/npm/npm'
-                },
-                'description': 'a package manager for JavaScript',
-                'softwareSuggestions': {
-                        'tacks': '~1.2.6',
-                        'tap': '~10.3.2'
-                },
-                'license': 'Artistic-2.0',
-                'version': '5.0.3',
-                'other': {
-                    'preferGlobal': True,
-                    'config': {
-                        'publishtest': False
-                    }
-                },
-                'name': 'npm',
-                'keywords': [
+                'codemeta:codeRepository':
+                    'git+https://github.com/npm/npm',
+                'codemeta:description': 'a package manager for JavaScript',
+                'codemeta:license': 'Artistic-2.0',
+                'codemeta:version': '5.0.3',
+                'codemeta:name': 'npm',
+                'codemeta:keywords': [
                     'install',
                     'modules',
                     'package manager',
                     'package.json'
                 ],
-                'url': 'https://docs.npmjs.com/'
+                'codemeta:url': 'https://docs.npmjs.com/'
             },
             'id': 'd4c647f0fc257591cc9ba1722484229780d1c607'
             }, {
@@ -342,35 +298,20 @@ class Metadata(unittest.TestCase):
         expected_results = [('revision_metadata', True, [{
             'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
             'translated_metadata': {
-                'identifier': None,
-                'maintainer': None,
-                'url': [
-                    'https://github.com/librariesio/yarn-parser#readme'
-                ],
-                'codeRepository': [{
-                    'type': 'git',
-                    'url': 'git+https://github.com/librariesio/yarn-parser.git'
-                }],
-                'author': ['Andrew Nesbitt'],
-                'license': ['AGPL-3.0'],
-                'version': ['1.0.0'],
-                'description': [
-                    'Tiny web service for parsing yarn.lock files'
-                ],
-                'relatedLink': None,
-                'developmentStatus': None,
-                'operatingSystem': None,
-                'issueTracker': [{
-                    'url': 'https://github.com/librariesio/yarn-parser/issues'
-                }],
-                'softwareRequirements': [{
-                    'express': '^4.14.0',
-                    'yarn': '^0.21.0',
-                    'body-parser': '^1.15.2'
-                }],
-                'name': ['yarn-parser'],
-                'keywords': [['yarn', 'parse', 'lock', 'dependencies']],
-                'email': None
+                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+                'codemeta:url':
+                    'https://github.com/librariesio/yarn-parser#readme',
+                'codemeta:codeRepository':
+                    'git+https://github.com/librariesio/yarn-parser.git',
+                'codemeta:author': 'Andrew Nesbitt',
+                'codemeta:license': 'AGPL-3.0',
+                'codemeta:version': '1.0.0',
+                'codemeta:description':
+                    'Tiny web service for parsing yarn.lock files',
+                'codemeta:issueTracker':
+                    'https://github.com/librariesio/yarn-parser/issues',
+                'codemeta:name': 'yarn-parser',
+                'codemeta:keywords': ['yarn', 'parse', 'lock', 'dependencies'],
             },
             'indexer_configuration_id': 7
         }])]

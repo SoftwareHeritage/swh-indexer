@@ -4,47 +4,10 @@
 # See top-level LICENSE file for more information
 
 import abc
-import csv
 import json
-import os.path
 import logging
 
-import swh.indexer
-
-CROSSWALK_TABLE_PATH = os.path.join(os.path.dirname(swh.indexer.__file__),
-                                    'data', 'codemeta', 'crosswalk.csv')
-
-
-def read_crosstable(fd):
-    reader = csv.reader(fd)
-    try:
-        header = next(reader)
-    except StopIteration:
-        raise ValueError('empty file')
-
-    data_sources = set(header) - {'Parent Type', 'Property',
-                                  'Type', 'Description'}
-    assert 'codemeta-V1' in data_sources
-
-    codemeta_translation = {data_source: {} for data_source in data_sources}
-
-    for line in reader:  # For each canonical name
-        canonical_name = dict(zip(header, line))['Property']
-        for (col, value) in zip(header, line):  # For each cell in the row
-            if col in data_sources:
-                # If that's not the parentType/property/type/description
-                for local_name in value.split('/'):
-                    # For each of the data source's properties that maps
-                    # to this canonical name
-                    if local_name.strip():
-                        codemeta_translation[col][local_name.strip()] = \
-                                canonical_name
-
-    return codemeta_translation
-
-
-with open(CROSSWALK_TABLE_PATH) as fd:
-    CROSSWALK_TABLE = read_crosstable(fd)
+from swh.indexer.codemeta import CROSSWALK_TABLE, compact
 
 
 MAPPINGS = {}
@@ -85,6 +48,9 @@ class BaseMapping(metaclass=abc.ABCMeta):
     def translate(self, file_content):
         pass
 
+    def normalize_translation(self, metadata):
+        return compact(metadata)
+
 
 class DictMapping(BaseMapping):
     """Base class for mappings that take as input a file that is mostly
@@ -110,33 +76,24 @@ class DictMapping(BaseMapping):
 
         """
         translated_metadata = {}
-        default = 'other'
-        translated_metadata['other'] = {}
-        try:
-            for k, v in content_dict.items():
-                try:
-                    term = self.mapping.get(k, default)
-                    if term not in translated_metadata:
-                        translated_metadata[term] = v
-                        continue
-                    if isinstance(translated_metadata[term], str):
-                        in_value = translated_metadata[term]
-                        translated_metadata[term] = [in_value, v]
-                        continue
-                    if isinstance(translated_metadata[term], list):
-                        translated_metadata[term].append(v)
-                        continue
-                    if isinstance(translated_metadata[term], dict):
-                        translated_metadata[term][k] = v
-                        continue
-                except KeyError:
-                    self.log.exception(
-                        "Problem during item mapping")
-                    continue
-        except Exception:
-            raise
-            return None
-        return translated_metadata
+        for k, v in content_dict.items():
+            # First, check if there is a specific translation
+            # method for this key
+            translation_method = getattr(self, 'translate_' + k, None)
+            if translation_method:
+                translation_method(translated_metadata, v)
+            elif k in self.mapping:
+                # if there is no method, but the key is known from the
+                # crosswalk table
+
+                # if there is a normalization method, use it on the value
+                normalization_method = getattr(self, 'normalize_' + k, None)
+                if normalization_method:
+                    v = normalization_method(v)
+
+                # set the translation metadata with the normalized value
+                translated_metadata[self.mapping[k]] = v
+        return self.normalize_translation(translated_metadata)
 
 
 class JsonMapping(DictMapping):
@@ -187,6 +144,12 @@ class NpmMapping(JsonMapping):
     """
     mapping = CROSSWALK_TABLE['NodeJS']
     filename = b'package.json'
+
+    def normalize_repository(self, d):
+        return '{type}+{url}'.format(**d)
+
+    def normalize_bugs(self, d):
+        return '{url}'.format(**d)
 
 
 @register_mapping

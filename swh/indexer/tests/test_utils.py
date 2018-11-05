@@ -299,31 +299,21 @@ class MockIndexerStorage():
             },
             'id': b'cde',
             'translated_metadata': {
-                'issueTracker': {
-                    'url': 'https://github.com/librariesio/yarn-parser/issues'
-                },
-                'version': '1.0.0',
-                'name': 'yarn-parser',
-                'author': 'Andrew Nesbitt',
-                'url': 'https://github.com/librariesio/yarn-parser#readme',
-                'processorRequirements': {'node': '7.5'},
-                'other': {
-                    'scripts': {
-                                    'start': 'node index.js'
-                    },
-                    'main': 'index.js'
-                },
-                'license': 'AGPL-3.0',
-                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'codeRepository': {
-                    'type': 'git',
-                    'url': 'git+https://github.com/librariesio/yarn-parser.git'
-                },
-                'description': 'Tiny web service for parsing yarn.lock files',
-                'softwareRequirements': {
-                    'yarn': '^0.21.0',
-                    'express': '^4.14.0',
-                    'body-parser': '^1.15.2'}
+                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+                'codemeta:issueTracker':
+                    'https://github.com/librariesio/yarn-parser/issues',
+                'codemeta:version': '1.0.0',
+                'codemeta:name': 'yarn-parser',
+                'codemeta:author': 'Andrew Nesbitt',
+                'codemeta:url':
+                    'https://github.com/librariesio/yarn-parser#readme',
+                'codemeta:processorRequirements': {'node': '7.5'},
+                'codemeta:license': 'AGPL-3.0',
+                'codemeta:keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+                'codemeta:codeRepository':
+                    'git+https://github.com/librariesio/yarn-parser.git',
+                'codemeta:description':
+                    'Tiny web service for parsing yarn.lock files',
                 }
         }]
 
@@ -339,9 +329,8 @@ class MockStorage():
                 if origin[k] != v:
                     break
             else:
-                # This block is run if and only if we didn't break,
-                # ie. if all supplied parts of the id are set to the
-                # expected value.
+                # This block is run iff we didn't break, ie. if all supplied
+                # parts of the id are set to the expected value.
                 return origin
         assert False, id_
 

@@ -93,35 +93,20 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
         self.run_ready_tasks()  # Run the second task
 
         metadata = {
-            'identifier': None,
-            'maintainer': None,
-            'url': [
-                'https://github.com/librariesio/yarn-parser#readme'
-            ],
-            'codeRepository': [{
-                'type': 'git',
-                'url': 'git+https://github.com/librariesio/yarn-parser.git'
-            }],
-            'author': ['Andrew Nesbitt'],
-            'license': ['AGPL-3.0'],
-            'version': ['1.0.0'],
-            'description': [
-                'Tiny web service for parsing yarn.lock files'
-            ],
-            'relatedLink': None,
-            'developmentStatus': None,
-            'operatingSystem': None,
-            'issueTracker': [{
-                'url': 'https://github.com/librariesio/yarn-parser/issues'
-            }],
-            'softwareRequirements': [{
-                'express': '^4.14.0',
-                'yarn': '^0.21.0',
-                'body-parser': '^1.15.2'
-            }],
-            'name': ['yarn-parser'],
-            'keywords': [['yarn', 'parse', 'lock', 'dependencies']],
-            'email': None
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'codemeta:url':
+                'https://github.com/librariesio/yarn-parser#readme',
+            'codemeta:codeRepository':
+                'git+https://github.com/librariesio/yarn-parser.git',
+            'codemeta:author': 'Andrew Nesbitt',
+            'codemeta:license': 'AGPL-3.0',
+            'codemeta:version': '1.0.0',
+            'codemeta:description':
+                'Tiny web service for parsing yarn.lock files',
+            'codemeta:issueTracker':
+                'https://github.com/librariesio/yarn-parser/issues',
+            'codemeta:name': 'yarn-parser',
+            'codemeta:keywords': ['yarn', 'parse', 'lock', 'dependencies'],
         }
         rev_metadata = {
             'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',

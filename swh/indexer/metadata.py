@@ -160,7 +160,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
                 - id (str): rev's identifier (sha1_git)
                 - indexer_configuration_id (bytes): tool used
-                - translated_metadata (bytes): dict of retrieved metadata
+                - translated_metadata: dict of retrieved metadata
 
         """
         try:
@@ -175,7 +175,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
             files = [entry for entry in dir_ls if entry['type'] == 'file']
             detected_files = detect_metadata(files)
             result['translated_metadata'] = self.translate_revision_metadata(
-                                                                detected_files)
+                    detected_files)
         except Exception as e:
             self.log.exception(
                 'Problem when indexing rev: %r', e)
