@@ -7,8 +7,6 @@ import logging
 
 from swh.scheduler.task import Task as SchedulerTask
 
-from .orchestrator import OrchestratorAllContentsIndexer
-from .orchestrator import OrchestratorTextContentsIndexer
 from .mimetype import ContentMimetypeIndexer
 from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
@@ -25,26 +23,6 @@ class Task(SchedulerTask):
         if hasattr(indexer, 'results'):  # indexer tasks
             return indexer.results
         return indexer
-
-
-class OrchestratorAllContents(Task):
-    """Main task in charge of reading batch contents (of any type) and
-    broadcasting them back to other tasks.
-
-    """
-    task_queue = 'swh_indexer_orchestrator_content_all'
-
-    Indexer = OrchestratorAllContentsIndexer
-
-
-class OrchestratorTextContents(Task):
-    """Main task in charge of reading batch contents (of type text) and
-    broadcasting them back to other tasks.
-
-    """
-    task_queue = 'swh_indexer_orchestrator_content_text'
-
-    Indexer = OrchestratorTextContentsIndexer
 
 
 class RevisionMetadata(Task):

@@ -93,9 +93,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
     Then you need to implement the following functions:
 
     :func:`filter`:
-      filter out data already indexed (in storage). This function is used by
-      the orchestrator and not directly by the indexer
-      (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
+      filter out data already indexed (in storage).
 
     :func:`index_object`:
       compute index on id with data (retrieved from the storage or the

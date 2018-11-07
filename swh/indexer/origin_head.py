@@ -38,7 +38,7 @@ class OriginHeadIndexer(OriginIndexer):
 
     def persist_index_computations(self, results, policy_update):
         """Do nothing. The indexer's results are not persistent, they
-        should only be piped to another indexer via the orchestrator."""
+        should only be piped to another indexer."""
         pass
 
     def next_step(self, results, task):
