@@ -32,7 +32,6 @@ class MimetypeTestIndexer(ContentMimetypeIndexer):
     """
     def prepare(self):
         self.config = {
-            'destination_task': None,
             'tools': {
                 'name': 'file',
                 'version': '1:5.30-1+deb9u1',
@@ -45,7 +44,6 @@ class MimetypeTestIndexer(ContentMimetypeIndexer):
         self.idx_storage = _MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.destination_task = self.config['destination_task']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
 

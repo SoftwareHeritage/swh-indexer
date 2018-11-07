@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2017  The Software Heritage developers
+# Copyright (C) 2016-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -8,7 +8,6 @@ import magic
 
 from swh.model import hashutil
 from swh.scheduler import get_scheduler
-from swh.scheduler.utils import create_task_dict
 
 from .indexer import ContentIndexer
 
@@ -47,7 +46,6 @@ class ContentMimetypeIndexer(ContentIndexer):
                 'url': 'http://localhost:5008',
             },
         },
-        'destination_task': ('str', None),
         'tools': ('dict', {
             'name': 'file',
             'version': '1:5.30-1+deb9u1',
@@ -62,7 +60,6 @@ class ContentMimetypeIndexer(ContentIndexer):
 
     def prepare(self):
         super().prepare()
-        self.destination_task = self.config.get('destination_task')
         self.scheduler = get_scheduler(**self.config['scheduler'])
         self.tool = self.tools[0]
 
@@ -122,36 +119,6 @@ class ContentMimetypeIndexer(ContentIndexer):
         """
         self.idx_storage.content_mimetype_add(
             results, conflict_update=(policy_update == 'update-dups'))
-
-    def _filter_text(self, results):
-        """Filter sha1 whose raw content is text.
-
-        """
-        for result in results:
-            if b'binary' in result['encoding']:
-                continue
-            yield result['id']
-
-    def next_step(self, results):
-        """When the computations is done, we'd like to send over only text
-        contents to the text content orchestrator.
-
-        Args:
-            results ([dict]): List of content_mimetype results, dict
-            with the following keys:
-
-              - id (bytes): content's identifier (sha1)
-              - mimetype (bytes): mimetype in bytes
-              - encoding (bytes): encoding in bytes
-
-        """
-        if self.destination_task:
-            assert self.scheduler
-            self.scheduler.create_tasks([create_task_dict(
-                self.destination_task,
-                'oneshot',
-                list(self._filter_text(results))
-                )])
 
 
 @click.command()
