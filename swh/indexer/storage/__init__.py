@@ -25,9 +25,9 @@ def get_indexer_storage(cls, args):
     arguments `storage_args`.
 
     Args:
-        args (dict): dictionary with keys:
-        - cls (str): storage's class, either 'local' or 'remote'
-        - args (dict): dictionary with keys
+        cls (str): storage's class, either 'local' or 'remote'
+        args (dict): dictionary of arguments passed to the
+            storage class constructor
 
     Returns:
         an instance of swh.indexer's storage (either local or remote)
@@ -94,18 +94,17 @@ class IndexerStorage:
     @remote_api_endpoint('content_mimetype/missing')
     @db_transaction_generator()
     def content_mimetype_missing(self, mimetypes, db=None, cur=None):
-        """List mimetypes missing from storage.
+        """Generate mimetypes missing from storage.
 
         Args:
             mimetypes (iterable): iterable of dict with keys:
 
-                id (bytes): sha1 identifier
-                indexer_configuration_id (int): tool used to compute
-                the results
+              - **id** (bytes): sha1 identifier
+              - **indexer_configuration_id** (int): tool used to compute the
+                results
 
         Yields:
-            an iterable of missing id for the tuple (id,
-            indexer_configuration_id)
+            tuple (id, indexer_configuration_id): missing id
 
         """
         for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
@@ -120,14 +119,14 @@ class IndexerStorage:
         Args:
             mimetypes (iterable): dictionaries with keys:
 
-                id (bytes): sha1 identifier
-                mimetype (bytes): raw content's mimetype
-                encoding (bytes): raw content's encoding
-                indexer_configuration_id (int): tool's id used to
-                                                compute the results
-                conflict_update (bool): Flag to determine if we want to
-                                        overwrite (true) or skip duplicates
-                                        (false, the default)
+              - **id** (bytes): sha1 identifier
+              - **mimetype** (bytes): raw content's mimetype
+              - **encoding** (bytes): raw content's encoding
+              - **indexer_configuration_id** (int): tool's id used to
+                compute the results
+              - **conflict_update** (bool): Flag to determine if we want to
+                overwrite (``True``) or skip duplicates (``False``, the
+                default)
 
         """
         db.mktemp_content_mimetype(cur)
@@ -147,10 +146,10 @@ class IndexerStorage:
         Yields:
             mimetypes (iterable): dictionaries with keys:
 
-                id (bytes): sha1 identifier
-                mimetype (bytes): raw content's mimetype
-                encoding (bytes): raw content's encoding
-                tool (dict): Tool used to compute the language
+                - **id** (bytes): sha1 identifier
+                - **mimetype** (bytes): raw content's mimetype
+                - **encoding** (bytes): raw content's encoding
+                - **tool** (dict): Tool used to compute the language
 
         """
         for c in db.content_mimetype_get_from_list(ids, cur):
@@ -165,9 +164,9 @@ class IndexerStorage:
         Args:
             languages (iterable): dictionaries with keys:
 
-                id (bytes): sha1 identifier
-                indexer_configuration_id (int): tool used to compute
-                the results
+                - **id** (bytes): sha1 identifier
+                - **indexer_configuration_id** (int): tool used to compute
+                  the results
 
         Yields:
             an iterable of missing id for the tuple (id,
@@ -188,9 +187,9 @@ class IndexerStorage:
         Yields:
             languages (iterable): dictionaries with keys:
 
-                id (bytes): sha1 identifier
-                lang (bytes): raw content's language
-                tool (dict): Tool used to compute the language
+                - **id** (bytes): sha1 identifier
+                - **lang** (bytes): raw content's language
+                - **tool** (dict): Tool used to compute the language
 
         """
         for c in db.content_language_get_from_list(ids, cur):
@@ -206,8 +205,8 @@ class IndexerStorage:
         Args:
             languages (iterable): dictionaries with keys:
 
-                id (bytes): sha1
-                lang (bytes): language detected
+                - **id** (bytes): sha1
+                - **lang** (bytes): language detected
 
             conflict_update (bool): Flag to determine if we want to
                 overwrite (true) or skip duplicates (false, the
@@ -235,9 +234,9 @@ class IndexerStorage:
         Args:
             ctags (iterable): dicts with keys:
 
-                id (bytes): sha1 identifier
-                indexer_configuration_id (int): tool used to compute
-                                                the results
+                - **id** (bytes): sha1 identifier
+                - **indexer_configuration_id** (int): tool used to compute
+                  the results
 
         Yields:
             an iterable of missing id for the tuple (id,
@@ -258,11 +257,11 @@ class IndexerStorage:
         Yields:
             Dictionaries with keys:
 
-                id (bytes): content's identifier
-                name (str): symbol's name
-                kind (str): symbol's kind
-                language (str): language for that content
-                tool (dict): tool used to compute the ctags' info
+                - **id** (bytes): content's identifier
+                - **name** (str): symbol's name
+                - **kind** (str): symbol's kind
+                - **language** (str): language for that content
+                - **tool** (dict): tool used to compute the ctags' info
 
 
         """
@@ -278,9 +277,9 @@ class IndexerStorage:
         Args:
             ctags (iterable): dictionaries with keys:
 
-                id (bytes): sha1
-                ctags ([list): List of dictionary with keys: name, kind,
-                               line, language
+                - **id** (bytes): sha1
+                - **ctags** ([list): List of dictionary with keys: name, kind,
+                  line, language
 
         """
         def _convert_ctags(__ctags):
@@ -329,9 +328,9 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                id (bytes)
-                licenses ([str]): associated licenses for that content
-                tool (dict): Tool used to compute the license
+                - **id** (bytes)
+                - **licenses** ([str]): associated licenses for that content
+                - **tool** (dict): Tool used to compute the license
 
         """
         d = defaultdict(list)
@@ -353,9 +352,9 @@ class IndexerStorage:
         Args:
             licenses (iterable): dictionaries with keys:
 
-                - id: sha1
-                - license ([bytes]): List of licenses associated to sha1
-                - tool (str): nomossa
+                - **id**: sha1
+                - **license** ([bytes]): List of licenses associated to sha1
+                - **tool** (str): nomossa
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)
@@ -386,9 +385,9 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                id (bytes): sha1 identifier
-                indexer_configuration_id (int): tool used to compute
-                                                the results
+                - **id** (bytes): sha1 identifier
+                - **indexer_configuration_id** (int): tool used to compute
+                  the results
 
         Yields:
             an iterable of missing id for the tuple (id,
@@ -427,8 +426,8 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                id: sha1
-                translated_metadata: arbitrary dict
+                - **id**: sha1
+                - **translated_metadata**: arbitrary dict
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)
@@ -449,9 +448,9 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-               id (bytes): sha1_git revision identifier
-               indexer_configuration_id (int): tool used to compute
-                                               the results
+               - **id** (bytes): sha1_git revision identifier
+               - **indexer_configuration_id** (int): tool used to compute
+                 the results
 
         Returns:
             iterable: missing ids
@@ -471,9 +470,9 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                id (bytes)
-                translated_metadata (str): associated metadata
-                tool (dict): tool used to compute metadata
+                - **id** (bytes)
+                - **translated_metadata** (str): associated metadata
+                - **tool** (dict): tool used to compute metadata
 
         """
         for c in db.revision_metadata_get_from_list(ids, cur):
@@ -489,8 +488,8 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - id: sha1_git of revision
-                - translated_metadata: arbitrary dict
+                - **id**: sha1_git of revision
+                - **translated_metadata**: arbitrary dict
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -514,9 +513,9 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                id (int)
-                translated_metadata (str): associated metadata
-                tool (dict): tool used to compute metadata
+                - **id** (int)
+                - **translated_metadata** (str): associated metadata
+                - **tool** (dict): tool used to compute metadata
 
         """
         for c in db.origin_intrinsic_metadata_get_from_list(ids, cur):
@@ -533,10 +532,10 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - origin_id: origin identifier
-                - from_revision: sha1 id of the revision used to generate
-                                 these metadata.
-                - metadata: arbitrary dict
+                - **origin_id**: origin identifier
+                - **from_revision**: sha1 id of the revision used to generate
+                  these metadata.
+                - **metadata**: arbitrary dict
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -557,12 +556,12 @@ class IndexerStorage:
 
         Args:
             tools ([dict]): List of dictionary representing tool to
-            insert in the db. Dictionary with the following keys::
+                insert in the db. Dictionary with the following keys:
 
-                tool_name (str): tool's name
-                tool_version (str): tool's version
-                tool_configuration (dict): tool's configuration (free form
-                                           dict)
+                - **tool_name** (str): tool's name
+                - **tool_version** (str): tool's version
+                - **tool_configuration** (dict): tool's configuration
+                  (free form dict)
 
         Returns:
             List of dict inserted in the db (holding the id key as
@@ -586,12 +585,12 @@ class IndexerStorage:
 
         Args:
             tool (dict): Dictionary representing a tool with the
-            following keys::
+                following keys:
 
-                tool_name (str): tool's name
-                tool_version (str): tool's version
-                tool_configuration (dict): tool's configuration (free form
-                                           dict)
+                - **tool_name** (str): tool's name
+                - **tool_version** (str): tool's version
+                - **tool_configuration** (dict): tool's configuration
+                  (free form dict)
 
         Returns:
             The identifier of the tool if it exists, None otherwise.
