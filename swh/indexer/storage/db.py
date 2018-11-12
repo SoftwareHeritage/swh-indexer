@@ -126,11 +126,7 @@ class Db(BaseDb):
 
         """
         cur = self._cursor(cur)
-        table = self.content_tables.get(content_type)
-        if not table:
-            raise ValueError(
-                'Development error: Wrong type. Should be one of [%s]' % (
-                    ','.join(self.content_tables)))
+        table = self.content_tables[content_type]
         query = """select %s
                    from %s t
                    inner join indexer_configuration ic
