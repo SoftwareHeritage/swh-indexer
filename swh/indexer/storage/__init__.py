@@ -110,9 +110,9 @@ class IndexerStorage:
         for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
             yield obj[0]
 
-    def _content_range(self, content_type, start, end,
-                       indexer_configuration_id, limit=1000,
-                       db=None, cur=None):
+    def _content_get_range(self, content_type, start, end,
+                           indexer_configuration_id, limit=1000,
+                           db=None, cur=None):
         """Retrieve ids of type content_type within range [start, end] bound
            by limit.
 
@@ -122,7 +122,7 @@ class IndexerStorage:
                            than end)
             **end** (bytes): Ending identifier range (expected larger
                              than start)
-            **indexer_configuration_id** (int): The tool used to indexed data
+            **indexer_configuration_id** (int): The tool used to index data
             **limit** (int): Limit result (default to 1000)
 
         Raises:
@@ -132,14 +132,14 @@ class IndexerStorage:
 
         Returns:
             a dict with keys:
-            - ids [dict]: iterable of ids in between the range.
-            - next_id (bytes): There remains content in the range
-              starting from this next sha1
+            - **ids** [bytes]: iterable of content ids within the range.
+            - **next** (Optional[bytes]): The next range of sha1 starts at
+                                          this sha1 if any
 
         """
         if limit is None:
             raise ValueError('Development error: limit should not be None')
-        if content_type not in db.content_tables:
+        if content_type not in db.content_types:
             err = 'Development error: Wrong type. Should be one of [%s]' % (
                 ','.join(db.content_tables))
             raise ValueError(err)
@@ -147,21 +147,24 @@ class IndexerStorage:
         ids = []
         next_id = None
         for counter, obj in enumerate(db.content_get_range(
-                content_type, start, end, limit=limit+1, cur=cur)):
+                content_type, start, end, indexer_configuration_id,
+                limit=limit+1, cur=cur)):
             _id = obj[0]
             if counter >= limit:
                 next_id = _id
+                break
+
             ids.append(_id)
 
         return {
             'ids': ids,
-            'next_id': next_id
+            'next': next_id
         }
 
     @remote_api_endpoint('content_mimetype/range')
     @db_transaction()
-    def content_mimetype_range(self, start, end, indexer_configuration_id,
-                               limit=1000, db=None, cur=None):
+    def content_mimetype_get_range(self, start, end, indexer_configuration_id,
+                                   limit=1000, db=None, cur=None):
         """Retrieve mimetypes within range [start, end] bound by limit.
 
         Args:
@@ -169,7 +172,7 @@ class IndexerStorage:
                            than end)
             **end** (bytes): Ending identifier range (expected larger
                              than start)
-            **indexer_configuration_id** (int): The tool used to indexed data
+            **indexer_configuration_id** (int): The tool used to index data
             **limit** (int): Limit result (default to 1000)
 
         Raises:
@@ -177,17 +180,14 @@ class IndexerStorage:
 
         Returns:
             a dict with keys:
-            - contents [dict]: iterable of contents in between the range.
-            - next (bytes): There remains content in the range
-              starting from this next sha1
-
-        Returns:
-            an iterable of mimetypes within the specified range
+            - **ids** [bytes]: iterable of content ids within the range.
+            - **next** (Optional[bytes]): The next range of sha1 starts at
+                                          this sha1 if any
 
         """
-        return self._content_range('content_mimetype', start, end,
-                                   indexer_configuration_id, limit=limit,
-                                   db=db, cur=cur)
+        return self._content_get_range('mimetype', start, end,
+                                       indexer_configuration_id, limit=limit,
+                                       db=db, cur=cur)
 
     @remote_api_endpoint('content_mimetype/add')
     @db_transaction()

@@ -4,15 +4,16 @@
 # See top-level LICENSE file for more information
 
 import os
+import pytest
 import unittest
+
+from hypothesis import given
 
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.storage import get_indexer_storage
 from swh.core.tests.db_testing import SingleDbTestFixture
-from swh.indexer.tests import SQL_DIR
-
-import pytest
+from swh.indexer.tests.storage import SQL_DIR, gen_content_mimetypes
 
 
 @pytest.mark.db
@@ -1611,6 +1612,103 @@ class CommonTestStorage(BaseTestStorage):
         expected_tool['id'] = actual_tool['id']
 
         self.assertEqual(expected_tool, actual_tool)
+
+
+@pytest.mark.property_based
+class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
+    """Properties-based tests
+
+    """
+    def assert_mimetypes_ok(self, expected_mimetypes, actual_mimetypes,
+                            keys_to_check={'id', 'mimetype', 'encoding'}):
+        """Assert that a given list of contents matches on a given set of keys.
+
+        """
+        for k in keys_to_check:
+            expected_list = [c[k] for c in expected_mimetypes]
+            expected_list.sort()
+            actual_list = [c[k] for c in actual_mimetypes]
+            actual_list.sort()
+            self.assertEqual(actual_list, expected_list)
+
+    def test_generate_content_mimetype_get_range_limit_none(self):
+        """mimetype_get_range call with wrong limit input should fail"""
+        with self.assertRaises(ValueError) as e:
+            self.storage.content_mimetype_get_range(
+                start=None, end=None, indexer_configuration_id=None,
+                limit=None)
+
+        self.assertEqual(e.exception.args, (
+            'Development error: limit should not be None',))
+
+    @given(gen_content_mimetypes(min_size=1, max_size=4))
+    def test_generate_content_mimetype_get_range_no_limit(self, mimetypes):
+        """mimetype_get_range returns mimetypes within range provided"""
+        self.reset_storage_tables()
+        # add mimetypes to storage
+        self.storage.content_mimetype_add(mimetypes)
+
+        # All ids from the db
+        content_ids = [c['id'] for c in mimetypes]
+        content_ids.sort()
+
+        start = content_ids[0]
+        end = content_ids[-1]
+
+        # retrieve mimetypes
+        tool_id = mimetypes[0]['indexer_configuration_id']
+        actual_result = self.storage.content_mimetype_get_range(
+            start, end, indexer_configuration_id=tool_id)
+
+        actual_mimetypes = actual_result['ids']
+        actual_next = actual_result['next']
+
+        self.assertEqual(len(mimetypes), len(actual_mimetypes))
+        self.assertIsNone(actual_next)
+        self.assertEqual(content_ids, actual_mimetypes)
+
+    @given(gen_content_mimetypes(min_size=4, max_size=4))
+    def test_generate_content_mimetype_get_range_limit(self, mimetypes):
+        """mimetype_get_range paginates results if limit exceeded"""
+        self.reset_storage_tables()
+
+        # add mimetypes to storage
+        self.storage.content_mimetype_add(mimetypes)
+
+        # input the list of sha1s we want from storage
+        content_ids = [c['id'] for c in mimetypes]
+        content_ids.sort()
+        start = content_ids[0]
+        end = content_ids[-1]
+
+        # retrieve mimetypes limited to 3 results
+        limited_results = len(mimetypes) - 1
+        tool_id = mimetypes[0]['indexer_configuration_id']
+        actual_result = self.storage.content_mimetype_get_range(
+            start, end,
+            indexer_configuration_id=tool_id, limit=limited_results)
+
+        actual_mimetypes = actual_result['ids']
+        actual_next = actual_result['next']
+
+        self.assertEqual(limited_results, len(actual_mimetypes))
+        self.assertIsNotNone(actual_next)
+        self.assertEqual(actual_next, content_ids[-1])
+
+        expected_mimetypes = content_ids[:-1]
+        self.assertEqual(expected_mimetypes, actual_mimetypes)
+
+        # retrieve next part
+        actual_results2 = self.storage.content_mimetype_get_range(
+            start=end, end=end, indexer_configuration_id=tool_id)
+        actual_mimetypes2 = actual_results2['ids']
+        actual_next2 = actual_results2['next']
+
+        self.assertEqual(1, len(actual_mimetypes2))
+        self.assertIsNone(actual_next2)
+
+        expected_mimetypes2 = [content_ids[-1]]
+        self.assertEqual(expected_mimetypes2, actual_mimetypes2)
 
 
 class IndexerTestStorage(CommonTestStorage, unittest.TestCase):

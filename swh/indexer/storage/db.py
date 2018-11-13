@@ -113,7 +113,7 @@ class Db(BaseDb):
             ((_id,) for _id in ids)
         )
 
-    content_tables = {
+    content_types = {
         'mimetype': 'content_mimetype',
         'language': 'content_language',
     }
@@ -126,19 +126,16 @@ class Db(BaseDb):
 
         """
         cur = self._cursor(cur)
-        table = self.content_tables[content_type]
-        query = """select %s
+        table = self.content_types[content_type]
+        query = """select t.id
                    from %s t
                    inner join indexer_configuration ic
                    on t.indexer_configuration_id=ic.id
-                   where tc.id=%%s and
-                         %%s <= t.sha1 and t.sha1 <= %%s
-                   order by t.indexer_configuration_id, t.sha1
-                   limit %%s""" % (
-                       ', '.join(self.content_get_metadata_keys),  # keys
-                       table
-                   )
-        cur.execute(query, (start, end, indexer_configuration_id, limit))
+                   where ic.id=%%s and
+                         %%s <= t.id and t.id <= %%s
+                   order by t.indexer_configuration_id, t.id
+                   limit %%s""" % table
+        cur.execute(query, (indexer_configuration_id, start, end, limit))
         yield from cursor_to_bytes(cur)
 
     def content_mimetype_get_from_list(self, ids, cur=None):
