@@ -133,43 +133,11 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             }
         }),
         'objstorage': ('dict', {
-            'cls': 'multiplexer',
+            'cls': 'remote',
             'args': {
-                'objstorages': [{
-                    'cls': 'filtered',
-                    'args': {
-                        'storage_conf': {
-                            'cls': 'azure',
-                            'args': {
-                                'account_name': '0euwestswh',
-                                'api_secret_key': 'secret',
-                                'container_name': 'contents'
-                            }
-                        },
-                        'filters_conf': [
-                            {'type': 'readonly'},
-                            {'type': 'prefix', 'prefix': '0'}
-                        ]
-                    }
-                }, {
-                    'cls': 'filtered',
-                    'args': {
-                        'storage_conf': {
-                            'cls': 'azure',
-                            'args': {
-                                'account_name': '1euwestswh',
-                                'api_secret_key': 'secret',
-                                'container_name': 'contents'
-                            }
-                        },
-                        'filters_conf': [
-                            {'type': 'readonly'},
-                            {'type': 'prefix', 'prefix': '1'}
-                        ]
-                    }
-                }]
-            },
-        }),
+                'url': 'http://localhost:5003/',
+            }
+        })
     }
 
     ADDITIONAL_CONFIG = {}
