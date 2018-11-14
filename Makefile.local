@@ -1,1 +1,1 @@
-TESTFLAGS=--hypothesis-profile=fast --disable-warnings -m property_based
+TESTFLAGS=--hypothesis-profile=fast --disable-warnings
