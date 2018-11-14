@@ -13,19 +13,19 @@ from hypothesis.strategies import (binary, composite, sets, one_of,
 SQL_DIR = path.join(path.dirname(swh.indexer.__file__), 'sql')
 
 
-MIMETYPES = {
-    b'text/plain',
-    b'application/xml',
+MIMETYPES = [
     b'application/json',
     b'application/octet-stream',
-}
+    b'application/xml',
+    b'text/plain',
+]
 
-ENCODINGS = {
-    b'utf-8',
-    b'latin1',
+ENCODINGS = [
     b'iso8859-1',
     b'iso8859-15',
-}
+    b'latin1',
+    b'utf-8',
+]
 
 
 def gen_content_id():
