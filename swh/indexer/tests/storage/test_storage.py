@@ -1648,12 +1648,12 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         actual_result = self.storage.content_mimetype_get_range(
             start, end, indexer_configuration_id=tool_id)
 
-        actual_mimetypes = actual_result['ids']
+        actual_ids = actual_result['ids']
         actual_next = actual_result['next']
 
-        self.assertEqual(len(mimetypes), len(actual_mimetypes))
+        self.assertEqual(len(mimetypes), len(actual_ids))
         self.assertIsNone(actual_next)
-        self.assertEqual(content_ids, actual_mimetypes)
+        self.assertEqual(content_ids, actual_ids)
 
     @given(gen_content_mimetypes(min_size=4, max_size=4))
     def test_generate_content_mimetype_get_range_limit(self, mimetypes):
@@ -1676,27 +1676,25 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
             start, end,
             indexer_configuration_id=tool_id, limit=limited_results)
 
-        actual_mimetypes = actual_result['ids']
+        actual_ids = actual_result['ids']
         actual_next = actual_result['next']
 
-        self.assertEqual(limited_results, len(actual_mimetypes))
+        self.assertEqual(limited_results, len(actual_ids))
         self.assertIsNotNone(actual_next)
         self.assertEqual(actual_next, content_ids[-1])
 
         expected_mimetypes = content_ids[:-1]
-        self.assertEqual(expected_mimetypes, actual_mimetypes)
+        self.assertEqual(expected_mimetypes, actual_ids)
 
         # retrieve next part
         actual_results2 = self.storage.content_mimetype_get_range(
             start=end, end=end, indexer_configuration_id=tool_id)
-        actual_mimetypes2 = actual_results2['ids']
+        actual_ids2 = actual_results2['ids']
         actual_next2 = actual_results2['next']
 
-        self.assertEqual(1, len(actual_mimetypes2))
         self.assertIsNone(actual_next2)
-
         expected_mimetypes2 = [content_ids[-1]]
-        self.assertEqual(expected_mimetypes2, actual_mimetypes2)
+        self.assertEqual(expected_mimetypes2, actual_ids2)
 
 
 class IndexerTestStorage(CommonTestStorage, unittest.TestCase):
