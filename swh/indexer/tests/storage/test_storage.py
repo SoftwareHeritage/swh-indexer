@@ -1637,8 +1637,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.storage.content_mimetype_add(mimetypes)
 
         # All ids from the db
-        content_ids = [c['id'] for c in mimetypes]
-        content_ids.sort()
+        content_ids = sorted([c['id'] for c in mimetypes])
 
         start = content_ids[0]
         end = content_ids[-1]
@@ -1664,8 +1663,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.storage.content_mimetype_add(mimetypes)
 
         # input the list of sha1s we want from storage
-        content_ids = [c['id'] for c in mimetypes]
-        content_ids.sort()
+        content_ids = sorted([c['id'] for c in mimetypes])
         start = content_ids[0]
         end = content_ids[-1]
 
