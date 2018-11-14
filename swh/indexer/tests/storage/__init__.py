@@ -6,46 +6,47 @@
 from os import path
 import swh.storage
 
-from hypothesis.strategies import (binary, composite, sets, one_of, tuples)
+from hypothesis.strategies import (binary, composite, sets, one_of,
+                                   tuples, sampled_from)
 
 
 SQL_DIR = path.join(path.dirname(swh.indexer.__file__), 'sql')
 
 
 MIMETYPES = {
-    'text/plain',
-    'application/xml',
-    'application/json',
-    'application/octet-stream',
+    b'text/plain',
+    b'application/xml',
+    b'application/json',
+    b'application/octet-stream',
 }
 
 ENCODINGS = {
-    'utf-8',
-    'latin1',
-    'iso8859-1',
-    'iso8859-15',
+    b'utf-8',
+    b'latin1',
+    b'iso8859-1',
+    b'iso8859-15',
 }
 
 
 def gen_content_id():
-    """Generate raw id
+    """Generate raw id strategy.
 
     """
     return binary(min_size=20, max_size=20)
 
 
 def gen_mimetype():
-    """Generate one mimetype.
+    """Generate one mimetype strategy.
 
     """
-    return one_of(MIMETYPES)
+    return one_of(sampled_from(MIMETYPES))
 
 
 def gen_encoding():
-    """Generate one encoding.
+    """Generate one encoding strategy.
 
     """
-    return one_of(ENCODINGS)
+    return one_of(sampled_from(ENCODINGS))
 
 
 @composite
@@ -55,7 +56,7 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
     Context: Test purposes
 
     Args:
-        **draw**: Used by hypothesis to generate data
+        **draw** (callable): Used by hypothesis to generate data
         **min_size** (int): Minimal number of elements to generate
                             (default: 0)
         **max_size** (int): Maximal number of elements to generate
@@ -66,33 +67,23 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
         content_mimetype_add api endpoint.
 
     """
-    # tuple_mimetypes = draw(
-    #     sets(
-    #         tuples(
-    #             gen_content_id(),
-    #             gen_mimetype(),
-    #             gen_encoding()
-    #         )
-    #     ),
-    #     min_size=min_size, max_size=max_size
-    # )
-
-    _mimetypes = draw(sets(gen_content_id(),
-                           min_size=min_size, max_size=max_size))
-    tuple_mimetypes = []
-    for mimetype in _mimetypes:
-        tuple_mimetypes.append((mimetype, 'text/plain', 'utf-8'))
-
-    # print('##### %s' % tuple_mimetypes)
+    _ids = draw(
+        sets(
+            tuples(
+                gen_content_id(),
+                gen_mimetype(),
+                gen_encoding()
+            ),
+            min_size=min_size, max_size=max_size
+        )
+    )
 
     mimetypes = []
-    for content_id, mimetype, encoding in tuple_mimetypes:
+    for content_id, mimetype, encoding in _ids:
         mimetypes.append({
             'id': content_id,
             'mimetype': mimetype,
             'encoding': encoding,
             'indexer_configuration_id': 1,
         })
-
-    print('##### mimetypes: %s' % mimetypes)
     return mimetypes
