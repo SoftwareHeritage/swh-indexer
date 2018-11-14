@@ -139,9 +139,9 @@ class IndexerStorage:
         """
         if limit is None:
             raise ValueError('Development error: limit should not be None')
-        if content_type not in db.content_types:
+        if content_type not in db.content_indexer_names:
             err = 'Development error: Wrong type. Should be one of [%s]' % (
-                ','.join(db.content_types))
+                ','.join(db.content_indexer_names))
             raise ValueError(err)
 
         ids = []

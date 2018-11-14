@@ -113,7 +113,7 @@ class Db(BaseDb):
             ((_id,) for _id in ids)
         )
 
-    content_types = {
+    content_indexer_names = {
         'mimetype': 'content_mimetype',
         'language': 'content_language',
     }
@@ -126,7 +126,7 @@ class Db(BaseDb):
 
         """
         cur = self._cursor(cur)
-        table = self.content_types[content_type]
+        table = self.content_indexer_names[content_type]
         query = """select t.id
                    from %s t
                    inner join indexer_configuration ic
