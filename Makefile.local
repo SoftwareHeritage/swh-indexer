@@ -1,1 +1,1 @@
-TESTFLAGS=--hypothesis-profile=fast --disable-warnings
+TESTFLAGS=--hypothesis-profile=fast
