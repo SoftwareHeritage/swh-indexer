@@ -1619,18 +1619,6 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
     """Properties-based tests
 
     """
-    def assert_mimetypes_ok(self, expected_mimetypes, actual_mimetypes,
-                            keys_to_check={'id', 'mimetype', 'encoding'}):
-        """Assert that a given list of contents matches on a given set of keys.
-
-        """
-        for k in keys_to_check:
-            expected_list = [c[k] for c in expected_mimetypes]
-            expected_list.sort()
-            actual_list = [c[k] for c in actual_mimetypes]
-            actual_list.sort()
-            self.assertEqual(actual_list, expected_list)
-
     def test_generate_content_mimetype_get_range_limit_none(self):
         """mimetype_get_range call with wrong limit input should fail"""
         with self.assertRaises(ValueError) as e:
