@@ -78,12 +78,12 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
         )
     )
 
-    mimetypes = []
+    content_mimetypes = []
     for content_id, mimetype, encoding in _ids:
-        mimetypes.append({
+        content_mimetypes.append({
             'id': content_id,
             'mimetype': mimetype,
             'encoding': encoding,
             'indexer_configuration_id': 1,
         })
-    return mimetypes
+    return content_mimetypes
