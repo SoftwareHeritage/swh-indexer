@@ -303,9 +303,9 @@ class ContentIndexer(BaseIndexer):
     To work on indexer range, use the :class:`ContentRangeIndexer`
     instead.
 
-    Note: :class:`ContentRangeIndexer` is not an instantiable
-    object. To use it, one should inherit from this class and override
-    the methods mentioned in the :class:`BaseIndexer` class.
+    Note: :class:`ContentIndexer` is not an instantiable object. To
+    use it, one should inherit from this class and override the
+    methods mentioned in the :class:`BaseIndexer` class.
 
     """
     @abc.abstractmethod
@@ -366,6 +366,8 @@ class ContentRangeIndexer(BaseIndexer):
 
     This expects as input a range of ids to index.
 
+    To work on a list of ids, use the :class:`ContentIndexer` instead.
+
     Note: :class:`ContentRangeIndexer` is not an instantiable
     object. To use it, one should inherit from this class and override
     the methods mentioned in the :class:`BaseIndexer` class.
@@ -413,8 +415,8 @@ class ContentRangeIndexer(BaseIndexer):
            'update-dups') or all (policy_update to 'ignore-dups'.
 
         Args:
-            **ids** ([bytes]): a list of 2 elements represeting a range
-
+            **ids** (Iterable[bytes]): list of 2 elements representing
+                                       a range
             **policy_update** (str): either 'update-dups' to do all
                                      contents, or 'ignore-dups' to
                                      only compute new ones

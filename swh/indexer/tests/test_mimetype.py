@@ -26,9 +26,9 @@ class _MockStorage():
         self.contents = contents
 
     def content_get_range(self, start, end, limit=1000):
-        # to make input test data conciliant with actual runtime the
+        # to make input test data consilient with actual runtime the
         # other way of doing properly things would be to rewrite all
-        # tests (that's another task entirely so no)
+        # tests (that's another task entirely so not right now)
         if isinstance(start, bytes):
             start = hashutil.hash_to_hex(start)
         if isinstance(end, bytes):
@@ -65,9 +65,9 @@ class _MockIndexerStorage():
         """Basic in-memory implementation (limit is unused).
 
         """
-        # to make input test data conciliant with actual runtime the
+        # to make input test data consilient with actual runtime the
         # other way of doing properly things would be to rewrite all
-        # tests (that's another task entirely so no)
+        # tests (that's another task entirely so not right now)
         if isinstance(start, bytes):
             start = hashutil.hash_to_hex(start)
         if isinstance(end, bytes):
