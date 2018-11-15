@@ -255,6 +255,24 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
         # InMemoryObjStorage, swh.storage.tests's gen_contents, and
         # hypothesis to generate data to actually run indexer on those
 
+        self.expected_results = {
+            '01c9379dfc33803963d07c1ccc748d3fe4c96bb5': {
+                'encoding': b'us-ascii',
+                'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
+                'indexer_configuration_id': 10,
+                'mimetype': b'text/plain'},
+            '02fb2c89e14f7fab46701478c83779c7beb7b069': {
+                'encoding': b'us-ascii',
+                'id': '02fb2c89e14f7fab46701478c83779c7beb7b069',
+                'indexer_configuration_id': 10,
+                'mimetype': b'text/x-python'},
+            '103bc087db1d26afc3a0283f38663d081e9b01e6': {
+                'encoding': b'us-ascii',
+                'id': '103bc087db1d26afc3a0283f38663d081e9b01e6',
+                'indexer_configuration_id': 10,
+                'mimetype': b'text/plain'}
+        }
+
     def test_generate_content_mimetype_get_range_wrong_input(self):
         """Wrong input should fail asap
 
@@ -263,6 +281,14 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
             self.indexer.run([1, 2, 3], 'ignore-dups')
 
         self.assertEqual(e.exception.args, ('Range of ids expected', ))
+
+    def assert_mimetypes_ok(self, start, end, actual_results):
+        for mimetype in actual_results:
+            _id = mimetype['id']
+            self.assertEqual(mimetype, self.expected_results[_id])
+            self.assertTrue(start <= _id and _id <= end)
+            _tool_id = mimetype['indexer_configuration_id']
+            self.assertEqual(_tool_id, self.indexer.tool['id'])
 
     def test_generate_content_mimetype_get(self):
         """Optimal indexing should result in persisted computations
@@ -274,28 +300,7 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
             [start, end], policy_update='update-dups')
 
         # then
-        expected_results = [
-            {'encoding': b'us-ascii',
-             'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
-             'indexer_configuration_id': 10,
-             'mimetype': b'text/plain'},
-            {'encoding': b'us-ascii',
-             'id': '02fb2c89e14f7fab46701478c83779c7beb7b069',
-             'indexer_configuration_id': 10,
-             'mimetype': b'text/x-python'},
-            {'encoding': b'us-ascii',
-             'id': '103bc087db1d26afc3a0283f38663d081e9b01e6',
-             'indexer_configuration_id': 10,
-             'mimetype': b'text/plain'}
-        ]
-
-        self.assertEqual(expected_results, actual_results)
-
-        for m in actual_results:
-            _id = m['id']
-            self.assertTrue(start <= _id and _id <= end)
-            _tool_id = m['indexer_configuration_id']
-            self.assertEqual(_tool_id, self.indexer.tool['id'])
+        self.assert_mimetypes_ok(start, end, actual_results)
 
     def test_generate_content_mimetype_get_input_as_bytes(self):
         """Optimal indexing should result in persisted computations
@@ -303,32 +308,12 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
         Input are in bytes here.
 
         """
-        start, end = [hashutil.hash_to_bytes(self.contents[0]),
-                      hashutil.hash_to_bytes(self.contents[2])]
+        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
+        start, end = map(hashutil.hash_to_bytes, (_start, _end))
+
         # given
-        actual_results = self.indexer.run(
+        actual_results = self.indexer.run(  # checks the bytes input this time
             [start, end], policy_update='update-dups')
 
         # then
-        expected_results = [
-            {'encoding': b'us-ascii',
-             'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
-             'indexer_configuration_id': 10,
-             'mimetype': b'text/plain'},
-            {'encoding': b'us-ascii',
-             'id': '02fb2c89e14f7fab46701478c83779c7beb7b069',
-             'indexer_configuration_id': 10,
-             'mimetype': b'text/x-python'},
-            {'encoding': b'us-ascii',
-             'id': '103bc087db1d26afc3a0283f38663d081e9b01e6',
-             'indexer_configuration_id': 10,
-             'mimetype': b'text/plain'}
-        ]
-
-        self.assertEqual(expected_results, actual_results)
-
-        for m in actual_results:
-            _id = hashutil.hash_to_bytes(m['id'])
-            self.assertTrue(start <= _id and _id <= end)
-            _tool_id = m['indexer_configuration_id']
-            self.assertEqual(_tool_id, self.indexer.tool['id'])
+        self.assert_mimetypes_ok(_start, _end, actual_results)
