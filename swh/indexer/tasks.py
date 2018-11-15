@@ -19,11 +19,23 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Task(SchedulerTask):
+    """Task whose results is needed for other computations.
+
+    """
     def run_task(self, *args, **kwargs):
         indexer = self.Indexer().run(*args, **kwargs)
         if hasattr(indexer, 'results'):  # indexer tasks
             return indexer.results
         return indexer
+
+
+class StatusTask(SchedulerTask):
+    """Task which returns a status either eventful or uneventful.
+
+    """
+    def run_task(self, *args, **kwargs):
+        results = self.Indexer().run(*args, **kwargs)
+        return {'status': 'eventful' if results else 'uneventful'}
 
 
 class RevisionMetadata(Task):
@@ -46,21 +58,19 @@ class OriginHead(Task):
     Indexer = OriginHeadIndexer
 
 
-class ContentMimetype(Task):
-    """Task which computes the mimetype, encoding from the sha1's content.
+class ContentMimetype(StatusTask):
+    """Compute (mimetype, encoding) from the sha1's content.
 
     """
     task_queue = 'swh_indexer_content_mimetype'
-
     Indexer = ContentMimetypeIndexer
 
 
-class ContentRangeMimetype(Task):
-    """Compute mimetype, encoding on a range of sha1s.
+class ContentRangeMimetype(StatusTask):
+    """Compute (mimetype, encoding) on a range of sha1s.
 
     """
     task_queue = 'swh_indexer_content_mimetype_range'
-
     Indexer = MimetypeRangeIndexer
 
 
