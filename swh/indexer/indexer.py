@@ -18,6 +18,7 @@ from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
 from swh.model import hashutil
+from swh.core import utils
 
 
 class DiskIndexer:
@@ -396,6 +397,9 @@ class ContentRangeIndexer(BaseIndexer):
             **end** (bytes): End range identifier
             **indexed** (Set[bytes]): Set of content already indexed.
 
+        Yields:
+            Identifier (bytes) of contents to index.
+
         """
         while start:
             result = self.storage.content_get_range(start, end)
@@ -406,6 +410,29 @@ class ContentRangeIndexer(BaseIndexer):
                     continue
                 yield _id
             start = result['next']
+
+    def index_contents(self, start, end, indexed, **kwargs):
+        """Index the contents from within range [start, end]
+
+        Args:
+            **start** (bytes): Starting bound from range identifier
+            **end** (bytes): End range identifier
+            **indexed** (Set[bytes]): Set of content already indexed.
+
+        Yields:
+            Data indexed (dict) to persist using the indexer storage
+
+        """
+        for sha1 in self.list_contents_to_index(start, end, indexed):
+            try:
+                raw_content = self.objstorage.get(sha1)
+            except ObjNotFoundError:
+                self.log.warning('Content %s not found in objstorage' %
+                                 hashutil.hash_to_hex(sha1))
+                continue
+            res = self.index(sha1, raw_content, **kwargs)
+            if res:
+                yield res
 
     def run(self, start, end, policy_update, **kwargs):
         """Given a range of content ids, compute the indexing computation on
@@ -420,8 +447,12 @@ class ContentRangeIndexer(BaseIndexer):
                                      only compute new ones
             **kwargs: passed to the `index` method
 
+        Returns:
+            None if no data was indexed, a partial result otherwise (dict).
+            Partial because the result is not really used later.
+
         """
-        results = []
+        results = None
         try:
             if isinstance(start, str):
                 start = hashutil.hash_to_bytes(start)
@@ -433,19 +464,11 @@ class ContentRangeIndexer(BaseIndexer):
             else:
                 indexed = set()
 
-            for sha1 in self.list_contents_to_index(start, end, indexed):
-                try:
-                    raw_content = self.objstorage.get(sha1)
-                except ObjNotFoundError:
-                    self.log.warning('Content %s not found in objstorage' %
-                                     hashutil.hash_to_hex(sha1))
-                    continue
-                res = self.index(sha1, raw_content, **kwargs)
-                if res:  # If no results, skip it
-                    results.append(res)
-
-            self.persist_index_computations(results, policy_update)
-            return results
+            index_computations = self.index_contents(start, end, indexed)
+            for results in utils.grouper(index_computations,
+                                         n=self.config['write_batch_size']):
+                self.persist_index_computations(results, policy_update)
+            return results  # return a partial result if any
         except Exception:
             self.log.exception(
                 'Problem when computing metadata.')

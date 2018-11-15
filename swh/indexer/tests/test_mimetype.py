@@ -234,6 +234,7 @@ class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
                     "debian-package": "python3-magic"
                 },
             },
+            'write_batch_size': 100,
         }
         self.idx_storage = _MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
