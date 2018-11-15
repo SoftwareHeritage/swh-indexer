@@ -7,7 +7,7 @@ import logging
 
 from swh.scheduler.task import Task as SchedulerTask
 
-from .mimetype import ContentMimetypeIndexer
+from .mimetype import ContentMimetypeIndexer, MimetypeRangeIndexer
 from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import ContentFossologyLicenseIndexer
@@ -53,6 +53,15 @@ class ContentMimetype(Task):
     task_queue = 'swh_indexer_content_mimetype'
 
     Indexer = ContentMimetypeIndexer
+
+
+class ContentRangeMimetype(Task):
+    """Compute mimetype, encoding on a range of sha1s.
+
+    """
+    task_queue = 'swh_indexer_content_mimetype_range'
+
+    Indexer = MimetypeRangeIndexer
 
 
 class ContentLanguage(Task):
