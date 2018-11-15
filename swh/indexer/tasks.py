@@ -13,6 +13,7 @@ from .ctags import CtagsIndexer
 from .fossology_license import ContentFossologyLicenseIndexer
 from .rehash import RecomputeChecksums
 from .metadata import RevisionMetadataIndexer, OriginMetadataIndexer
+from .origin_head import OriginHeadIndexer
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,6 +38,12 @@ class OriginMetadata(Task):
     task_queue = 'swh_indexer_origin_intrinsic_metadata'
 
     Indexer = OriginMetadataIndexer
+
+
+class OriginHead(Task):
+    task_queue = 'swh_indexer_origin_head'
+
+    Indexer = OriginHeadIndexer
 
 
 class ContentMimetype(Task):
