@@ -9,7 +9,7 @@ import magic
 from swh.model import hashutil
 from swh.scheduler import get_scheduler
 
-from .indexer import ContentIndexer
+from .indexer import ContentIndexer, ContentRangeIndexer
 
 
 def compute_mimetype_encoding(raw_content):
@@ -30,13 +30,10 @@ def compute_mimetype_encoding(raw_content):
     }
 
 
-class ContentMimetypeIndexer(ContentIndexer):
-    """Indexer in charge of:
+class MixinMimetypeIndexer:
+    """Mixin mimetype indexer.
 
-    - filtering out content already indexed
-    - reading content from objstorage per the content's id (sha1)
-    - computing {mimetype, encoding} from that content
-    - store result in storage
+    See :class:`ContentMimetypeIndexer` and :class:`MimetypeRangeIndexer`
 
     """
     ADDITIONAL_CONFIG = {
@@ -62,17 +59,6 @@ class ContentMimetypeIndexer(ContentIndexer):
         super().prepare()
         self.scheduler = get_scheduler(**self.config['scheduler'])
         self.tool = self.tools[0]
-
-    def filter(self, ids):
-        """Filter out known sha1s and return only missing ones.
-
-        """
-        yield from self.idx_storage.content_mimetype_missing((
-            {
-                'id': sha1,
-                'indexer_configuration_id': self.tool['id'],
-            } for sha1 in ids
-        ))
 
     def index(self, id, data):
         """Index sha1s' content and store result.
@@ -119,6 +105,65 @@ class ContentMimetypeIndexer(ContentIndexer):
         """
         self.idx_storage.content_mimetype_add(
             results, conflict_update=(policy_update == 'update-dups'))
+
+
+class ContentMimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
+    """Mimetype Indexer working on list of content identifiers.
+
+    It:
+    - (optionally) filters out content already indexed (cf. :callable:`filter`)
+    - reads content from objstorage per the content's id (sha1)
+    - computes {mimetype, encoding} from that content
+    - stores result in storage
+
+    FIXME:
+    - 1. Rename redundant ContentMimetypeIndexer to MimetypeIndexer
+    - 2. Do we keep it afterwards? ~> i think this can be used with the journal
+
+    """
+    def filter(self, ids):
+        """Filter out known sha1s and return only missing ones.
+
+        """
+        yield from self.idx_storage.content_mimetype_missing((
+            {
+                'id': sha1,
+                'indexer_configuration_id': self.tool['id'],
+            } for sha1 in ids
+        ))
+
+
+class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
+    """Mimetype Range Indexer working on range of content identifiers.
+
+    It:
+    - (optionally) filters out content already indexed (cf :callable:`range`)
+    - reads content from objstorage per the content's id (sha1)
+    - computes {mimetype, encoding} from that content
+    - stores result in storage
+
+    """
+    def range(self, start, end):
+        """Retrieve indexed content id within range [start, end].
+
+        Args
+            **start** (bytes): Starting bound from range identifier
+            **end** (bytes): End range identifier
+
+        Yields:
+            Content identifier (bytes) present in the range [start, end]
+
+        """
+        while True:
+            result = self.idx_storage.content_mimetype_get_range(
+                start, end, self.tool['id'])
+            print('#### result; %s' % result)
+            contents = result['ids']
+            for _id in contents:
+                yield _id
+            start = result['next']
+            if start is None:
+                break
 
 
 @click.command()

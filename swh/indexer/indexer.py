@@ -403,7 +403,7 @@ class ContentRangeIndexer(BaseIndexer):
                 if _id in indexed:
                     continue
                 yield _id
-            next_id = result['next_id']
+            next_id = result['next']
             if next_id is None:
                 break
 

@@ -10,7 +10,6 @@ from swh.model.hashutil import MultiHash
 from hypothesis.strategies import (composite, sets, one_of, uuids,
                                    tuples, sampled_from)
 
-
 SQL_DIR = path.join(path.dirname(swh.indexer.__file__), 'sql')
 
 
