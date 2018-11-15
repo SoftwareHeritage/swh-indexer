@@ -11,6 +11,7 @@ from swh.indexer.mimetype import (
 )
 
 from swh.indexer.tests.test_utils import MockObjStorage
+from swh.model import hashutil
 
 
 class _MockStorage():
@@ -25,6 +26,13 @@ class _MockStorage():
         self.contents = contents
 
     def content_get_range(self, start, end, limit=1000):
+        # to make input test data conciliant with actual runtime the
+        # other way of doing properly things would be to rewrite all
+        # tests (that's another task entirely so no)
+        if isinstance(start, bytes):
+            start = hashutil.hash_to_hex(start)
+        if isinstance(end, bytes):
+            end = hashutil.hash_to_hex(end)
         results = []
         _next_id = None
         counter = 0
@@ -57,6 +65,13 @@ class _MockIndexerStorage():
         """Basic in-memory implementation (limit is unused).
 
         """
+        # to make input test data conciliant with actual runtime the
+        # other way of doing properly things would be to rewrite all
+        # tests (that's another task entirely so no)
+        if isinstance(start, bytes):
+            start = hashutil.hash_to_hex(start)
+        if isinstance(end, bytes):
+            end = hashutil.hash_to_hex(end)
         results = []
         _next = None
         counter = 0
@@ -240,9 +255,20 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
         # InMemoryObjStorage, swh.storage.tests's gen_contents, and
         # hypothesis to generate data to actually run indexer on those
 
-    def test_generate_content_mimetype_get_range_no_limit(self):
-        start, end = [self.contents[0], self.contents[2]]
+    def test_generate_content_mimetype_get_range_wrong_input(self):
+        """Wrong input should fail asap
 
+        """
+        with self.assertRaises(ValueError) as e:
+            self.indexer.run([1, 2, 3], 'ignore-dups')
+
+        self.assertEqual(e.exception.args, ('Range of ids expected', ))
+
+    def test_generate_content_mimetype_get(self):
+        """Optimal indexing should result in persisted computations
+
+        """
+        start, end = [self.contents[0], self.contents[2]]  # output hex ids
         # given
         actual_results = self.indexer.run(
             [start, end], policy_update='update-dups')
@@ -267,6 +293,42 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
 
         for m in actual_results:
             _id = m['id']
+            self.assertTrue(start <= _id and _id <= end)
+            _tool_id = m['indexer_configuration_id']
+            self.assertEqual(_tool_id, self.indexer.tool['id'])
+
+    def test_generate_content_mimetype_get_input_as_bytes(self):
+        """Optimal indexing should result in persisted computations
+
+        Input are in bytes here.
+
+        """
+        start, end = [hashutil.hash_to_bytes(self.contents[0]),
+                      hashutil.hash_to_bytes(self.contents[2])]
+        # given
+        actual_results = self.indexer.run(
+            [start, end], policy_update='update-dups')
+
+        # then
+        expected_results = [
+            {'encoding': b'us-ascii',
+             'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
+             'indexer_configuration_id': 10,
+             'mimetype': b'text/plain'},
+            {'encoding': b'us-ascii',
+             'id': '02fb2c89e14f7fab46701478c83779c7beb7b069',
+             'indexer_configuration_id': 10,
+             'mimetype': b'text/x-python'},
+            {'encoding': b'us-ascii',
+             'id': '103bc087db1d26afc3a0283f38663d081e9b01e6',
+             'indexer_configuration_id': 10,
+             'mimetype': b'text/plain'}
+        ]
+
+        self.assertEqual(expected_results, actual_results)
+
+        for m in actual_results:
+            _id = hashutil.hash_to_bytes(m['id'])
             self.assertTrue(start <= _id and _id <= end)
             _tool_id = m['indexer_configuration_id']
             self.assertEqual(_tool_id, self.indexer.tool['id'])

@@ -16,8 +16,8 @@ from swh.storage import get_storage
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
-from swh.model import hashutil
 from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
+from swh.model import hashutil
 
 
 class DiskIndexer:
@@ -426,6 +426,10 @@ class ContentRangeIndexer(BaseIndexer):
         results = []
         try:
             [start, end] = ids
+            if isinstance(start, str):
+                start = hashutil.hash_to_bytes(start)
+            if isinstance(end, str):
+                end = hashutil.hash_to_bytes(end)
 
             if policy_update == 'update-dups':  # incremental
                 indexed = set(self.range(start, end))
@@ -444,11 +448,10 @@ class ContentRangeIndexer(BaseIndexer):
                     results.append(res)
 
             self.persist_index_computations(results, policy_update)
-            self.results = results
-            return self.results
+            return results
         except Exception:
             self.log.exception(
-                'Problem when reading contents metadata.')
+                'Problem when computing metadata.')
 
 
 class OriginIndexer(BaseIndexer):

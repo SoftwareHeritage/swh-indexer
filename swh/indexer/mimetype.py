@@ -157,7 +157,6 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
         while True:
             result = self.idx_storage.content_mimetype_get_range(
                 start, end, self.tool['id'])
-            print('#### result; %s' % result)
             contents = result['ids']
             for _id in contents:
                 yield _id
