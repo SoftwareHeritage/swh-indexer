@@ -70,8 +70,7 @@ class ContentLanguage(Task):
     """
     task_queue = 'swh_indexer_content_language'
 
-    def run_task(self, *args, **kwargs):
-        ContentLanguageIndexer().run(*args, **kwargs)
+    Indexer = ContentLanguageIndexer
 
 
 class Ctags(Task):
