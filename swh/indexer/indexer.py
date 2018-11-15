@@ -397,7 +397,7 @@ class ContentRangeIndexer(BaseIndexer):
             **indexed** (Set[bytes]): Set of content already indexed.
 
         """
-        while True:
+        while start:
             result = self.storage.content_get_range(start, end)
             contents = result['contents']
             for c in contents:
@@ -405,9 +405,7 @@ class ContentRangeIndexer(BaseIndexer):
                 if _id in indexed:
                     continue
                 yield _id
-            next_id = result['next']
-            if next_id is None:
-                break
+            start = result['next']
 
     def run(self, ids, policy_update, **kwargs):
         """Given a range of content ids, compute the indexing computation on

@@ -154,7 +154,7 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
             Content identifier (bytes) present in the range [start, end]
 
         """
-        while True:
+        while start:
             result = self.idx_storage.content_mimetype_get_range(
                 start, end, self.tool['id'])
             contents = result['ids']
