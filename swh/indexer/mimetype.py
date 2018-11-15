@@ -37,12 +37,12 @@ class MixinMimetypeIndexer:
 
     """
     ADDITIONAL_CONFIG = {
-        'scheduler': {
+        'scheduler': ('dict', {
             'cls': 'remote',
             'args': {
                 'url': 'http://localhost:5008',
             },
-        },
+        }),
         'tools': ('dict', {
             'name': 'file',
             'version': '1:5.30-1+deb9u1',
