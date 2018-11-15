@@ -214,19 +214,6 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         return self.idx_storage.indexer_configuration_add(tools)
 
     @abc.abstractmethod
-    def filter(self, ids):
-        """Filter missing ids for that particular indexer.
-
-        Args:
-            ids ([bytes]): list of ids
-
-        Yields:
-            iterator of missing ids
-
-        """
-        pass
-
-    @abc.abstractmethod
     def index(self, id, data):
         """Index computation for the id and associated raw data.
 
@@ -311,15 +298,28 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
 
 class ContentIndexer(BaseIndexer):
-    """An object type indexer, inherits from the :class:`BaseIndexer` and
-    implements Content indexing using the run method
+    """A content indexer working on a list of ids directly.
 
-    Note: the :class:`ContentIndexer` is not an instantiable
-    object. To use it in another context, one should inherit from this
-    class and override the methods mentioned in the
-    :class:`BaseIndexer` class.
+    To work on indexer range, use the :class:`ContentRangeIndexer`
+    instead.
+
+    Note: :class:`ContentRangeIndexer` is not an instantiable
+    object. To use it, one should inherit from this class and override
+    the methods mentioned in the :class:`BaseIndexer` class.
 
     """
+    @abc.abstractmethod
+    def filter(self, ids):
+        """Filter missing ids for that particular indexer.
+
+        Args:
+            ids ([bytes]): list of ids
+
+        Yields:
+            iterator of missing ids
+
+        """
+        pass
 
     def run(self, ids, policy_update,
             next_step=None, **kwargs):
@@ -356,6 +356,96 @@ class ContentIndexer(BaseIndexer):
             self.persist_index_computations(results, policy_update)
             self.results = results
             return self.next_step(results, task=next_step)
+        except Exception:
+            self.log.exception(
+                'Problem when reading contents metadata.')
+
+
+class ContentRangeIndexer(BaseIndexer):
+    """A content range indexer.
+
+    This expects as input a range of ids to index.
+
+    Note: :class:`ContentRangeIndexer` is not an instantiable
+    object. To use it, one should inherit from this class and override
+    the methods mentioned in the :class:`BaseIndexer` class.
+
+    """
+    @abc.abstractmethod
+    def range(self, start, end):
+        """Retrieve indexed contents within range [start, end].
+
+        Args
+            **start** (bytes): Starting bound from range identifier
+            **end** (bytes): End range identifier
+
+        Yields:
+            Content identifier (bytes) present in the range [start, end]
+
+        """
+        pass
+
+    def _new(self, start, end, indexed):
+        """Compute new contents in range [start, end] to index given a set of
+           already indexed ids.
+
+        Args:
+            **start** (bytes): Starting bound from range identifier
+            **end** (bytes): End range identifier
+            **indexed** (Set(bytes)): Set of content already indexed.
+
+        """
+        while True:
+            result = self.storage.content_get_range(start, end)
+            contents = result['contents']
+            for c in contents:
+                _id = c['sha1']
+                if _id in indexed:
+                    continue
+                yield _id
+            next_id = result['next_id']
+            if next_id is None:
+                break
+
+    def run(self, ids, policy_update, **kwargs):
+        """Given a range of content ids, compute the indexing computation on
+           the contents within. Either only new ones (policy_update to
+           'update-dups') or all (policy_update to 'ignore-dups'.
+
+        Args:
+            **ids** ([bytes]): a list of 2 elements represeting a range
+
+            **policy_update** (str): either 'update-dups' to do all
+                                     contents, or 'ignore-dups' to
+                                     only compute new ones
+            **kwargs: passed to the `index` method
+
+        """
+        if len(ids) != 2:  # range
+            raise ValueError('Range of ids expected')
+        results = []
+        try:
+            [start, end] = ids
+
+            if policy_update == 'update-dups':  # incremental
+                indexed = set(self.range(start, end))
+            else:
+                indexed = {}
+
+            for sha1 in self._new(start, end, indexed):
+                try:
+                    raw_content = self.objstorage.get(sha1)
+                except ObjNotFoundError:
+                    self.log.warning('Content %s not found in objstorage' %
+                                     hashutil.hash_to_hex(sha1))
+                    continue
+                res = self.index(sha1, raw_content, **kwargs)
+                if res:  # If no results, skip it
+                    results.append(res)
+
+            self.persist_index_computations(results, policy_update)
+            self.results = results
+            return self.results
         except Exception:
             self.log.exception(
                 'Problem when reading contents metadata.')
