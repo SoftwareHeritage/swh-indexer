@@ -374,7 +374,7 @@ class ContentRangeIndexer(BaseIndexer):
 
     """
     @abc.abstractmethod
-    def range(self, start, end):
+    def indexed_contents_in_range(self, start, end):
         """Retrieve indexed contents within range [start, end].
 
         Args
@@ -387,14 +387,14 @@ class ContentRangeIndexer(BaseIndexer):
         """
         pass
 
-    def _new(self, start, end, indexed):
-        """Compute new contents in range [start, end] to index given a set of
-           already indexed ids.
+    def list_contents_to_index(self, start, end, indexed):
+        """Compute from storage the new contents to index in the range [start,
+           end]. The already indexed contents are skipped.
 
         Args:
             **start** (bytes): Starting bound from range identifier
             **end** (bytes): End range identifier
-            **indexed** (Set(bytes)): Set of content already indexed.
+            **indexed** (Set[bytes]): Set of content already indexed.
 
         """
         while True:
@@ -434,11 +434,11 @@ class ContentRangeIndexer(BaseIndexer):
                 end = hashutil.hash_to_bytes(end)
 
             if policy_update == 'update-dups':  # incremental
-                indexed = set(self.range(start, end))
+                indexed = set(self.indexed_contents_in_range(start, end))
             else:
-                indexed = {}
+                indexed = set()
 
-            for sha1 in self._new(start, end, indexed):
+            for sha1 in self.list_contents_to_index(start, end, indexed):
                 try:
                     raw_content = self.objstorage.get(sha1)
                 except ObjNotFoundError:

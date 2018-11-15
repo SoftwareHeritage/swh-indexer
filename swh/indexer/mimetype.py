@@ -143,7 +143,7 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
     - stores result in storage
 
     """
-    def range(self, start, end):
+    def indexed_contents_in_range(self, start, end):
         """Retrieve indexed content id within range [start, end].
 
         Args
