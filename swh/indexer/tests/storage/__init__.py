@@ -6,7 +6,8 @@
 from os import path
 import swh.storage
 
-from hypothesis.strategies import (binary, composite, sets, one_of,
+from swh.model.hashutil import MultiHash
+from hypothesis.strategies import (composite, sets, one_of, uuids,
                                    tuples, sampled_from)
 
 
@@ -26,13 +27,6 @@ ENCODINGS = [
     b'latin1',
     b'utf-8',
 ]
-
-
-def gen_content_id():
-    """Generate raw id strategy.
-
-    """
-    return binary(min_size=20, max_size=20)
 
 
 def gen_mimetype():
@@ -70,7 +64,7 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
     _ids = draw(
         sets(
             tuples(
-                gen_content_id(),
+                uuids(),
                 gen_mimetype(),
                 gen_encoding()
             ),
@@ -79,7 +73,8 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
     )
 
     content_mimetypes = []
-    for content_id, mimetype, encoding in _ids:
+    for uuid, mimetype, encoding in _ids:
+        content_id = MultiHash.from_data(uuid.bytes, {'sha1'}).digest()['sha1']
         content_mimetypes.append({
             'id': content_id,
             'mimetype': mimetype,
