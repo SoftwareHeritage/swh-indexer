@@ -12,7 +12,7 @@ from swh.indexer.fossology_license import (
 
 from swh.indexer.tests.test_utils import (
     MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
-    SHA1_TO_LICENSES, IndexerRangeTest
+    SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest
 )
 
 
@@ -44,8 +44,8 @@ class InjectLicenseIndexer:
 
 class FossologyLicenseTestIndexer(
         NoDiskIndexer, InjectLicenseIndexer, ContentFossologyLicenseIndexer):
-    """Specific mimetype whose configuration is enough to satisfy the
-       indexing tests.
+    """Specific fossology license whose configuration is enough to satisfy
+       the indexing checks.
 
     """
     def prepare(self):
@@ -83,90 +83,34 @@ class TestFossologyLicenseIndexerWithErrors(unittest.TestCase):
             FossologyLicenseIndexerUnknownToolTestStorage()
 
 
-class TestFossologyLicenseIndexer(unittest.TestCase):
+class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
     """Fossology license tests.
 
     """
     def setUp(self):
         self.indexer = FossologyLicenseTestIndexer()
 
-    def test_index_no_update(self):
-        """Index sha1s results in new computed licenses
-
-        """
-        id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
-        id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
-        sha1s = [id0, id1]
-
-        # when
-        self.indexer.run(sha1s, policy_update='ignore-dups')
-
+        self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
+        self.id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
+        self.id2 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'  # empty content
         # then
-        expected_results = [{
-            'id': id0,
-            'indexer_configuration_id': 10,
-            'licenses': SHA1_TO_LICENSES[id0],
-        }, {
-            'id': id1,
-            'indexer_configuration_id': 10,
-            'licenses': SHA1_TO_LICENSES[id1],
-        }]
-
-        self.assertFalse(self.indexer.idx_storage.conflict_update)
-        self.assertEqual(expected_results, self.indexer.idx_storage.state)
-
-    def test_index_update(self):
-        """Index sha1s results in new computed licenses
-
-        """
-        id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
-        id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
-        id2 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'  # empty content
-        sha1s = [id0, id1, id2]
-
-        # when
-        self.indexer.run(sha1s, policy_update='update-dups')
-
-        # then
-        expected_results = [{
-            'id': id0,
-            'indexer_configuration_id': 10,
-            'licenses': SHA1_TO_LICENSES[id0],
-        }, {
-            'id': id1,
-            'indexer_configuration_id': 10,
-            'licenses': SHA1_TO_LICENSES[id1],
-        }, {
-            'id': id2,
-            'indexer_configuration_id': 10,
-            'licenses': SHA1_TO_LICENSES[id2],
-        }]
-
-        self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assertEqual(expected_results, self.indexer.idx_storage.state)
-
-    def test_index_one_unknown_sha1(self):
-        """Only existing contents are indexed
-
-        """
-        # given
-        id0 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
-        sha1s = [id0,
-                 '799a5ef812c53907562fe379d4b3851e69c7cb15',  # unknown
-                 '800a5ef812c53907562fe379d4b3851e69c7cb15']  # unknown
-
-        # when
-        self.indexer.run(sha1s, policy_update='update-dups')
-
-        # then
-        expected_results = [{
-            'id': id0,
-            'indexer_configuration_id': 10,
-            'licenses': SHA1_TO_LICENSES[id0],
-        }]
-
-        self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assertEqual(expected_results, self.indexer.idx_storage.state)
+        self.expected_results = {
+            self.id0: {
+                'id': self.id0,
+                'indexer_configuration_id': 10,
+                'licenses': SHA1_TO_LICENSES[self.id0],
+            },
+            self.id1: {
+                'id': self.id1,
+                'indexer_configuration_id': 10,
+                'licenses': SHA1_TO_LICENSES[self.id1],
+            },
+            self.id2: {
+                'id': self.id2,
+                'indexer_configuration_id': 10,
+                'licenses': SHA1_TO_LICENSES[self.id2],
+            }
+        }
 
 
 class FossologyLicenseRangeIndexerTest(
@@ -196,7 +140,8 @@ class FossologyLicenseRangeIndexerTest(
         self.tool = self.tools[0]
 
 
-class TestFossologyLicenseRangeIndexer(IndexerRangeTest, unittest.TestCase):
+class TestFossologyLicenseRangeIndexer(
+        CommonContentIndexerRangeTest, unittest.TestCase):
     def setUp(self):
         self.indexer = FossologyLicenseRangeIndexerTest()
         # will play along with the objstorage's mocked contents for now

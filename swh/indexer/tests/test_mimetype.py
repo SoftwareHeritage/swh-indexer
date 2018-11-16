@@ -11,13 +11,14 @@ from swh.indexer.mimetype import (
 )
 
 from swh.indexer.tests.test_utils import (
-    MockObjStorage, BasicMockStorage, BasicMockIndexerStorage, IndexerRangeTest
+    MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
+    CommonContentIndexerTest, CommonContentIndexerRangeTest
 )
 
 
 class MimetypeTestIndexer(ContentMimetypeIndexer):
-    """Specific mimetype whose configuration is enough to satisfy the
-       indexing tests.
+    """Specific mimetype indexer instance whose configuration is enough to
+       satisfy the indexing tests.
 
     """
     def prepare(self):
@@ -40,7 +41,7 @@ class MimetypeTestIndexer(ContentMimetypeIndexer):
 
 class MimetypeIndexerUnknownToolTestStorage(MimetypeTestIndexer):
     """Specific mimetype whose configuration is not enough to satisfy the
-       indexing tests.
+       indexing checks.
 
     """
     def prepare(self):
@@ -55,87 +56,41 @@ class TestMimetypeIndexerWithErrors(unittest.TestCase):
             MimetypeIndexerUnknownToolTestStorage()
 
 
-class TestMimetypeIndexer(unittest.TestCase):
+class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
+    """Mimetype indexer test scenarios:
+
+    - new data within range are indexed
+    - no data outside a range are indexed
+    - with filtering existing indexed data prior to compute new index
+    - without filtering existing indexed data prior to compute new index
+
+    """
     def setUp(self):
         self.indexer = MimetypeTestIndexer()
 
-    def test_index_no_update(self):
-        # given
-        sha1s = [
-            '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
-            '688a5ef812c53907562fe379d4b3851e69c7cb15',
-        ]
-
-        # when
-        self.indexer.run(sha1s, policy_update='ignore-dups')
-
-        # then
-        expected_results = [{
-            'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
-            'indexer_configuration_id': 10,
-            'mimetype': b'text/plain',
-            'encoding': b'us-ascii',
-        }, {
-            'id': '688a5ef812c53907562fe379d4b3851e69c7cb15',
-            'indexer_configuration_id': 10,
-            'mimetype': b'text/plain',
-            'encoding': b'us-ascii',
-        }]
-
-        self.assertFalse(self.indexer.idx_storage.conflict_update)
-        self.assertEqual(expected_results, self.indexer.idx_storage.state)
-
-    def test_index_update(self):
-        # given
-        sha1s = [
-            '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
-            '688a5ef812c53907562fe379d4b3851e69c7cb15',
-            'da39a3ee5e6b4b0d3255bfef95601890afd80709',  # empty content
-        ]
-
-        # when
-        self.indexer.run(sha1s, policy_update='update-dups')
-
-        # then
-        expected_results = [{
-            'id': '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
-            'indexer_configuration_id': 10,
-            'mimetype': b'text/plain',
-            'encoding': b'us-ascii',
-        }, {
-            'id': '688a5ef812c53907562fe379d4b3851e69c7cb15',
-            'indexer_configuration_id': 10,
-            'mimetype': b'text/plain',
-            'encoding': b'us-ascii',
-        }, {
-            'id': 'da39a3ee5e6b4b0d3255bfef95601890afd80709',
-            'indexer_configuration_id': 10,
-            'mimetype': b'application/x-empty',
-            'encoding': b'binary',
-        }]
-
-        self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assertEqual(expected_results, self.indexer.idx_storage.state)
-
-    def test_index_one_unknown_sha1(self):
-        # given
-        sha1s = ['688a5ef812c53907562fe379d4b3851e69c7cb15',
-                 '799a5ef812c53907562fe379d4b3851e69c7cb15',  # unknown
-                 '800a5ef812c53907562fe379d4b3851e69c7cb15']  # unknown
-
-        # when
-        self.indexer.run(sha1s, policy_update='update-dups')
-
-        # then
-        expected_results = [{
-            'id': '688a5ef812c53907562fe379d4b3851e69c7cb15',
-            'indexer_configuration_id': 10,
-            'mimetype': b'text/plain',
-            'encoding': b'us-ascii',
-        }]
-
-        self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assertEqual(expected_results, self.indexer.idx_storage.state)
+        self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
+        self.id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
+        self.id2 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
+        self.expected_results = {
+            self.id0: {
+                'id': self.id0,
+                'indexer_configuration_id': 10,
+                'mimetype': b'text/plain',
+                'encoding': b'us-ascii',
+            },
+            self.id1: {
+                'id': self.id1,
+                'indexer_configuration_id': 10,
+                'mimetype': b'text/plain',
+                'encoding': b'us-ascii',
+            },
+            self.id2: {
+                'id': self.id2,
+                'indexer_configuration_id': 10,
+                'mimetype': b'application/x-empty',
+                'encoding': b'binary',
+            }
+        }
 
 
 class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
@@ -166,8 +121,11 @@ class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
         self.tool = self.tools[0]
 
 
-class TestMimetypeRangeIndexer(IndexerRangeTest, unittest.TestCase):
-    """Range Mimetype Indexer tests on """
+class TestMimetypeRangeIndexer(
+        CommonContentIndexerRangeTest, unittest.TestCase):
+    """Range Mimetype Indexer tests.
+
+    """
     def setUp(self):
         self.indexer = MimetypeRangeIndexerTest()
         # will play along with the objstorage's mocked contents for now

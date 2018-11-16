@@ -515,7 +515,55 @@ class BasicMockIndexerStorage():
         }]
 
 
-class IndexerRangeTest:
+class CommonContentIndexerTest:
+    def assert_results_ok(self, actual_results, expected_results=None):
+        if expected_results is None:
+            expected_results = self.expected_results
+
+        for indexed_data in actual_results:
+            _id = indexed_data['id']
+            self.assertEqual(indexed_data, expected_results[_id])
+            _tool_id = indexed_data['indexer_configuration_id']
+            self.assertEqual(_tool_id, self.indexer.tool['id'])
+
+    def test_index(self):
+        """Known sha1 have their data indexed
+
+        """
+        sha1s = [self.id0, self.id1, self.id2]
+
+        # when
+        self.indexer.run(sha1s, policy_update='update-dups')
+
+        actual_results = self.indexer.idx_storage.state
+        self.assertTrue(self.indexer.idx_storage.conflict_update)
+        self.assert_results_ok(actual_results)
+
+        # 2nd pass
+        self.indexer.run(sha1s, policy_update='ignore-dups')
+
+        self.assertFalse(self.indexer.idx_storage.conflict_update)
+        self.assert_results_ok(actual_results)
+
+    def test_index_one_unknown_sha1(self):
+        """Unknown sha1 are not indexed"""
+        sha1s = [self.id1,
+                 '799a5ef812c53907562fe379d4b3851e69c7cb15',  # unknown
+                 '800a5ef812c53907562fe379d4b3851e69c7cb15']  # unknown
+
+        # when
+        self.indexer.run(sha1s, policy_update='update-dups')
+        actual_results = self.indexer.idx_storage.state
+
+        # then
+        expected_results = {
+            k: v for k, v in self.expected_results.items() if k in sha1s
+        }
+
+        self.assert_results_ok(actual_results, expected_results)
+
+
+class CommonContentIndexerRangeTest:
     """Allows to factorize tests on range indexer.
 
     """
@@ -561,7 +609,7 @@ class IndexerRangeTest:
         self.assert_results_ok(
             start, end, actual_results, expected_results)
 
-    def test_generate_content_mimetype_get(self):
+    def test_generate_content_get(self):
         """Optimal indexing should result in indexed data
 
         """
@@ -572,7 +620,7 @@ class IndexerRangeTest:
         # then
         self.assertTrue(actual_results)
 
-    def test_generate_content_mimetype_get_input_as_bytes(self):
+    def test_generate_content_get_input_as_bytes(self):
         """Optimal indexing should result in indexed data
 
         Input are in bytes here.
@@ -588,7 +636,7 @@ class IndexerRangeTest:
         # then
         self.assertTrue(actual_results)
 
-    def test_generate_content_mimetype_get_no_result(self):
+    def test_generate_content_get_no_result(self):
         """No result indexed returns False"""
         start, end = ['0000000000000000000000000000000000000000',
                       '0000000000000000000000000000000000000001']
