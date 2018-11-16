@@ -388,7 +388,7 @@ class ContentRangeIndexer(BaseIndexer):
         """
         pass
 
-    def list_contents_to_index(self, start, end, indexed):
+    def _list_contents_to_index(self, start, end, indexed):
         """Compute from storage the new contents to index in the range [start,
            end]. The already indexed contents are skipped.
 
@@ -411,7 +411,7 @@ class ContentRangeIndexer(BaseIndexer):
                 yield _id
             start = result['next']
 
-    def index_contents(self, start, end, indexed, **kwargs):
+    def _index_contents(self, start, end, indexed, **kwargs):
         """Index the contents from within range [start, end]
 
         Args:
@@ -423,7 +423,7 @@ class ContentRangeIndexer(BaseIndexer):
             Data indexed (dict) to persist using the indexer storage
 
         """
-        for sha1 in self.list_contents_to_index(start, end, indexed):
+        for sha1 in self._list_contents_to_index(start, end, indexed):
             try:
                 raw_content = self.objstorage.get(sha1)
             except ObjNotFoundError:
@@ -464,7 +464,7 @@ class ContentRangeIndexer(BaseIndexer):
             else:
                 indexed = set()
 
-            index_computations = self.index_contents(start, end, indexed)
+            index_computations = self._index_contents(start, end, indexed)
             for results in utils.grouper(index_computations,
                                          n=self.config['write_batch_size']):
                 self.persist_index_computations(results, policy_update)
