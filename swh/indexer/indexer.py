@@ -407,25 +407,22 @@ class ContentRangeIndexer(BaseIndexer):
                 yield _id
             start = result['next']
 
-    def run(self, ids, policy_update, **kwargs):
+    def run(self, start, end, policy_update, **kwargs):
         """Given a range of content ids, compute the indexing computation on
            the contents within. Either only new ones (policy_update to
            'update-dups') or all (policy_update to 'ignore-dups'.
 
         Args:
-            **ids** (Iterable[bytes]): list of 2 elements representing
-                                       a range
+            **start** (bytes/str): Starting range identifier
+            **end** (bytes/str): Ending range identifier
             **policy_update** (str): either 'update-dups' to do all
                                      contents, or 'ignore-dups' to
                                      only compute new ones
             **kwargs: passed to the `index` method
 
         """
-        if len(ids) != 2:  # range
-            raise ValueError('Range of ids expected')
         results = []
         try:
-            [start, end] = ids
             if isinstance(start, str):
                 start = hashutil.hash_to_bytes(start)
             if isinstance(end, str):

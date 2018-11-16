@@ -273,15 +273,6 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
                 'mimetype': b'text/plain'}
         }
 
-    def test_generate_content_mimetype_get_range_wrong_input(self):
-        """Wrong input should fail asap
-
-        """
-        with self.assertRaises(ValueError) as e:
-            self.indexer.run([1, 2, 3], 'ignore-dups')
-
-        self.assertEqual(e.exception.args, ('Range of ids expected', ))
-
     def assert_mimetypes_ok(self, start, end, actual_results):
         for mimetype in actual_results:
             _id = mimetype['id']
@@ -297,7 +288,7 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
         start, end = [self.contents[0], self.contents[2]]  # output hex ids
         # given
         actual_results = self.indexer.run(
-            [start, end], policy_update='update-dups')
+            start, end, policy_update='update-dups')
 
         # then
         self.assert_mimetypes_ok(start, end, actual_results)
@@ -313,7 +304,7 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
 
         # given
         actual_results = self.indexer.run(  # checks the bytes input this time
-            [start, end], policy_update='update-dups')
+            start, end, policy_update='ignore-dups')  # no data so same result
 
         # then
         self.assert_mimetypes_ok(_start, _end, actual_results)
