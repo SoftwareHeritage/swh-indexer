@@ -78,8 +78,8 @@ class _MockIndexerStorage():
         for m in self.state:
             _id = m['id']
             _tool_id = m['indexer_configuration_id']
-            if start <= _id and _id <= end and \
-               _tool_id == indexer_configuration_id:
+            if (start <= _id and _id <= end and
+               _tool_id == indexer_configuration_id):
                 results.append(_id)
             if counter >= limit:
                 break
