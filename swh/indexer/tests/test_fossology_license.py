@@ -84,7 +84,10 @@ class TestFossologyLicenseIndexerWithErrors(unittest.TestCase):
 
 
 class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
-    """Fossology license tests.
+    """Language indexer test scenarios:
+
+    - Known sha1s in the input list have their data indexed
+    - Unknown sha1 in the input list are not indexed
 
     """
     def setUp(self):
@@ -142,6 +145,14 @@ class FossologyLicenseRangeIndexerTest(
 
 class TestFossologyLicenseRangeIndexer(
         CommonContentIndexerRangeTest, unittest.TestCase):
+    """Range Fossology License Indexer tests.
+
+    - new data within range are indexed
+    - no data outside a range are indexed
+    - with filtering existing indexed data prior to compute new index
+    - without filtering existing indexed data prior to compute new index
+
+    """
     def setUp(self):
         self.indexer = FossologyLicenseRangeIndexerTest()
         # will play along with the objstorage's mocked contents for now

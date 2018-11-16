@@ -59,10 +59,8 @@ class TestMimetypeIndexerWithErrors(unittest.TestCase):
 class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
     """Mimetype indexer test scenarios:
 
-    - new data within range are indexed
-    - no data outside a range are indexed
-    - with filtering existing indexed data prior to compute new index
-    - without filtering existing indexed data prior to compute new index
+    - Known sha1s in the input list have their data indexed
+    - Unknown sha1 in the input list are not indexed
 
     """
     def setUp(self):
@@ -124,6 +122,11 @@ class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
 class TestMimetypeRangeIndexer(
         CommonContentIndexerRangeTest, unittest.TestCase):
     """Range Mimetype Indexer tests.
+
+    - new data within range are indexed
+    - no data outside a range are indexed
+    - with filtering existing indexed data prior to compute new index
+    - without filtering existing indexed data prior to compute new index
 
     """
     def setUp(self):
