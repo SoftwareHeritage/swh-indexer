@@ -440,11 +440,11 @@ class ContentRangeIndexer(BaseIndexer):
            'update-dups') or all (policy_update to 'ignore-dups'.
 
         Args:
-            **start** (bytes/str): Starting range identifier
-            **end** (bytes/str): Ending range identifier
             **policy_update** (str): either 'update-dups' to do all
                                      contents, or 'ignore-dups' to
                                      only compute new ones
+            **start** (Union[bytes, str]): Starting range identifier
+            **end** (Union[bytes, str]): Ending range identifier
             **kwargs: passed to the `index` method
 
         Returns:
