@@ -16,7 +16,7 @@ Build-Depends: debhelper (>= 9),
                python3-swh.model (>= 0.0.15~),
                python3-swh.objstorage (>= 0.0.13~),
                python3-swh.scheduler (>= 0.0.35~),
-               python3-swh.storage (>= 0.0.102~),
+               python3-swh.storage (>= 0.0.110~),
                python3-vcversioner
 Standards-Version: 3.9.6
 Homepage: https://forge.softwareheritage.org/diffusion/78/
@@ -27,7 +27,7 @@ Depends: python3-swh.core (>= 0.0.44~),
          python3-swh.model (>= 0.0.15~),
          python3-swh.objstorage (>= 0.0.13~),
          python3-swh.scheduler (>= 0.0.35~),
-         python3-swh.storage (>= 0.0.102~),
+         python3-swh.storage (>= 0.0.110~),
          ${misc:Depends},
          ${python3:Depends}
 Description: Software Heritage Content Indexer Storage
@@ -39,7 +39,7 @@ Depends: python3-swh.scheduler (>= 0.0.14~),
          python3-swh.model (>= 0.0.15~),
          python3-swh.objstorage (>= 0.0.13~),
          python3-swh.scheduler (>= 0.0.35~),
-         python3-swh.storage (>= 0.0.102~),
+         python3-swh.storage (>= 0.0.110~),
          python3-swh.indexer.storage (= ${binary:Version}),
          universal-ctags (>= 0.8~),
          fossology-nomossa (>= 3.1~),
