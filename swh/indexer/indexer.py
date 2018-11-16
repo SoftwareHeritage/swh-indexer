@@ -434,17 +434,17 @@ class ContentRangeIndexer(BaseIndexer):
             if res:
                 yield res
 
-    def run(self, start, end, policy_update, **kwargs):
-        """Given a range of content ids, compute the indexing computation on
-           the contents within. Either only new ones (policy_update to
-           'update-dups') or all (policy_update to 'ignore-dups'.
+    def run(self, start, end, skip_existing=True, **kwargs):
+        """Given a range of content ids, compute the indexing computations on
+           the contents within. Either the indexer is incremental
+           (filter out existing computed data) or not (compute
+           everything from scratch).
 
         Args:
-            **policy_update** (str): either 'update-dups' to do all
-                                     contents, or 'ignore-dups' to
-                                     only compute new ones
             **start** (Union[bytes, str]): Starting range identifier
             **end** (Union[bytes, str]): Ending range identifier
+            **skip_existing** (bool): Skip existing indexed data
+                                     (default) or not
             **kwargs: passed to the `index` method
 
         Returns:
@@ -458,7 +458,7 @@ class ContentRangeIndexer(BaseIndexer):
             if isinstance(end, str):
                 end = hashutil.hash_to_bytes(end)
 
-            if policy_update == 'update-dups':  # incremental
+            if skip_existing:
                 indexed = set(self.indexed_contents_in_range(start, end))
             else:
                 indexed = set()
@@ -466,7 +466,8 @@ class ContentRangeIndexer(BaseIndexer):
             index_computations = self._index_contents(start, end, indexed)
             for results in utils.grouper(index_computations,
                                          n=self.config['write_batch_size']):
-                self.persist_index_computations(results, policy_update)
+                self.persist_index_computations(
+                    results, policy_update='update-dups')
                 with_indexed_data = True
             return with_indexed_data
         except Exception:

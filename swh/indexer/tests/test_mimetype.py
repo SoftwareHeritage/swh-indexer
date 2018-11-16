@@ -325,8 +325,7 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
         """
         start, end = [self.contents[0], self.contents[2]]  # output hex ids
         # given
-        actual_results = self.indexer.run(
-            start, end, policy_update='update-dups')
+        actual_results = self.indexer.run(start, end)
 
         # then
         self.assertTrue(actual_results)
@@ -342,7 +341,7 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
 
         # given
         actual_results = self.indexer.run(  # checks the bytes input this time
-            start, end, policy_update='ignore-dups')  # no data so same result
+            start, end, skip_existing=False)  # no data so same result
 
         # then
         self.assertTrue(actual_results)
@@ -353,7 +352,7 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
                       '0000000000000000000000000000000000000001']
         # given
         actual_results = self.indexer.run(
-            start, end, policy_update='update-dups')
+            start, end, incremental=False)
 
         # then
         self.assertFalse(actual_results)
