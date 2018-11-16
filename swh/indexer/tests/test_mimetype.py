@@ -274,16 +274,53 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
                 'mimetype': b'text/plain'}
         }
 
-    def assert_mimetypes_ok(self, start, end, actual_results):
+    def assert_mimetypes_ok(self, start, end, actual_results,
+                            expected_results=None):
+        if expected_results is None:
+            expected_results = self.expected_results
+
         for mimetype in actual_results:
             _id = mimetype['id']
-            self.assertEqual(mimetype, self.expected_results[_id])
+            self.assertEqual(mimetype, expected_results[_id])
             self.assertTrue(start <= _id and _id <= end)
             _tool_id = mimetype['indexer_configuration_id']
             self.assertEqual(_tool_id, self.indexer.tool['id'])
 
+    def test__index_contents(self):
+        """Indexing contents without existing data results in indexed data
+
+        """
+        start, end = [self.contents[0], self.contents[2]]  # output hex ids
+        # given
+        actual_results = list(self.indexer._index_contents(
+            start, end, indexed={}))
+
+        self.assert_mimetypes_ok(start, end, actual_results)
+
+    def test__index_contents_with_indexed_data(self):
+        """Indexing contents with existing data results in less indexed data
+
+        """
+        start, end = [self.contents[0], self.contents[2]]  # output hex ids
+        data_indexed = [
+            '01c9379dfc33803963d07c1ccc748d3fe4c96bb5',
+            '103bc087db1d26afc3a0283f38663d081e9b01e6'
+        ]
+
+        # given
+        actual_results = self.indexer._index_contents(
+            start, end, indexed=set(data_indexed))
+
+        # craft the expected results
+        expected_results = self.expected_results.copy()
+        for already_indexed_key in data_indexed:
+            expected_results.pop(already_indexed_key)
+
+        self.assert_mimetypes_ok(
+            start, end, actual_results, expected_results)
+
     def test_generate_content_mimetype_get(self):
-        """Optimal indexing should result in persisted computations
+        """Optimal indexing should result in indexed data
 
         """
         start, end = [self.contents[0], self.contents[2]]  # output hex ids
@@ -292,10 +329,10 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
             start, end, policy_update='update-dups')
 
         # then
-        self.assert_mimetypes_ok(start, end, actual_results)
+        self.assertTrue(actual_results)
 
     def test_generate_content_mimetype_get_input_as_bytes(self):
-        """Optimal indexing should result in persisted computations
+        """Optimal indexing should result in indexed data
 
         Input are in bytes here.
 
@@ -308,4 +345,15 @@ class TestMimetypeRangeIndexer(unittest.TestCase):
             start, end, policy_update='ignore-dups')  # no data so same result
 
         # then
-        self.assert_mimetypes_ok(_start, _end, actual_results)
+        self.assertTrue(actual_results)
+
+    def test_generate_content_mimetype_get_no_result(self):
+        """No result indexed returns False"""
+        start, end = ['0000000000000000000000000000000000000000',
+                      '0000000000000000000000000000000000000001']
+        # given
+        actual_results = self.indexer.run(
+            start, end, policy_update='update-dups')
+
+        # then
+        self.assertFalse(actual_results)

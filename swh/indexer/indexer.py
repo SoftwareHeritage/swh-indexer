@@ -448,11 +448,10 @@ class ContentRangeIndexer(BaseIndexer):
             **kwargs: passed to the `index` method
 
         Returns:
-            None if no data was indexed, a partial result otherwise (dict).
-            Partial because the result is not really used later.
+            a boolean. True if data was indexed, False otherwise.
 
         """
-        results = None
+        with_indexed_data = False
         try:
             if isinstance(start, str):
                 start = hashutil.hash_to_bytes(start)
@@ -468,7 +467,8 @@ class ContentRangeIndexer(BaseIndexer):
             for results in utils.grouper(index_computations,
                                          n=self.config['write_batch_size']):
                 self.persist_index_computations(results, policy_update)
-            return results  # return a partial result if any
+                with_indexed_data = True
+            return with_indexed_data
         except Exception:
             self.log.exception(
                 'Problem when computing metadata.')
