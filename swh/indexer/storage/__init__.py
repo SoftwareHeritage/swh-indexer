@@ -456,6 +456,35 @@ class IndexerStorage:
             cur=cur)
         db.content_fossology_license_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('content/fossology_license/range')
+    @db_transaction()
+    def content_fossology_license_get_range(
+            self, start, end, indexer_configuration_id,
+            limit=1000, db=None, cur=None):
+        """Retrieve licenses within range [start, end] bound by limit.
+
+        Args:
+            **start** (bytes): Starting identifier range (expected smaller
+                           than end)
+            **end** (bytes): Ending identifier range (expected larger
+                             than start)
+            **indexer_configuration_id** (int): The tool used to index data
+            **limit** (int): Limit result (default to 1000)
+
+        Raises:
+            ValueError for limit to None
+
+        Returns:
+            a dict with keys:
+            - **ids** [bytes]: iterable of content ids within the range.
+            - **next** (Optional[bytes]): The next range of sha1 starts at
+                                          this sha1 if any
+
+        """
+        return self._content_get_range('fossology_license', start, end,
+                                       indexer_configuration_id, limit=limit,
+                                       db=db, cur=cur)
+
     @remote_api_endpoint('content_metadata/missing')
     @db_transaction_generator()
     def content_metadata_missing(self, metadata, db=None, cur=None):

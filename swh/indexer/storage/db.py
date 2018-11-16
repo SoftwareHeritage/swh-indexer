@@ -115,7 +115,7 @@ class Db(BaseDb):
 
     content_indexer_names = {
         'mimetype': 'content_mimetype',
-        'language': 'content_language',
+        'fossology_license': 'content_fossology_license',
     }
 
     def content_get_range(self, content_type, start, end,
