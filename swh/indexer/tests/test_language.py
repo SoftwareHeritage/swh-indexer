@@ -7,20 +7,9 @@ import unittest
 import logging
 from swh.indexer import language
 from swh.indexer.language import ContentLanguageIndexer
-from swh.indexer.tests.test_utils import MockObjStorage
-
-
-class _MockIndexerStorage():
-    """Mock storage to simplify reading indexers' outputs.
-    """
-    def content_language_add(self, languages, conflict_update=None):
-        self.state = languages
-        self.conflict_update = conflict_update
-
-    def indexer_configuration_add(self, tools):
-        return [{
-            'id': 20,
-        }]
+from swh.indexer.tests.test_utils import (
+    BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest
+)
 
 
 class LanguageTestIndexer(ContentLanguageIndexer):
@@ -40,7 +29,7 @@ class LanguageTestIndexer(ContentLanguageIndexer):
                 },
             }
         }
-        self.idx_storage = _MockIndexerStorage()
+        self.idx_storage = BasicMockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.destination_task = None
@@ -51,12 +40,9 @@ class LanguageTestIndexer(ContentLanguageIndexer):
 
 
 class Language(unittest.TestCase):
-    """
-    Tests pygments tool for language detection
-    """
-    def setUp(self):
-        self.maxDiff = None
+    """Tests pygments tool for language detection
 
+    """
     def test_compute_language_none(self):
         # given
         self.content = ""
@@ -68,40 +54,35 @@ class Language(unittest.TestCase):
         # then
         self.assertEqual(self.declared_language, result)
 
-    def test_index_content_language_python(self):
-        # given
-        # testing python
-        sha1s = ['02fb2c89e14f7fab46701478c83779c7beb7b069']
-        lang_indexer = LanguageTestIndexer()
 
-        # when
-        lang_indexer.run(sha1s, policy_update='ignore-dups')
-        results = lang_indexer.idx_storage.state
+class TestLanguageIndexer(CommonContentIndexerTest, unittest.TestCase):
+    """Language indexer test scenarios:
 
-        expected_results = [{
-            'id': '02fb2c89e14f7fab46701478c83779c7beb7b069',
-            'indexer_configuration_id': 20,
-            'lang': 'python'
-        }]
-        # then
-        self.assertEqual(expected_results, results)
+    - Known sha1s in the input list have their data indexed
+    - Unknown sha1 in the input list are not indexed
 
-    def test_index_content_language_c(self):
-        # given
-        # testing c
-        sha1s = ['103bc087db1d26afc3a0283f38663d081e9b01e6']
-        lang_indexer = LanguageTestIndexer()
+    """
+    def setUp(self):
+        self.indexer = LanguageTestIndexer()
 
-        # when
-        lang_indexer.run(sha1s, policy_update='ignore-dups')
-        results = lang_indexer.idx_storage.state
+        self.id0 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
+        self.id1 = '103bc087db1d26afc3a0283f38663d081e9b01e6'
+        self.id2 = 'd4c647f0fc257591cc9ba1722484229780d1c607'
 
-        expected_results = [{
-            'id': '103bc087db1d26afc3a0283f38663d081e9b01e6',
-            'indexer_configuration_id': 20,
-            'lang': 'c'
-        }]
-
-        # then
-        self.assertEqual('c', results[0]['lang'])
-        self.assertEqual(expected_results, results)
+        self.expected_results = {
+            self.id0: {
+                'id': self.id0,
+                'indexer_configuration_id': 10,
+                'lang': 'python',
+            },
+            self.id1: {
+                'id': self.id1,
+                'indexer_configuration_id': 10,
+                'lang': 'c'
+            },
+            self.id2: {
+                'id': self.id2,
+                'indexer_configuration_id': 10,
+                'lang': 'text-only'
+            }
+        }

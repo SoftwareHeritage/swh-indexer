@@ -467,6 +467,9 @@ class BasicMockIndexerStorage():
     def content_fossology_license_add(self, data, conflict_update=None):
         self._internal_add(data, conflict_update=conflict_update)
 
+    def content_language_add(self, data, conflict_update=None):
+        self._internal_add(data, conflict_update=conflict_update)
+
     def _internal_get_range(self, start, end,
                             indexer_configuration_id, limit=1000):
         """Same logic as _internal_add, we retrieve indexed data given an
