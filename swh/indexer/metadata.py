@@ -26,7 +26,7 @@ class ContentMetadataIndexer(ContentIndexer):
     - store result in content_metadata table
 
     """
-    CONFIG_BASE_FILENAME = 'indexer/metadata'
+    CONFIG_BASE_FILENAME = 'indexer/content_metadata'
 
     def __init__(self, tool, config):
         # twisted way to use the exact same config of RevisionMetadataIndexer
@@ -114,7 +114,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
     - store the results for revision
 
     """
-    CONFIG_BASE_FILENAME = 'indexer/metadata'
+    CONFIG_BASE_FILENAME = 'indexer/revision_metadata'
 
     ADDITIONAL_CONFIG = {
         'tools': ('dict', {
