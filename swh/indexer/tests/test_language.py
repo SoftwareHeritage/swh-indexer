@@ -19,7 +19,6 @@ class LanguageTestIndexer(ContentLanguageIndexer):
     """
     def prepare(self):
         self.config = {
-            'destination_task': None,
             'tools':  {
                 'name': 'pygments',
                 'version': '2.0.1+dfsg-1.1+deb8u1',
@@ -33,7 +32,6 @@ class LanguageTestIndexer(ContentLanguageIndexer):
         self.idx_storage = BasicMockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.destination_task = None
         self.tool_config = self.config['tools']['configuration']
         self.max_content_size = self.tool_config['max_content_size']
         self.tools = self.register_tools(self.config['tools'])

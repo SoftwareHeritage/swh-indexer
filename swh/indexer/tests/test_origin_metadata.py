@@ -36,7 +36,6 @@ class OriginMetadataTestIndexer(OriginMetadataIndexer):
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.destination_task = None
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
         self.results = []

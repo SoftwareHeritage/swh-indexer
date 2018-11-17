@@ -23,7 +23,6 @@ class ContentMetadataTestIndexer(ContentMetadataIndexer):
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.destination_task = None
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
         self.results = []
@@ -57,7 +56,6 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.destination_task = None
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
         self.results = []
@@ -339,7 +337,7 @@ class Metadata(unittest.TestCase):
             "contIntegration": "https://travis-ci.org/codemeta/codemeta",
             "developmentStatus": "active",
             "downloadUrl": "https://github.com/codemeta/codemeta/archive/2.0.zip",
-            "funder": { 
+            "funder": {
                 "@id": "https://doi.org/10.13039/100000001",
                 "@type": "Organization",
                 "name": "National Science Foundation"
