@@ -12,7 +12,8 @@ from swh.indexer.mimetype import (
 
 from swh.indexer.tests.test_utils import (
     MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
-    CommonContentIndexerTest, CommonContentIndexerRangeTest
+    CommonContentIndexerTest, CommonContentIndexerRangeTest,
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool
 )
 
 
@@ -37,23 +38,6 @@ class MimetypeTestIndexer(ContentMimetypeIndexer):
         self.objstorage = MockObjStorage()
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
-
-
-class MimetypeIndexerUnknownToolTestStorage(MimetypeTestIndexer):
-    """Specific mimetype whose configuration is not enough to satisfy the
-       indexing checks.
-
-    """
-    def prepare(self):
-        super().prepare()
-        self.tools = None
-
-
-class TestMimetypeIndexerWithErrors(unittest.TestCase):
-    def test_wrong_unknown_configuration_tool(self):
-        """Indexer with unknown configuration tool should fail the check"""
-        with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
-            MimetypeIndexerUnknownToolTestStorage()
 
 
 class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
@@ -157,3 +141,20 @@ class TestMimetypeRangeIndexer(
                 'indexer_configuration_id': 10,
                 'mimetype': b'text/plain'}
         }
+
+
+class MimetypeIndexerUnknownToolTestStorage(
+        CommonIndexerNoTool, MimetypeTestIndexer):
+    """Fossology license indexer with wrong configuration"""
+
+
+class MimetypeRangeIndexerUnknownToolTestStorage(
+        CommonIndexerNoTool, MimetypeRangeIndexerTest):
+    """Fossology license range indexer with wrong configuration"""
+
+
+class TestMimetypeIndexersErrors(
+        CommonIndexerWithErrorsTest, unittest.TestCase):
+    """Test the indexer raise the right errors when wrongly initialized"""
+    Indexer = MimetypeIndexerUnknownToolTestStorage
+    RangeIndexer = MimetypeRangeIndexerUnknownToolTestStorage

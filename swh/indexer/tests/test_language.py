@@ -8,7 +8,8 @@ import logging
 from swh.indexer import language
 from swh.indexer.language import ContentLanguageIndexer
 from swh.indexer.tests.test_utils import (
-    BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest
+    BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool
 )
 
 
@@ -86,3 +87,14 @@ class TestLanguageIndexer(CommonContentIndexerTest, unittest.TestCase):
                 'lang': 'text-only'
             }
         }
+
+
+class LanguageIndexerUnknownToolTestStorage(
+        CommonIndexerNoTool, LanguageTestIndexer):
+    """Fossology license indexer with wrong configuration"""
+
+
+class TestLanguageIndexersErrors(
+        CommonIndexerWithErrorsTest, unittest.TestCase):
+    """Test the indexer raise the right errors when wrongly initialized"""
+    Indexer = LanguageIndexerUnknownToolTestStorage

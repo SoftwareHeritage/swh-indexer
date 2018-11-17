@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import unittest
 
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
@@ -516,6 +517,33 @@ class BasicMockIndexerStorage():
         return [{
             'id': 10,
         }]
+
+
+class CommonIndexerNoTool:
+    """Mixin to wronly initialize content indexer"""
+    def prepare(self):
+        super().prepare()
+        self.tools = None
+
+
+class CommonIndexerWithErrorsTest:
+    """Test indexer configuration checks.
+
+    """
+    Indexer = None
+    RangeIndexer = None
+
+    def test_wrong_unknown_configuration_tool(self):
+        """Indexer with unknown configuration tool fails check"""
+        with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
+            print('indexer: %s' % self.Indexer)
+            self.Indexer()
+
+    def test_wrong_unknown_configuration_tool_range(self):
+        """Range Indexer with unknown configuration tool fails check"""
+        if self.RangeIndexer is not None:
+            with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
+                self.RangeIndexer()
 
 
 class CommonContentIndexerTest:

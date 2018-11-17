@@ -12,7 +12,8 @@ from swh.indexer.fossology_license import (
 
 from swh.indexer.tests.test_utils import (
     MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
-    SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest
+    SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool
 )
 
 
@@ -63,24 +64,6 @@ class FossologyLicenseTestIndexer(
         self.objstorage = MockObjStorage()
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
-
-
-class FossologyLicenseIndexerUnknownToolTestStorage(
-        FossologyLicenseTestIndexer):
-    """Specific fossology license indexer whose configuration is not
-       enough to satisfy the indexing checks
-
-    """
-    def prepare(self):
-        super().prepare()
-        self.tools = None
-
-
-class TestFossologyLicenseIndexerWithErrors(unittest.TestCase):
-    def test_wrong_unknown_configuration_tool(self):
-        """Indexer with unknown configuration tool should fail the check"""
-        with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
-            FossologyLicenseIndexerUnknownToolTestStorage()
 
 
 class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
@@ -181,3 +164,20 @@ class TestFossologyLicenseRangeIndexer(
                 'licenses': SHA1_TO_LICENSES[self.id2]
             }
         }
+
+
+class FossologyLicenseIndexerUnknownToolTestStorage(
+        CommonIndexerNoTool, FossologyLicenseTestIndexer):
+    """Fossology license indexer with wrong configuration"""
+
+
+class FossologyLicenseRangeIndexerUnknownToolTestStorage(
+        CommonIndexerNoTool, FossologyLicenseRangeIndexerTest):
+    """Fossology license range indexer with wrong configuration"""
+
+
+class TestFossologyLicenseIndexersErrors(
+        CommonIndexerWithErrorsTest, unittest.TestCase):
+    """Test the indexer raise the right errors when wrongly initialized"""
+    Indexer = FossologyLicenseIndexerUnknownToolTestStorage
+    RangeIndexer = FossologyLicenseRangeIndexerUnknownToolTestStorage
