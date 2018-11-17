@@ -92,6 +92,12 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
             } for sha1 in ids
         ))
 
+    def compute_ctags(self, path, lang):
+        """Compute ctags on file at path with language lang.
+
+        """
+        return run_ctags(path, lang=lang)
+
     def index(self, id, data):
         """Index sha1s' content and store result.
 

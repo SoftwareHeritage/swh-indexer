@@ -3,8 +3,6 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import unittest
-
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
 
@@ -132,6 +130,28 @@ SHA1_TO_LICENSES = {
     '103bc087db1d26afc3a0283f38663d081e9b01e6': ['MIT'],
     '688a5ef812c53907562fe379d4b3851e69c7cb15': ['AGPL'],
     'da39a3ee5e6b4b0d3255bfef95601890afd80709': [],
+}
+
+
+SHA1_TO_CTAGS = {
+    '01c9379dfc33803963d07c1ccc748d3fe4c96bb5': [{
+        'name': 'foo',
+        'kind': 'str',
+        'line': 10,
+        'lang': 'bar',
+    }],
+    'd4c647f0fc257591cc9ba1722484229780d1c607': [{
+        'name': 'let',
+        'kind': 'int',
+        'line': 100,
+        'lang': 'haskell',
+    }],
+    '688a5ef812c53907562fe379d4b3851e69c7cb15': [{
+        'name': 'symbol',
+        'kind': 'float',
+        'line': 99,
+        'lang': 'python',
+    }],
 }
 
 
@@ -471,6 +491,9 @@ class BasicMockIndexerStorage():
     def content_language_add(self, data, conflict_update=None):
         self._internal_add(data, conflict_update=conflict_update)
 
+    def content_ctags_add(self, data, conflict_update=None):
+        self._internal_add(data, conflict_update=conflict_update)
+
     def _internal_get_range(self, start, end,
                             indexer_configuration_id, limit=1000):
         """Same logic as _internal_add, we retrieve indexed data given an
@@ -677,3 +700,16 @@ class CommonContentIndexerRangeTest:
 
         # then
         self.assertFalse(actual_results)
+
+
+class NoDiskIndexer:
+    """Mixin to override the DiskIndexer behavior avoiding side-effects in
+       tests.
+
+    """
+
+    def write_to_temp(self, filename, data):  # noop
+        return filename
+
+    def cleanup(self, content_path):  # noop
+        return None
