@@ -66,21 +66,22 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
         self.id2 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'  # empty content
+        tool_id = self.indexer.tool['id']
         # then
         self.expected_results = {
             self.id0: {
                 'id': self.id0,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'licenses': SHA1_TO_LICENSES[self.id0],
             },
             self.id1: {
                 'id': self.id1,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'licenses': SHA1_TO_LICENSES[self.id1],
             },
             self.id2: {
                 'id': self.id2,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'licenses': SHA1_TO_LICENSES[self.id2],
             }
         }
@@ -134,20 +135,21 @@ class TestFossologyLicenseRangeIndexer(
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
         self.id2 = '103bc087db1d26afc3a0283f38663d081e9b01e6'
+        tool_id = self.indexer.tool['id']
         self.expected_results = {
             self.id0: {
                 'id': self.id0,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'licenses': SHA1_TO_LICENSES[self.id0]
             },
             self.id1: {
                 'id': self.id1,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'licenses': SHA1_TO_LICENSES[self.id1]
             },
             self.id2: {
                 'id': self.id2,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'licenses': SHA1_TO_LICENSES[self.id2]
             }
         }

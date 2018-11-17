@@ -67,21 +67,22 @@ class TestLanguageIndexer(CommonContentIndexerTest, unittest.TestCase):
         self.id0 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
         self.id1 = '103bc087db1d26afc3a0283f38663d081e9b01e6'
         self.id2 = 'd4c647f0fc257591cc9ba1722484229780d1c607'
+        tool_id = self.indexer.tool['id']
 
         self.expected_results = {
             self.id0: {
                 'id': self.id0,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'lang': 'python',
             },
             self.id1: {
                 'id': self.id1,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'lang': 'c'
             },
             self.id2: {
                 'id': self.id2,
-                'indexer_configuration_id': 10,
+                'indexer_configuration_id': tool_id,
                 'lang': 'text-only'
             }
         }
