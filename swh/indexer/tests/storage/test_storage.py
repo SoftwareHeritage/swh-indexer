@@ -1706,11 +1706,67 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.assertEqual(e.exception.args, (
             'Development error: limit should not be None',))
 
+    def prepare_mimetypes_from(self, fossology_licenses):
+        """Fossology license needs some consistent data in db to run.
+
+        """
+        mimetypes = []
+        for c in fossology_licenses:
+            mimetypes.append({
+                'id': c['id'],
+                'mimetype': 'text/plain',
+                'encoding': 'utf-8',
+                'indexer_configuration_id': c['indexer_configuration_id'],
+            })
+        return mimetypes
+
     @given(gen_content_fossology_licenses(min_size=1, max_size=4))
     def test_generate_content_fossology_license_get_range_no_limit(
             self, fossology_licenses):
         """license_get_range returns licenses within range provided"""
         self.reset_storage_tables()
+        # craft some consistent mimetypes
+        mimetypes = self.prepare_mimetypes_from(fossology_licenses)
+
+        self.storage.content_mimetype_add(mimetypes)
+        # add fossology_licenses to storage
+        self.storage.content_fossology_license_add(fossology_licenses)
+
+        # All ids from the db
+        content_ids = sorted([c['id'] for c in fossology_licenses])
+
+        start = content_ids[0]
+        end = content_ids[-1]
+
+        # retrieve fossology_licenses
+        tool_id = fossology_licenses[0]['indexer_configuration_id']
+        actual_result = self.storage.content_fossology_license_get_range(
+            start, end, indexer_configuration_id=tool_id)
+
+        actual_ids = actual_result['ids']
+        actual_next = actual_result['next']
+
+        self.assertEqual(len(fossology_licenses), len(actual_ids))
+        self.assertIsNone(actual_next)
+        self.assertEqual(content_ids, actual_ids)
+
+    @given(gen_content_fossology_licenses(min_size=1, max_size=4),
+           gen_content_mimetypes(min_size=1, max_size=1))
+    def test_generate_content_fossology_license_get_range_no_limit_with_filter(
+            self, fossology_licenses, mimetypes):
+        """This filters non textual, then returns results within range"""
+        self.reset_storage_tables()
+
+        # craft some consistent mimetypes
+        _mimetypes = self.prepare_mimetypes_from(fossology_licenses)
+        # add binary mimetypes which will get filtered out in results
+        for m in mimetypes:
+            _mimetypes.append({
+                'mimetype': 'binary',
+                **m,
+            })
+
+        self.storage.content_mimetype_add(_mimetypes)
         # add fossology_licenses to storage
         self.storage.content_fossology_license_add(fossology_licenses)
 
@@ -1737,8 +1793,11 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
             self, fossology_licenses):
         """fossology_license_get_range paginates results if limit exceeded"""
         self.reset_storage_tables()
+        # craft some consistent mimetypes
+        mimetypes = self.prepare_mimetypes_from(fossology_licenses)
 
         # add fossology_licenses to storage
+        self.storage.content_mimetype_add(mimetypes)
         self.storage.content_fossology_license_add(fossology_licenses)
 
         # input the list of sha1s we want from storage

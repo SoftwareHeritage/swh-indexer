@@ -112,6 +112,7 @@ class IndexerStorage:
 
     def _content_get_range(self, content_type, start, end,
                            indexer_configuration_id, limit=1000,
+                           with_textual_data=False,
                            db=None, cur=None):
         """Retrieve ids of type content_type within range [start, end] bound
            by limit.
@@ -124,6 +125,10 @@ class IndexerStorage:
                              than start)
             **indexer_configuration_id** (int): The tool used to index data
             **limit** (int): Limit result (default to 1000)
+            **with_textual_data** (bool): Deal with only textual
+                                          content (True) or all
+                                          content (all contents by
+                                          defaults, False)
 
         Raises:
             ValueError for;
@@ -148,7 +153,7 @@ class IndexerStorage:
         next_id = None
         for counter, obj in enumerate(db.content_get_range(
                 content_type, start, end, indexer_configuration_id,
-                limit=limit+1, cur=cur)):
+                limit=limit+1, with_textual_data=with_textual_data, cur=cur)):
             _id = obj[0]
             if counter >= limit:
                 next_id = _id
@@ -483,7 +488,7 @@ class IndexerStorage:
         """
         return self._content_get_range('fossology_license', start, end,
                                        indexer_configuration_id, limit=limit,
-                                       db=db, cur=cur)
+                                       with_textual_data=True, db=db, cur=cur)
 
     @remote_api_endpoint('content_metadata/missing')
     @db_transaction_generator()
