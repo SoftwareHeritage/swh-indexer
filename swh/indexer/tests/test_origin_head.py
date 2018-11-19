@@ -10,7 +10,7 @@ from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.tests.test_utils import MockIndexerStorage, MockStorage
 
 
-class TestOriginHeadIndexer(OriginHeadIndexer):
+class OriginHeadTestIndexer(OriginHeadIndexer):
     """Specific indexer whose configuration is enough to satisfy the
        indexing tests.
     """
@@ -40,7 +40,7 @@ class TestOriginHeadIndexer(OriginHeadIndexer):
 
 class OriginHead(unittest.TestCase):
     def test_git(self):
-        indexer = TestOriginHeadIndexer()
+        indexer = OriginHeadTestIndexer()
         indexer.run(
                 ['git+https://github.com/SoftwareHeritage/swh-storage'],
                 'update-dups', parse_ids=True)
@@ -50,7 +50,7 @@ class OriginHead(unittest.TestCase):
             'origin_id': 52189575}])
 
     def test_ftp(self):
-        indexer = TestOriginHeadIndexer()
+        indexer = OriginHeadTestIndexer()
         indexer.run(
                 ['ftp+rsync://ftp.gnu.org/gnu/3dldf'],
                 'update-dups', parse_ids=True)
@@ -60,7 +60,7 @@ class OriginHead(unittest.TestCase):
             'origin_id': 4423668}])
 
     def test_deposit(self):
-        indexer = TestOriginHeadIndexer()
+        indexer = OriginHeadTestIndexer()
         indexer.run(
                 ['deposit+https://forge.softwareheritage.org/source/'
                  'jesuisgpl/'],
@@ -71,7 +71,7 @@ class OriginHead(unittest.TestCase):
             'origin_id': 77775770}])
 
     def test_pypi(self):
-        indexer = TestOriginHeadIndexer()
+        indexer = OriginHeadTestIndexer()
         indexer.run(
                 ['pypi+https://pypi.org/project/limnoria/'],
                 'update-dups', parse_ids=True)
@@ -81,7 +81,7 @@ class OriginHead(unittest.TestCase):
             'origin_id': 85072327}])
 
     def test_svn(self):
-        indexer = TestOriginHeadIndexer()
+        indexer = OriginHeadTestIndexer()
         indexer.run(
                 ['svn+http://0-512-md.googlecode.com/svn/'],
                 'update-dups', parse_ids=True)

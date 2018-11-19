@@ -9,9 +9,9 @@ import click
 from swh.core import config
 from swh.core.api import (SWHServerAPIApp, error_handler,
                           encode_data_server as encode_data)
-from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
-
-from .. import IndexerStorage
+from swh.indexer.storage import (
+    get_indexer_storage, INDEXER_CFG_KEY, IndexerStorage
+)
 
 
 DEFAULT_CONFIG_PATH = 'storage/indexer'

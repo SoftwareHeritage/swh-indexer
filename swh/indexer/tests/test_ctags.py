@@ -5,28 +5,47 @@
 
 import unittest
 import logging
-from swh.indexer import language
-from swh.indexer.language import ContentLanguageIndexer
+from swh.indexer.ctags import CtagsIndexer
 from swh.indexer.tests.test_utils import (
     BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool,
+    SHA1_TO_CTAGS, NoDiskIndexer
 )
 
 
-class LanguageTestIndexer(ContentLanguageIndexer):
+class InjectCtagsIndexer:
+    """Override ctags computations.
+
+    """
+    def compute_ctags(self, path, lang):
+        """Inject fake ctags given path (sha1 identifier).
+
+        """
+        return {
+            'lang': lang,
+            **SHA1_TO_CTAGS.get(path)
+        }
+
+
+class CtagsIndexerTest(NoDiskIndexer, InjectCtagsIndexer, CtagsIndexer):
     """Specific language whose configuration is enough to satisfy the
        indexing tests.
     """
     def prepare(self):
         self.config = {
-            'tools':  {
-                'name': 'pygments',
-                'version': '2.0.1+dfsg-1.1+deb8u1',
+            'tools': {
+                'name': 'universal-ctags',
+                'version': '~git7859817b',
                 'configuration': {
-                    'type': 'library',
-                    'debian-package': 'python3-pygments',
-                    'max_content_size': 10240,
+                    'command_line': '''ctags --fields=+lnz --sort=no '''
+                                    ''' --links=no <filepath>''',
+                    'max_content_size': 1000,
                 },
+            },
+            'languages': {
+                'python': 'python',
+                'haskell': 'haskell',
+                'bar': 'bar',
             }
         }
         self.idx_storage = BasicMockIndexerStorage()
@@ -36,64 +55,50 @@ class LanguageTestIndexer(ContentLanguageIndexer):
         self.max_content_size = self.tool_config['max_content_size']
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
+        self.language_map = self.config['languages']
 
 
-class Language(unittest.TestCase):
-    """Tests pygments tool for language detection
-
-    """
-    def test_compute_language_none(self):
-        # given
-        self.content = ""
-        self.declared_language = {
-            'lang': None
-        }
-        # when
-        result = language.compute_language(self.content)
-        # then
-        self.assertEqual(self.declared_language, result)
-
-
-class TestLanguageIndexer(CommonContentIndexerTest, unittest.TestCase):
-    """Language indexer test scenarios:
+class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
+    """Ctags indexer test scenarios:
 
     - Known sha1s in the input list have their data indexed
     - Unknown sha1 in the input list are not indexed
 
     """
     def setUp(self):
-        self.indexer = LanguageTestIndexer()
+        self.indexer = CtagsIndexerTest()
 
-        self.id0 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
-        self.id1 = '103bc087db1d26afc3a0283f38663d081e9b01e6'
-        self.id2 = 'd4c647f0fc257591cc9ba1722484229780d1c607'
+        # Prepare test input
+        self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
+        self.id1 = 'd4c647f0fc257591cc9ba1722484229780d1c607'
+        self.id2 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
+
         tool_id = self.indexer.tool['id']
-
         self.expected_results = {
             self.id0: {
                 'id': self.id0,
                 'indexer_configuration_id': tool_id,
-                'lang': 'python',
+                'ctags': SHA1_TO_CTAGS[self.id0],
             },
             self.id1: {
                 'id': self.id1,
                 'indexer_configuration_id': tool_id,
-                'lang': 'c'
+                'ctags': SHA1_TO_CTAGS[self.id1],
             },
             self.id2: {
                 'id': self.id2,
                 'indexer_configuration_id': tool_id,
-                'lang': 'text-only'
+                'ctags': SHA1_TO_CTAGS[self.id2],
             }
         }
 
 
-class LanguageIndexerUnknownToolTestStorage(
-        CommonIndexerNoTool, LanguageTestIndexer):
+class CtagsIndexerUnknownToolTestStorage(
+        CommonIndexerNoTool, CtagsIndexerTest):
     """Fossology license indexer with wrong configuration"""
 
 
-class TestLanguageIndexersErrors(
+class TestCtagsIndexersErrors(
         CommonIndexerWithErrorsTest, unittest.TestCase):
     """Test the indexer raise the right errors when wrongly initialized"""
-    Indexer = LanguageIndexerUnknownToolTestStorage
+    Indexer = CtagsIndexerUnknownToolTestStorage

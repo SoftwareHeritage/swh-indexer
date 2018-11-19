@@ -6,30 +6,43 @@
 import unittest
 import logging
 
-from swh.indexer.mimetype import (
-    ContentMimetypeIndexer, MimetypeRangeIndexer
+from swh.indexer.fossology_license import (
+    ContentFossologyLicenseIndexer, FossologyLicenseRangeIndexer
 )
 
 from swh.indexer.tests.test_utils import (
     MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
-    CommonContentIndexerTest, CommonContentIndexerRangeTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool
+    SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool, NoDiskIndexer
 )
 
 
-class MimetypeTestIndexer(ContentMimetypeIndexer):
-    """Specific mimetype indexer instance whose configuration is enough to
-       satisfy the indexing tests.
+class InjectLicenseIndexer:
+    """Override license computations.
+
+    """
+    def compute_license(self, path, log=None):
+        """path is the content identifier
+
+        """
+        return {
+            'licenses': SHA1_TO_LICENSES.get(path)
+        }
+
+
+class FossologyLicenseTestIndexer(
+        NoDiskIndexer, InjectLicenseIndexer, ContentFossologyLicenseIndexer):
+    """Specific fossology license whose configuration is enough to satisfy
+       the indexing checks.
 
     """
     def prepare(self):
         self.config = {
             'tools': {
-                'name': 'file',
-                'version': '1:5.30-1+deb9u1',
+                'name': 'nomos',
+                'version': '3.1.0rc2-31-ga2cbb8c',
                 'configuration': {
-                    "type": "library",
-                    "debian-package": "python3-magic"
+                    'command_line': 'nomossa <filepath>',
                 },
             },
         }
@@ -40,55 +53,52 @@ class MimetypeTestIndexer(ContentMimetypeIndexer):
         self.tool = self.tools[0]
 
 
-class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
-    """Mimetype indexer test scenarios:
+class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
+    """Language indexer test scenarios:
 
     - Known sha1s in the input list have their data indexed
     - Unknown sha1 in the input list are not indexed
 
     """
     def setUp(self):
-        self.indexer = MimetypeTestIndexer()
+        self.indexer = FossologyLicenseTestIndexer()
 
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
-        self.id2 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
+        self.id2 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'  # empty content
         tool_id = self.indexer.tool['id']
+        # then
         self.expected_results = {
             self.id0: {
                 'id': self.id0,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/plain',
-                'encoding': b'us-ascii',
+                'licenses': SHA1_TO_LICENSES[self.id0],
             },
             self.id1: {
                 'id': self.id1,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/plain',
-                'encoding': b'us-ascii',
+                'licenses': SHA1_TO_LICENSES[self.id1],
             },
             self.id2: {
                 'id': self.id2,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'application/x-empty',
-                'encoding': b'binary',
+                'licenses': SHA1_TO_LICENSES[self.id2],
             }
         }
 
 
-class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
-    """Specific mimetype whose configuration is enough to satisfy the
-       indexing tests.
+class FossologyLicenseRangeIndexerTest(
+        NoDiskIndexer, InjectLicenseIndexer, FossologyLicenseRangeIndexer):
+    """Testing the range indexer on fossology license.
 
     """
     def prepare(self):
         self.config = {
             'tools': {
-                'name': 'file',
-                'version': '1:5.30-1+deb9u1',
+                'name': 'nomos',
+                'version': '3.1.0rc2-31-ga2cbb8c',
                 'configuration': {
-                    "type": "library",
-                    "debian-package": "python3-magic"
+                    'command_line': 'nomossa <filepath>',
                 },
             },
             'write_batch_size': 100,
@@ -104,9 +114,9 @@ class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
         self.tool = self.tools[0]
 
 
-class TestMimetypeRangeIndexer(
+class TestFossologyLicenseRangeIndexer(
         CommonContentIndexerRangeTest, unittest.TestCase):
-    """Range Mimetype Indexer tests.
+    """Range Fossology License Indexer tests.
 
     - new data within range are indexed
     - no data outside a range are indexed
@@ -115,7 +125,7 @@ class TestMimetypeRangeIndexer(
 
     """
     def setUp(self):
-        self.indexer = MimetypeRangeIndexerTest()
+        self.indexer = FossologyLicenseRangeIndexerTest()
         # will play along with the objstorage's mocked contents for now
         self.contents = sorted(self.indexer.objstorage)
         # FIXME: leverage swh.objstorage.in_memory_storage's
@@ -126,38 +136,37 @@ class TestMimetypeRangeIndexer(
         self.id1 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
         self.id2 = '103bc087db1d26afc3a0283f38663d081e9b01e6'
         tool_id = self.indexer.tool['id']
-
         self.expected_results = {
             self.id0: {
-                'encoding': b'us-ascii',
                 'id': self.id0,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/plain'},
+                'licenses': SHA1_TO_LICENSES[self.id0]
+            },
             self.id1: {
-                'encoding': b'us-ascii',
                 'id': self.id1,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/x-python'},
+                'licenses': SHA1_TO_LICENSES[self.id1]
+            },
             self.id2: {
-                'encoding': b'us-ascii',
                 'id': self.id2,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/plain'}
+                'licenses': SHA1_TO_LICENSES[self.id2]
+            }
         }
 
 
-class MimetypeIndexerUnknownToolTestStorage(
-        CommonIndexerNoTool, MimetypeTestIndexer):
+class FossologyLicenseIndexerUnknownToolTestStorage(
+        CommonIndexerNoTool, FossologyLicenseTestIndexer):
     """Fossology license indexer with wrong configuration"""
 
 
-class MimetypeRangeIndexerUnknownToolTestStorage(
-        CommonIndexerNoTool, MimetypeRangeIndexerTest):
+class FossologyLicenseRangeIndexerUnknownToolTestStorage(
+        CommonIndexerNoTool, FossologyLicenseRangeIndexerTest):
     """Fossology license range indexer with wrong configuration"""
 
 
-class TestMimetypeIndexersErrors(
+class TestFossologyLicenseIndexersErrors(
         CommonIndexerWithErrorsTest, unittest.TestCase):
     """Test the indexer raise the right errors when wrongly initialized"""
-    Indexer = MimetypeIndexerUnknownToolTestStorage
-    RangeIndexer = MimetypeRangeIndexerUnknownToolTestStorage
+    Indexer = FossologyLicenseIndexerUnknownToolTestStorage
+    RangeIndexer = FossologyLicenseRangeIndexerUnknownToolTestStorage

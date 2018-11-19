@@ -113,6 +113,31 @@ class Db(BaseDb):
             ((_id,) for _id in ids)
         )
 
+    content_indexer_names = {
+        'mimetype': 'content_mimetype',
+        'fossology_license': 'content_fossology_license',
+    }
+
+    def content_get_range(self, content_type, start, end,
+                          indexer_configuration_id, limit=1000, cur=None):
+        """Retrieve contents with content_type, within range [start, end]
+           bound by limit and associated to the given indexer
+           configuration id.
+
+        """
+        cur = self._cursor(cur)
+        table = self.content_indexer_names[content_type]
+        query = """select t.id
+                   from %s t
+                   inner join indexer_configuration ic
+                   on t.indexer_configuration_id=ic.id
+                   where ic.id=%%s and
+                         %%s <= t.id and t.id <= %%s
+                   order by t.indexer_configuration_id, t.id
+                   limit %%s""" % table
+        cur.execute(query, (indexer_configuration_id, start, end, limit))
+        yield from cursor_to_bytes(cur)
+
     def content_mimetype_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
             'content_mimetype', ids, self.content_mimetype_cols, cur=cur)
