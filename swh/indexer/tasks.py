@@ -7,19 +7,21 @@ import logging
 
 from swh.scheduler.task import Task as SchedulerTask
 
-from .orchestrator import OrchestratorAllContentsIndexer
-from .orchestrator import OrchestratorTextContentsIndexer
-from .mimetype import ContentMimetypeIndexer
+from .mimetype import ContentMimetypeIndexer, MimetypeRangeIndexer
 from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import ContentFossologyLicenseIndexer
 from .rehash import RecomputeChecksums
 from .metadata import RevisionMetadataIndexer, OriginMetadataIndexer
+from .origin_head import OriginHeadIndexer
 
 logging.basicConfig(level=logging.INFO)
 
 
 class Task(SchedulerTask):
+    """Task whose results is needed for other computations.
+
+    """
     def run_task(self, *args, **kwargs):
         indexer = self.Indexer().run(*args, **kwargs)
         if hasattr(indexer, 'results'):  # indexer tasks
@@ -27,24 +29,13 @@ class Task(SchedulerTask):
         return indexer
 
 
-class OrchestratorAllContents(Task):
-    """Main task in charge of reading batch contents (of any type) and
-    broadcasting them back to other tasks.
+class StatusTask(SchedulerTask):
+    """Task which returns a status either eventful or uneventful.
 
     """
-    task_queue = 'swh_indexer_orchestrator_content_all'
-
-    Indexer = OrchestratorAllContentsIndexer
-
-
-class OrchestratorTextContents(Task):
-    """Main task in charge of reading batch contents (of type text) and
-    broadcasting them back to other tasks.
-
-    """
-    task_queue = 'swh_indexer_orchestrator_content_text'
-
-    Indexer = OrchestratorTextContentsIndexer
+    def run_task(self, *args, **kwargs):
+        results = self.Indexer().run(*args, **kwargs)
+        return {'status': 'eventful' if results else 'uneventful'}
 
 
 class RevisionMetadata(Task):
@@ -61,13 +52,26 @@ class OriginMetadata(Task):
     Indexer = OriginMetadataIndexer
 
 
-class ContentMimetype(Task):
-    """Task which computes the mimetype, encoding from the sha1's content.
+class OriginHead(Task):
+    task_queue = 'swh_indexer_origin_head'
+
+    Indexer = OriginHeadIndexer
+
+
+class ContentMimetype(StatusTask):
+    """Compute (mimetype, encoding) from the sha1's content.
 
     """
     task_queue = 'swh_indexer_content_mimetype'
-
     Indexer = ContentMimetypeIndexer
+
+
+class ContentRangeMimetype(StatusTask):
+    """Compute (mimetype, encoding) on a range of sha1s.
+
+    """
+    task_queue = 'swh_indexer_content_mimetype_range'
+    Indexer = MimetypeRangeIndexer
 
 
 class ContentLanguage(Task):
@@ -76,8 +80,7 @@ class ContentLanguage(Task):
     """
     task_queue = 'swh_indexer_content_language'
 
-    def run_task(self, *args, **kwargs):
-        ContentLanguageIndexer().run(*args, **kwargs)
+    Indexer = ContentLanguageIndexer
 
 
 class Ctags(Task):

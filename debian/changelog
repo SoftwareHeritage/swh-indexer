@@ -1,8 +1,12 @@
-swh-indexer (0.0.55-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.56-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.56
+  * storage.api: Open new endpoints (mimetype range, fossology range)
+  * content indexers: Open mimetype and fossology range indexers
+  * Remove orchestrator modules
+  * tests: Improve coverage
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 29 Oct 2018 10:41:54 +0100
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 19 Nov 2018 11:56:06 +0100
 
 swh-indexer (0.0.55-1~swh1) unstable-swh; urgency=medium
 

@@ -4,15 +4,18 @@
 # See top-level LICENSE file for more information
 
 import os
+import pytest
 import unittest
+
+from hypothesis import given
 
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.storage import get_indexer_storage
 from swh.core.tests.db_testing import SingleDbTestFixture
-from swh.indexer.tests import SQL_DIR
-
-import pytest
+from swh.indexer.tests.storage import (
+    SQL_DIR, gen_content_mimetypes, gen_content_fossology_licenses
+)
 
 
 @pytest.mark.db
@@ -1611,6 +1614,164 @@ class CommonTestStorage(BaseTestStorage):
         expected_tool['id'] = actual_tool['id']
 
         self.assertEqual(expected_tool, actual_tool)
+
+
+@pytest.mark.property_based
+class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
+    """Properties-based tests
+
+    """
+    def test_generate_content_mimetype_get_range_limit_none(self):
+        """mimetype_get_range call with wrong limit input should fail"""
+        with self.assertRaises(ValueError) as e:
+            self.storage.content_mimetype_get_range(
+                start=None, end=None, indexer_configuration_id=None,
+                limit=None)
+
+        self.assertEqual(e.exception.args, (
+            'Development error: limit should not be None',))
+
+    @given(gen_content_mimetypes(min_size=1, max_size=4))
+    def test_generate_content_mimetype_get_range_no_limit(self, mimetypes):
+        """mimetype_get_range returns mimetypes within range provided"""
+        self.reset_storage_tables()
+        # add mimetypes to storage
+        self.storage.content_mimetype_add(mimetypes)
+
+        # All ids from the db
+        content_ids = sorted([c['id'] for c in mimetypes])
+
+        start = content_ids[0]
+        end = content_ids[-1]
+
+        # retrieve mimetypes
+        tool_id = mimetypes[0]['indexer_configuration_id']
+        actual_result = self.storage.content_mimetype_get_range(
+            start, end, indexer_configuration_id=tool_id)
+
+        actual_ids = actual_result['ids']
+        actual_next = actual_result['next']
+
+        self.assertEqual(len(mimetypes), len(actual_ids))
+        self.assertIsNone(actual_next)
+        self.assertEqual(content_ids, actual_ids)
+
+    @given(gen_content_mimetypes(min_size=4, max_size=4))
+    def test_generate_content_mimetype_get_range_limit(self, mimetypes):
+        """mimetype_get_range paginates results if limit exceeded"""
+        self.reset_storage_tables()
+
+        # add mimetypes to storage
+        self.storage.content_mimetype_add(mimetypes)
+
+        # input the list of sha1s we want from storage
+        content_ids = sorted([c['id'] for c in mimetypes])
+        start = content_ids[0]
+        end = content_ids[-1]
+
+        # retrieve mimetypes limited to 3 results
+        limited_results = len(mimetypes) - 1
+        tool_id = mimetypes[0]['indexer_configuration_id']
+        actual_result = self.storage.content_mimetype_get_range(
+            start, end,
+            indexer_configuration_id=tool_id, limit=limited_results)
+
+        actual_ids = actual_result['ids']
+        actual_next = actual_result['next']
+
+        self.assertEqual(limited_results, len(actual_ids))
+        self.assertIsNotNone(actual_next)
+        self.assertEqual(actual_next, content_ids[-1])
+
+        expected_mimetypes = content_ids[:-1]
+        self.assertEqual(expected_mimetypes, actual_ids)
+
+        # retrieve next part
+        actual_results2 = self.storage.content_mimetype_get_range(
+            start=end, end=end, indexer_configuration_id=tool_id)
+        actual_ids2 = actual_results2['ids']
+        actual_next2 = actual_results2['next']
+
+        self.assertIsNone(actual_next2)
+        expected_mimetypes2 = [content_ids[-1]]
+        self.assertEqual(expected_mimetypes2, actual_ids2)
+
+    def test_generate_content_fossology_license_get_range_limit_none(self):
+        """license_get_range call with wrong limit input should fail"""
+        with self.assertRaises(ValueError) as e:
+            self.storage.content_fossology_license_get_range(
+                start=None, end=None, indexer_configuration_id=None,
+                limit=None)
+
+        self.assertEqual(e.exception.args, (
+            'Development error: limit should not be None',))
+
+    @given(gen_content_fossology_licenses(min_size=1, max_size=4))
+    def test_generate_content_fossology_license_get_range_no_limit(
+            self, fossology_licenses):
+        """license_get_range returns licenses within range provided"""
+        self.reset_storage_tables()
+        # add fossology_licenses to storage
+        self.storage.content_fossology_license_add(fossology_licenses)
+
+        # All ids from the db
+        content_ids = sorted([c['id'] for c in fossology_licenses])
+
+        start = content_ids[0]
+        end = content_ids[-1]
+
+        # retrieve fossology_licenses
+        tool_id = fossology_licenses[0]['indexer_configuration_id']
+        actual_result = self.storage.content_fossology_license_get_range(
+            start, end, indexer_configuration_id=tool_id)
+
+        actual_ids = actual_result['ids']
+        actual_next = actual_result['next']
+
+        self.assertEqual(len(fossology_licenses), len(actual_ids))
+        self.assertIsNone(actual_next)
+        self.assertEqual(content_ids, actual_ids)
+
+    @given(gen_content_fossology_licenses(min_size=4, max_size=4))
+    def test_generate_fossology_license_get_range_limit(
+            self, fossology_licenses):
+        """fossology_license_get_range paginates results if limit exceeded"""
+        self.reset_storage_tables()
+
+        # add fossology_licenses to storage
+        self.storage.content_fossology_license_add(fossology_licenses)
+
+        # input the list of sha1s we want from storage
+        content_ids = sorted([c['id'] for c in fossology_licenses])
+        start = content_ids[0]
+        end = content_ids[-1]
+
+        # retrieve fossology_licenses limited to 3 results
+        limited_results = len(fossology_licenses) - 1
+        tool_id = fossology_licenses[0]['indexer_configuration_id']
+        actual_result = self.storage.content_fossology_license_get_range(
+            start, end,
+            indexer_configuration_id=tool_id, limit=limited_results)
+
+        actual_ids = actual_result['ids']
+        actual_next = actual_result['next']
+
+        self.assertEqual(limited_results, len(actual_ids))
+        self.assertIsNotNone(actual_next)
+        self.assertEqual(actual_next, content_ids[-1])
+
+        expected_fossology_licenses = content_ids[:-1]
+        self.assertEqual(expected_fossology_licenses, actual_ids)
+
+        # retrieve next part
+        actual_results2 = self.storage.content_fossology_license_get_range(
+            start=end, end=end, indexer_configuration_id=tool_id)
+        actual_ids2 = actual_results2['ids']
+        actual_next2 = actual_results2['next']
+
+        self.assertIsNone(actual_next2)
+        expected_fossology_licenses2 = [content_ids[-1]]
+        self.assertEqual(expected_fossology_licenses2, actual_ids2)
 
 
 class IndexerTestStorage(CommonTestStorage, unittest.TestCase):

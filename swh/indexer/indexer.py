@@ -16,8 +16,9 @@ from swh.storage import get_storage
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
-from swh.model import hashutil
 from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
+from swh.model import hashutil
+from swh.core import utils
 
 
 class DiskIndexer:
@@ -93,9 +94,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
     Then you need to implement the following functions:
 
     :func:`filter`:
-      filter out data already indexed (in storage). This function is used by
-      the orchestrator and not directly by the indexer
-      (cf. swh.indexer.orchestrator.BaseOrchestratorIndexer).
+      filter out data already indexed (in storage).
 
     :func:`index_object`:
       compute index on id with data (retrieved from the storage or the
@@ -135,43 +134,11 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             }
         }),
         'objstorage': ('dict', {
-            'cls': 'multiplexer',
+            'cls': 'remote',
             'args': {
-                'objstorages': [{
-                    'cls': 'filtered',
-                    'args': {
-                        'storage_conf': {
-                            'cls': 'azure',
-                            'args': {
-                                'account_name': '0euwestswh',
-                                'api_secret_key': 'secret',
-                                'container_name': 'contents'
-                            }
-                        },
-                        'filters_conf': [
-                            {'type': 'readonly'},
-                            {'type': 'prefix', 'prefix': '0'}
-                        ]
-                    }
-                }, {
-                    'cls': 'filtered',
-                    'args': {
-                        'storage_conf': {
-                            'cls': 'azure',
-                            'args': {
-                                'account_name': '1euwestswh',
-                                'api_secret_key': 'secret',
-                                'container_name': 'contents'
-                            }
-                        },
-                        'filters_conf': [
-                            {'type': 'readonly'},
-                            {'type': 'prefix', 'prefix': '1'}
-                        ]
-                    }
-                }]
-            },
-        }),
+                'url': 'http://localhost:5003/',
+            }
+        })
     }
 
     ADDITIONAL_CONFIG = {}
@@ -246,19 +213,6 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             raise ValueError('Configuration tool(s) must be a dict or list!')
 
         return self.idx_storage.indexer_configuration_add(tools)
-
-    @abc.abstractmethod
-    def filter(self, ids):
-        """Filter missing ids for that particular indexer.
-
-        Args:
-            ids ([bytes]): list of ids
-
-        Yields:
-            iterator of missing ids
-
-        """
-        pass
 
     @abc.abstractmethod
     def index(self, id, data):
@@ -345,15 +299,28 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
 
 class ContentIndexer(BaseIndexer):
-    """An object type indexer, inherits from the :class:`BaseIndexer` and
-    implements Content indexing using the run method
+    """A content indexer working on a list of ids directly.
 
-    Note: the :class:`ContentIndexer` is not an instantiable
-    object. To use it in another context, one should inherit from this
-    class and override the methods mentioned in the
-    :class:`BaseIndexer` class.
+    To work on indexer range, use the :class:`ContentRangeIndexer`
+    instead.
+
+    Note: :class:`ContentIndexer` is not an instantiable object. To
+    use it, one should inherit from this class and override the
+    methods mentioned in the :class:`BaseIndexer` class.
 
     """
+    @abc.abstractmethod
+    def filter(self, ids):
+        """Filter missing ids for that particular indexer.
+
+        Args:
+            ids ([bytes]): list of ids
+
+        Yields:
+            iterator of missing ids
+
+        """
+        pass
 
     def run(self, ids, policy_update,
             next_step=None, **kwargs):
@@ -393,6 +360,119 @@ class ContentIndexer(BaseIndexer):
         except Exception:
             self.log.exception(
                 'Problem when reading contents metadata.')
+
+
+class ContentRangeIndexer(BaseIndexer):
+    """A content range indexer.
+
+    This expects as input a range of ids to index.
+
+    To work on a list of ids, use the :class:`ContentIndexer` instead.
+
+    Note: :class:`ContentRangeIndexer` is not an instantiable
+    object. To use it, one should inherit from this class and override
+    the methods mentioned in the :class:`BaseIndexer` class.
+
+    """
+    @abc.abstractmethod
+    def indexed_contents_in_range(self, start, end):
+        """Retrieve indexed contents within range [start, end].
+
+        Args
+            **start** (bytes): Starting bound from range identifier
+            **end** (bytes): End range identifier
+
+        Yields:
+            Content identifier (bytes) present in the range [start, end]
+
+        """
+        pass
+
+    def _list_contents_to_index(self, start, end, indexed):
+        """Compute from storage the new contents to index in the range [start,
+           end]. The already indexed contents are skipped.
+
+        Args:
+            **start** (bytes): Starting bound from range identifier
+            **end** (bytes): End range identifier
+            **indexed** (Set[bytes]): Set of content already indexed.
+
+        Yields:
+            Identifier (bytes) of contents to index.
+
+        """
+        while start:
+            result = self.storage.content_get_range(start, end)
+            contents = result['contents']
+            for c in contents:
+                _id = c['sha1']
+                if _id in indexed:
+                    continue
+                yield _id
+            start = result['next']
+
+    def _index_contents(self, start, end, indexed, **kwargs):
+        """Index the contents from within range [start, end]
+
+        Args:
+            **start** (bytes): Starting bound from range identifier
+            **end** (bytes): End range identifier
+            **indexed** (Set[bytes]): Set of content already indexed.
+
+        Yields:
+            Data indexed (dict) to persist using the indexer storage
+
+        """
+        for sha1 in self._list_contents_to_index(start, end, indexed):
+            try:
+                raw_content = self.objstorage.get(sha1)
+            except ObjNotFoundError:
+                self.log.warning('Content %s not found in objstorage' %
+                                 hashutil.hash_to_hex(sha1))
+                continue
+            res = self.index(sha1, raw_content, **kwargs)
+            if res:
+                yield res
+
+    def run(self, start, end, skip_existing=True, **kwargs):
+        """Given a range of content ids, compute the indexing computations on
+           the contents within. Either the indexer is incremental
+           (filter out existing computed data) or not (compute
+           everything from scratch).
+
+        Args:
+            **start** (Union[bytes, str]): Starting range identifier
+            **end** (Union[bytes, str]): Ending range identifier
+            **skip_existing** (bool): Skip existing indexed data
+                                     (default) or not
+            **kwargs: passed to the `index` method
+
+        Returns:
+            a boolean. True if data was indexed, False otherwise.
+
+        """
+        with_indexed_data = False
+        try:
+            if isinstance(start, str):
+                start = hashutil.hash_to_bytes(start)
+            if isinstance(end, str):
+                end = hashutil.hash_to_bytes(end)
+
+            if skip_existing:
+                indexed = set(self.indexed_contents_in_range(start, end))
+            else:
+                indexed = set()
+
+            index_computations = self._index_contents(start, end, indexed)
+            for results in utils.grouper(index_computations,
+                                         n=self.config['write_batch_size']):
+                self.persist_index_computations(
+                    results, policy_update='update-dups')
+                with_indexed_data = True
+            return with_indexed_data
+        except Exception:
+            self.log.exception(
+                'Problem when computing metadata.')
 
 
 class OriginIndexer(BaseIndexer):
