@@ -11,13 +11,13 @@ from celery import task
 from swh.indexer.metadata import OriginMetadataIndexer
 from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
 from swh.indexer.tests.test_utils import MockIndexerStorage
-from swh.indexer.tests.test_origin_head import TestOriginHeadIndexer
-from swh.indexer.tests.test_metadata import TestRevisionMetadataIndexer
+from swh.indexer.tests.test_origin_head import OriginHeadTestIndexer
+from swh.indexer.tests.test_metadata import RevisionMetadataTestIndexer
 
 from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
 
 
-class TestOriginMetadataIndexer(OriginMetadataIndexer):
+class OriginMetadataTestIndexer(OriginMetadataIndexer):
     def prepare(self):
         self.config = {
             'storage': {
@@ -36,7 +36,6 @@ class TestOriginMetadataIndexer(OriginMetadataIndexer):
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.destination_task = None
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
         self.results = []
@@ -44,19 +43,19 @@ class TestOriginMetadataIndexer(OriginMetadataIndexer):
 
 @task
 def revision_metadata_test_task(*args, **kwargs):
-    indexer = TestRevisionMetadataIndexer()
+    indexer = RevisionMetadataTestIndexer()
     indexer.run(*args, **kwargs)
     return indexer.results
 
 
 @task
 def origin_intrinsic_metadata_test_task(*args, **kwargs):
-    indexer = TestOriginMetadataIndexer()
+    indexer = OriginMetadataTestIndexer()
     indexer.run(*args, **kwargs)
     return indexer.results
 
 
-class TestOriginHeadIndexer(TestOriginHeadIndexer):
+class OriginHeadTestIndexer(OriginHeadTestIndexer):
     revision_metadata_task = 'revision_metadata_test_task'
     origin_intrinsic_metadata_task = 'origin_intrinsic_metadata_test_task'
 
@@ -74,14 +73,14 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
             'origin_intrinsic_metadata_test_task',
             'swh.indexer.tests.test_origin_metadata.'
             'origin_intrinsic_metadata_test_task')
-        TestRevisionMetadataIndexer.scheduler = self.scheduler
+        RevisionMetadataTestIndexer.scheduler = self.scheduler
 
     def tearDown(self):
-        del TestRevisionMetadataIndexer.scheduler
+        del RevisionMetadataTestIndexer.scheduler
         super().tearDown()
 
     def test_pipeline(self):
-        indexer = TestOriginHeadIndexer()
+        indexer = OriginHeadTestIndexer()
         indexer.scheduler = self.scheduler
         indexer.run(
                 ["git+https://github.com/librariesio/yarn-parser"],
@@ -93,35 +92,20 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
         self.run_ready_tasks()  # Run the second task
 
         metadata = {
-            'identifier': None,
-            'maintainer': None,
-            'url': [
-                'https://github.com/librariesio/yarn-parser#readme'
-            ],
-            'codeRepository': [{
-                'type': 'git',
-                'url': 'git+https://github.com/librariesio/yarn-parser.git'
-            }],
-            'author': ['Andrew Nesbitt'],
-            'license': ['AGPL-3.0'],
-            'version': ['1.0.0'],
-            'description': [
-                'Tiny web service for parsing yarn.lock files'
-            ],
-            'relatedLink': None,
-            'developmentStatus': None,
-            'operatingSystem': None,
-            'issueTracker': [{
-                'url': 'https://github.com/librariesio/yarn-parser/issues'
-            }],
-            'softwareRequirements': [{
-                'express': '^4.14.0',
-                'yarn': '^0.21.0',
-                'body-parser': '^1.15.2'
-            }],
-            'name': ['yarn-parser'],
-            'keywords': [['yarn', 'parse', 'lock', 'dependencies']],
-            'email': None
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'url':
+                'https://github.com/librariesio/yarn-parser#readme',
+            'schema:codeRepository':
+                'git+https://github.com/librariesio/yarn-parser.git',
+            'schema:author': 'Andrew Nesbitt',
+            'license': 'AGPL-3.0',
+            'version': '1.0.0',
+            'description':
+                'Tiny web service for parsing yarn.lock files',
+            'codemeta:issueTracker':
+                'https://github.com/librariesio/yarn-parser/issues',
+            'name': 'yarn-parser',
+            'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
         }
         rev_metadata = {
             'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',

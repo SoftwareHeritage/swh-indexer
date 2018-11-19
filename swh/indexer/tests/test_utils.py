@@ -1,10 +1,10 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-
 from swh.objstorage.exc import ObjNotFoundError
+from swh.model import hashutil
 
 ORIGINS = [
         {
@@ -122,6 +122,37 @@ SNAPSHOTS = {
                         'target': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
                         'target_type': 'revision'}}}
         }
+
+
+SHA1_TO_LICENSES = {
+    '01c9379dfc33803963d07c1ccc748d3fe4c96bb5': ['GPL'],
+    '02fb2c89e14f7fab46701478c83779c7beb7b069': ['Apache2.0'],
+    '103bc087db1d26afc3a0283f38663d081e9b01e6': ['MIT'],
+    '688a5ef812c53907562fe379d4b3851e69c7cb15': ['AGPL'],
+    'da39a3ee5e6b4b0d3255bfef95601890afd80709': [],
+}
+
+
+SHA1_TO_CTAGS = {
+    '01c9379dfc33803963d07c1ccc748d3fe4c96bb5': [{
+        'name': 'foo',
+        'kind': 'str',
+        'line': 10,
+        'lang': 'bar',
+    }],
+    'd4c647f0fc257591cc9ba1722484229780d1c607': [{
+        'name': 'let',
+        'kind': 'int',
+        'line': 100,
+        'lang': 'haskell',
+    }],
+    '688a5ef812c53907562fe379d4b3851e69c7cb15': [{
+        'name': 'symbol',
+        'kind': 'float',
+        'line': 99,
+        'lang': 'python',
+    }],
+}
 
 
 class MockObjStorage:
@@ -299,31 +330,22 @@ class MockIndexerStorage():
             },
             'id': b'cde',
             'translated_metadata': {
-                'issueTracker': {
-                    'url': 'https://github.com/librariesio/yarn-parser/issues'
-                },
+                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+                'type': 'SoftwareSourceCode',
+                'codemeta:issueTracker':
+                    'https://github.com/librariesio/yarn-parser/issues',
                 'version': '1.0.0',
                 'name': 'yarn-parser',
-                'author': 'Andrew Nesbitt',
-                'url': 'https://github.com/librariesio/yarn-parser#readme',
+                'schema:author': 'Andrew Nesbitt',
+                'url':
+                    'https://github.com/librariesio/yarn-parser#readme',
                 'processorRequirements': {'node': '7.5'},
-                'other': {
-                    'scripts': {
-                                    'start': 'node index.js'
-                    },
-                    'main': 'index.js'
-                },
                 'license': 'AGPL-3.0',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'codeRepository': {
-                    'type': 'git',
-                    'url': 'git+https://github.com/librariesio/yarn-parser.git'
-                },
-                'description': 'Tiny web service for parsing yarn.lock files',
-                'softwareRequirements': {
-                    'yarn': '^0.21.0',
-                    'express': '^4.14.0',
-                    'body-parser': '^1.15.2'}
+                'schema:codeRepository':
+                    'git+https://github.com/librariesio/yarn-parser.git',
+                'description':
+                    'Tiny web service for parsing yarn.lock files',
                 }
         }]
 
@@ -339,9 +361,8 @@ class MockStorage():
                 if origin[k] != v:
                     break
             else:
-                # This block is run if and only if we didn't break,
-                # ie. if all supplied parts of the id are set to the
-                # expected value.
+                # This block is run iff we didn't break, ie. if all supplied
+                # parts of the id are set to the expected value.
                 return origin
         assert False, id_
 
@@ -408,3 +429,287 @@ class MockStorage():
                 'status': None,
                 'sha256': None
                 }]
+
+
+class BasicMockStorage():
+    """In memory implementation to fake the content_get_range api.
+
+    FIXME: To remove when the actual in-memory lands.
+
+    """
+    contents = []
+
+    def __init__(self, contents):
+        self.contents = contents
+
+    def content_get_range(self, start, end, limit=1000):
+        # to make input test data consilient with actual runtime the
+        # other way of doing properly things would be to rewrite all
+        # tests (that's another task entirely so not right now)
+        if isinstance(start, bytes):
+            start = hashutil.hash_to_hex(start)
+        if isinstance(end, bytes):
+            end = hashutil.hash_to_hex(end)
+        results = []
+        _next_id = None
+        counter = 0
+        for c in self.contents:
+            _id = c['sha1']
+            if start <= _id and _id <= end:
+                results.append(c)
+            if counter >= limit:
+                break
+            counter += 1
+
+        return {
+            'contents': results,
+            'next': _next_id
+        }
+
+
+class BasicMockIndexerStorage():
+    """Mock Indexer storage to simplify reading indexers' outputs.
+
+    """
+    state = []
+
+    def _internal_add(self, data, conflict_update=None):
+        """All content indexer have the same structure. So reuse `data` as the
+           same data.  It's either mimetype, language,
+           fossology_license, etc...
+
+        """
+        self.state = data
+        self.conflict_update = conflict_update
+
+    def content_mimetype_add(self, data, conflict_update=None):
+        self._internal_add(data, conflict_update=conflict_update)
+
+    def content_fossology_license_add(self, data, conflict_update=None):
+        self._internal_add(data, conflict_update=conflict_update)
+
+    def content_language_add(self, data, conflict_update=None):
+        self._internal_add(data, conflict_update=conflict_update)
+
+    def content_ctags_add(self, data, conflict_update=None):
+        self._internal_add(data, conflict_update=conflict_update)
+
+    def _internal_get_range(self, start, end,
+                            indexer_configuration_id, limit=1000):
+        """Same logic as _internal_add, we retrieve indexed data given an
+           identifier. So the code here does not change even though
+           the underlying data does.
+
+        """
+        # to make input test data consilient with actual runtime the
+        # other way of doing properly things would be to rewrite all
+        # tests (that's another task entirely so not right now)
+        if isinstance(start, bytes):
+            start = hashutil.hash_to_hex(start)
+        if isinstance(end, bytes):
+            end = hashutil.hash_to_hex(end)
+        results = []
+        _next = None
+        counter = 0
+        for m in self.state:
+            _id = m['id']
+            _tool_id = m['indexer_configuration_id']
+            if (start <= _id and _id <= end and
+               _tool_id == indexer_configuration_id):
+                results.append(_id)
+            if counter >= limit:
+                break
+            counter += 1
+
+        return {
+            'ids': results,
+            'next': _next
+        }
+
+    def content_mimetype_get_range(
+            self, start, end, indexer_configuration_id, limit=1000):
+        return self._internal_get_range(
+            start, end, indexer_configuration_id, limit=limit)
+
+    def content_fossology_license_get_range(
+            self, start, end, indexer_configuration_id, limit=1000):
+        return self._internal_get_range(
+            start, end, indexer_configuration_id, limit=limit)
+
+    def indexer_configuration_add(self, tools):
+        return [{
+            'id': 10,
+        }]
+
+
+class CommonIndexerNoTool:
+    """Mixin to wronly initialize content indexer"""
+    def prepare(self):
+        super().prepare()
+        self.tools = None
+
+
+class CommonIndexerWithErrorsTest:
+    """Test indexer configuration checks.
+
+    """
+    Indexer = None
+    RangeIndexer = None
+
+    def test_wrong_unknown_configuration_tool(self):
+        """Indexer with unknown configuration tool fails check"""
+        with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
+            print('indexer: %s' % self.Indexer)
+            self.Indexer()
+
+    def test_wrong_unknown_configuration_tool_range(self):
+        """Range Indexer with unknown configuration tool fails check"""
+        if self.RangeIndexer is not None:
+            with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
+                self.RangeIndexer()
+
+
+class CommonContentIndexerTest:
+    def assert_results_ok(self, actual_results, expected_results=None):
+        if expected_results is None:
+            expected_results = self.expected_results
+
+        for indexed_data in actual_results:
+            _id = indexed_data['id']
+            self.assertEqual(indexed_data, expected_results[_id])
+            _tool_id = indexed_data['indexer_configuration_id']
+            self.assertEqual(_tool_id, self.indexer.tool['id'])
+
+    def test_index(self):
+        """Known sha1 have their data indexed
+
+        """
+        sha1s = [self.id0, self.id1, self.id2]
+
+        # when
+        self.indexer.run(sha1s, policy_update='update-dups')
+
+        actual_results = self.indexer.idx_storage.state
+        self.assertTrue(self.indexer.idx_storage.conflict_update)
+        self.assert_results_ok(actual_results)
+
+        # 2nd pass
+        self.indexer.run(sha1s, policy_update='ignore-dups')
+
+        self.assertFalse(self.indexer.idx_storage.conflict_update)
+        self.assert_results_ok(actual_results)
+
+    def test_index_one_unknown_sha1(self):
+        """Unknown sha1 are not indexed"""
+        sha1s = [self.id1,
+                 '799a5ef812c53907562fe379d4b3851e69c7cb15',  # unknown
+                 '800a5ef812c53907562fe379d4b3851e69c7cb15']  # unknown
+
+        # when
+        self.indexer.run(sha1s, policy_update='update-dups')
+        actual_results = self.indexer.idx_storage.state
+
+        # then
+        expected_results = {
+            k: v for k, v in self.expected_results.items() if k in sha1s
+        }
+
+        self.assert_results_ok(actual_results, expected_results)
+
+
+class CommonContentIndexerRangeTest:
+    """Allows to factorize tests on range indexer.
+
+    """
+    def assert_results_ok(self, start, end, actual_results,
+                          expected_results=None):
+        if expected_results is None:
+            expected_results = self.expected_results
+
+        for indexed_data in actual_results:
+            _id = indexed_data['id']
+            self.assertEqual(indexed_data, expected_results[_id])
+            self.assertTrue(start <= _id and _id <= end)
+            _tool_id = indexed_data['indexer_configuration_id']
+            self.assertEqual(_tool_id, self.indexer.tool['id'])
+
+    def test__index_contents(self):
+        """Indexing contents without existing data results in indexed data
+
+        """
+        start, end = [self.contents[0], self.contents[2]]  # output hex ids
+        # given
+        actual_results = list(self.indexer._index_contents(
+            start, end, indexed={}))
+
+        self.assert_results_ok(start, end, actual_results)
+
+    def test__index_contents_with_indexed_data(self):
+        """Indexing contents with existing data results in less indexed data
+
+        """
+        start, end = [self.contents[0], self.contents[2]]  # output hex ids
+        data_indexed = [self.id0, self.id2]
+
+        # given
+        actual_results = self.indexer._index_contents(
+            start, end, indexed=set(data_indexed))
+
+        # craft the expected results
+        expected_results = self.expected_results.copy()
+        for already_indexed_key in data_indexed:
+            expected_results.pop(already_indexed_key)
+
+        self.assert_results_ok(
+            start, end, actual_results, expected_results)
+
+    def test_generate_content_get(self):
+        """Optimal indexing should result in indexed data
+
+        """
+        start, end = [self.contents[0], self.contents[2]]  # output hex ids
+        # given
+        actual_results = self.indexer.run(start, end)
+
+        # then
+        self.assertTrue(actual_results)
+
+    def test_generate_content_get_input_as_bytes(self):
+        """Optimal indexing should result in indexed data
+
+        Input are in bytes here.
+
+        """
+        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
+        start, end = map(hashutil.hash_to_bytes, (_start, _end))
+
+        # given
+        actual_results = self.indexer.run(  # checks the bytes input this time
+            start, end, skip_existing=False)  # no data so same result
+
+        # then
+        self.assertTrue(actual_results)
+
+    def test_generate_content_get_no_result(self):
+        """No result indexed returns False"""
+        start, end = ['0000000000000000000000000000000000000000',
+                      '0000000000000000000000000000000000000001']
+        # given
+        actual_results = self.indexer.run(
+            start, end, incremental=False)
+
+        # then
+        self.assertFalse(actual_results)
+
+
+class NoDiskIndexer:
+    """Mixin to override the DiskIndexer behavior avoiding side-effects in
+       tests.
+
+    """
+
+    def write_to_temp(self, filename, data):  # noop
+        return filename
+
+    def cleanup(self, content_path):  # noop
+        return None
