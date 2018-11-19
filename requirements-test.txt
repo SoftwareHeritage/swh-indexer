@@ -1,2 +1,2 @@
 pytest
-hypothesis
+hypothesis (>= 3.11.0)
