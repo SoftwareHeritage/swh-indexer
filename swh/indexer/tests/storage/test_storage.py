@@ -13,9 +13,10 @@ from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.storage import get_indexer_storage
 from swh.core.tests.db_testing import SingleDbTestFixture
-from swh.indexer.tests.storage import (
-    SQL_DIR, gen_content_mimetypes, gen_content_fossology_licenses
+from swh.indexer.tests.storage.generate_data_test import (
+    gen_content_mimetypes, gen_content_fossology_licenses
 )
+from swh.indexer.tests.storage import SQL_DIR
 
 
 @pytest.mark.db
