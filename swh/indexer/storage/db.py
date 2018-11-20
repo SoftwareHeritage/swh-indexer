@@ -119,22 +119,32 @@ class Db(BaseDb):
     }
 
     def content_get_range(self, content_type, start, end,
-                          indexer_configuration_id, limit=1000, cur=None):
+                          indexer_configuration_id, limit=1000,
+                          with_textual_data=False, cur=None):
         """Retrieve contents with content_type, within range [start, end]
            bound by limit and associated to the given indexer
            configuration id.
 
+           When asking to work on textual content, that filters on the
+           mimetype table with any mimetype that is not binary.
+
         """
         cur = self._cursor(cur)
         table = self.content_indexer_names[content_type]
+        if with_textual_data:
+            extra = """inner join content_mimetype cm
+                         on (t.id=cm.id and cm.mimetype like 'text/%%')"""
+        else:
+            extra = ""
         query = """select t.id
                    from %s t
                    inner join indexer_configuration ic
                    on t.indexer_configuration_id=ic.id
+                   %s
                    where ic.id=%%s and
                          %%s <= t.id and t.id <= %%s
                    order by t.indexer_configuration_id, t.id
-                   limit %%s""" % table
+                   limit %%s""" % (table, extra)
         cur.execute(query, (indexer_configuration_id, start, end, limit))
         yield from cursor_to_bytes(cur)
 
