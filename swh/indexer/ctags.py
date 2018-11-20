@@ -154,14 +154,3 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
         """
         self.idx_storage.content_ctags_add(
             results, conflict_update=(policy_update == 'update-dups'))
-
-
-@click.command()
-@click.option('--path', help="Path to execute index on")
-def main(path):
-    r = list(run_ctags(path))
-    print(r)
-
-
-if __name__ == '__main__':
-    main()

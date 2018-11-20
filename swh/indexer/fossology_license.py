@@ -27,6 +27,7 @@ class MixinFossologyLicenseIndexer:
                 'command_line': 'nomossa <filepath>',
             },
         }),
+        'write_batch_size': ('int', 1000),
     }
 
     CONFIG_BASE_FILENAME = 'indexer/fossology_license'
@@ -169,15 +170,3 @@ class FossologyLicenseRangeIndexer(
             for _id in contents:
                 yield _id
             start = result['next']
-
-
-@click.command(help='Compute license for path using tool')
-@click.option('--tool', default='nomossa', help="Path to tool")
-@click.option('--path', required=1, help="Path to execute index on")
-def main(tool, path):
-    indexer = ContentFossologyLicenseIndexer()
-    print(indexer.compute_license(tool, path))
-
-
-if __name__ == '__main__':
-    main()

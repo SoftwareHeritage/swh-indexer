@@ -7,7 +7,6 @@ import click
 import magic
 
 from swh.model import hashutil
-from swh.scheduler import get_scheduler
 
 from .indexer import ContentIndexer, ContentRangeIndexer
 
@@ -37,12 +36,6 @@ class MixinMimetypeIndexer:
 
     """
     ADDITIONAL_CONFIG = {
-        'scheduler': ('dict', {
-            'cls': 'remote',
-            'args': {
-                'url': 'http://localhost:5008',
-            },
-        }),
         'tools': ('dict', {
             'name': 'file',
             'version': '1:5.30-1+deb9u1',
@@ -51,14 +44,13 @@ class MixinMimetypeIndexer:
                 "debian-package": "python3-magic"
             },
         }),
-        'write_batch_size': ('int', 100),
+        'write_batch_size': ('int', 1000),
     }
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'
 
     def prepare(self):
         super().prepare()
-        self.scheduler = get_scheduler(**self.config['scheduler'])
         self.tool = self.tools[0]
 
     def index(self, id, data):
@@ -162,16 +154,3 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
             for _id in contents:
                 yield _id
             start = result['next']
-
-
-@click.command()
-@click.option('--path', help="Path to execute index on")
-def main(path):
-    with open(path, 'rb') as f:
-        raw_content = f.read()
-
-    print(compute_mimetype_encoding(raw_content))
-
-
-if __name__ == '__main__':
-    main()
