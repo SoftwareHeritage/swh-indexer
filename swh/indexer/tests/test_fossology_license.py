@@ -6,8 +6,11 @@
 import unittest
 import logging
 
+from unittest.mock import patch
+
 from swh.indexer.fossology_license import (
-    ContentFossologyLicenseIndexer, FossologyLicenseRangeIndexer
+    ContentFossologyLicenseIndexer, FossologyLicenseRangeIndexer,
+    compute_license
 )
 
 from swh.indexer.tests.test_utils import (
@@ -15,6 +18,29 @@ from swh.indexer.tests.test_utils import (
     SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool, NoDiskIndexer
 )
+
+
+class BasicTest(unittest.TestCase):
+    @patch('swh.indexer.fossology_license.subprocess')
+    def test_compute_license(self, mock_subprocess):
+        """Computing licenses from a raw content should return results
+
+        """
+        for path, intermediary_result, output in [
+                (b'some/path', None,
+                 []),
+                (b'some/path/2', [],
+                 []),
+                (b'other/path', ' contains license(s) GPL,AGPL',
+                 ['GPL', 'AGPL'])]:
+            mock_subprocess.check_output.return_value = intermediary_result
+
+            actual_result = compute_license(path, log=None)
+
+            self.assertEqual(actual_result, {
+                'licenses': output,
+                'path': path,
+            })
 
 
 class InjectLicenseIndexer:

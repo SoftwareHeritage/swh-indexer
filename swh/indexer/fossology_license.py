@@ -10,6 +10,42 @@ from swh.model import hashutil
 from .indexer import ContentIndexer, ContentRangeIndexer, DiskIndexer
 
 
+def compute_license(path, log=None):
+    """Determine license from file at path.
+
+    Args:
+        path: filepath to determine the license
+
+    Returns:
+        A dict with the following keys:
+        - licenses ([str]): associated detected licenses to path
+        - path (bytes): content filepath
+
+    """
+    try:
+        properties = subprocess.check_output(['nomossa', path],
+                                             universal_newlines=True)
+        if properties:
+            res = properties.rstrip().split(' contains license(s) ')
+            licenses = res[1].split(',')
+        else:
+            licenses = []
+
+        return {
+            'licenses': licenses,
+            'path': path,
+        }
+    except subprocess.CalledProcessError:
+        if log:
+            from os import path as __path
+            log.exception('Problem during license detection for sha1 %s' %
+                          __path.basename(path))
+        return {
+            'licenses': [],
+            'path': path,
+        }
+
+
 class MixinFossologyLicenseIndexer:
     """Mixin fossology license indexer.
 
@@ -48,26 +84,7 @@ class MixinFossologyLicenseIndexer:
             - path (bytes): content filepath
 
         """
-        try:
-            properties = subprocess.check_output(['nomossa', path],
-                                                 universal_newlines=True)
-            if properties:
-                res = properties.rstrip().split(' contains license(s) ')
-                licenses = res[1].split(',')
-
-                return {
-                    'licenses': licenses,
-                    'path': path,
-                }
-        except subprocess.CalledProcessError:
-            if log:
-                from os import path as __path
-                log.exception('Problem during license detection for sha1 %s' %
-                              __path.basename(path))
-            return {
-                'licenses': [],
-                'path': path,
-            }
+        return compute_license(path, log=log)
 
     def index(self, id, data):
         """Index sha1s' content and store result.
