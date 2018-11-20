@@ -85,10 +85,8 @@ class MixinFossologyLicenseIndexer:
               - path (bytes): path
 
         """
-        if isinstance(id, str):
-            id = hashutil.hash_to_hex(id)
         content_path = self.write_to_temp(
-            filename=id,
+            filename=hashutil.hash_to_hex(id),  # use the id as pathname
             data=data)
 
         try:

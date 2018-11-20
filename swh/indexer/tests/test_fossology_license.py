@@ -25,6 +25,8 @@ class InjectLicenseIndexer:
         """path is the content identifier
 
         """
+        if isinstance(id, bytes):
+            path = path.decode('utf-8')
         return {
             'licenses': SHA1_TO_LICENSES.get(path)
         }
