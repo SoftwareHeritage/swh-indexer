@@ -7,7 +7,6 @@ import click
 import magic
 
 from swh.model import hashutil
-from swh.scheduler import get_scheduler
 
 from .indexer import ContentIndexer, ContentRangeIndexer
 
@@ -37,12 +36,6 @@ class MixinMimetypeIndexer:
 
     """
     ADDITIONAL_CONFIG = {
-        'scheduler': ('dict', {
-            'cls': 'remote',
-            'args': {
-                'url': 'http://localhost:5008',
-            },
-        }),
         'tools': ('dict', {
             'name': 'file',
             'version': '1:5.30-1+deb9u1',
@@ -58,7 +51,6 @@ class MixinMimetypeIndexer:
 
     def prepare(self):
         super().prepare()
-        self.scheduler = get_scheduler(**self.config['scheduler'])
         self.tool = self.tools[0]
 
     def index(self, id, data):
