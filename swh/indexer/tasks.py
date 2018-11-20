@@ -10,7 +10,9 @@ from swh.scheduler.task import Task as SchedulerTask
 from .mimetype import ContentMimetypeIndexer, MimetypeRangeIndexer
 from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
-from .fossology_license import ContentFossologyLicenseIndexer
+from .fossology_license import (
+    ContentFossologyLicenseIndexer, FossologyLicenseRangeIndexer
+)
 from .rehash import RecomputeChecksums
 from .metadata import RevisionMetadataIndexer, OriginMetadataIndexer
 from .origin_head import OriginHeadIndexer
@@ -59,7 +61,7 @@ class OriginHead(Task):
 
 
 class ContentMimetype(StatusTask):
-    """Compute (mimetype, encoding) from the sha1's content.
+    """Compute (mimetype, encoding) on a list of sha1s' content.
 
     """
     task_queue = 'swh_indexer_content_mimetype'
@@ -93,12 +95,19 @@ class Ctags(Task):
 
 
 class ContentFossologyLicense(Task):
-    """Task which computes licenses from the sha1's content.
+    """Compute fossology licenses on a list of sha1s' content.
 
     """
     task_queue = 'swh_indexer_content_fossology_license'
-
     Indexer = ContentFossologyLicenseIndexer
+
+
+class ContentRangeFossologyLicense(StatusTask):
+    """Compute fossology license on a range of sha1s.
+
+    """
+    task_queue = 'swh_indexer_content_fossology_license_range'
+    Indexer = FossologyLicenseRangeIndexer
 
 
 class RecomputeChecksums(Task):

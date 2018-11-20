@@ -1,8 +1,10 @@
-swh-indexer (0.0.56-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.57-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.57
+  * storage: Open new endpoint on fossology license range retrieval
+  * indexer: Open new fossology license range indexer
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 19 Nov 2018 11:56:06 +0100
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 20 Nov 2018 11:44:57 +0100
 
 swh-indexer (0.0.56-1~swh1) unstable-swh; urgency=medium
 
