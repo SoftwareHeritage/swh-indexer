@@ -36,7 +36,6 @@ class DiskIndexer:
         """Write the sha1's content in a temporary file.
 
         Args:
-            sha1 (str): the sha1 name
             filename (str): one of sha1's many filenames
             data (bytes): the sha1's content to write in temporary
             file

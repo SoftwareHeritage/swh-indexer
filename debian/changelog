@@ -1,8 +1,12 @@
-swh-indexer (0.0.58-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.59-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.59
+  * fossology license: Fix issue on license computation
+  * Improve docstrings
+  * Fix pep8 violations
+  * Increase coverage on content indexers
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 20 Nov 2018 12:06:56 +0100
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 20 Nov 2018 14:27:20 +0100
 
 swh-indexer (0.0.58-1~swh1) unstable-swh; urgency=medium
 
