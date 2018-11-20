@@ -27,6 +27,7 @@ class MixinFossologyLicenseIndexer:
                 'command_line': 'nomossa <filepath>',
             },
         }),
+        'write_batch_size': ('int', 1000),
     }
 
     CONFIG_BASE_FILENAME = 'indexer/fossology_license'
