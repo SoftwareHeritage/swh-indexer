@@ -51,7 +51,7 @@ class MixinMimetypeIndexer:
                 "debian-package": "python3-magic"
             },
         }),
-        'write_batch_size': ('int', 100),
+        'write_batch_size': ('int', 1000),
     }
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'
