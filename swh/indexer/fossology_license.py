@@ -46,7 +46,6 @@ class MixinFossologyLicenseIndexer:
             A dict with the following keys:
             - licenses ([str]): associated detected licenses to path
             - path (bytes): content filepath
-            - tool (str): tool used to compute the output
 
         """
         try:
@@ -75,13 +74,14 @@ class MixinFossologyLicenseIndexer:
 
         Args:
             id (bytes): content's identifier
-            raw_content (bytes): raw content in bytes
+            raw_content (bytes): associated raw content to content id
 
         Returns:
             A dict, representing a content_license, with keys:
               - id (bytes): content's identifier (sha1)
               - license (bytes): license in bytes
               - path (bytes): path
+              - indexer_configuration_id (int): tool used to compute the output
 
         """
         content_path = self.write_to_temp(
