@@ -162,8 +162,6 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
             for _id in contents:
                 yield _id
             start = result['next']
-            if start is None:
-                break
 
 
 @click.command()
