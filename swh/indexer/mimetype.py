@@ -154,16 +154,3 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
             for _id in contents:
                 yield _id
             start = result['next']
-
-
-@click.command()
-@click.option('--path', help="Path to execute index on")
-def main(path):
-    with open(path, 'rb') as f:
-        raw_content = f.read()
-
-    print(compute_mimetype_encoding(raw_content))
-
-
-if __name__ == '__main__':
-    main()
