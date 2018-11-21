@@ -56,8 +56,12 @@ def origin_intrinsic_metadata_test_task(*args, **kwargs):
 
 
 class OriginHeadTestIndexer(OriginHeadTestIndexer):
-    revision_metadata_task = 'revision_metadata_test_task'
-    origin_intrinsic_metadata_task = 'origin_intrinsic_metadata_test_task'
+    def prepare(self):
+        super().prepare()
+        self.config['tasks'] = {
+            'revision_metadata': 'revision_metadata_test_task',
+            'origin_intrinsic_metadata': 'origin_intrinsic_metadata_test_task',
+        }
 
 
 class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):

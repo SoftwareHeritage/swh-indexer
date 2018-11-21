@@ -1,4 +1,4 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -14,10 +14,6 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
     """Specific indexer whose configuration is enough to satisfy the
        indexing tests.
     """
-
-    revision_metadata_task = None
-    origin_intrinsic_metadata_task = None
-
     def prepare(self):
         self.config = {
             'tools': {
@@ -25,6 +21,10 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
                 'version': '0.0.1',
                 'configuration': {},
             },
+            'tasks': {
+                'revision_metadata': None,
+                'origin_intrinsic_metadata': None,
+            }
         }
         self.storage = MockStorage()
         self.idx_storage = MockIndexerStorage()

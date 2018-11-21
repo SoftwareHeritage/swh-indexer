@@ -5,12 +5,61 @@
 
 import unittest
 import logging
-from swh.indexer.ctags import CtagsIndexer
+
+from unittest.mock import patch
+from swh.indexer.ctags import (
+    CtagsIndexer, run_ctags
+)
+
 from swh.indexer.tests.test_utils import (
     BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
     SHA1_TO_CTAGS, NoDiskIndexer
 )
+
+
+class BasicTest(unittest.TestCase):
+    @patch('swh.indexer.ctags.subprocess')
+    def test_run_ctags(self, mock_subprocess):
+        """Computing licenses from a raw content should return results
+
+        """
+        output0 = """
+{"name":"defun","kind":"function","line":1,"language":"scheme"}
+{"name":"name","kind":"symbol","line":5,"language":"else"}"""
+        output1 = """
+{"name":"let","kind":"var","line":10,"language":"something"}"""
+
+        expected_result0 = [
+            {
+                'name': 'defun',
+                'kind': 'function',
+                'line': 1,
+                'lang': 'scheme'
+            },
+            {
+                'name': 'name',
+                'kind': 'symbol',
+                'line': 5,
+                'lang': 'else'
+            }
+        ]
+
+        expected_result1 = [
+            {
+                'name': 'let',
+                'kind': 'var',
+                'line': 10,
+                'lang': 'something'
+            }
+        ]
+        for path, lang, intermediary_result, expected_result in [
+                (b'some/path', 'lisp', output0, expected_result0),
+                (b'some/path/2', 'markdown', output1, expected_result1)
+        ]:
+            mock_subprocess.check_output.return_value = intermediary_result
+            actual_result = list(run_ctags(path, lang=lang))
+            self.assertEqual(actual_result, expected_result)
 
 
 class InjectCtagsIndexer:
