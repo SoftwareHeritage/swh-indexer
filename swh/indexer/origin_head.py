@@ -26,12 +26,13 @@ class OriginHeadIndexer(OriginIndexer):
             'version': '0.0.1',
             'configuration': {},
         }),
+        'tasks': ('dict', {
+            'revision_metadata': 'revision_metadata',
+            'origin_intrinsic_metadata': 'origin_metadata',
+        })
     }
 
     CONFIG_BASE_FILENAME = 'indexer/origin_head'
-
-    revision_metadata_task = 'revision_metadata'
-    origin_intrinsic_metadata_task = 'origin_metadata'
 
     def filter(self, ids):
         yield from ids
@@ -52,16 +53,19 @@ class OriginHeadIndexer(OriginIndexer):
 
         """
         super().next_step(results, task)
-        if self.revision_metadata_task is None and \
-                self.origin_intrinsic_metadata_task is None:
+        revision_metadata_task = self.config['tasks']['revision_metadata']
+        origin_intrinsic_metadata_task = self.config['tasks'][
+            'origin_intrinsic_metadata']
+        if revision_metadata_task is None and \
+                origin_intrinsic_metadata_task is None:
             return
-        assert self.revision_metadata_task is not None
-        assert self.origin_intrinsic_metadata_task is not None
+        assert revision_metadata_task is not None
+        assert origin_intrinsic_metadata_task is not None
 
         # Second task to run after this one: copy the revision's metadata
         # to the origin
         sub_task = create_task_dict(
-            self.origin_intrinsic_metadata_task,
+            origin_intrinsic_metadata_task,
             'oneshot',
             origin_head={
                 str(result['origin_id']):
@@ -74,7 +78,7 @@ class OriginHeadIndexer(OriginIndexer):
         # First task to run after this one: index the metadata of the
         # revision
         task = create_task_dict(
-            self.revision_metadata_task,
+            revision_metadata_task,
             'oneshot',
             ids=[res['revision_id'].decode() for res in results],
             policy_update='update-dups',
