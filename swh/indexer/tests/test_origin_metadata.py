@@ -86,10 +86,7 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
     def test_pipeline(self):
         indexer = OriginHeadTestIndexer()
         indexer.scheduler = self.scheduler
-        indexer.run(
-                ["git+https://github.com/librariesio/yarn-parser"],
-                policy_update='update-dups',
-                parse_ids=True)
+        indexer.run(["git+https://github.com/librariesio/yarn-parser"])
 
         self.run_ready_tasks()  # Run the first task
         time.sleep(0.1)  # Give it time to complete and schedule the 2nd one
