@@ -294,6 +294,7 @@ class OriginMetadataIndexer(OriginIndexer):
         # run() with the usual order, ie. origin ids first.
         return super().run(ids=list(origin_head_map),
                            policy_update=policy_update,
+                           parse_ids=False,
                            revisions_metadata=revisions_metadata,
                            origin_head_map=origin_head_map)
 

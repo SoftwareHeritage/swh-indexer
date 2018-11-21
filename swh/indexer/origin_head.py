@@ -213,7 +213,7 @@ class OriginHeadIndexer(OriginIndexer):
               multiple=True)
 def main(origins):
     rev_metadata_indexer = OriginHeadIndexer()
-    rev_metadata_indexer.run(origins, 'update-dups', parse_ids=True)
+    rev_metadata_indexer.run(origins)
 
 
 if __name__ == '__main__':

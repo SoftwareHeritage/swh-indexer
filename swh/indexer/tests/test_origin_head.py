@@ -42,8 +42,7 @@ class OriginHead(unittest.TestCase):
     def test_git(self):
         indexer = OriginHeadTestIndexer()
         indexer.run(
-                ['git+https://github.com/SoftwareHeritage/swh-storage'],
-                'update-dups', parse_ids=True)
+                ['git+https://github.com/SoftwareHeritage/swh-storage'])
         self.assertEqual(indexer.results, [{
             'revision_id': b'8K\x12\x00d\x03\xcc\xe4]bS\xe3\x8f{'
                            b'\xd7}\xac\xefrm',
@@ -52,8 +51,7 @@ class OriginHead(unittest.TestCase):
     def test_ftp(self):
         indexer = OriginHeadTestIndexer()
         indexer.run(
-                ['ftp+rsync://ftp.gnu.org/gnu/3dldf'],
-                'update-dups', parse_ids=True)
+                ['ftp+rsync://ftp.gnu.org/gnu/3dldf'])
         self.assertEqual(indexer.results, [{
             'revision_id': b'\x8e\xa9\x8e/\xea}\x9feF\xf4\x9f\xfd\xee'
                            b'\xcc\x1a\xb4`\x8c\x8by',
@@ -63,8 +61,7 @@ class OriginHead(unittest.TestCase):
         indexer = OriginHeadTestIndexer()
         indexer.run(
                 ['deposit+https://forge.softwareheritage.org/source/'
-                 'jesuisgpl/'],
-                'update-dups', parse_ids=True)
+                 'jesuisgpl/'])
         self.assertEqual(indexer.results, [{
             'revision_id': b'\xe7n\xa4\x9c\x9f\xfb\xb7\xf76\x11\x08{'
                            b'\xa6\xe9\x99\xb1\x9e]q\xeb',
@@ -73,8 +70,7 @@ class OriginHead(unittest.TestCase):
     def test_pypi(self):
         indexer = OriginHeadTestIndexer()
         indexer.run(
-                ['pypi+https://pypi.org/project/limnoria/'],
-                'update-dups', parse_ids=True)
+                ['pypi+https://pypi.org/project/limnoria/'])
         self.assertEqual(indexer.results, [{
             'revision_id': b'\x83\xb9\xb6\xc7\x05\xb1%\xd0\xfem\xd8k'
                            b'A\x10\x9d\xc5\xfa2\xf8t',
@@ -83,8 +79,7 @@ class OriginHead(unittest.TestCase):
     def test_svn(self):
         indexer = OriginHeadTestIndexer()
         indexer.run(
-                ['svn+http://0-512-md.googlecode.com/svn/'],
-                'update-dups', parse_ids=True)
+                ['svn+http://0-512-md.googlecode.com/svn/'])
         self.assertEqual(indexer.results, [{
             'revision_id': b'\xe4?r\xe1,\x88\xab\xec\xe7\x9a\x87\xb8'
                            b'\xc9\xad#.\x1bw=\x18',
