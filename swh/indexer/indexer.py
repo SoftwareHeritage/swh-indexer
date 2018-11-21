@@ -484,8 +484,8 @@ class OriginIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, ids, policy_update,
-            parse_ids=False, next_step=None, **kwargs):
+    def run(self, ids, policy_update='update-dups', parse_ids=True,
+            next_step=None, **kwargs):
         """Given a list of origin ids:
 
         - retrieve origins from storage
@@ -496,20 +496,18 @@ class OriginIndexer(BaseIndexer):
             ids ([Union[int, Tuple[str, bytes]]]): list of origin ids or
                                                    (type, url) tuples.
             policy_update (str): either 'update-dups' or 'ignore-dups' to
-                                   respectively update duplicates or ignore
-                                   them
-            parse_ids (bool: If `True`, will try to convert `ids`
-                               from a human input to the valid type.
+                                   respectively update duplicates (default)
+                                   or ignore them
             next_step (dict): a dict in the form expected by
                         `scheduler.backend.SchedulerBackend.create_tasks`
                         without `next_run`, plus a `result_name` key.
+            parse_ids (bool): Do we need to parse id or not (default)
             **kwargs: passed to the `index` method
 
         """
         if parse_ids:
-            ids = [
-                    o.split('+', 1) if ':' in o else int(o)  # type+url or id
-                    for o in ids]
+            ids = [o.split('+', 1) if ':' in o else int(o)  # type+url or id
+                   for o in ids]
 
         results = []
 
