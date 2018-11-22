@@ -323,6 +323,13 @@ class Db(BaseDb):
         'origin_id', 'metadata', 'from_revision',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
+    origin_intrinsic_metadata_regconfig = 'pg_catalog.simple'
+    """The dictionary used to normalize 'metadata' and queries.
+    'pg_catalog.simple' provides no stopword, so it should be suitable
+    for proper names and non-English content.
+    When updating this value, make sure to add a new index on
+    origin_intrinsic_metadata.metadata."""
+
     @stored_procedure('swh_mktemp_origin_intrinsic_metadata')
     def mktemp_origin_intrinsic_metadata(self, cur=None): pass
 
@@ -338,6 +345,26 @@ class Db(BaseDb):
             'origin_intrinsic_metadata', orig_ids,
             self.origin_intrinsic_metadata_cols, cur=cur,
             id_col='origin_id')
+
+    def origin_intrinsic_metadata_search_fulltext(self, terms, *, limit,
+                                                  cur=None):
+        regconfig = self.origin_intrinsic_metadata_regconfig
+        tsquery_template = ' && '.join("plainto_tsquery('%s', %%s)" % regconfig
+                                       for _ in terms)
+        tsquery_args = [(term,) for term in terms]
+        keys = map(self._convert_key, self.origin_intrinsic_metadata_cols)
+        query = ("SELECT {keys} FROM origin_intrinsic_metadata AS oim "
+                 "INNER JOIN indexer_configuration AS i "
+                 "ON oim.indexer_configuration_id=i.id "
+                 "JOIN LATERAL (SELECT {tsquery_template}) AS s(tsq) ON true "
+                 "WHERE to_tsvector('{regconfig}', metadata) @@ tsq "
+                 "ORDER BY ts_rank(oim.metadata_tsvector, tsq, 1) DESC "
+                 "LIMIT %s;"
+                 ).format(keys=', '.join(keys),
+                          regconfig=regconfig,
+                          tsquery_template=tsquery_template)
+        cur.execute(query, tsquery_args + [limit])
+        yield from cur
 
     indexer_configuration_cols = ['id', 'tool_name', 'tool_version',
                                   'tool_configuration']

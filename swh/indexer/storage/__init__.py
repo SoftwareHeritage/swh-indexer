@@ -662,6 +662,29 @@ class IndexerStorage:
                    cur)
         db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('origin_intrinsic_metadata/search/fulltext')
+    @db_transaction_generator()
+    def origin_intrinsic_metadata_search_fulltext(
+            self, conjunction, limit=100, db=None, cur=None):
+        """Returns the list of origins whose metadata contain all the terms.
+
+        Args:
+            conjunction (List[str]): List of terms to be searched for.
+            limit (int): The maximum number of results to return
+
+        Yields:
+            list: dictionaries with the following keys:
+
+                - **id** (int)
+                - **metadata** (str): associated metadata
+                - **tool** (dict): tool used to compute metadata
+
+        """
+        for c in db.origin_intrinsic_metadata_search_fulltext(
+                conjunction, limit=limit, cur=cur):
+            yield converters.db_to_metadata(
+                dict(zip(db.origin_intrinsic_metadata_cols, c)))
+
     @remote_api_endpoint('indexer_configuration/add')
     @db_transaction_generator()
     def indexer_configuration_add(self, tools, db=None, cur=None):

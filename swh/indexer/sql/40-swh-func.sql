@@ -408,21 +408,39 @@ create or replace function swh_origin_intrinsic_metadata_add(
     language plpgsql
 as $$
 begin
+    perform swh_origin_intrinsic_metadata_compute_tsvector();
     if conflict_update then
-      insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision)
-      select origin_id, metadata, indexer_configuration_id, from_revision
+      insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision, metadata_tsvector)
+      select origin_id, metadata, indexer_configuration_id, from_revision,
+             metadata_tsvector
     	from tmp_origin_intrinsic_metadata
             on conflict(origin_id, indexer_configuration_id)
                 do update set metadata = excluded.metadata;
 
     else
-        insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision)
-        select origin_id, metadata, indexer_configuration_id, from_revision
+        insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision, metadata_tsvector)
+        select origin_id, metadata, indexer_configuration_id, from_revision,
+               metadata_tsvector
     	from tmp_origin_intrinsic_metadata
             on conflict(origin_id, indexer_configuration_id)
             do nothing;
     end if;
     return;
+end
+$$;
+
+
+-- Compute the metadata_tsvector column in tmp_origin_intrinsic_metadata.
+--
+-- It uses the "pg_catalog.simple" dictionary, as it has no stopword,
+-- so it should be suitable for proper names and non-English text.
+create or replace function swh_origin_intrinsic_metadata_compute_tsvector()
+    returns void
+    language plpgsql
+as $$
+begin
+    update tmp_origin_intrinsic_metadata
+        set metadata_tsvector = to_tsvector('pg_catalog.simple', metadata);
 end
 $$;
 
