@@ -364,7 +364,7 @@ class Db(BaseDb):
                           regconfig=regconfig,
                           tsquery_template=tsquery_template)
         cur.execute(query, tsquery_args + [limit])
-        yield from cur
+        yield from cursor_to_bytes(cur)
 
     indexer_configuration_cols = ['id', 'tool_name', 'tool_version',
                                   'tool_configuration']

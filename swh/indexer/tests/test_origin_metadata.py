@@ -16,6 +16,8 @@ from swh.indexer.tests.test_metadata import RevisionMetadataTestIndexer
 
 from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
 
+from swh.model.hashutil import hash_to_bytes
+
 
 class OriginMetadataTestIndexer(OriginMetadataIndexer):
     def prepare(self):
@@ -104,13 +106,14 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
             'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
         }
         rev_metadata = {
-            'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'translated_metadata': metadata,
             'indexer_configuration_id': 7,
         }
         origin_metadata = {
             'origin_id': 54974445,
-            'from_revision': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'from_revision': hash_to_bytes(
+                '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'metadata': metadata,
             'indexer_configuration_id': 7,
         }

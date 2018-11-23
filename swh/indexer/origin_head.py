@@ -11,6 +11,8 @@ from swh.scheduler import get_scheduler
 from swh.scheduler.utils import create_task_dict
 from swh.indexer.indexer import OriginIndexer
 
+from swh.model.hashutil import hash_to_hex
+
 
 class OriginHeadIndexer(OriginIndexer):
     """Origin-level indexer.
@@ -69,7 +71,7 @@ class OriginHeadIndexer(OriginIndexer):
             'oneshot',
             origin_head={
                 str(result['origin_id']):
-                    result['revision_id'].decode()
+                    hash_to_hex(result['revision_id'])
                 for result in results},
             policy_update='update-dups',
             )
@@ -80,7 +82,7 @@ class OriginHeadIndexer(OriginIndexer):
         task = create_task_dict(
             revision_metadata_task,
             'oneshot',
-            ids=[res['revision_id'].decode() for res in results],
+            ids=[hash_to_hex(res['revision_id']) for res in results],
             policy_update='update-dups',
             next_step=sub_task,
             )

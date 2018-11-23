@@ -164,7 +164,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         """
         result = {
-            'id': rev['id'].decode(),
+            'id': rev['id'],
             'indexer_configuration_id': self.tool['id'],
             'translated_metadata': None
         }
@@ -287,12 +287,12 @@ class OriginMetadataIndexer(OriginIndexer):
 
         Args:
 
-            * `origin_head` (dict): {str(origin_id): rev_id.encode()}
+            * `origin_head` (dict): {str(origin_id): rev_id}
               keys `origin_id` and `revision_id`, which is the result
               of OriginHeadIndexer.
             * `policy_update`: `'ignore-dups'` or `'update-dups'`
         """
-        origin_head_map = {int(origin_id): rev_id
+        origin_head_map = {int(origin_id): hashutil.hash_to_bytes(rev_id)
                            for (origin_id, rev_id) in origin_head.items()}
 
         # Fix up the argument order. revisions_metadata has to be the
