@@ -603,6 +603,7 @@ class IndexerStorage:
 
                 - **id**: sha1_git of revision
                 - **translated_metadata**: arbitrary dict
+                - **indexer_configuration_id**: tool used to compute metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -649,6 +650,7 @@ class IndexerStorage:
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata**: arbitrary dict
+                - **indexer_configuration_id**: tool used to compute metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)

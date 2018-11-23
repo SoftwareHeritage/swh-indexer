@@ -163,13 +163,13 @@ class RevisionMetadataIndexer(RevisionIndexer):
                 - translated_metadata: dict of retrieved metadata
 
         """
-        try:
-            result = {
-                'id': rev['id'].decode(),
-                'indexer_configuration_id': self.tool['id'],
-                'translated_metadata': None
-            }
+        result = {
+            'id': rev['id'].decode(),
+            'indexer_configuration_id': self.tool['id'],
+            'translated_metadata': None
+        }
 
+        try:
             root_dir = rev['directory']
             dir_ls = self.storage.directory_ls(root_dir, recursive=False)
             files = [entry for entry in dir_ls if entry['type'] == 'file']
@@ -268,6 +268,14 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
 
 class OriginMetadataIndexer(OriginIndexer):
+    ADDITIONAL_CONFIG = {
+        'tools': ('list', [])
+    }
+
+    def check(self, **kwargs):
+        kwargs['check_tools'] = False
+        super().check(**kwargs)
+
     def filter(self, ids):
         return ids
 
