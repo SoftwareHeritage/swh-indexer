@@ -268,6 +268,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
 
 class OriginMetadataIndexer(OriginIndexer):
+    CONFIG_BASE_FILENAME = 'indexer/origin_intrinsic_metadata'
+
     ADDITIONAL_CONFIG = {
         'tools': ('list', [])
     }
