@@ -205,7 +205,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         """
         tools = self.config['tools']
         if isinstance(tools, list):
-            tools = map(self._prepare_tool, tools)
+            tools = list(map(self._prepare_tool, tools))
         elif isinstance(tools, dict):
             tools = [self._prepare_tool(tools)]
         else:
