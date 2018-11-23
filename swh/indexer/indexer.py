@@ -213,6 +213,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
         if tools:
             return self.idx_storage.indexer_configuration_add(tools)
+        else:
+            return []
 
     @abc.abstractmethod
     def index(self, id, data):
