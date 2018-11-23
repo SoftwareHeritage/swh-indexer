@@ -205,7 +205,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         """
         tools = self.config['tools']
         if isinstance(tools, list):
-            tools = map(self._prepare_tool, tools)
+            tools = list(map(self._prepare_tool, tools))
         elif isinstance(tools, dict):
             tools = [self._prepare_tool(tools)]
         else:
@@ -213,6 +213,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
         if tools:
             return self.idx_storage.indexer_configuration_add(tools)
+        else:
+            return []
 
     @abc.abstractmethod
     def index(self, id, data):
@@ -259,7 +261,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
                                 by index function.
             task (dict): a dict in the form expected by
                         `scheduler.backend.SchedulerBackend.create_tasks`
-                        without `next_run`, plus a `result_name` key.
+                        without `next_run`, plus an optional `result_name` key.
 
         Returns:
             None
@@ -271,9 +273,10 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             else:
                 scheduler = get_scheduler(**self.config['scheduler'])
             task = deepcopy(task)
-            result_name = task.pop('result_name')
+            result_name = task.pop('result_name', None)
             task['next_run'] = datetime.datetime.now()
-            task['arguments']['kwargs'][result_name] = self.results
+            if result_name:
+                task['arguments']['kwargs'][result_name] = self.results
             scheduler.create_tasks([task])
 
     @abc.abstractmethod
@@ -337,7 +340,7 @@ class ContentIndexer(BaseIndexer):
                                  them
             next_step (dict): a dict in the form expected by
                         `scheduler.backend.SchedulerBackend.create_tasks`
-                        without `next_run`, plus a `result_name` key.
+                        without `next_run`, plus an optional `result_name` key.
             **kwargs: passed to the `index` method
 
         """
@@ -501,7 +504,7 @@ class OriginIndexer(BaseIndexer):
                                    or ignore them
             next_step (dict): a dict in the form expected by
                         `scheduler.backend.SchedulerBackend.create_tasks`
-                        without `next_run`, plus a `result_name` key.
+                        without `next_run`, plus an optional `result_name` key.
             parse_ids (bool): Do we need to parse id or not (default)
             **kwargs: passed to the `index` method
 

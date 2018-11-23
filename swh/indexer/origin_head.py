@@ -82,9 +82,7 @@ class OriginHeadIndexer(OriginIndexer):
             'oneshot',
             ids=[res['revision_id'].decode() for res in results],
             policy_update='update-dups',
-            next_step={
-                **sub_task,
-                'result_name': 'revisions_metadata'},
+            next_step=sub_task,
             )
         if getattr(self, 'scheduler', None):
             scheduler = self.scheduler
