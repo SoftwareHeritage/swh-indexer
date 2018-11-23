@@ -169,12 +169,12 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         self.log = logging.getLogger('swh.indexer')
         self.tools = list(self.register_tools(self.config['tools']))
 
-    def check(self):
+    def check(self, *, check_tools=True):
         """Check the indexer's configuration is ok before proceeding.
            If ok, does nothing. If not raise error.
 
         """
-        if not self.tools:
+        if check_tools and not self.tools:
             raise ValueError('Tools %s is unknown, cannot continue' %
                              self.tools)
 
@@ -211,7 +211,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         else:
             raise ValueError('Configuration tool(s) must be a dict or list!')
 
-        return self.idx_storage.indexer_configuration_add(tools)
+        if tools:
+            return self.idx_storage.indexer_configuration_add(tools)
 
     @abc.abstractmethod
     def index(self, id, data):
