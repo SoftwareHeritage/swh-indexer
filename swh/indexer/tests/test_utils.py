@@ -271,9 +271,14 @@ class MockIndexerStorage():
     added_data = []
 
     def indexer_configuration_add(self, tools):
-        tool = tools[0]
+        results = []
+        for tool in tools:
+            results.append(self._indexer_configuration_add_one(tool))
+        return results
+
+    def _indexer_configuration_add_one(self, tool):
         if tool['tool_name'] == 'swh-metadata-translator':
-            return [{
+            return {
                 'id': 30,
                 'tool_name': 'swh-metadata-translator',
                 'tool_version': '0.0.1',
@@ -281,9 +286,9 @@ class MockIndexerStorage():
                     'type': 'local',
                     'context': 'NpmMapping'
                 },
-            }]
+            }
         elif tool['tool_name'] == 'swh-metadata-detector':
-            return [{
+            return {
                 'id': 7,
                 'tool_name': 'swh-metadata-detector',
                 'tool_version': '0.0.1',
@@ -291,14 +296,14 @@ class MockIndexerStorage():
                     'type': 'local',
                     'context': 'NpmMapping'
                 },
-            }]
+            }
         elif tool['tool_name'] == 'origin-metadata':
-            return [{
+            return {
                 'id': 8,
                 'tool_name': 'origin-metadata',
                 'tool_version': '0.0.1',
                 'tool_configuration': {},
-            }]
+            }
         else:
             assert False, 'Unknown tool {tool_name}'.format(**tool)
 

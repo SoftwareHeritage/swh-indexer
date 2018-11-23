@@ -130,7 +130,8 @@ create table origin_intrinsic_metadata(
   origin_id                 bigserial  not null,
   metadata                  jsonb,
   indexer_configuration_id  bigint     not null,
-  from_revision             sha1_git   not null
+  from_revision             sha1_git   not null,
+  metadata_tsvector         tsvector
 );
 
 comment on table origin_intrinsic_metadata is 'keeps intrinsic metadata for an origin';
