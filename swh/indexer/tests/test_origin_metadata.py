@@ -26,18 +26,13 @@ class OriginMetadataTestIndexer(OriginMetadataIndexer):
                     'url': 'http://localhost:9999',
                 }
             },
-            'tools': {
-                'name': 'origin-metadata',
-                'version': '0.0.1',
-                'configuration': {}
-            }
+            'tools': [],
         }
         self.storage = MockStorage()
         self.idx_storage = MockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
         self.results = []
 
 

@@ -47,6 +47,7 @@ class BaseTestStorage(SingleDbTestFixture):
         self.revision_id_2 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904321')
         self.origin_id_1 = 54974445
+        self.origin_id_2 = 44434342
 
         cur = self.test_db[self.TEST_DB_NAME].cursor
         tools = {}
@@ -1513,6 +1514,128 @@ class CommonTestStorage(BaseTestStorage):
 
         # metadata did change as the v2 was used to overwrite v1
         self.assertEqual(actual_metadata, expected_metadata_v2)
+
+    def test_origin_intrinsic_metadata_search_fulltext(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata1 = {
+            'author': 'John Doe',
+        }
+        metadata1_rev = {
+            'id': self.revision_id_1,
+            'translated_metadata': metadata1,
+            'indexer_configuration_id': tool_id,
+        }
+        metadata1_origin = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata1,
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_1,
+        }
+        metadata2 = {
+            'author': 'Jane Doe',
+        }
+        metadata2_rev = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata2,
+            'indexer_configuration_id': tool_id,
+        }
+        metadata2_origin = {
+            'origin_id': self.origin_id_2,
+            'metadata': metadata2,
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_2,
+        }
+
+        # when
+        self.storage.revision_metadata_add([metadata1_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata1_origin])
+        self.storage.revision_metadata_add([metadata2_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata2_origin])
+
+        # then
+        search = self.storage.origin_intrinsic_metadata_search_fulltext
+        self.assertCountEqual(
+                [res['origin_id'] for res in search(['Doe'])],
+                [self.origin_id_1, self.origin_id_2])
+        self.assertEqual(
+                [res['origin_id'] for res in search(['John', 'Doe'])],
+                [self.origin_id_1])
+        self.assertEqual(
+                [res['origin_id'] for res in search(['John'])],
+                [self.origin_id_1])
+        self.assertEqual(
+                [res['origin_id'] for res in search(['John', 'Jane'])],
+                [])
+
+    def test_origin_intrinsic_metadata_search_fulltext_rank(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        # The following authors have "Random Person" to add some more content
+        # to the JSON data, to work around normalization quirks when there
+        # are few words (rank/(1+ln(nb_words)) is very sensitive to nb_words
+        # for small values of nb_words).
+        metadata1 = {
+            'author': [
+                'Random Person',
+                'John Doe',
+                'Jane Doe',
+            ]
+        }
+        metadata1_rev = {
+            'id': self.revision_id_1,
+            'translated_metadata': metadata1,
+            'indexer_configuration_id': tool_id,
+        }
+        metadata1_origin = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata1,
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_1,
+        }
+        metadata2 = {
+            'author': [
+                'Random Person',
+                'Jane Doe',
+            ]
+        }
+        metadata2_rev = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata2,
+            'indexer_configuration_id': tool_id,
+        }
+        metadata2_origin = {
+            'origin_id': self.origin_id_2,
+            'metadata': metadata2,
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_2,
+        }
+
+        # when
+        self.storage.revision_metadata_add([metadata1_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata1_origin])
+        self.storage.revision_metadata_add([metadata2_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata2_origin])
+
+        # then
+        search = self.storage.origin_intrinsic_metadata_search_fulltext
+        self.assertEqual(
+                [res['origin_id'] for res in search(['Doe'])],
+                [self.origin_id_1, self.origin_id_2])
+        self.assertEqual(
+                [res['origin_id'] for res in search(['Doe'], limit=1)],
+                [self.origin_id_1])
+        self.assertEqual(
+                [res['origin_id'] for res in search(['John'])],
+                [self.origin_id_1])
+        self.assertEqual(
+                [res['origin_id'] for res in search(['Jane'])],
+                [self.origin_id_2, self.origin_id_1])
+        self.assertEqual(
+                [res['origin_id'] for res in search(['John', 'Jane'])],
+                [self.origin_id_1])
 
     def test_indexer_configuration_add(self):
         tool = {
