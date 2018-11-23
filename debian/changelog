@@ -1,3 +1,14 @@
+swh-indexer (0.0.63-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.63
+  * Make the OriginMetadataIndexer fetch rev metadata from the storage
+  * instead of getting them via the scheduler.
+  * Make the 'result_name' key of 'next_step' optional.
+  * Add missing return.
+  * doc: update index to match new swh-doc format
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 23 Nov 2018 17:56:10 +0100
+
 swh-indexer (0.0.62-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.62
