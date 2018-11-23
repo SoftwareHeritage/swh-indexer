@@ -269,6 +269,7 @@ class MockIndexerStorage():
 
     """
     added_data = []
+    revision_metadata = {}
 
     def indexer_configuration_add(self, tools):
         results = []
@@ -315,8 +316,15 @@ class MockIndexerStorage():
                 ('content_metadata', conflict_update, metadata))
 
     def revision_metadata_add(self, metadata, conflict_update=None):
+        assert conflict_update
         self.added_data.append(
                 ('revision_metadata', conflict_update, metadata))
+        for item in metadata:
+            self.revision_metadata.setdefault(item['id'], []).append(item)
+
+    def revision_metadata_get(self, ids):
+        for id_ in ids:
+            yield from self.revision_metadata.get(id_)
 
     def origin_intrinsic_metadata_add(self, metadata, conflict_update=None):
         self.added_data.append(
