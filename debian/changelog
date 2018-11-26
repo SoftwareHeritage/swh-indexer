@@ -1,3 +1,11 @@
+swh-indexer (0.0.64-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.64
+  * indexer: Fix mixed identifier encodings issues
+  * Add missing config filename for origin intrinsic metadata indexer.
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 26 Nov 2018 12:20:01 +0100
+
 swh-indexer (0.0.63-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.63
