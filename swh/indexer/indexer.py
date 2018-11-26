@@ -567,7 +567,7 @@ class RevisionIndexer(BaseIndexer):
 
         """
         results = []
-        ids = [id_.encode() if isinstance(id_, str) else id_
+        ids = [hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
                for id_ in ids]
         revs = self.storage.revision_get(ids)
 
