@@ -38,6 +38,7 @@ class ContentMetadataIndexer(ContentIndexer):
         # internally ContentMetadataIndexer
         self.config = config
         self.config['tools'] = tool
+        self.results = []
         super().__init__()
 
     def filter(self, ids):
@@ -91,16 +92,6 @@ class ContentMetadataIndexer(ContentIndexer):
         """
         self.idx_storage.content_metadata_add(
             results, conflict_update=(policy_update == 'update-dups'))
-
-    def get_results(self):
-        """can be called only if run method was called before
-
-        Returns:
-            list: list of content_metadata entries calculated by
-                  current indexer
-
-        """
-        return self.results
 
 
 class RevisionMetadataIndexer(RevisionIndexer):
@@ -256,9 +247,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
                     c_metadata_indexer.run(sha1s_filtered,
                                            policy_update='ignore-dups')
                     # on the fly possibility:
-                    results = c_metadata_indexer.get_results()
-
-                    for result in results:
+                    for result in c_metadata_indexer.results:
                         local_metadata = result['translated_metadata']
                         translated_metadata.append(local_metadata)
 
