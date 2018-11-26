@@ -1,8 +1,10 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
+
 import click
+import itertools
 import logging
 
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
@@ -164,7 +166,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         """
         result = {
-            'id': rev['id'].decode(),
+            'id': rev['id'],
             'indexer_configuration_id': self.tool['id'],
             'translated_metadata': None
         }
@@ -268,6 +270,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
 
 class OriginMetadataIndexer(OriginIndexer):
+    CONFIG_BASE_FILENAME = 'indexer/origin_intrinsic_metadata'
+
     ADDITIONAL_CONFIG = {
         'tools': ('list', [])
     }
@@ -285,12 +289,12 @@ class OriginMetadataIndexer(OriginIndexer):
 
         Args:
 
-            * `origin_head` (dict): {str(origin_id): rev_id.encode()}
+            * `origin_head` (dict): {str(origin_id): rev_id}
               keys `origin_id` and `revision_id`, which is the result
               of OriginHeadIndexer.
             * `policy_update`: `'ignore-dups'` or `'update-dups'`
         """
-        origin_head_map = {int(origin_id): rev_id
+        origin_head_map = {int(origin_id): hashutil.hash_to_bytes(rev_id)
                            for (origin_id, rev_id) in origin_head.items()}
 
         # Fix up the argument order. revisions_metadata has to be the
@@ -308,20 +312,23 @@ class OriginMetadataIndexer(OriginIndexer):
         revision_metadata = self.idx_storage \
             .revision_metadata_get([revision_id])
 
+        results = []
         for item in revision_metadata:
             assert item['id'] == revision_id
             # Get the metadata of that revision, and return it
-            return {
+            results.append({
                     'origin_id': origin['id'],
                     'metadata': item['translated_metadata'],
                     'from_revision': revision_id,
                     'indexer_configuration_id':
                     item['indexer_configuration_id'],
-                    }
+                    })
+        return results
 
     def persist_index_computations(self, results, policy_update):
         self.idx_storage.origin_intrinsic_metadata_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+            list(itertools.chain(*results)),
+            conflict_update=(policy_update == 'update-dups'))
 
 
 @click.command()

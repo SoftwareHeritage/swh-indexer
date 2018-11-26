@@ -5,6 +5,7 @@
 
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
+from swh.model.hashutil import hash_to_bytes
 
 ORIGINS = [
         {
@@ -119,7 +120,8 @@ SNAPSHOTS = {
         54974445: {
                 'branches': {
                     b'HEAD': {
-                        'target': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+                        'target': hash_to_bytes(
+                            '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
                         'target_type': 'revision'}}}
         }
 
@@ -320,10 +322,12 @@ class MockIndexerStorage():
         self.added_data.append(
                 ('revision_metadata', conflict_update, metadata))
         for item in metadata:
+            assert isinstance(item['id'], bytes)
             self.revision_metadata.setdefault(item['id'], []).append(item)
 
     def revision_metadata_get(self, ids):
         for id_ in ids:
+            assert isinstance(id_, bytes)
             yield from self.revision_metadata.get(id_)
 
     def origin_intrinsic_metadata_add(self, metadata, conflict_update=None):
@@ -387,7 +391,7 @@ class MockStorage():
 
     def revision_get(self, revisions):
         return [{
-            'id': b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'committer': {
                 'id': 26,
                 'name': b'Andrew Nesbitt',
