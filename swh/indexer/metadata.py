@@ -28,14 +28,19 @@ class ContentMetadataIndexer(ContentIndexer):
     - store result in content_metadata table
 
     """
+    # Note: This used when the content metadata indexer is used alone
+    # (not the case for example in the case of the RevisionMetadataIndexer)
     CONFIG_BASE_FILENAME = 'indexer/content_metadata'
 
     def __init__(self, tool, config):
-        # twisted way to use the exact same config of RevisionMetadataIndexer
-        # object that uses internally ContentMetadataIndexer
+        # FIXME: Simplify this twisted way to use the exact same
+        # config of RevisionMetadataIndexer object that uses
+        # internally ContentMetadataIndexer
         self.config = config
         self.config['tools'] = tool
+        self.results = []
         super().__init__()
+        self.tool = self.tools[0]  # Tool is now registered (cf. prepare call)
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
@@ -69,8 +74,6 @@ class ContentMetadataIndexer(ContentIndexer):
             mapping_name = self.tool['tool_configuration']['context']
             result['translated_metadata'] = MAPPINGS[mapping_name] \
                 .translate(data)
-            # a twisted way to keep result with indexer object for get_results
-            self.results.append(result)
         except Exception:
             self.log.exception(
                 "Problem during tool retrieval of metadata translation")
@@ -90,16 +93,6 @@ class ContentMetadataIndexer(ContentIndexer):
         """
         self.idx_storage.content_metadata_add(
             results, conflict_update=(policy_update == 'update-dups'))
-
-    def get_results(self):
-        """can be called only if run method was called before
-
-        Returns:
-            list: list of content_metadata entries calculated by
-                  current indexer
-
-        """
-        return self.results
 
 
 class RevisionMetadataIndexer(RevisionIndexer):
@@ -227,8 +220,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
         # -> get raw_contents
         # -> translate each content
         config = {
-            INDEXER_CFG_KEY: self.idx_storage,
-            'objstorage': self.objstorage
+            k: self.config[k]
+            for k in [INDEXER_CFG_KEY, 'objstorage', 'storage']
         }
         for context in detected_files.keys():
             tool['configuration']['context'] = context
@@ -250,19 +243,18 @@ class RevisionMetadataIndexer(RevisionIndexer):
                               if item not in sha1s_in_storage]
 
             if sha1s_filtered:
-                # schedule indexation of content
+                # content indexing
                 try:
                     c_metadata_indexer.run(sha1s_filtered,
                                            policy_update='ignore-dups')
                     # on the fly possibility:
-                    results = c_metadata_indexer.get_results()
-
-                    for result in results:
+                    for result in c_metadata_indexer.results:
                         local_metadata = result['translated_metadata']
                         translated_metadata.append(local_metadata)
 
-                except Exception as e:
-                    self.log.warning("""Exception while indexing content""", e)
+                except Exception:
+                    self.log.exception(
+                        "Exception while indexing metadata on contents")
 
         # transform translated_metadata into min set with swh-metadata-detector
         min_metadata = extract_minimal_metadata_dict(translated_metadata)

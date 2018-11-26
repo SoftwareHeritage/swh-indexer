@@ -39,12 +39,9 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
 
     def prepare(self):
         self.config = {
-            'storage': {
-                'cls': 'remote',
-                'args': {
-                    'url': 'http://localhost:9999',
-                }
-            },
+            'storage': {},
+            'objstorage': {},
+            'indexer_storage': {},
             'tools': {
                 'name': 'swh-metadata-detector',
                 'version': '0.0.2',
@@ -60,7 +57,6 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
         self.objstorage = MockObjStorage()
         self.tools = self.register_tools(self.config['tools'])
         self.tool = self.tools[0]
-        self.results = []
 
 
 class Metadata(unittest.TestCase):

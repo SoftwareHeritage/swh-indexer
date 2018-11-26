@@ -155,10 +155,13 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
            Without this step, the indexer cannot possibly run.
 
         """
-        self.config = self.parse_config_file(
-            additional_configs=[self.ADDITIONAL_CONFIG])
-        if self.config['storage']:
-            self.storage = get_storage(**self.config['storage'])
+        # HACK to deal with edge case (e.g revision metadata indexer)
+        if not hasattr(self, 'config'):
+            self.config = self.parse_config_file(
+                additional_configs=[self.ADDITIONAL_CONFIG])
+        config_storage = self.config.get('storage')
+        if config_storage:
+            self.storage = get_storage(**config_storage)
         objstorage = self.config['objstorage']
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         idx_storage = self.config[INDEXER_CFG_KEY]
@@ -203,7 +206,6 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             ValueError if not a list nor a dict.
 
         """
-        tools = self.config['tools']
         if isinstance(tools, list):
             tools = list(map(self._prepare_tool, tools))
         elif isinstance(tools, dict):
