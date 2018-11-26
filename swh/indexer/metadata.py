@@ -243,7 +243,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
                               if item not in sha1s_in_storage]
 
             if sha1s_filtered:
-                # schedule indexation of content
+                # content indexing
                 try:
                     c_metadata_indexer.run(sha1s_filtered,
                                            policy_update='ignore-dups')
