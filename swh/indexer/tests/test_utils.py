@@ -685,6 +685,7 @@ class CommonContentIndexerRangeTest:
 
         """
         start, end = [self.contents[0], self.contents[2]]  # output hex ids
+
         # given
         actual_results = self.indexer.run(start, end)
 
@@ -702,7 +703,8 @@ class CommonContentIndexerRangeTest:
 
         # given
         actual_results = self.indexer.run(  # checks the bytes input this time
-            start, end, skip_existing=False)  # no data so same result
+            start, end, skip_existing=False)
+        # no already indexed data so same result as prior test
 
         # then
         self.assertTrue(actual_results)
