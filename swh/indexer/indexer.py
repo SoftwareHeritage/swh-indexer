@@ -159,8 +159,9 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         if not hasattr(self, 'config'):
             self.config = self.parse_config_file(
                 additional_configs=[self.ADDITIONAL_CONFIG])
-        if self.config['storage']:
-            self.storage = get_storage(**self.config['storage'])
+        config_storage = self.config.get('storage')
+        if config_storage:
+            self.storage = get_storage(**config_storage)
         objstorage = self.config['objstorage']
         self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
         idx_storage = self.config[INDEXER_CFG_KEY]
