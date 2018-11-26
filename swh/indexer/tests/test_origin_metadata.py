@@ -65,7 +65,9 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.maxDiff = None
+        # FIXME: Improve mock indexer storage reset behavior
         MockIndexerStorage.added_data = []
+        MockIndexerStorage.revision_metadata = {}
         self.add_scheduler_task_type(
             'revision_metadata_test_task',
             'swh.indexer.tests.test_origin_metadata.'

@@ -1,8 +1,10 @@
-# Copyright (C) 2017  The Software Heritage developers
+# Copyright (C) 2017-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
+
 import click
+import itertools
 import logging
 
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
@@ -310,20 +312,23 @@ class OriginMetadataIndexer(OriginIndexer):
         revision_metadata = self.idx_storage \
             .revision_metadata_get([revision_id])
 
+        results = []
         for item in revision_metadata:
             assert item['id'] == revision_id
             # Get the metadata of that revision, and return it
-            return {
+            results.append({
                     'origin_id': origin['id'],
                     'metadata': item['translated_metadata'],
                     'from_revision': revision_id,
                     'indexer_configuration_id':
                     item['indexer_configuration_id'],
-                    }
+                    })
+        return results
 
     def persist_index_computations(self, results, policy_update):
         self.idx_storage.origin_intrinsic_metadata_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+            list(itertools.chain(*results)),
+            conflict_update=(policy_update == 'update-dups'))
 
 
 @click.command()
