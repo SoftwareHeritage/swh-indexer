@@ -28,11 +28,14 @@ class ContentMetadataIndexer(ContentIndexer):
     - store result in content_metadata table
 
     """
+    # Note: This used when the content metadata indexer is used alone
+    # (not the case for example in the case of the RevisionMetadataIndexer)
     CONFIG_BASE_FILENAME = 'indexer/content_metadata'
 
     def __init__(self, tool, config):
-        # twisted way to use the exact same config of RevisionMetadataIndexer
-        # object that uses internally ContentMetadataIndexer
+        # FIXME: Simplify this twisted way to use the exact same
+        # config of RevisionMetadataIndexer object that uses
+        # internally ContentMetadataIndexer
         self.config = config
         self.config['tools'] = tool
         super().__init__()
