@@ -14,6 +14,8 @@ from swh.indexer.metadata import RevisionMetadataIndexer
 from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
 from swh.indexer.tests.test_utils import MockIndexerStorage
 
+from swh.model.hashutil import hash_to_bytes
+
 
 class ContentMetadataTestIndexer(ContentMetadataIndexer):
     """Specific Metadata whose configuration is enough to satisfy the
@@ -448,14 +450,14 @@ class Metadata(unittest.TestCase):
         metadata_indexer = RevisionMetadataTestIndexer()
 
         sha1_gits = [
-            b'8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
         ]
         metadata_indexer.run(sha1_gits, 'update-dups')
 
         results = metadata_indexer.idx_storage.added_data
 
         expected_results = [('revision_metadata', True, [{
-            'id': '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f',
+            'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'url':
