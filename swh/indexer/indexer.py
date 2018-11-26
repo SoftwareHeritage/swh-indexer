@@ -155,8 +155,10 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
            Without this step, the indexer cannot possibly run.
 
         """
-        self.config = self.parse_config_file(
-            additional_configs=[self.ADDITIONAL_CONFIG])
+        # HACK to deal with edge case (e.g revision metadata indexer)
+        if not hasattr(self, 'config'):
+            self.config = self.parse_config_file(
+                additional_configs=[self.ADDITIONAL_CONFIG])
         if self.config['storage']:
             self.storage = get_storage(**self.config['storage'])
         objstorage = self.config['objstorage']
