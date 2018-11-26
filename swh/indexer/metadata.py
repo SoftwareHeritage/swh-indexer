@@ -228,8 +228,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
         # -> get raw_contents
         # -> translate each content
         config = {
-            INDEXER_CFG_KEY: self.idx_storage,
-            'objstorage': self.objstorage
+            k: self.config[k]
+            for k in [INDEXER_CFG_KEY, 'objstorage', 'storage']
         }
         for context in detected_files.keys():
             tool['configuration']['context'] = context
