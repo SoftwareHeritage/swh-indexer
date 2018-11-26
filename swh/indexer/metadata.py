@@ -72,8 +72,6 @@ class ContentMetadataIndexer(ContentIndexer):
             mapping_name = self.tool['tool_configuration']['context']
             result['translated_metadata'] = MAPPINGS[mapping_name] \
                 .translate(data)
-            # a twisted way to keep result with indexer object for get_results
-            self.results.append(result)
         except Exception:
             self.log.exception(
                 "Problem during tool retrieval of metadata translation")
