@@ -40,6 +40,7 @@ class ContentMetadataIndexer(ContentIndexer):
         self.config['tools'] = tool
         self.results = []
         super().__init__()
+        self.tool = self.tools[0]  # Tool is now registered (cf. prepare call)
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
