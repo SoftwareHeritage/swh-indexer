@@ -14,7 +14,7 @@ create table dbversion
 );
 
 insert into dbversion(version, release, description)
-      values(116, now(), 'Work In Progress');
+      values(117, now(), 'Work In Progress');
 -- Computing metadata on sha1's contents
 
 -- a SHA1 checksum (not necessarily originating from Git)
