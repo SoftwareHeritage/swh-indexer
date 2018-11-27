@@ -173,12 +173,12 @@ class TestMimetypeRangeIndexer(
 
 class MimetypeIndexerUnknownToolTestStorage(
         CommonIndexerNoTool, MimetypeTestIndexer):
-    """Fossology license indexer with wrong configuration"""
+    """Mimetype indexer with wrong configuration"""
 
 
 class MimetypeRangeIndexerUnknownToolTestStorage(
         CommonIndexerNoTool, MimetypeRangeIndexerTest):
-    """Fossology license range indexer with wrong configuration"""
+    """Mimetype range indexer with wrong configuration"""
 
 
 class TestMimetypeIndexersErrors(
