@@ -173,14 +173,12 @@ class FossologyLicenseRangeIndexer(
             **start** (bytes): Starting bound from range identifier
             **end** (bytes): End range identifier
 
-        Yields:
-            Content identifier (bytes) present in the range [start, end]
+        Returns:
+            a dict with keys:
+            - **ids** [bytes]: iterable of content ids within the range.
+            - **next** (Optional[bytes]): The next range of sha1 starts at
+                                          this sha1 if any
 
         """
-        while start:
-            result = self.idx_storage.content_fossology_license_get_range(
+        return self.idx_storage.content_fossology_license_get_range(
                 start, end, self.tool['id'])
-            contents = result['ids']
-            for _id in contents:
-                yield _id
-            start = result['next']

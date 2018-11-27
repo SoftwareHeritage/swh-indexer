@@ -439,6 +439,26 @@ class ContentRangeIndexer(BaseIndexer):
             if res:
                 yield res
 
+    def _index_with_skipping_already_done(self, start, end):
+        """Index not already indexed contents in range [start, end].
+
+        Args:
+            **start** (Union[bytes, str]): Starting range identifier
+            **end** (Union[bytes, str]): Ending range identifier
+
+        Yields:
+            Content identifier (bytes) present in the range [start,
+            end] which are not already indexed.
+
+        """
+        while start:
+            indexed_page = self.indexed_contents_in_range(start, end)
+            contents = indexed_page['ids']
+            _end = contents[-1] if contents else end
+            yield from self._index_contents(
+                    start, _end, contents)
+            start = indexed_page['next']
+
     def run(self, start, end, skip_existing=True, **kwargs):
         """Given a range of content ids, compute the indexing computations on
            the contents within. Either the indexer is incremental
@@ -464,20 +484,20 @@ class ContentRangeIndexer(BaseIndexer):
                 end = hashutil.hash_to_bytes(end)
 
             if skip_existing:
-                indexed = set(self.indexed_contents_in_range(start, end))
+                gen = self._index_with_skipping_already_done(start, end)
             else:
-                indexed = set()
+                gen = self._index_contents(start, end, indexed=[])
 
-            index_computations = self._index_contents(start, end, indexed)
-            for results in utils.grouper(index_computations,
+            for results in utils.grouper(gen,
                                          n=self.config['write_batch_size']):
                 self.persist_index_computations(
                     results, policy_update='update-dups')
                 with_indexed_data = True
-            return with_indexed_data
         except Exception:
             self.log.exception(
                 'Problem when computing metadata.')
+        finally:
+            return with_indexed_data
 
 
 class OriginIndexer(BaseIndexer):
