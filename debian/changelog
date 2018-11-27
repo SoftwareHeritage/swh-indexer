@@ -1,3 +1,10 @@
+swh-indexer (0.0.66-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.66
+  * range-indexer: Stream indexing range computations
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 27 Nov 2018 11:48:24 +0100
+
 swh-indexer (0.0.65-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.65
