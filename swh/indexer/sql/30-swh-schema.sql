@@ -14,7 +14,7 @@ create table dbversion
 );
 
 insert into dbversion(version, release, description)
-      values(117, now(), 'Work In Progress');
+      values(118, now(), 'Work In Progress');
 -- Computing metadata on sha1's contents
 
 -- a SHA1 checksum (not necessarily originating from Git)
@@ -39,8 +39,8 @@ comment on column indexer_configuration.tool_configuration is 'Tool configuratio
 -- Properties (mimetype, encoding, etc...)
 create table content_mimetype (
   id sha1 not null,
-  mimetype bytea not null,
-  encoding bytea not null,
+  mimetype text not null,
+  encoding text not null,
   indexer_configuration_id bigint not null
 );
 

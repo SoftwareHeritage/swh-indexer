@@ -23,8 +23,8 @@ def compute_mimetype_encoding(raw_content):
     """
     r = magic.detect_from_content(raw_content)
     return {
-        'mimetype': r.mime_type.encode('utf-8'),
-        'encoding': r.encoding.encode('utf-8'),
+        'mimetype': r.mime_type,
+        'encoding': r.encoding,
     }
 
 
