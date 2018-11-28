@@ -10,11 +10,11 @@ from swh.indexer.storage import INDEXER_CFG_KEY
 from swh.indexer.storage.api.client import RemoteStorage
 from swh.indexer.storage.api.server import app
 
-from .test_storage import CommonTestStorage
+from .test_storage import CommonTestStorage, BasePgTestStorage
 
 
 class TestRemoteStorage(CommonTestStorage, ServerTestFixture,
-                        unittest.TestCase):
+                        BasePgTestStorage, unittest.TestCase):
     """Test the indexer's remote storage API.
 
     This class doesn't define any tests as we want identical

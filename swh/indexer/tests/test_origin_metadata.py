@@ -8,11 +8,11 @@ import logging
 import unittest
 from celery import task
 
-from swh.indexer.metadata import OriginMetadataIndexer
+from swh.indexer.metadata import OriginMetadataIndexer, \
+        RevisionMetadataIndexer, ContentMetadataIndexer
 from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
 from swh.indexer.tests.test_utils import MockIndexerStorage
 from swh.indexer.tests.test_origin_head import OriginHeadTestIndexer
-from swh.indexer.tests.test_metadata import RevisionMetadataTestIndexer
 
 from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
 
@@ -36,6 +36,48 @@ class OriginMetadataTestIndexer(OriginMetadataIndexer):
         self.objstorage = MockObjStorage()
         self.tools = self.register_tools(self.config['tools'])
         self.results = []
+
+
+class ContentMetadataTestIndexer(ContentMetadataIndexer):
+    """Specific Metadata whose configuration is enough to satisfy the
+       indexing tests.
+    """
+    def prepare(self):
+        self.idx_storage = MockIndexerStorage()
+        self.log = logging.getLogger('swh.indexer')
+        self.objstorage = MockObjStorage()
+        self.tools = self.register_tools(self.config['tools'])
+        self.tool = self.tools[0]
+        self.results = []
+
+
+class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
+    """Specific indexer whose configuration is enough to satisfy the
+       indexing tests.
+    """
+
+    ContentMetadataIndexer = ContentMetadataTestIndexer
+
+    def prepare(self):
+        self.config = {
+            'storage': {},
+            'objstorage': {},
+            'indexer_storage': {},
+            'tools': {
+                'name': 'swh-metadata-detector',
+                'version': '0.0.2',
+                'configuration': {
+                    'type': 'local',
+                    'context': 'NpmMapping'
+                }
+            }
+        }
+        self.storage = MockStorage()
+        self.idx_storage = MockIndexerStorage()
+        self.log = logging.getLogger('swh.indexer')
+        self.objstorage = MockObjStorage()
+        self.tools = self.register_tools(self.config['tools'])
+        self.tool = self.tools[0]
 
 
 @task

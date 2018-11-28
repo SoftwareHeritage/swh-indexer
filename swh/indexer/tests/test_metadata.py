@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import unittest
-import logging
 
 from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
 from swh.indexer.metadata_detector import detect_metadata
@@ -16,18 +15,20 @@ from swh.indexer.tests.test_utils import MockIndexerStorage
 
 from swh.model.hashutil import hash_to_bytes
 
+from .test_utils import BASE_TEST_CONFIG
+
 
 class ContentMetadataTestIndexer(ContentMetadataIndexer):
     """Specific Metadata whose configuration is enough to satisfy the
        indexing tests.
     """
+    def parse_config_file(self, *args, **kwargs):
+        assert False, 'should not be called; the rev indexer configures it.'
+
     def prepare(self):
-        self.idx_storage = MockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
+        super().prepare()
         self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
-        self.results = []
+        self.idx_storage = MockIndexerStorage()
 
 
 class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
@@ -37,11 +38,9 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
 
     ContentMetadataIndexer = ContentMetadataTestIndexer
 
-    def prepare(self):
-        self.config = {
-            'storage': {},
-            'objstorage': {},
-            'indexer_storage': {},
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
             'tools': {
                 'name': 'swh-metadata-detector',
                 'version': '0.0.2',
@@ -51,12 +50,13 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
                 }
             }
         }
+
+    def prepare(self):
+        super().prepare()
         self.storage = MockStorage()
         self.idx_storage = MockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
+        self.tools = list(self.register_tools(self.config['tools']))
 
 
 class Metadata(unittest.TestCase):
@@ -207,14 +207,13 @@ class Metadata(unittest.TestCase):
         # this metadata indexer computes only metadata for package.json
         # in npm context with a hard mapping
         metadata_indexer = ContentMetadataTestIndexer(
-            tool=self.content_tool, config={})
+            tool=self.content_tool, config=BASE_TEST_CONFIG.copy())
 
         # when
         metadata_indexer.run(sha1s, policy_update='ignore-dups')
         results = metadata_indexer.idx_storage.added_data
 
         expected_results = [('content_metadata', False, [{
-            'indexer_configuration_id': 30,
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
@@ -226,7 +225,6 @@ class Metadata(unittest.TestCase):
             },
             'id': '26a9f72a7c87cc9205725cfd879f514ff4f3d8d5'
             }, {
-            'indexer_configuration_id': 30,
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
@@ -254,10 +252,14 @@ class Metadata(unittest.TestCase):
             },
             'id': 'd4c647f0fc257591cc9ba1722484229780d1c607'
             }, {
-            'indexer_configuration_id': 30,
             'translated_metadata': None,
             'id': '02fb2c89e14f7fab46701478c83779c7beb7b069'
         }])]
+
+        for result in results:
+            metadata = result[2]
+            for item in metadata:
+                del item['indexer_configuration_id']
 
         # The assertion below returns False sometimes because of nested lists
         self.assertEqual(expected_results, results)
@@ -470,7 +472,12 @@ class Metadata(unittest.TestCase):
                 'name': 'yarn-parser',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
             },
-            'indexer_configuration_id': 7
         }])]
+
+        for result in results:
+            metadata = result[2]
+            for item in metadata:
+                del item['indexer_configuration_id']
+
         # then
         self.assertEqual(expected_results, results)

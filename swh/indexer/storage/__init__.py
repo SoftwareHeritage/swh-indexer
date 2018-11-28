@@ -40,6 +40,8 @@ def get_indexer_storage(cls, args):
         from .api.client import RemoteStorage as IndexerStorage
     elif cls == 'local':
         from . import IndexerStorage
+    elif cls == 'memory':
+        from .in_memory import IndexerStorage
     else:
         raise ValueError('Unknown indexer storage class `%s`' % cls)
 
@@ -731,7 +733,7 @@ class IndexerStorage:
                   (free form dict)
 
         Returns:
-            The identifier of the tool if it exists, None otherwise.
+            The same dictionary with an `id` key, None otherwise.
 
         """
         tool_conf = tool['tool_configuration']

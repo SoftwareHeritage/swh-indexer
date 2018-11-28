@@ -7,6 +7,28 @@ from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes
 
+from swh.indexer.storage import INDEXER_CFG_KEY
+
+BASE_TEST_CONFIG = {
+    'storage': {
+        'cls': 'remote',
+        'args': {
+            'url': 'http://nowhere/',
+        },
+    },
+    'objstorage': {
+        'cls': 'remote',
+        'args': {
+            'url': 'http://nowhere2/',
+        },
+    },
+    INDEXER_CFG_KEY: {
+        'cls': 'memory',
+        'args': {
+        },
+    },
+}
+
 ORIGINS = [
         {
             'id': 52189575,

@@ -20,7 +20,7 @@ from swh.indexer.tests.storage import SQL_DIR
 
 
 @pytest.mark.db
-class BaseTestStorage(SingleDbTestFixture):
+class BasePgTestStorage(SingleDbTestFixture):
     """Base test class for most indexer tests.
 
     It adds support for Storage testing to the SingleDbTestFixture class.
@@ -80,8 +80,7 @@ class BaseTestStorage(SingleDbTestFixture):
         db.conn.commit()
 
 
-@pytest.mark.db
-class CommonTestStorage(BaseTestStorage):
+class CommonTestStorage:
     """Base class for Indexer Storage testing.
 
     """
@@ -1707,10 +1706,11 @@ class CommonTestStorage(BaseTestStorage):
             'tool_configuration': {"command_line": "nomossa <filepath>"},
         }
 
+        self.storage.indexer_configuration_add([tool])
         actual_tool = self.storage.indexer_configuration_get(tool)
 
         expected_tool = tool.copy()
-        expected_tool['id'] = 1
+        del actual_tool['id']
 
         self.assertEqual(expected_tool, actual_tool)
 
@@ -1732,6 +1732,7 @@ class CommonTestStorage(BaseTestStorage):
             'tool_configuration': {"type": "local", "context": "NpmMapping"},
         }
 
+        self.storage.indexer_configuration_add([tool])
         actual_tool = self.storage.indexer_configuration_get(tool)
 
         expected_tool = tool.copy()
@@ -1741,7 +1742,7 @@ class CommonTestStorage(BaseTestStorage):
 
 
 @pytest.mark.property_based
-class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
+class CommonPropBasedTestStorage(BasePgTestStorage):
     """Properties-based tests
 
     """
@@ -1957,7 +1958,9 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.assertEqual(expected_fossology_licenses2, actual_ids2)
 
 
-class IndexerTestStorage(CommonTestStorage, unittest.TestCase):
+@pytest.mark.db
+class IndexerTestStorage(CommonTestStorage, BasePgTestStorage,
+                         unittest.TestCase):
     """Running the tests locally.
 
     For the client api tests (remote storage), see
@@ -1965,4 +1968,10 @@ class IndexerTestStorage(CommonTestStorage, unittest.TestCase):
     class.
 
     """
+    pass
+
+
+@pytest.mark.property_based
+class PropIndexerTestStorage(CommonPropBasedTestStorage, BasePgTestStorage,
+                             unittest.TestCase):
     pass

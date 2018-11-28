@@ -15,7 +15,8 @@ from swh.indexer.mimetype import (
 from swh.indexer.tests.test_utils import (
     MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
     CommonContentIndexerTest, CommonContentIndexerRangeTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool,
+    BASE_TEST_CONFIG
 )
 
 
@@ -47,8 +48,9 @@ class MimetypeTestIndexer(ContentMimetypeIndexer):
        satisfy the indexing tests.
 
     """
-    def prepare(self):
-        self.config = {
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
             'tools': {
                 'name': 'file',
                 'version': '1:5.30-1+deb9u1',
@@ -58,11 +60,12 @@ class MimetypeTestIndexer(ContentMimetypeIndexer):
                 },
             },
         }
+
+    def prepare(self):
+        super().prepare()
         self.idx_storage = BasicMockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
 
 
 class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
@@ -106,8 +109,9 @@ class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
        indexing tests.
 
     """
-    def prepare(self):
-        self.config = {
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
             'tools': {
                 'name': 'file',
                 'version': '1:5.30-1+deb9u1',
@@ -118,15 +122,15 @@ class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
             },
             'write_batch_size': 100,
         }
+
+    def prepare(self):
+        super().prepare()
         self.idx_storage = BasicMockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
         # this hardcodes some contents, will use this to setup the storage
         self.objstorage = MockObjStorage()
         # sync objstorage and storage
         contents = [{'sha1': c_id} for c_id in self.objstorage]
         self.storage = BasicMockStorage(contents)
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
 
 
 class TestMimetypeRangeIndexer(

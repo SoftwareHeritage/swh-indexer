@@ -4,12 +4,11 @@
 # See top-level LICENSE file for more information
 
 import unittest
-import logging
 from swh.indexer import language
 from swh.indexer.language import ContentLanguageIndexer
 from swh.indexer.tests.test_utils import (
     BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool, BASE_TEST_CONFIG
 )
 
 
@@ -17,8 +16,9 @@ class LanguageTestIndexer(ContentLanguageIndexer):
     """Specific language whose configuration is enough to satisfy the
        indexing tests.
     """
-    def prepare(self):
-        self.config = {
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
             'tools':  {
                 'name': 'pygments',
                 'version': '2.0.1+dfsg-1.1+deb8u1',
@@ -29,13 +29,12 @@ class LanguageTestIndexer(ContentLanguageIndexer):
                 },
             }
         }
+
+    def prepare(self):
+        super().prepare()
         self.idx_storage = BasicMockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.tool_config = self.config['tools']['configuration']
-        self.max_content_size = self.tool_config['max_content_size']
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
 
 
 class Language(unittest.TestCase):

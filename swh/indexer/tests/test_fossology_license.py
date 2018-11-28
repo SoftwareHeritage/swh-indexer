@@ -16,7 +16,8 @@ from swh.indexer.fossology_license import (
 from swh.indexer.tests.test_utils import (
     MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
     SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool, NoDiskIndexer
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool, NoDiskIndexer,
+    BASE_TEST_CONFIG
 )
 
 
@@ -64,8 +65,10 @@ class FossologyLicenseTestIndexer(
        the indexing checks.
 
     """
-    def prepare(self):
-        self.config = {
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
+            'workdir': '/nowhere',
             'tools': {
                 'name': 'nomos',
                 'version': '3.1.0rc2-31-ga2cbb8c',
@@ -74,11 +77,12 @@ class FossologyLicenseTestIndexer(
                 },
             },
         }
+
+    def prepare(self):
+        super().prepare()
         self.idx_storage = BasicMockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
 
 
 class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
@@ -120,8 +124,10 @@ class FossologyLicenseRangeIndexerTest(
     """Testing the range indexer on fossology license.
 
     """
-    def prepare(self):
-        self.config = {
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
+            'workdir': '/nowhere',
             'tools': {
                 'name': 'nomos',
                 'version': '3.1.0rc2-31-ga2cbb8c',
@@ -131,15 +137,15 @@ class FossologyLicenseRangeIndexerTest(
             },
             'write_batch_size': 100,
         }
+
+    def prepare(self):
+        super().prepare()
         self.idx_storage = BasicMockIndexerStorage()
         self.log = logging.getLogger('swh.indexer')
         # this hardcodes some contents, will use this to setup the storage
         self.objstorage = MockObjStorage()
-        # sync objstorage and storage
         contents = [{'sha1': c_id} for c_id in self.objstorage]
         self.storage = BasicMockStorage(contents)
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
 
 
 class TestFossologyLicenseRangeIndexer(
