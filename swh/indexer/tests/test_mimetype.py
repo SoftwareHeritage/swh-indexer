@@ -37,8 +37,8 @@ class BasicTest(unittest.TestCase):
 
             actual_result = compute_mimetype_encoding(_input)
             self.assertEqual(actual_result, {
-                'mimetype': _mimetype.encode('utf-8'),
-                'encoding': _encoding.encode('utf-8'),
+                'mimetype': _mimetype,
+                'encoding': _encoding
             })
 
 
@@ -83,20 +83,20 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
             self.id0: {
                 'id': self.id0,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/plain',
-                'encoding': b'us-ascii',
+                'mimetype': 'text/plain',
+                'encoding': 'us-ascii',
             },
             self.id1: {
                 'id': self.id1,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/plain',
-                'encoding': b'us-ascii',
+                'mimetype': 'text/plain',
+                'encoding': 'us-ascii',
             },
             self.id2: {
                 'id': self.id2,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'application/x-empty',
-                'encoding': b'binary',
+                'mimetype': 'application/x-empty',
+                'encoding': 'binary',
             }
         }
 
@@ -154,20 +154,20 @@ class TestMimetypeRangeIndexer(
 
         self.expected_results = {
             self.id0: {
-                'encoding': b'us-ascii',
+                'encoding': 'us-ascii',
                 'id': self.id0,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/plain'},
+                'mimetype': 'text/plain'},
             self.id1: {
-                'encoding': b'us-ascii',
+                'encoding': 'us-ascii',
                 'id': self.id1,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/x-python'},
+                'mimetype': 'text/x-python'},
             self.id2: {
-                'encoding': b'us-ascii',
+                'encoding': 'us-ascii',
                 'id': self.id2,
                 'indexer_configuration_id': tool_id,
-                'mimetype': b'text/plain'}
+                'mimetype': 'text/plain'}
         }
 
 
