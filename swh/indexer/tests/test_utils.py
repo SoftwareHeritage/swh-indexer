@@ -272,6 +272,7 @@ class MockIndexerStorage():
     """
     added_data = []
     revision_metadata = {}
+    tools = {}
 
     def indexer_configuration_add(self, tools):
         results = []
@@ -281,7 +282,7 @@ class MockIndexerStorage():
 
     def _indexer_configuration_add_one(self, tool):
         if tool['tool_name'] == 'swh-metadata-translator':
-            return {
+            tool2 = {
                 'id': 30,
                 'tool_name': 'swh-metadata-translator',
                 'tool_version': '0.0.1',
@@ -291,7 +292,7 @@ class MockIndexerStorage():
                 },
             }
         elif tool['tool_name'] == 'swh-metadata-detector':
-            return {
+            tool2 = {
                 'id': 7,
                 'tool_name': 'swh-metadata-detector',
                 'tool_version': '0.0.1',
@@ -301,7 +302,7 @@ class MockIndexerStorage():
                 },
             }
         elif tool['tool_name'] == 'origin-metadata':
-            return {
+            tool2 = {
                 'id': 8,
                 'tool_name': 'origin-metadata',
                 'tool_version': '0.0.1',
@@ -309,6 +310,9 @@ class MockIndexerStorage():
             }
         else:
             assert False, 'Unknown tool {tool_name}'.format(**tool)
+
+        self.tools[tool2['id']] = tool2
+        return tool2
 
     def content_metadata_missing(self, sha1s):
         yield from []
@@ -328,7 +332,11 @@ class MockIndexerStorage():
     def revision_metadata_get(self, ids):
         for id_ in ids:
             assert isinstance(id_, bytes)
-            yield from self.revision_metadata.get(id_)
+            for item in self.revision_metadata.get(id_):
+                item = item.copy()
+                tool_id = item.pop('indexer_configuration_id')
+                item['tool'] = self.tools[tool_id].copy()
+                yield item
 
     def origin_intrinsic_metadata_add(self, metadata, conflict_update=None):
         self.added_data.append(
