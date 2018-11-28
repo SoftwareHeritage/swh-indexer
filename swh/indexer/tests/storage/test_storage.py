@@ -116,8 +116,8 @@ class CommonTestStorage(BaseTestStorage):
         # given
         self.storage.content_mimetype_add([{
             'id': self.sha1_2,
-            'mimetype': b'text/plain',
-            'encoding': b'utf-8',
+            'mimetype': 'text/plain',
+            'encoding': 'utf-8',
             'indexer_configuration_id': tool_id,
         }])
 
@@ -133,8 +133,8 @@ class CommonTestStorage(BaseTestStorage):
 
         mimetype_v1 = {
             'id': self.sha1_2,
-            'mimetype': b'text/plain',
-            'encoding': b'utf-8',
+            'mimetype': 'text/plain',
+            'encoding': 'utf-8',
             'indexer_configuration_id': tool_id,
         }
 
@@ -148,8 +148,8 @@ class CommonTestStorage(BaseTestStorage):
         # then
         expected_mimetypes_v1 = [{
             'id': self.sha1_2,
-            'mimetype': b'text/plain',
-            'encoding': b'utf-8',
+            'mimetype': 'text/plain',
+            'encoding': 'utf-8',
             'tool': self.tools['file'],
         }]
         self.assertEqual(actual_mimetypes, expected_mimetypes_v1)
@@ -157,8 +157,8 @@ class CommonTestStorage(BaseTestStorage):
         # given
         mimetype_v2 = mimetype_v1.copy()
         mimetype_v2.update({
-            'mimetype': b'text/html',
-            'encoding': b'us-ascii',
+            'mimetype': 'text/html',
+            'encoding': 'us-ascii',
         })
 
         self.storage.content_mimetype_add([mimetype_v2])
@@ -175,8 +175,8 @@ class CommonTestStorage(BaseTestStorage):
 
         mimetype_v1 = {
             'id': self.sha1_2,
-            'mimetype': b'text/plain',
-            'encoding': b'utf-8',
+            'mimetype': 'text/plain',
+            'encoding': 'utf-8',
             'indexer_configuration_id': tool_id,
         }
 
@@ -189,8 +189,8 @@ class CommonTestStorage(BaseTestStorage):
 
         expected_mimetypes_v1 = [{
             'id': self.sha1_2,
-            'mimetype': b'text/plain',
-            'encoding': b'utf-8',
+            'mimetype': 'text/plain',
+            'encoding': 'utf-8',
             'tool': self.tools['file'],
         }]
 
@@ -200,8 +200,8 @@ class CommonTestStorage(BaseTestStorage):
         # given
         mimetype_v2 = mimetype_v1.copy()
         mimetype_v2.update({
-            'mimetype': b'text/html',
-            'encoding': b'us-ascii',
+            'mimetype': 'text/html',
+            'encoding': 'us-ascii',
         })
 
         self.storage.content_mimetype_add([mimetype_v2], conflict_update=True)
@@ -211,8 +211,8 @@ class CommonTestStorage(BaseTestStorage):
 
         expected_mimetypes_v2 = [{
             'id': self.sha1_2,
-            'mimetype': b'text/html',
-            'encoding': b'us-ascii',
+            'mimetype': 'text/html',
+            'encoding': 'us-ascii',
             'tool': {
                 'id': 2,
                 'name': 'file',
@@ -232,8 +232,8 @@ class CommonTestStorage(BaseTestStorage):
 
         mimetype1 = {
             'id': self.sha1_2,
-            'mimetype': b'text/plain',
-            'encoding': b'utf-8',
+            'mimetype': 'text/plain',
+            'encoding': 'utf-8',
             'indexer_configuration_id': tool_id,
         }
 
@@ -246,8 +246,8 @@ class CommonTestStorage(BaseTestStorage):
         # then
         expected_mimetypes = [{
             'id': self.sha1_2,
-            'mimetype': b'text/plain',
-            'encoding': b'utf-8',
+            'mimetype': 'text/plain',
+            'encoding': 'utf-8',
             'tool': self.tools['file']
         }]
 
