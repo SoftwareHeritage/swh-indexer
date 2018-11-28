@@ -1,3 +1,10 @@
+swh-indexer (0.0.67-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.67
+  * mimetype: Migrate to indexed data as text
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 28 Nov 2018 11:35:37 +0100
+
 swh-indexer (0.0.66-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.66
