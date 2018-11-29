@@ -3,6 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import json
+
 
 class IndexerStorage:
     """In-memory SWH indexer storage."""
@@ -56,4 +58,4 @@ class IndexerStorage:
 
     def _tool_key(self, tool):
         return (tool['tool_name'], tool['tool_version'],
-                tuple(sorted(tool['tool_configuration'].items())))
+                json.dumps(tool['tool_configuration'], sort_keys=True))

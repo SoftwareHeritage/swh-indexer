@@ -1,15 +1,17 @@
 from unittest import TestCase
 import pytest
 
-from swh.indexer.storage.in_memory import IndexerStorage
-
-from .test_storage import CommonTestStorage, CommonPropBasedTestStorage
+from .test_storage import CommonTestStorage
 
 
 class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
     def setUp(self):
+        self.storage_config = {
+            'cls': 'memory',
+            'args': {
+            },
+        }
         super().setUp()
-        self.storage = IndexerStorage()
 
     @pytest.mark.xfail
     def test_check_config(self):
@@ -142,12 +144,6 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
     @pytest.mark.xfail
     def test_indexer_configuration_metadata_get(self):
         pass
-
-
-class PropIndexerTestInMemoryStorage(CommonPropBasedTestStorage, TestCase):
-    def setUp(self):
-        super().setUp()
-        self.storage = IndexerStorage()
 
     @pytest.mark.xfail
     def test_generate_content_mimetype_get_range_limit_none(self):
