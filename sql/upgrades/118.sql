@@ -7,5 +7,7 @@ insert into dbversion(version, release, description)
 values(118, now(), 'Work In Progress');
 
 alter table content_mimetype
-  alter column mimetype set data type text,
-  alter column encoding set data type text;
+  alter column mimetype set data type text
+    using convert_from(mimetype, 'utf-8'),
+  alter column encoding set data type text
+    using convert_from(encoding, 'utf-8');
