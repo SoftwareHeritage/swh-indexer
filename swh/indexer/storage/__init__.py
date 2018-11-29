@@ -505,8 +505,7 @@ class IndexerStorage:
                   the results
 
         Yields:
-            an iterable of missing id for the tuple (id,
-            indexer_configuration_id)
+            missing sha1s
 
         """
         for obj in db.content_metadata_missing_from_list(metadata, cur):
@@ -521,7 +520,7 @@ class IndexerStorage:
             ids (iterable): sha1 checksums
 
         Yields:
-            list: dictionaries with the following keys:
+            dictionaries with the following keys:
 
                 id (bytes)
                 translated_metadata (str): associated metadata
@@ -567,8 +566,8 @@ class IndexerStorage:
                - **indexer_configuration_id** (int): tool used to compute
                  the results
 
-        Returns:
-            iterable: missing ids
+        Yields:
+            missing ids
 
         """
         for obj in db.revision_metadata_missing_from_list(metadata, cur):
@@ -583,7 +582,7 @@ class IndexerStorage:
             ids (iterable): sha1 checksums
 
         Yields:
-            list: dictionaries with the following keys:
+            dictionaries with the following keys:
 
                 - **id** (bytes)
                 - **translated_metadata** (str): associated metadata

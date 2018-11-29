@@ -86,38 +86,6 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
         pass
 
     @pytest.mark.xfail
-    def test_content_metadata_missing(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_metadata_get(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_metadata_add_drop_duplicate(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_metadata_add_update_in_place_duplicate(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_revision_metadata_missing(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_revision_metadata_get(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_revision_metadata_add_drop_duplicate(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_revision_metadata_add_update_in_place_duplicate(self):
-        pass
-
-    @pytest.mark.xfail
     def test_origin_intrinsic_metadata_get(self):
         pass
 

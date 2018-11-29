@@ -85,15 +85,6 @@ class BasePgTestStorage(SingleDbTestFixture):
             },
         }
 
-        self.sha1_1 = hash_to_bytes('34973274ccef6ab4dfaaf86599792fa9c3fe4689')
-        self.sha1_2 = hash_to_bytes('61c2b3a30496d329e21af70dd2d7e097046d07b7')
-        self.revision_id_1 = hash_to_bytes(
-            '7026b7c1a2af56521e951c01ed20f255fa054238')
-        self.revision_id_2 = hash_to_bytes(
-            '7026b7c1a2af56521e9587659012345678904321')
-        self.origin_id_1 = 54974445
-        self.origin_id_2 = 44434342
-
     def tearDown(self):
         self.reset_storage_tables()
         self.storage = None
@@ -126,6 +117,15 @@ class CommonTestStorage:
                 'version': tool['tool_version'],
                 'configuration': tool['tool_configuration'],
             }
+
+        self.sha1_1 = hash_to_bytes('34973274ccef6ab4dfaaf86599792fa9c3fe4689')
+        self.sha1_2 = hash_to_bytes('61c2b3a30496d329e21af70dd2d7e097046d07b7')
+        self.revision_id_1 = hash_to_bytes(
+            '7026b7c1a2af56521e951c01ed20f255fa054238')
+        self.revision_id_2 = hash_to_bytes(
+            '7026b7c1a2af56521e9587659012345678904321')
+        self.origin_id_1 = 54974445
+        self.origin_id_2 = 44434342
 
     def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
