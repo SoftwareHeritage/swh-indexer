@@ -4,62 +4,33 @@
 # See top-level LICENSE file for more information
 
 import time
-import logging
 import unittest
+
 from celery import task
-
-from swh.indexer.metadata import OriginMetadataIndexer, \
-        RevisionMetadataIndexer, ContentMetadataIndexer
-from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
-from swh.indexer.tests.test_utils import MockIndexerStorage
-from swh.indexer.tests.test_origin_head import OriginHeadTestIndexer
-
-from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
-
 from swh.model.hashutil import hash_to_bytes
 
-from .test_utils import BASE_TEST_CONFIG
+from swh.indexer.metadata import (
+    OriginMetadataIndexer, RevisionMetadataIndexer
+)
 
-
-class OriginMetadataTestIndexer(OriginMetadataIndexer):
-    def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'tools': [],
-        }
-
-    def prepare(self):
-        super().prepare()
-        self.storage = MockStorage()
-        self.idx_storage = MockIndexerStorage()
-        self.objstorage = MockObjStorage()
-
-
-class ContentMetadataTestIndexer(ContentMetadataIndexer):
-    """Specific Metadata whose configuration is enough to satisfy the
-       indexing tests.
-    """
-    def prepare(self):
-        self.idx_storage = MockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
-        self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
-        self.results = []
+from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
+from .test_utils import (
+    MockObjStorage, MockStorage, MockIndexerStorage,
+    BASE_TEST_CONFIG
+)
+from .test_origin_head import OriginHeadTestIndexer
+from .test_metadata import ContentMetadataTestIndexer
 
 
 class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
     """Specific indexer whose configuration is enough to satisfy the
        indexing tests.
     """
-
     ContentMetadataIndexer = ContentMetadataTestIndexer
 
-    def prepare(self):
-        self.config = {
-            'storage': {},
-            'objstorage': {},
-            'indexer_storage': {},
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
             'tools': {
                 'name': 'swh-metadata-detector',
                 'version': '0.0.2',
@@ -69,12 +40,12 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
                 }
             }
         }
-        self.storage = MockStorage()
+
+    def prepare(self):
+        super().prepare()
         self.idx_storage = MockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
+        self.storage = MockStorage()
         self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
 
 
 @task
@@ -82,6 +53,20 @@ def revision_metadata_test_task(*args, **kwargs):
     indexer = RevisionMetadataTestIndexer()
     indexer.run(*args, **kwargs)
     return indexer.results
+
+
+class OriginMetadataTestIndexer(OriginMetadataIndexer):
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
+            'tools': []
+        }
+
+    def prepare(self):
+        super().prepare()
+        self.storage = MockStorage()
+        self.objstorage = MockObjStorage()
+        self.idx_storage = MockIndexerStorage()
 
 
 @task
@@ -149,18 +134,23 @@ class TestOriginMetadata(SchedulerTestFixture, unittest.TestCase):
         rev_metadata = {
             'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'translated_metadata': metadata,
-            'indexer_configuration_id': 7,
         }
         origin_metadata = {
             'origin_id': 54974445,
             'from_revision': hash_to_bytes(
                 '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'metadata': metadata,
-            'indexer_configuration_id': 7,
         }
         expected_results = [
-                ('origin_intrinsic_metadata', True, [origin_metadata]),
-                ('revision_metadata', True, [rev_metadata])]
+            ('revision_metadata', True, [rev_metadata]),
+            ('origin_intrinsic_metadata', True, [origin_metadata]),
+        ]
 
         results = list(indexer.idx_storage.added_data)
+        for result in results:
+            metadata = result[2]
+            for item in metadata:
+                # cannot check those (generated ids)
+                del item['indexer_configuration_id']
+
         self.assertCountEqual(expected_results, results)

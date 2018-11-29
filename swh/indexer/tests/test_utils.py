@@ -357,7 +357,15 @@ class MockIndexerStorage():
             for item in self.revision_metadata.get(id_):
                 item = item.copy()
                 tool_id = item.pop('indexer_configuration_id')
-                item['tool'] = self.tools[tool_id].copy()
+                if tool_id in self.tools:
+                    item['tool'] = self.tools[tool_id].copy()
+                else:  # HACK: this needs to be removed altogether
+                    item['tool'] = {
+                        'id': tool_id,
+                        'name': tool_id[0],
+                        'version': tool_id[1],
+                        'configuration': tool_id[2],
+                    }
                 yield item
 
     def origin_intrinsic_metadata_add(self, metadata, conflict_update=None):

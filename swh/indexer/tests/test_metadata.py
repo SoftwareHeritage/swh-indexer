@@ -5,17 +5,20 @@
 
 import unittest
 
-from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
-from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_detector import extract_minimal_metadata_dict
-from swh.indexer.metadata import ContentMetadataIndexer
-from swh.indexer.metadata import RevisionMetadataIndexer
-from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
-from swh.indexer.tests.test_utils import MockIndexerStorage
-
 from swh.model.hashutil import hash_to_bytes
 
-from .test_utils import BASE_TEST_CONFIG
+from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
+from swh.indexer.metadata_detector import (
+    detect_metadata, extract_minimal_metadata_dict
+)
+from swh.indexer.metadata import (
+    ContentMetadataIndexer, RevisionMetadataIndexer
+)
+
+from .test_utils import (
+    MockObjStorage, MockStorage, MockIndexerStorage,
+    BASE_TEST_CONFIG
+)
 
 
 class ContentMetadataTestIndexer(ContentMetadataIndexer):
