@@ -18,24 +18,21 @@ from swh.scheduler.tests.scheduler_testing import SchedulerTestFixture
 
 from swh.model.hashutil import hash_to_bytes
 
+from .test_utils import BASE_TEST_CONFIG
+
 
 class OriginMetadataTestIndexer(OriginMetadataIndexer):
-    def prepare(self):
-        self.config = {
-            'storage': {
-                'cls': 'remote',
-                'args': {
-                    'url': 'http://localhost:9999',
-                }
-            },
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
             'tools': [],
         }
+
+    def prepare(self):
+        super().prepare()
         self.storage = MockStorage()
         self.idx_storage = MockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.results = []
 
 
 class ContentMetadataTestIndexer(ContentMetadataIndexer):
