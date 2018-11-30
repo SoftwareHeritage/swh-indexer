@@ -13,6 +13,7 @@ information from archive source code artifacts.
 
    README.md
    dev-info.rst
+   metadata-workflow.rst
 
 
 Reference Documentation
