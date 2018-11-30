@@ -78,6 +78,7 @@ swh/indexer/sql/60-swh-indexes.sql
 swh/indexer/storage/__init__.py
 swh/indexer/storage/converters.py
 swh/indexer/storage/db.py
+swh/indexer/storage/in_memory.py
 swh/indexer/storage/api/__init__.py
 swh/indexer/storage/api/client.py
 swh/indexer/storage/api/server.py
@@ -94,4 +95,5 @@ swh/indexer/tests/storage/__init__.py
 swh/indexer/tests/storage/generate_data_test.py
 swh/indexer/tests/storage/test_api_client.py
 swh/indexer/tests/storage/test_converters.py
+swh/indexer/tests/storage/test_in_memory.py
 swh/indexer/tests/storage/test_storage.py

@@ -4,30 +4,41 @@
 # See top-level LICENSE file for more information
 
 import unittest
-import logging
-
-from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
-from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_detector import extract_minimal_metadata_dict
-from swh.indexer.metadata import ContentMetadataIndexer
-from swh.indexer.metadata import RevisionMetadataIndexer
-from swh.indexer.tests.test_utils import MockObjStorage, MockStorage
-from swh.indexer.tests.test_utils import MockIndexerStorage
 
 from swh.model.hashutil import hash_to_bytes
+
+from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
+from swh.indexer.metadata_detector import (
+    detect_metadata, extract_minimal_metadata_dict
+)
+from swh.indexer.metadata import (
+    ContentMetadataIndexer, RevisionMetadataIndexer
+)
+
+from .test_utils import (
+    BASE_TEST_CONFIG, fill_obj_storage, fill_storage
+)
+
+
+TRANSLATOR_TOOL = {
+    'name': 'swh-metadata-translator',
+    'version': '0.0.2',
+    'configuration': {
+        'type': 'local',
+        'context': 'NpmMapping'
+    }
+}
 
 
 class ContentMetadataTestIndexer(ContentMetadataIndexer):
     """Specific Metadata whose configuration is enough to satisfy the
        indexing tests.
     """
+    def parse_config_file(self, *args, **kwargs):
+        assert False, 'should not be called; the rev indexer configures it.'
+
     def prepare(self):
-        self.idx_storage = MockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
-        self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
-        self.results = []
+        super().prepare()
 
 
 class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
@@ -37,26 +48,15 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
 
     ContentMetadataIndexer = ContentMetadataTestIndexer
 
-    def prepare(self):
-        self.config = {
-            'storage': {},
-            'objstorage': {},
-            'indexer_storage': {},
-            'tools': {
-                'name': 'swh-metadata-detector',
-                'version': '0.0.2',
-                'configuration': {
-                    'type': 'local',
-                    'context': 'NpmMapping'
-                }
-            }
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
+            'tools': TRANSLATOR_TOOL,
         }
-        self.storage = MockStorage()
-        self.idx_storage = MockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
-        self.objstorage = MockObjStorage()
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
+
+    def prepare(self):
+        super().prepare()
+        self.tools = list(self.register_tools(self.config['tools']))
 
 
 class Metadata(unittest.TestCase):
@@ -68,15 +68,6 @@ class Metadata(unittest.TestCase):
         shows the entire diff in the results
         """
         self.maxDiff = None
-        self.content_tool = {
-            'name': 'swh-metadata-translator',
-            'version': '0.0.2',
-            'configuration': {
-                'type': 'local',
-                'context': 'NpmMapping'
-            }
-        }
-        MockIndexerStorage.added_data = []
 
     def test_crosstable(self):
         self.assertEqual(CROSSWALK_TABLE['NodeJS'], {
@@ -201,20 +192,24 @@ class Metadata(unittest.TestCase):
           should return None in the translated metadata
         """
         # given
-        sha1s = ['26a9f72a7c87cc9205725cfd879f514ff4f3d8d5',
-                 'd4c647f0fc257591cc9ba1722484229780d1c607',
-                 '02fb2c89e14f7fab46701478c83779c7beb7b069']
+        sha1s = [
+            hash_to_bytes('26a9f72a7c87cc9205725cfd879f514ff4f3d8d5'),
+            hash_to_bytes('d4c647f0fc257591cc9ba1722484229780d1c607'),
+            hash_to_bytes('02fb2c89e14f7fab46701478c83779c7beb7b069'),
+        ]
         # this metadata indexer computes only metadata for package.json
         # in npm context with a hard mapping
         metadata_indexer = ContentMetadataTestIndexer(
-            tool=self.content_tool, config={})
+            tool=TRANSLATOR_TOOL, config=BASE_TEST_CONFIG.copy())
+        fill_obj_storage(metadata_indexer.objstorage)
+        fill_storage(metadata_indexer.storage)
 
         # when
         metadata_indexer.run(sha1s, policy_update='ignore-dups')
-        results = metadata_indexer.idx_storage.added_data
+        results = list(metadata_indexer.idx_storage.content_metadata_get(
+            sha1s))
 
-        expected_results = [('content_metadata', False, [{
-            'indexer_configuration_id': 30,
+        expected_results = [{
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
@@ -224,9 +219,8 @@ class Metadata(unittest.TestCase):
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'id': '26a9f72a7c87cc9205725cfd879f514ff4f3d8d5'
+            'id': hash_to_bytes('26a9f72a7c87cc9205725cfd879f514ff4f3d8d5')
             }, {
-            'indexer_configuration_id': 30,
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
@@ -252,12 +246,14 @@ class Metadata(unittest.TestCase):
                 ],
                 'schema:url': 'https://docs.npmjs.com/'
             },
-            'id': 'd4c647f0fc257591cc9ba1722484229780d1c607'
+            'id': hash_to_bytes('d4c647f0fc257591cc9ba1722484229780d1c607')
             }, {
-            'indexer_configuration_id': 30,
             'translated_metadata': None,
-            'id': '02fb2c89e14f7fab46701478c83779c7beb7b069'
-        }])]
+            'id': hash_to_bytes('02fb2c89e14f7fab46701478c83779c7beb7b069')
+        }]
+
+        for result in results:
+            del result['tool']
 
         # The assertion below returns False sometimes because of nested lists
         self.assertEqual(expected_results, results)
@@ -444,16 +440,47 @@ class Metadata(unittest.TestCase):
 
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataTestIndexer()
+        fill_obj_storage(metadata_indexer.objstorage)
+        fill_storage(metadata_indexer.storage)
+
+        tool = metadata_indexer.idx_storage.indexer_configuration_get(
+            {'tool_'+k: v for (k, v) in TRANSLATOR_TOOL.items()})
+        assert tool is not None
+
+        metadata_indexer.idx_storage.content_metadata_add([{
+            'indexer_configuration_id': tool['id'],
+            'id': b'cde',
+            'translated_metadata': {
+                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+                'type': 'SoftwareSourceCode',
+                'codemeta:issueTracker':
+                    'https://github.com/librariesio/yarn-parser/issues',
+                'version': '1.0.0',
+                'name': 'yarn-parser',
+                'schema:author': 'Andrew Nesbitt',
+                'url':
+                    'https://github.com/librariesio/yarn-parser#readme',
+                'processorRequirements': {'node': '7.5'},
+                'license': 'AGPL-3.0',
+                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+                'schema:codeRepository':
+                    'git+https://github.com/librariesio/yarn-parser.git',
+                'description':
+                    'Tiny web service for parsing yarn.lock files',
+                }
+        }])
 
         sha1_gits = [
             hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
         ]
         metadata_indexer.run(sha1_gits, 'update-dups')
 
-        results = metadata_indexer.idx_storage.added_data
+        results = list(metadata_indexer.idx_storage.revision_metadata_get(
+            sha1_gits))
 
-        expected_results = [('revision_metadata', True, [{
+        expected_results = [{
             'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
+            'tool': TRANSLATOR_TOOL,
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'url':
@@ -470,7 +497,10 @@ class Metadata(unittest.TestCase):
                 'name': 'yarn-parser',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
             },
-            'indexer_configuration_id': 7
-        }])]
+        }]
+
+        for result in results:
+            del result['tool']['id']
+
         # then
         self.assertEqual(expected_results, results)

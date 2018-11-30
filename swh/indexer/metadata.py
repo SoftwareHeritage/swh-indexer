@@ -313,7 +313,7 @@ class OriginMetadataIndexer(OriginIndexer):
                     'metadata': item['translated_metadata'],
                     'from_revision': revision_id,
                     'indexer_configuration_id':
-                    item['indexer_configuration_id'],
+                    item['tool']['id'],
                     })
         return results
 
