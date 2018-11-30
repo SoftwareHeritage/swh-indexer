@@ -7,7 +7,7 @@ import logging
 
 from swh.scheduler.task import Task as SchedulerTask
 
-from .mimetype import ContentMimetypeIndexer, MimetypeRangeIndexer
+from .mimetype import MimetypeIndexer, MimetypeRangeIndexer
 from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import (
@@ -65,7 +65,7 @@ class ContentMimetype(StatusTask):
 
     """
     task_queue = 'swh_indexer_content_mimetype'
-    Indexer = ContentMimetypeIndexer
+    Indexer = MimetypeIndexer
 
 
 class ContentRangeMimetype(StatusTask):

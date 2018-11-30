@@ -241,7 +241,7 @@ OBJ_STORAGE_DATA = {
     '02fb2c89e14f7fab46701478c83779c7beb7b069': b"""
     import unittest
     import logging
-    from swh.indexer.mimetype import ContentMimetypeIndexer
+    from swh.indexer.mimetype import MimetypeIndexer
     from swh.indexer.tests.test_utils import MockObjStorage
 
     class MockStorage():

@@ -31,7 +31,7 @@ def compute_mimetype_encoding(raw_content):
 class MixinMimetypeIndexer:
     """Mixin mimetype indexer.
 
-    See :class:`ContentMimetypeIndexer` and :class:`MimetypeRangeIndexer`
+    See :class:`MimetypeIndexer` and :class:`MimetypeRangeIndexer`
 
     """
     ADDITIONAL_CONFIG = {
@@ -95,7 +95,7 @@ class MixinMimetypeIndexer:
             results, conflict_update=(policy_update == 'update-dups'))
 
 
-class ContentMimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
+class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
     """Mimetype Indexer working on list of content identifiers.
 
     It:
@@ -105,11 +105,6 @@ class ContentMimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
     - reads content from objstorage per the content's id (sha1)
     - computes {mimetype, encoding} from that content
     - stores result in storage
-
-    FIXME:
-
-    1. Rename redundant ContentMimetypeIndexer to MimetypeIndexer
-    2. Do we keep it afterwards? ~> i think this can be used with the journal
 
     """
     def filter(self, ids):

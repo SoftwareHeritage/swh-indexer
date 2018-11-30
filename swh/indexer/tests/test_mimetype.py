@@ -9,7 +9,7 @@ import logging
 from unittest.mock import patch
 
 from swh.indexer.mimetype import (
-    ContentMimetypeIndexer, MimetypeRangeIndexer, compute_mimetype_encoding
+    MimetypeIndexer, MimetypeRangeIndexer, compute_mimetype_encoding
 )
 
 from swh.indexer.tests.test_utils import (
@@ -43,7 +43,7 @@ class BasicTest(unittest.TestCase):
             })
 
 
-class MimetypeTestIndexer(ContentMimetypeIndexer):
+class MimetypeTestIndexer(MimetypeIndexer):
     """Specific mimetype indexer instance whose configuration is enough to
        satisfy the indexing tests.
 
