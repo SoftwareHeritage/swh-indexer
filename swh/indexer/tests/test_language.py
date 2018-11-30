@@ -5,14 +5,14 @@
 
 import unittest
 from swh.indexer import language
-from swh.indexer.language import ContentLanguageIndexer
+from swh.indexer.language import LanguageIndexer
 from swh.indexer.tests.test_utils import (
     BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool, BASE_TEST_CONFIG
 )
 
 
-class LanguageTestIndexer(ContentLanguageIndexer):
+class LanguageTestIndexer(LanguageIndexer):
     """Specific language whose configuration is enough to satisfy the
        indexing tests.
     """
