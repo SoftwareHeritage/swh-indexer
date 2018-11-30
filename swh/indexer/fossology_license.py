@@ -160,7 +160,8 @@ class FossologyLicenseRangeIndexer(
 
     It:
     - filters out the non textual content
-    - (optionally) filters out content already indexed (cf :callable:`range`)
+    - (optionally) filters out content already indexed (cf
+      :func:`indexed_contents_in_range`)
     - reads content from objstorage per the content's id (sha1)
     - computes {mimetype, encoding} from that content
     - stores result in storage

@@ -4,18 +4,20 @@
 # See top-level LICENSE file for more information
 
 import unittest
-import logging
 
 from swh.indexer.origin_head import OriginHeadIndexer
-from swh.indexer.tests.test_utils import MockIndexerStorage, MockStorage
+from swh.indexer.tests.test_utils import (
+    MockIndexerStorage, MockStorage, BASE_TEST_CONFIG
+)
 
 
 class OriginHeadTestIndexer(OriginHeadIndexer):
     """Specific indexer whose configuration is enough to satisfy the
        indexing tests.
     """
-    def prepare(self):
-        self.config = {
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
             'tools': {
                 'name': 'origin-metadata',
                 'version': '0.0.1',
@@ -26,13 +28,11 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
                 'origin_intrinsic_metadata': None,
             }
         }
+
+    def prepare(self):
+        super().prepare()
         self.storage = MockStorage()
         self.idx_storage = MockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
-        self.objstorage = None
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
-        self.results = None
 
     def persist_index_computations(self, results, policy_update):
         self.results = results

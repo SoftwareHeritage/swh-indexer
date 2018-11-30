@@ -3,9 +3,31 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import datetime
+
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes
+
+from swh.indexer.storage import INDEXER_CFG_KEY
+
+BASE_TEST_CONFIG = {
+    'storage': {
+        'cls': 'memory',
+        'args': {
+        },
+    },
+    'objstorage': {
+        'cls': 'memory',
+        'args': {
+        },
+    },
+    INDEXER_CFG_KEY: {
+        'cls': 'memory',
+        'args': {
+        },
+    },
+}
 
 ORIGINS = [
         {
@@ -126,6 +148,61 @@ SNAPSHOTS = {
         }
 
 
+REVISIONS = [{
+    'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
+    'committer': {
+        'id': 26,
+        'name': b'Andrew Nesbitt',
+        'fullname': b'Andrew Nesbitt <andrewnez@gmail.com>',
+        'email': b'andrewnez@gmail.com'
+    },
+    'synthetic': False,
+    'date': {
+        'negative_utc': False,
+        'timestamp': {
+            'seconds': 1487596456,
+            'microseconds': 0
+        },
+        'offset': 0
+    },
+    'directory': b'10'
+}]
+
+DIRECTORY_ID = b'10'
+
+DIRECTORY = [{
+    'sha1_git': b'abc',
+    'name': b'index.js',
+    'target': b'abc',
+    'length': 897,
+    'status': 'visible',
+    'type': 'file',
+    'perms': 33188,
+    'sha1': b'bcd'
+    },
+    {
+    'sha1_git': b'aab',
+    'name': b'package.json',
+    'target': b'aab',
+    'length': 712,
+    'status': 'visible',
+    'type': 'file',
+    'perms': 33188,
+    'sha1': b'cde'
+    },
+    {
+    'target': b'11',
+    'type': 'dir',
+    'length': None,
+    'name': b'.github',
+    'sha1': None,
+    'perms': 16384,
+    'sha1_git': None,
+    'status': None,
+    'sha256': None
+    }
+]
+
 SHA1_TO_LICENSES = {
     '01c9379dfc33803963d07c1ccc748d3fe4c96bb5': ['GPL'],
     '02fb2c89e14f7fab46701478c83779c7beb7b069': ['Apache2.0'],
@@ -157,6 +234,133 @@ SHA1_TO_CTAGS = {
 }
 
 
+OBJ_STORAGE_DATA = {
+    '01c9379dfc33803963d07c1ccc748d3fe4c96bb5': b'this is some text',
+    '688a5ef812c53907562fe379d4b3851e69c7cb15': b'another text',
+    '8986af901dd2043044ce8f0d8fc039153641cf17': b'yet another text',
+    '02fb2c89e14f7fab46701478c83779c7beb7b069': b"""
+    import unittest
+    import logging
+    from swh.indexer.mimetype import ContentMimetypeIndexer
+    from swh.indexer.tests.test_utils import MockObjStorage
+
+    class MockStorage():
+        def content_mimetype_add(self, mimetypes):
+            self.state = mimetypes
+            self.conflict_update = conflict_update
+
+        def indexer_configuration_add(self, tools):
+            return [{
+                'id': 10,
+            }]
+    """,
+    '103bc087db1d26afc3a0283f38663d081e9b01e6': b"""
+        #ifndef __AVL__
+        #define __AVL__
+
+        typedef struct _avl_tree avl_tree;
+
+        typedef struct _data_t {
+          int content;
+        } data_t;
+    """,
+    '93666f74f1cf635c8c8ac118879da6ec5623c410': b"""
+    (should 'pygments (recognize 'lisp 'easily))
+
+    """,
+    '26a9f72a7c87cc9205725cfd879f514ff4f3d8d5': b"""
+    {
+        "name": "test_metadata",
+        "version": "0.0.1",
+        "description": "Simple package.json test for indexer",
+        "repository": {
+          "type": "git",
+          "url": "https://github.com/moranegg/metadata_test"
+      }
+    }
+    """,
+    'd4c647f0fc257591cc9ba1722484229780d1c607': b"""
+    {
+      "version": "5.0.3",
+      "name": "npm",
+      "description": "a package manager for JavaScript",
+      "keywords": [
+        "install",
+        "modules",
+        "package manager",
+        "package.json"
+      ],
+      "preferGlobal": true,
+      "config": {
+        "publishtest": false
+      },
+      "homepage": "https://docs.npmjs.com/",
+      "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/npm/npm"
+      },
+      "bugs": {
+        "url": "https://github.com/npm/npm/issues"
+      },
+      "dependencies": {
+        "JSONStream": "~1.3.1",
+        "abbrev": "~1.1.0",
+        "ansi-regex": "~2.1.1",
+        "ansicolors": "~0.3.2",
+        "ansistyles": "~0.1.3"
+      },
+      "devDependencies": {
+        "tacks": "~1.2.6",
+        "tap": "~10.3.2"
+      },
+      "license": "Artistic-2.0"
+    }
+
+    """,
+    'a7ab314d8a11d2c93e3dcf528ca294e7b431c449': b"""
+    """,
+    'da39a3ee5e6b4b0d3255bfef95601890afd80709': b'',
+}
+
+CONTENT_METADATA = [{
+    'tool': {
+        'configuration': {
+            'type': 'local',
+            'context': 'NpmMapping'
+            },
+        'version': '0.0.1',
+        'id': 6,
+        'name': 'swh-metadata-translator'
+    },
+    'id': b'cde',
+    'translated_metadata': {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'type': 'SoftwareSourceCode',
+        'codemeta:issueTracker':
+            'https://github.com/librariesio/yarn-parser/issues',
+        'version': '1.0.0',
+        'name': 'yarn-parser',
+        'schema:author': 'Andrew Nesbitt',
+        'url':
+            'https://github.com/librariesio/yarn-parser#readme',
+        'processorRequirements': {'node': '7.5'},
+        'license': 'AGPL-3.0',
+        'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+        'schema:codeRepository':
+            'git+https://github.com/librariesio/yarn-parser.git',
+        'description':
+            'Tiny web service for parsing yarn.lock files',
+        }
+}]
+
+
+def fill_obj_storage(obj_storage):
+    """Add some content in an object storage."""
+    for (obj_id, content) in OBJ_STORAGE_DATA.items():
+        obj_storage.add(content, obj_id=hash_to_bytes(obj_id))
+
+
 class MockObjStorage:
     """Mock an swh-objstorage objstorage with predefined contents.
 
@@ -164,94 +368,7 @@ class MockObjStorage:
     data = {}
 
     def __init__(self):
-        self.data = {
-            '01c9379dfc33803963d07c1ccc748d3fe4c96bb5': b'this is some text',
-            '688a5ef812c53907562fe379d4b3851e69c7cb15': b'another text',
-            '8986af901dd2043044ce8f0d8fc039153641cf17': b'yet another text',
-            '02fb2c89e14f7fab46701478c83779c7beb7b069': b"""
-            import unittest
-            import logging
-            from swh.indexer.mimetype import ContentMimetypeIndexer
-            from swh.indexer.tests.test_utils import MockObjStorage
-
-            class MockStorage():
-                def content_mimetype_add(self, mimetypes):
-                    self.state = mimetypes
-                    self.conflict_update = conflict_update
-
-                def indexer_configuration_add(self, tools):
-                    return [{
-                        'id': 10,
-                    }]
-            """,
-            '103bc087db1d26afc3a0283f38663d081e9b01e6': b"""
-                #ifndef __AVL__
-                #define __AVL__
-
-                typedef struct _avl_tree avl_tree;
-
-                typedef struct _data_t {
-                  int content;
-                } data_t;
-            """,
-            '93666f74f1cf635c8c8ac118879da6ec5623c410': b"""
-            (should 'pygments (recognize 'lisp 'easily))
-
-            """,
-            '26a9f72a7c87cc9205725cfd879f514ff4f3d8d5': b"""
-            {
-                "name": "test_metadata",
-                "version": "0.0.1",
-                "description": "Simple package.json test for indexer",
-                "repository": {
-                  "type": "git",
-                  "url": "https://github.com/moranegg/metadata_test"
-              }
-            }
-            """,
-            'd4c647f0fc257591cc9ba1722484229780d1c607': b"""
-            {
-              "version": "5.0.3",
-              "name": "npm",
-              "description": "a package manager for JavaScript",
-              "keywords": [
-                "install",
-                "modules",
-                "package manager",
-                "package.json"
-              ],
-              "preferGlobal": true,
-              "config": {
-                "publishtest": false
-              },
-              "homepage": "https://docs.npmjs.com/",
-              "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)",
-              "repository": {
-                "type": "git",
-                "url": "https://github.com/npm/npm"
-              },
-              "bugs": {
-                "url": "https://github.com/npm/npm/issues"
-              },
-              "dependencies": {
-                "JSONStream": "~1.3.1",
-                "abbrev": "~1.1.0",
-                "ansi-regex": "~2.1.1",
-                "ansicolors": "~0.3.2",
-                "ansistyles": "~0.1.3"
-              },
-              "devDependencies": {
-                "tacks": "~1.2.6",
-                "tap": "~10.3.2"
-              },
-              "license": "Artistic-2.0"
-            }
-
-            """,
-            'a7ab314d8a11d2c93e3dcf528ca294e7b431c449': b"""
-            """,
-            'da39a3ee5e6b4b0d3255bfef95601890afd80709': b'',
-        }
+        self.data = OBJ_STORAGE_DATA.copy()
 
     def __iter__(self):
         yield from self.data.keys()
@@ -272,6 +389,7 @@ class MockIndexerStorage():
     """
     added_data = []
     revision_metadata = {}
+    tools = {}
 
     def indexer_configuration_add(self, tools):
         results = []
@@ -281,7 +399,7 @@ class MockIndexerStorage():
 
     def _indexer_configuration_add_one(self, tool):
         if tool['tool_name'] == 'swh-metadata-translator':
-            return {
+            tool2 = {
                 'id': 30,
                 'tool_name': 'swh-metadata-translator',
                 'tool_version': '0.0.1',
@@ -291,7 +409,7 @@ class MockIndexerStorage():
                 },
             }
         elif tool['tool_name'] == 'swh-metadata-detector':
-            return {
+            tool2 = {
                 'id': 7,
                 'tool_name': 'swh-metadata-detector',
                 'tool_version': '0.0.1',
@@ -301,7 +419,7 @@ class MockIndexerStorage():
                 },
             }
         elif tool['tool_name'] == 'origin-metadata':
-            return {
+            tool2 = {
                 'id': 8,
                 'tool_name': 'origin-metadata',
                 'tool_version': '0.0.1',
@@ -309,6 +427,9 @@ class MockIndexerStorage():
             }
         else:
             assert False, 'Unknown tool {tool_name}'.format(**tool)
+
+        self.tools[tool2['id']] = tool2
+        return tool2
 
     def content_metadata_missing(self, sha1s):
         yield from []
@@ -328,43 +449,45 @@ class MockIndexerStorage():
     def revision_metadata_get(self, ids):
         for id_ in ids:
             assert isinstance(id_, bytes)
-            yield from self.revision_metadata.get(id_)
+            for item in self.revision_metadata.get(id_):
+                item = item.copy()
+                tool_id = item.pop('indexer_configuration_id')
+                if tool_id in self.tools:
+                    item['tool'] = self.tools[tool_id].copy()
+                else:  # HACK: this needs to be removed altogether
+                    item['tool'] = {
+                        'id': tool_id,
+                        'name': tool_id[0],
+                        'version': tool_id[1],
+                        'configuration': tool_id[2],
+                    }
+                yield item
 
     def origin_intrinsic_metadata_add(self, metadata, conflict_update=None):
         self.added_data.append(
                 ('origin_intrinsic_metadata', conflict_update, metadata))
 
     def content_metadata_get(self, sha1s):
-        return [{
-            'tool': {
-                'configuration': {
-                    'type': 'local',
-                    'context': 'NpmMapping'
-                    },
-                'version': '0.0.1',
-                'id': 6,
-                'name': 'swh-metadata-translator'
-            },
-            'id': b'cde',
-            'translated_metadata': {
-                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-                'type': 'SoftwareSourceCode',
-                'codemeta:issueTracker':
-                    'https://github.com/librariesio/yarn-parser/issues',
-                'version': '1.0.0',
-                'name': 'yarn-parser',
-                'schema:author': 'Andrew Nesbitt',
-                'url':
-                    'https://github.com/librariesio/yarn-parser#readme',
-                'processorRequirements': {'node': '7.5'},
-                'license': 'AGPL-3.0',
-                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'schema:codeRepository':
-                    'git+https://github.com/librariesio/yarn-parser.git',
-                'description':
-                    'Tiny web service for parsing yarn.lock files',
-                }
-        }]
+        assert sha1s == [b'cde']
+        return CONTENT_METADATA
+
+
+def fill_storage(storage):
+    for origin in ORIGINS:
+        origin = origin.copy()
+        del origin['id']
+        last_origin_id = storage.origin_add_one(origin)
+    visit = storage.origin_visit_add(last_origin_id, datetime.datetime.now())
+    for (snap_id, snap_branches) in SNAPSHOTS.items():
+        storage.snapshot_add(last_origin_id, visit['visit'], {
+            'id': snap_id,
+            'branches': snap_branches
+        })
+    storage.revision_add(REVISIONS)
+    storage.directory_add([{
+        'id': DIRECTORY_ID,
+        'entries': DIRECTORY,
+    }])
 
 
 class MockStorage():
@@ -390,62 +513,11 @@ class MockStorage():
             assert False, origin_id
 
     def revision_get(self, revisions):
-        return [{
-            'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
-            'committer': {
-                'id': 26,
-                'name': b'Andrew Nesbitt',
-                'fullname': b'Andrew Nesbitt <andrewnez@gmail.com>',
-                'email': b'andrewnez@gmail.com'
-            },
-            'synthetic': False,
-            'date': {
-                'negative_utc': False,
-                'timestamp': {
-                    'seconds': 1487596456,
-                    'microseconds': 0
-                },
-                'offset': 0
-            },
-            'directory': b'10'
-        }]
+        return REVISIONS.copy()
 
     def directory_ls(self, directory, recursive=False, cur=None):
-        # with directory: b'\x9d',
-        return [{
-                'sha1_git': b'abc',
-                'name': b'index.js',
-                'target': b'abc',
-                'length': 897,
-                'status': 'visible',
-                'type': 'file',
-                'perms': 33188,
-                'dir_id': b'10',
-                'sha1': b'bcd'
-                },
-                {
-                'sha1_git': b'aab',
-                'name': b'package.json',
-                'target': b'aab',
-                'length': 712,
-                'status': 'visible',
-                'type': 'file',
-                'perms': 33188,
-                'dir_id': b'10',
-                'sha1': b'cde'
-                },
-                {
-                'dir_id': b'10',
-                'target': b'11',
-                'type': 'dir',
-                'length': None,
-                'name': b'.github',
-                'sha1': None,
-                'perms': 16384,
-                'sha1_git': None,
-                'status': None,
-                'sha256': None
-                }]
+        assert directory == DIRECTORY_ID
+        return DIRECTORY
 
 
 class BasicMockStorage():
