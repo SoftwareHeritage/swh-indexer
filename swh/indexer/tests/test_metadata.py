@@ -37,9 +37,6 @@ class ContentMetadataTestIndexer(ContentMetadataIndexer):
     def parse_config_file(self, *args, **kwargs):
         assert False, 'should not be called; the rev indexer configures it.'
 
-    def prepare(self):
-        super().prepare()
-
 
 class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
     """Specific indexer whose configuration is enough to satisfy the
@@ -53,10 +50,6 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
             **BASE_TEST_CONFIG,
             'tools': TRANSLATOR_TOOL,
         }
-
-    def prepare(self):
-        super().prepare()
-        self.tools = list(self.register_tools(self.config['tools']))
 
 
 class Metadata(unittest.TestCase):
