@@ -50,7 +50,7 @@ def compute_license(path, log=None):
 class MixinFossologyLicenseIndexer:
     """Mixin fossology license indexer.
 
-    See :class:`ContentFossologyLicenseIndexer` and
+    See :class:`FossologyLicenseIndexer` and
     :class:`FossologyLicenseRangeIndexer`
 
     """
@@ -138,7 +138,7 @@ class MixinFossologyLicenseIndexer:
             results, conflict_update=(policy_update == 'update-dups'))
 
 
-class ContentFossologyLicenseIndexer(
+class FossologyLicenseIndexer(
         MixinFossologyLicenseIndexer, DiskIndexer, ContentIndexer):
     """Indexer in charge of:
 

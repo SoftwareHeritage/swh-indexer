@@ -11,7 +11,7 @@ from .mimetype import MimetypeIndexer, MimetypeRangeIndexer
 from .language import ContentLanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import (
-    ContentFossologyLicenseIndexer, FossologyLicenseRangeIndexer
+    FossologyLicenseIndexer, FossologyLicenseRangeIndexer
 )
 from .rehash import RecomputeChecksums
 from .metadata import RevisionMetadataIndexer, OriginMetadataIndexer
@@ -99,7 +99,7 @@ class ContentFossologyLicense(Task):
 
     """
     task_queue = 'swh_indexer_content_fossology_license'
-    Indexer = ContentFossologyLicenseIndexer
+    Indexer = FossologyLicenseIndexer
 
 
 class ContentRangeFossologyLicense(StatusTask):

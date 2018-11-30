@@ -9,7 +9,7 @@ import logging
 from unittest.mock import patch
 
 from swh.indexer.fossology_license import (
-    ContentFossologyLicenseIndexer, FossologyLicenseRangeIndexer,
+    FossologyLicenseIndexer, FossologyLicenseRangeIndexer,
     compute_license
 )
 
@@ -60,7 +60,7 @@ class InjectLicenseIndexer:
 
 
 class FossologyLicenseTestIndexer(
-        NoDiskIndexer, InjectLicenseIndexer, ContentFossologyLicenseIndexer):
+        NoDiskIndexer, InjectLicenseIndexer, FossologyLicenseIndexer):
     """Specific fossology license whose configuration is enough to satisfy
        the indexing checks.
 
