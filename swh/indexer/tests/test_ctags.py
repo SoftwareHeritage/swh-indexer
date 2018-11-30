@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import unittest
-import logging
 
 from unittest.mock import patch
 from swh.indexer.ctags import (
@@ -14,7 +13,7 @@ from swh.indexer.ctags import (
 from swh.indexer.tests.test_utils import (
     BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
-    SHA1_TO_CTAGS, NoDiskIndexer
+    SHA1_TO_CTAGS, NoDiskIndexer, BASE_TEST_CONFIG
 )
 
 
@@ -80,8 +79,9 @@ class CtagsIndexerTest(NoDiskIndexer, InjectCtagsIndexer, CtagsIndexer):
     """Specific language whose configuration is enough to satisfy the
        indexing tests.
     """
-    def prepare(self):
-        self.config = {
+    def parse_config_file(self, *args, **kwargs):
+        return {
+            **BASE_TEST_CONFIG,
             'tools': {
                 'name': 'universal-ctags',
                 'version': '~git7859817b',
@@ -95,16 +95,15 @@ class CtagsIndexerTest(NoDiskIndexer, InjectCtagsIndexer, CtagsIndexer):
                 'python': 'python',
                 'haskell': 'haskell',
                 'bar': 'bar',
-            }
+            },
+            'workdir': '/nowhere',
         }
+
+    def prepare(self):
+        super().prepare()
         self.idx_storage = BasicMockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
         self.objstorage = MockObjStorage()
         self.tool_config = self.config['tools']['configuration']
-        self.max_content_size = self.tool_config['max_content_size']
-        self.tools = self.register_tools(self.config['tools'])
-        self.tool = self.tools[0]
-        self.language_map = self.config['languages']
 
 
 class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):

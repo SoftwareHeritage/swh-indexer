@@ -18,9 +18,55 @@ from swh.indexer.tests.storage.generate_data_test import (
 )
 from swh.indexer.tests.storage import SQL_DIR
 
+TOOLS = [
+    {
+        'tool_name': 'universal-ctags',
+        'tool_version': '~git7859817b',
+        'tool_configuration': {
+            "command_line": "ctags --fields=+lnz --sort=no --links=no "
+                            "--output-format=json <filepath>"}
+    },
+    {
+        'tool_name': 'swh-metadata-translator',
+        'tool_version': '0.0.1',
+        'tool_configuration': {"type": "local", "context": "NpmMapping"},
+    },
+    {
+        'tool_name': 'swh-metadata-detector',
+        'tool_version': '0.0.1',
+        'tool_configuration': {
+            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
+    },
+    {
+        'tool_name': 'file',
+        'tool_version': '5.22',
+        'tool_configuration': {"command_line": "file --mime <filepath>"},
+    },
+    {
+        'tool_name': 'pygments',
+        'tool_version': '2.0.1+dfsg-1.1+deb8u1',
+        'tool_configuration': {
+            "type": "library", "debian-package": "python3-pygments"},
+    },
+    {
+        'tool_name': 'pygments',
+        'tool_version': '2.0.1+dfsg-1.1+deb8u1',
+        'tool_configuration': {
+            "type": "library",
+            "debian-package": "python3-pygments",
+            "max_content_size": 10240
+        },
+    },
+    {
+        'tool_name': 'nomos',
+        'tool_version': '3.1.0rc2-31-ga2cbb8c',
+        'tool_configuration': {"command_line": "nomossa <filepath>"},
+    }
+]
+
 
 @pytest.mark.db
-class BaseTestStorage(SingleDbTestFixture):
+class BasePgTestStorage(SingleDbTestFixture):
     """Base test class for most indexer tests.
 
     It adds support for Storage testing to the SingleDbTestFixture class.
@@ -38,34 +84,6 @@ class BaseTestStorage(SingleDbTestFixture):
                 'db': 'dbname=%s' % self.TEST_DB_NAME,
             },
         }
-        self.storage = get_indexer_storage(**self.storage_config)
-
-        self.sha1_1 = hash_to_bytes('34973274ccef6ab4dfaaf86599792fa9c3fe4689')
-        self.sha1_2 = hash_to_bytes('61c2b3a30496d329e21af70dd2d7e097046d07b7')
-        self.revision_id_1 = hash_to_bytes(
-            '7026b7c1a2af56521e951c01ed20f255fa054238')
-        self.revision_id_2 = hash_to_bytes(
-            '7026b7c1a2af56521e9587659012345678904321')
-        self.origin_id_1 = 54974445
-        self.origin_id_2 = 44434342
-
-        cur = self.test_db[self.TEST_DB_NAME].cursor
-        tools = {}
-        cur.execute('''
-            select tool_name, id, tool_version, tool_configuration
-            from indexer_configuration
-            order by id''')
-        for row in cur.fetchall():
-            key = row[0]
-            while key in tools:
-                key = '_' + key
-            tools[key] = {
-                'id': row[1],
-                'name': row[0],
-                'version': row[2],
-                'configuration': row[3]
-            }
-        self.tools = tools
 
     def tearDown(self):
         self.reset_storage_tables()
@@ -80,11 +98,34 @@ class BaseTestStorage(SingleDbTestFixture):
         db.conn.commit()
 
 
-@pytest.mark.db
-class CommonTestStorage(BaseTestStorage):
+class CommonTestStorage:
     """Base class for Indexer Storage testing.
 
     """
+    def setUp(self):
+        super().setUp()
+        self.storage = get_indexer_storage(**self.storage_config)
+        tools = self.storage.indexer_configuration_add(TOOLS)
+        self.tools = {}
+        for tool in tools:
+            tool_name = tool['tool_name']
+            while tool_name in self.tools:
+                tool_name += '_'
+            self.tools[tool_name] = {
+                'id': tool['id'],
+                'name': tool['tool_name'],
+                'version': tool['tool_version'],
+                'configuration': tool['tool_configuration'],
+            }
+
+        self.sha1_1 = hash_to_bytes('34973274ccef6ab4dfaaf86599792fa9c3fe4689')
+        self.sha1_2 = hash_to_bytes('61c2b3a30496d329e21af70dd2d7e097046d07b7')
+        self.revision_id_1 = hash_to_bytes(
+            '7026b7c1a2af56521e951c01ed20f255fa054238')
+        self.revision_id_2 = hash_to_bytes(
+            '7026b7c1a2af56521e9587659012345678904321')
+        self.origin_id_1 = 54974445
+        self.origin_id_2 = 44434342
 
     def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
@@ -214,7 +255,7 @@ class CommonTestStorage(BaseTestStorage):
             'mimetype': 'text/html',
             'encoding': 'us-ascii',
             'tool': {
-                'id': 2,
+                'id': self.tools['file']['id'],
                 'name': 'file',
                 'version': '5.22',
                 'configuration': {'command_line': 'file --mime <filepath>'}
@@ -1707,10 +1748,11 @@ class CommonTestStorage(BaseTestStorage):
             'tool_configuration': {"command_line": "nomossa <filepath>"},
         }
 
+        self.storage.indexer_configuration_add([tool])
         actual_tool = self.storage.indexer_configuration_get(tool)
 
         expected_tool = tool.copy()
-        expected_tool['id'] = 1
+        del actual_tool['id']
 
         self.assertEqual(expected_tool, actual_tool)
 
@@ -1732,6 +1774,7 @@ class CommonTestStorage(BaseTestStorage):
             'tool_configuration': {"type": "local", "context": "NpmMapping"},
         }
 
+        self.storage.indexer_configuration_add([tool])
         actual_tool = self.storage.indexer_configuration_get(tool)
 
         expected_tool = tool.copy()
@@ -1739,12 +1782,7 @@ class CommonTestStorage(BaseTestStorage):
 
         self.assertEqual(expected_tool, actual_tool)
 
-
-@pytest.mark.property_based
-class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
-    """Properties-based tests
-
-    """
+    @pytest.mark.property_based
     def test_generate_content_mimetype_get_range_limit_none(self):
         """mimetype_get_range call with wrong limit input should fail"""
         with self.assertRaises(ValueError) as e:
@@ -1755,6 +1793,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.assertEqual(e.exception.args, (
             'Development error: limit should not be None',))
 
+    @pytest.mark.property_based
     @given(gen_content_mimetypes(min_size=1, max_size=4))
     def test_generate_content_mimetype_get_range_no_limit(self, mimetypes):
         """mimetype_get_range returns mimetypes within range provided"""
@@ -1780,6 +1819,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.assertIsNone(actual_next)
         self.assertEqual(content_ids, actual_ids)
 
+    @pytest.mark.property_based
     @given(gen_content_mimetypes(min_size=4, max_size=4))
     def test_generate_content_mimetype_get_range_limit(self, mimetypes):
         """mimetype_get_range paginates results if limit exceeded"""
@@ -1820,6 +1860,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         expected_mimetypes2 = [content_ids[-1]]
         self.assertEqual(expected_mimetypes2, actual_ids2)
 
+    @pytest.mark.property_based
     def test_generate_content_fossology_license_get_range_limit_none(self):
         """license_get_range call with wrong limit input should fail"""
         with self.assertRaises(ValueError) as e:
@@ -1830,6 +1871,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.assertEqual(e.exception.args, (
             'Development error: limit should not be None',))
 
+    @pytest.mark.property_based
     def prepare_mimetypes_from(self, fossology_licenses):
         """Fossology license needs some consistent data in db to run.
 
@@ -1844,6 +1886,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
             })
         return mimetypes
 
+    @pytest.mark.property_based
     @given(gen_content_fossology_licenses(min_size=1, max_size=4))
     def test_generate_content_fossology_license_get_range_no_limit(
             self, fossology_licenses):
@@ -1874,6 +1917,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.assertIsNone(actual_next)
         self.assertEqual(content_ids, actual_ids)
 
+    @pytest.mark.property_based
     @given(gen_content_fossology_licenses(min_size=1, max_size=4),
            gen_content_mimetypes(min_size=1, max_size=1))
     def test_generate_content_fossology_license_get_range_no_limit_with_filter(
@@ -1912,6 +1956,7 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.assertIsNone(actual_next)
         self.assertEqual(content_ids, actual_ids)
 
+    @pytest.mark.property_based
     @given(gen_content_fossology_licenses(min_size=4, max_size=4))
     def test_generate_fossology_license_get_range_limit(
             self, fossology_licenses):
@@ -1957,7 +2002,9 @@ class PropBasedTestStorage(BaseTestStorage, unittest.TestCase):
         self.assertEqual(expected_fossology_licenses2, actual_ids2)
 
 
-class IndexerTestStorage(CommonTestStorage, unittest.TestCase):
+@pytest.mark.db
+class IndexerTestStorage(CommonTestStorage, BasePgTestStorage,
+                         unittest.TestCase):
     """Running the tests locally.
 
     For the client api tests (remote storage), see

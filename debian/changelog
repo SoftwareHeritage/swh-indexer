@@ -1,8 +1,10 @@
-swh-indexer (0.0.67-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.118-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-backports.
+  * v0.0.118
+  * metadata-indexer: Fix setup initialization
+  * tests: Refactoring
 
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 28 Nov 2018 11:35:37 +0100
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 30 Nov 2018 14:50:52 +0100
 
 swh-indexer (0.0.67-1~swh1) unstable-swh; urgency=medium
 
