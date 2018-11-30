@@ -17,7 +17,8 @@ def compute_license(path, log=None):
         path: filepath to determine the license
 
     Returns:
-        A dict with the following keys:
+        dict: A dict with the following keys:
+
         - licenses ([str]): associated detected licenses to path
         - path (bytes): content filepath
 
@@ -79,7 +80,8 @@ class MixinFossologyLicenseIndexer:
             path: filepath to determine the license
 
         Returns:
-            A dict with the following keys:
+            dict: A dict with the following keys:
+
             - licenses ([str]): associated detected licenses to path
             - path (bytes): content filepath
 
@@ -94,11 +96,12 @@ class MixinFossologyLicenseIndexer:
             raw_content (bytes): associated raw content to content id
 
         Returns:
-            A dict, representing a content_license, with keys:
-              - id (bytes): content's identifier (sha1)
-              - license (bytes): license in bytes
-              - path (bytes): path
-              - indexer_configuration_id (int): tool used to compute the output
+            dict: A dict, representing a content_license, with keys:
+
+            - id (bytes): content's identifier (sha1)
+            - license (bytes): license in bytes
+            - path (bytes): path
+            - indexer_configuration_id (int): tool used to compute the output
 
         """
         content_path = self.write_to_temp(
@@ -121,12 +124,14 @@ class MixinFossologyLicenseIndexer:
 
         Args:
             results ([dict]): list of content_license, dict with the
-            following keys:
+              following keys:
+
               - id (bytes): content's identifier (sha1)
               - license (bytes): license in bytes
               - path (bytes): path
+
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+              respectively update duplicates or ignore them
 
         """
         self.idx_storage.content_fossology_license_add(
@@ -136,6 +141,7 @@ class MixinFossologyLicenseIndexer:
 class ContentFossologyLicenseIndexer(
         MixinFossologyLicenseIndexer, DiskIndexer, ContentIndexer):
     """Indexer in charge of:
+
     - filtering out content already indexed
     - reading content from objstorage per the content's id (sha1)
     - computing {license, encoding} from that content
@@ -158,10 +164,9 @@ class FossologyLicenseRangeIndexer(
         MixinFossologyLicenseIndexer, DiskIndexer, ContentRangeIndexer):
     """FossologyLicense Range Indexer working on range of content identifiers.
 
-    It:
     - filters out the non textual content
     - (optionally) filters out content already indexed (cf
-      :func:`indexed_contents_in_range`)
+      :meth:`.indexed_contents_in_range`)
     - reads content from objstorage per the content's id (sha1)
     - computes {mimetype, encoding} from that content
     - stores result in storage
@@ -170,15 +175,16 @@ class FossologyLicenseRangeIndexer(
     def indexed_contents_in_range(self, start, end):
         """Retrieve indexed content id within range [start, end].
 
-        Args
-            **start** (bytes): Starting bound from range identifier
-            **end** (bytes): End range identifier
+        Args:
+            start (bytes): Starting bound from range identifier
+            end (bytes): End range identifier
 
         Returns:
-            a dict with keys:
+            dict: a dict with keys:
+
             - **ids** [bytes]: iterable of content ids within the range.
             - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
+              this sha1 if any
 
         """
         return self.idx_storage.content_fossology_license_get_range(

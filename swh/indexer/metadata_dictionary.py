@@ -39,12 +39,12 @@ class BaseMapping(metaclass=abc.ABCMeta):
     def detect_metadata_files(self, files):
         """
         Detects files potentially containing metadata
+
         Args:
-            - file_entries (list): list of files
+            file_entries (list): list of files
 
         Returns:
-            - empty list if nothing was found
-            - list of sha1 otherwise
+            list: list of sha1 (possibly empty)
         """
         pass
 
@@ -88,11 +88,11 @@ class DictMapping(BaseMapping):
         and translating with the appropriate mapping
 
         Args:
-            content_dict (dict)
+            content_dict (dict): content dict to translate
 
         Returns:
             dict: translated metadata in json-friendly form needed for
-                  the indexer
+            the indexer
 
         """
         translated_metadata = {'@type': SCHEMA_URI + 'SoftwareSourceCode'}
@@ -128,11 +128,11 @@ class JsonMapping(DictMapping, SingleFileMapping):
         json data and translating with the appropriate mapping
 
         Args:
-            raw_content: bytes
+            raw_content (bytes): raw content to translate
 
         Returns:
             dict: translated metadata in json-friendly form needed for
-                  the indexer
+            the indexer
 
         """
         try:

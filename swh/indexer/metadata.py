@@ -84,11 +84,11 @@ class ContentMetadataIndexer(ContentIndexer):
 
         Args:
             results ([dict]): list of content_metadata, dict with the
-            following keys:
+              following keys:
               - id (bytes): content's identifier (sha1)
               - translated_metadata (jsonb): detected metadata
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+              respectively update duplicates or ignore them
 
         """
         self.idx_storage.content_metadata_add(
@@ -153,9 +153,9 @@ class RevisionMetadataIndexer(RevisionIndexer):
         Returns:
             dict: dictionary representing a revision_metadata, with keys:
 
-                - id (str): rev's identifier (sha1_git)
-                - indexer_configuration_id (bytes): tool used
-                - translated_metadata: dict of retrieved metadata
+            - id (str): rev's identifier (sha1_git)
+            - indexer_configuration_id (bytes): tool used
+            - translated_metadata: dict of retrieved metadata
 
         """
         result = {
@@ -181,12 +181,12 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         Args:
             results ([dict]): list of content_mimetype, dict with the
-            following keys:
+              following keys:
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+              respectively update duplicates or ignore them
 
         """
         # TODO: add functions in storage to keep data in revision_metadata
@@ -280,11 +280,10 @@ class OriginMetadataIndexer(OriginIndexer):
         as first argument; ie. not a list of ids as other indexers would.
 
         Args:
-
-            * `origin_head` (dict): {str(origin_id): rev_id}
+            origin_head (dict): {str(origin_id): rev_id}
               keys `origin_id` and `revision_id`, which is the result
               of OriginHeadIndexer.
-            * `policy_update`: `'ignore-dups'` or `'update-dups'`
+            policy_update (str): `'ignore-dups'` or `'update-dups'`
         """
         origin_head_map = {int(origin_id): hashutil.hash_to_bytes(rev_id)
                            for (origin_id, rev_id) in origin_head.items()}

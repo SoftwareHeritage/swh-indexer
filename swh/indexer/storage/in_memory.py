@@ -50,11 +50,11 @@ class MetadataStorage:
             ids (iterable): sha1 checksums
 
         Yields:
-            dictionaries with the following keys:
+            dict: dictionaries with the following keys:
 
-                id (bytes)
-                translated_metadata (str): associated metadata
-                tool (dict): tool used to compute metadata
+              - **id** (bytes)
+              - **translated_metadata** (str): associated metadata
+              - **tool** (dict): tool used to compute metadata
 
         """
         for id_ in ids:
@@ -72,13 +72,13 @@ class MetadataStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - **id**: sha1
-                - **translated_metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute the
-                                                results
+              - **id**: sha1
+              - **translated_metadata**: arbitrary dict
+              - **indexer_configuration_id**: tool used to compute the
+                results
 
-            conflict_update: Flag to determine if we want to overwrite (true)
-                or skip duplicates (false)
+            conflict_update (bool): Flag to determine if we want to overwrite
+              (true) or skip duplicates (false)
 
         """
         for item in metadata:
@@ -108,9 +108,9 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - **id** (bytes): sha1 identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  the results
+              - **id** (bytes): sha1 identifier
+              - **indexer_configuration_id** (int): tool used to compute
+                the results
 
         Yields:
             missing sha1s
@@ -127,9 +127,9 @@ class IndexerStorage:
         Yields:
             dictionaries with the following keys:
 
-                id (bytes)
-                translated_metadata (str): associated metadata
-                tool (dict): tool used to compute metadata
+              - **id** (bytes)
+              - **translated_metadata** (str): associated metadata
+              - **tool** (dict): tool used to compute metadata
 
         """
         yield from self._content_metadata.get(ids)
@@ -140,10 +140,10 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - **id**: sha1
-                - **translated_metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute the
-                                                results
+              - **id**: sha1
+              - **translated_metadata**: arbitrary dict
+              - **indexer_configuration_id**: tool used to compute the
+                results
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)
@@ -157,9 +157,9 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-               - **id** (bytes): sha1_git revision identifier
-               - **indexer_configuration_id** (int): tool used to compute
-                 the results
+              - **id** (bytes): sha1_git revision identifier
+              - **indexer_configuration_id** (int): tool used to compute
+                the results
 
         Yields:
             missing ids
@@ -176,9 +176,9 @@ class IndexerStorage:
         Yields:
             dictionaries with the following keys:
 
-                - **id** (bytes)
-                - **translated_metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
+            - **id** (bytes)
+            - **translated_metadata** (str): associated metadata
+            - **tool** (dict): tool used to compute metadata
 
         """
         yield from self._revision_metadata.get(ids)
@@ -189,9 +189,9 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - **id**: sha1_git of revision
-                - **translated_metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute metadata
+              - **id**: sha1_git of revision
+              - **translated_metadata**: arbitrary dict
+              - **indexer_configuration_id**: tool used to compute metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -204,16 +204,16 @@ class IndexerStorage:
 
         Args:
             tools ([dict]): List of dictionary representing tool to
-                insert in the db. Dictionary with the following keys:
+              insert in the db. Dictionary with the following keys:
 
-                - **tool_name** (str): tool's name
-                - **tool_version** (str): tool's version
-                - **tool_configuration** (dict): tool's configuration
-                  (free form dict)
+              - **tool_name** (str): tool's name
+              - **tool_version** (str): tool's version
+              - **tool_configuration** (dict): tool's configuration
+                (free form dict)
 
         Returns:
-            List of dict inserted in the db (holding the id key as
-            well).  The order of the list is not guaranteed to match
+            list: List of dict inserted in the db (holding the id key as
+            well). The order of the list is not guaranteed to match
             the order of the initial list.
 
         """
@@ -231,12 +231,12 @@ class IndexerStorage:
 
         Args:
             tool (dict): Dictionary representing a tool with the
-                following keys:
+              following keys:
 
-                - **tool_name** (str): tool's name
-                - **tool_version** (str): tool's version
-                - **tool_configuration** (dict): tool's configuration
-                  (free form dict)
+              - **tool_name** (str): tool's name
+              - **tool_version** (str): tool's version
+              - **tool_configuration** (dict): tool's configuration
+                (free form dict)
 
         Returns:
             The same dictionary with an `id` key, None otherwise.
