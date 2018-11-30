@@ -426,6 +426,14 @@ class Metadata(unittest.TestCase):
               </snapshots>
             </repository>
           </repositories>
+          <licenses>
+            <license>
+              <name>Apache License, Version 2.0</name>
+              <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              <distribution>repo</distribution>
+              <comments>A business-friendly OSS license</comments>
+            </license>
+          </licenses>
         </project>"""
         result = MAPPINGS["MavenMapping"].translate(raw_content)
         self.assertEqual(result, {
@@ -434,6 +442,7 @@ class Metadata(unittest.TestCase):
             'name': 'Maven Default Project',
             'identifier': 'com.mycompany.app',
             'version': '1.2.3',
+            'license': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
             'codeRepository':
                 'http://repo1.maven.org/maven2/com/mycompany/app/my-app',
             })

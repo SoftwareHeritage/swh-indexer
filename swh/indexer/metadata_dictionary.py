@@ -246,6 +246,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
         d = xmltodict.parse(content)['project']
         metadata = self.translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
+        metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)
         return self.normalize_translation(metadata)
 
     _default_repository = {'url': 'https://repo.maven.apache.org/maven2/'}
@@ -277,6 +278,13 @@ class MavenMapping(DictMapping, SingleFileMapping):
 
     def normalize_groupId(self, id_):
         return {"@id": id_}
+
+    def parse_licenses(self, d):
+        """https://maven.apache.org/pom.html#Licenses"""
+        licenses = d.get('licenses', {}).get('license', [])
+        if isinstance(licenses, dict):
+            licenses = [licenses]
+        return [{"@id": license['url']} for license in licenses]
 
 
 def main():
