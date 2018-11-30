@@ -1,3 +1,11 @@
+swh-indexer (0.0.118-1~swh1) unstable-swh; urgency=medium
+
+  * v0.0.118
+  * metadata-indexer: Fix setup initialization
+  * tests: Refactoring
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 30 Nov 2018 14:50:52 +0100
+
 swh-indexer (0.0.67-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.67
