@@ -166,24 +166,26 @@ class NpmMapping(JsonMapping):
     def normalize_repository(self, d):
         """https://docs.npmjs.com/files/package.json#repository"""
         if isinstance(d, dict):
-            return '{type}+{url}'.format(**d)
+            url = '{type}+{url}'.format(**d)
         elif isinstance(d, str):
             if '://' in d:
-                return d
+                url = d
             elif ':' in d:
                 (schema, rest) = d.split(':', 1)
                 if schema in self._schema_shortcuts:
-                    return self._schema_shortcuts[schema] + rest
+                    url = self._schema_shortcuts[schema] + rest
                 else:
                     return None
             else:
-                return self._schema_shortcuts['github'] + d
+                url = self._schema_shortcuts['github'] + d
 
         else:
             return None
 
+        return {'@id': url}
+
     def normalize_bugs(self, d):
-        return '{url}'.format(**d)
+        return {'@id': '{url}'.format(**d)}
 
     _parse_author = re.compile(r'^ *'
                                r'(?P<name>.*?)'
@@ -211,8 +213,14 @@ class NpmMapping(JsonMapping):
         if email:
             author[SCHEMA_URI+'email'] = email
         if url:
-            author[SCHEMA_URI+'url'] = url
-        return author
+            author[SCHEMA_URI+'url'] = {'@id': url}
+        return {"@list": [author]}
+
+    def normalize_license(self, s):
+        return {"@id": "https://spdx.org/licenses/" + s}
+
+    def normalize_homepage(self, s):
+        return {"@id": s}
 
 
 @register_mapping
@@ -265,7 +273,10 @@ class MavenMapping(DictMapping, SingleFileMapping):
             url = os.path.join(url, *d['groupId'].split('.'))
             if d['artifactId']:
                 url = os.path.join(url, d['artifactId'])
-        return url
+        return {"@id": url}
+
+    def normalize_groupId(self, id_):
+        return {"@id": id_}
 
 
 def main():

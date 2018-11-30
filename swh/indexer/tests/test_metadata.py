@@ -130,13 +130,13 @@ class Metadata(unittest.TestCase):
             'name': 'test_metadata',
             'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
-            'schema:codeRepository':
+            'codeRepository':
                 'git+https://github.com/moranegg/metadata_test',
-            'schema:author': {
+            'author': [{
                 'type': 'Person',
                 'name': 'Morane G',
                 'email': 'moranegg@example.com',
-            },
+            }],
         }
 
         # when
@@ -154,20 +154,20 @@ class Metadata(unittest.TestCase):
             'name': 'test_1',
             'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
-            'schema:codeRepository':
+            'codeRepository':
                 'git+https://github.com/moranegg/metadata_test',
         }, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'test_0_1',
             'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
-            'schema:codeRepository':
+            'codeRepository':
                 'git+https://github.com/moranegg/metadata_test'
         }, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'test_metadata',
             'version': '0.0.2',
-            'schema:author': 'moranegg',
+            'author': 'moranegg',
         }]
 
         # when
@@ -179,8 +179,8 @@ class Metadata(unittest.TestCase):
             "version": '0.0.2',
             "description": 'Simple package.json test for indexer',
             "name": ['test_1', 'test_0_1', 'test_metadata'],
-            "schema:author": 'moranegg',
-            "schema:codeRepository":
+            "author": ['moranegg'],
+            "codeRepository":
                 'git+https://github.com/moranegg/metadata_test',
         }
         self.assertEqual(expected_results, results)
@@ -213,7 +213,7 @@ class Metadata(unittest.TestCase):
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
-                'schema:codeRepository':
+                'codeRepository':
                     'git+https://github.com/moranegg/metadata_test',
                 'description': 'Simple package.json test for indexer',
                 'name': 'test_metadata',
@@ -224,18 +224,18 @@ class Metadata(unittest.TestCase):
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
-                'codemeta:issueTracker':
+                'issueTracker':
                     'https://github.com/npm/npm/issues',
-                'schema:author': {
+                'author': [{
                     'type': 'Person',
                     'name': 'Isaac Z. Schlueter',
                     'email': 'i@izs.me',
-                    'schema:url': 'http://blog.izs.me',
-                },
-                'schema:codeRepository':
+                    'url': 'http://blog.izs.me',
+                }],
+                'codeRepository':
                     'git+https://github.com/npm/npm',
                 'description': 'a package manager for JavaScript',
-                'schema:license': 'Artistic-2.0',
+                'license': 'https://spdx.org/licenses/Artistic-2.0',
                 'version': '5.0.3',
                 'name': 'npm',
                 'keywords': [
@@ -244,7 +244,7 @@ class Metadata(unittest.TestCase):
                     'package manager',
                     'package.json'
                 ],
-                'schema:url': 'https://docs.npmjs.com/'
+                'url': 'https://docs.npmjs.com/'
             },
             'id': hash_to_bytes('d4c647f0fc257591cc9ba1722484229780d1c607')
             }, {
@@ -432,9 +432,9 @@ class Metadata(unittest.TestCase):
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
             'name': 'Maven Default Project',
-            'schema:identifier': 'com.mycompany.app',
+            'identifier': 'com.mycompany.app',
             'version': '1.2.3',
-            'schema:codeRepository':
+            'codeRepository':
                 'http://repo1.maven.org/maven2/com/mycompany/app/my-app',
             })
 
@@ -453,17 +453,17 @@ class Metadata(unittest.TestCase):
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
-                'codemeta:issueTracker':
+                'issueTracker':
                     'https://github.com/librariesio/yarn-parser/issues',
                 'version': '1.0.0',
                 'name': 'yarn-parser',
-                'schema:author': 'Andrew Nesbitt',
+                'author': ['Andrew Nesbitt'],
                 'url':
                     'https://github.com/librariesio/yarn-parser#readme',
                 'processorRequirements': {'node': '7.5'},
                 'license': 'AGPL-3.0',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'schema:codeRepository':
+                'codeRepository':
                     'git+https://github.com/librariesio/yarn-parser.git',
                 'description':
                     'Tiny web service for parsing yarn.lock files',
@@ -485,14 +485,14 @@ class Metadata(unittest.TestCase):
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'url':
                     'https://github.com/librariesio/yarn-parser#readme',
-                'schema:codeRepository':
+                'codeRepository':
                     'git+https://github.com/librariesio/yarn-parser.git',
-                'schema:author': 'Andrew Nesbitt',
+                'author': ['Andrew Nesbitt'],
                 'license': 'AGPL-3.0',
                 'version': '1.0.0',
                 'description':
                     'Tiny web service for parsing yarn.lock files',
-                'codemeta:issueTracker':
+                'issueTracker':
                     'https://github.com/librariesio/yarn-parser/issues',
                 'name': 'yarn-parser',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
