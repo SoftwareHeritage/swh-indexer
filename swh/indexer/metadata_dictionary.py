@@ -293,7 +293,6 @@ class MavenMapping(DictMapping, SingleFileMapping):
 
         Which was translated to a dict by xmltodict and is given as `d`:
 
-        >>> from pprint import pprint
         >>> d = {
         ...     # ...
         ...     "licenses": {
@@ -306,6 +305,10 @@ class MavenMapping(DictMapping, SingleFileMapping):
         ... }
         >>> MavenMapping().parse_licenses(d)
         [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'}]
+
+        or, if there are more than one license:
+
+        >>> from pprint import pprint
         >>> d = {
         ...     # ...
         ...     "licenses": {
@@ -325,8 +328,6 @@ class MavenMapping(DictMapping, SingleFileMapping):
         >>> pprint(MavenMapping().parse_licenses(d))
         [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'},
          {'@id': 'https://opensource.org/licenses/MIT'}]
-
-        or, if there are more than one license:
         """
 
         licenses = d.get('licenses', {}).get('license', [])
