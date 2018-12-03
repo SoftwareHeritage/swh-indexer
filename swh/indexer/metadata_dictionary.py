@@ -280,7 +280,55 @@ class MavenMapping(DictMapping, SingleFileMapping):
         return {"@id": id_}
 
     def parse_licenses(self, d):
-        """https://maven.apache.org/pom.html#Licenses"""
+        """https://maven.apache.org/pom.html#Licenses
+
+        The origin XML has the form:
+
+            <licenses>
+              <license>
+                <name>Apache License, Version 2.0</name>
+                <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              </license>
+            </licenses>
+
+        Which was translated to a dict by xmltodict and is given as `d`:
+
+        >>> from pprint import pprint
+        >>> d = {
+        ...     # ...
+        ...     "licenses": {
+        ...         "license": {
+        ...             "name": "Apache License, Version 2.0",
+        ...             "url":
+        ...             "https://www.apache.org/licenses/LICENSE-2.0.txt"
+        ...         }
+        ...     }
+        ... }
+        >>> MavenMapping().parse_licenses(d)
+        [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'}]
+        >>> d = {
+        ...     # ...
+        ...     "licenses": {
+        ...         "license": [
+        ...             {
+        ...                 "name": "Apache License, Version 2.0",
+        ...                 "url":
+        ...                 "https://www.apache.org/licenses/LICENSE-2.0.txt"
+        ...             },
+        ...             {
+        ...                 "name": "MIT License, ",
+        ...                 "url": "https://opensource.org/licenses/MIT"
+        ...             }
+        ...         ]
+        ...     }
+        ... }
+        >>> pprint(MavenMapping().parse_licenses(d))
+        [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'},
+         {'@id': 'https://opensource.org/licenses/MIT'}]
+
+        or, if there are more than one license:
+        """
+
         licenses = d.get('licenses', {}).get('license', [])
         if isinstance(licenses, dict):
             licenses = [licenses]

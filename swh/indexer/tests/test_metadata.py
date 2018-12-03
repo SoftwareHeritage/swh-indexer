@@ -445,7 +445,84 @@ class Metadata(unittest.TestCase):
             'license': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
             'codeRepository':
                 'http://repo1.maven.org/maven2/com/mycompany/app/my-app',
-            })
+        })
+
+    def test_compute_metadata_maven_minimal(self):
+        raw_content = b"""
+        <project>
+          <name>Maven Default Project</name>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.mycompany.app</groupId>
+          <artifactId>my-app</artifactId>
+          <version>1.2.3</version>
+        </project>"""
+        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'Maven Default Project',
+            'identifier': 'com.mycompany.app',
+            'version': '1.2.3',
+            'codeRepository':
+            'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
+            'license': [],
+        })
+
+    def test_compute_metadata_maven_multiple(self):
+        '''Tests when there are multiple code repos and licenses.'''
+        raw_content = b"""
+        <project>
+          <name>Maven Default Project</name>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.mycompany.app</groupId>
+          <artifactId>my-app</artifactId>
+          <version>1.2.3</version>
+          <repositories>
+            <repository>
+              <id>central</id>
+              <name>Maven Repository Switchboard</name>
+              <layout>default</layout>
+              <url>http://repo1.maven.org/maven2</url>
+              <snapshots>
+                <enabled>false</enabled>
+              </snapshots>
+            </repository>
+            <repository>
+              <id>example</id>
+              <name>Example Maven Repo</name>
+              <layout>default</layout>
+              <url>http://example.org/maven2</url>
+            </repository>
+          </repositories>
+          <licenses>
+            <license>
+              <name>Apache License, Version 2.0</name>
+              <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              <distribution>repo</distribution>
+              <comments>A business-friendly OSS license</comments>
+            </license>
+            <license>
+              <name>MIT license</name>
+              <url>https://opensource.org/licenses/MIT</url>
+            </license>
+          </licenses>
+        </project>"""
+        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'Maven Default Project',
+            'identifier': 'com.mycompany.app',
+            'version': '1.2.3',
+            'license': [
+                'https://www.apache.org/licenses/LICENSE-2.0.txt',
+                'https://opensource.org/licenses/MIT',
+            ],
+            'codeRepository': [
+                'http://repo1.maven.org/maven2/com/mycompany/app/my-app',
+                'http://example.org/maven2/com/mycompany/app/my-app',
+            ]
+        })
 
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataTestIndexer()
