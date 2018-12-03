@@ -82,7 +82,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
     To implement a new object type indexer, inherit from the
     BaseIndexer and implement indexing:
 
-    :meth:`.run`:
+    :meth:`~BaseIndexer.run`:
       object_ids are different depending on object. For example: sha1 for
       content, sha1_git for revision, directory, release, and id for origin
 
@@ -92,27 +92,27 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
     Then you need to implement the following functions:
 
-    :meth:`.filter`:
+    :meth:`~BaseIndexer.filter`:
       filter out data already indexed (in storage).
 
-    :meth:`.index_object`:
+    :meth:`~BaseIndexer.index_object`:
       compute index on id with data (retrieved from the storage or the
       objstorage by the id key) and return the resulting index computation.
 
-    :meth:`.persist_index_computations`:
+    :meth:`~BaseIndexer.persist_index_computations`:
       persist the results of multiple index computations in the storage.
 
     The new indexer implementation can also override the following functions:
 
-    :meth:`.prepare`:
+    :meth:`~BaseIndexer.prepare`:
       Configuration preparation for the indexer.  When overriding, this must
       call the `super().prepare()` instruction.
 
-    :meth:`.check`:
+    :meth:`~BaseIndexer.check`:
       Configuration check for the indexer.  When overriding, this must call the
       `super().check()` instruction.
 
-    :meth:`.register_tools`:
+    :meth:`~BaseIndexer.register_tools`:
       This should return a dict of the tool(s) to use when indexing or
       filtering.
 
