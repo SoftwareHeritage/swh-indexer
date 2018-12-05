@@ -166,8 +166,7 @@ class IndexerStorage:
             if conflict_update:
                 item_ctags = []
             else:
-                # TODO: this merges old ctags with new ctags. This is
-                # pointless, new ctags should replace the old ones.
+                # merge old ctags with new ctags
                 existing = list(self._content_ctags.get([item['id']]))
                 item_ctags = [
                     {

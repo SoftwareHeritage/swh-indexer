@@ -107,8 +107,13 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
     - Unknown sha1 in the input list are not indexed
 
     """
+
+    def get_indexer_results(self, ids):
+        yield from self.idx_storage.content_ctags_get(ids)
+
     def setUp(self):
         self.indexer = CtagsIndexerTest()
+        self.idx_storage = self.indexer.idx_storage
 
         # Prepare test input
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'

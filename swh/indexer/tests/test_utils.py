@@ -659,7 +659,13 @@ class CommonIndexerWithErrorsTest:
 
 
 class CommonContentIndexerTest:
-    def assert_results_ok(self, actual_results, expected_results=None):
+    def get_indexer_results(self, ids):
+        """Override this for indexers that don't have a mock storage."""
+        return self.indexer.idx_storage.state
+
+    def assert_results_ok(self, sha1s, expected_results=None):
+        actual_results = self.get_indexer_results(sha1s)
+
         if expected_results is None:
             expected_results = self.expected_results
 
@@ -678,15 +684,12 @@ class CommonContentIndexerTest:
         # when
         self.indexer.run(sha1s, policy_update='update-dups')
 
-        actual_results = self.indexer.idx_storage.state
-        self.assertTrue(self.indexer.idx_storage.conflict_update)
-        self.assert_results_ok(actual_results)
+        self.assert_results_ok(sha1s)
 
         # 2nd pass
         self.indexer.run(sha1s, policy_update='ignore-dups')
 
-        self.assertFalse(self.indexer.idx_storage.conflict_update)
-        self.assert_results_ok(actual_results)
+        self.assert_results_ok(sha1s)
 
     def test_index_one_unknown_sha1(self):
         """Unknown sha1 are not indexed"""
@@ -696,14 +699,13 @@ class CommonContentIndexerTest:
 
         # when
         self.indexer.run(sha1s, policy_update='update-dups')
-        actual_results = self.indexer.idx_storage.state
 
         # then
         expected_results = {
             k: v for k, v in self.expected_results.items() if k in sha1s
         }
 
-        self.assert_results_ok(actual_results, expected_results)
+        self.assert_results_ok(sha1s, expected_results)
 
 
 class CommonContentIndexerRangeTest:
