@@ -11,7 +11,7 @@ from swh.indexer.ctags import (
 )
 
 from swh.indexer.tests.test_utils import (
-    BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
+    CommonContentIndexerTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
     SHA1_TO_CTAGS, NoDiskIndexer, BASE_TEST_CONFIG
 )
@@ -98,12 +98,6 @@ class CtagsIndexerTest(NoDiskIndexer, InjectCtagsIndexer, CtagsIndexer):
             },
             'workdir': '/nowhere',
         }
-
-    def prepare(self):
-        super().prepare()
-        self.idx_storage = BasicMockIndexerStorage()
-        self.objstorage = MockObjStorage()
-        self.tool_config = self.config['tools']['configuration']
 
 
 class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):

@@ -6,28 +6,30 @@
 from collections import defaultdict
 import json
 
+SHA1_DIGEST_SIZE = 160
 
-class MetadataStorage:
-    """Implements missing/get/add logic for both content_metadata and
-    revision_metadata."""
+
+def _transform_tool(tool):
+    return {
+        'id': tool['id'],
+        'name': tool['tool_name'],
+        'version': tool['tool_version'],
+        'configuration': tool['tool_configuration'],
+    }
+
+
+class SubStorage:
+    """Implements common missing/get/add logic for each indexer type."""
     def __init__(self, tools):
         self._tools = tools
-        self._metadata = {}  # map (id_, tool_id) -> metadata_dict
+        self._data = {}  # map (id_, tool_id) -> metadata_dict
         self._tools_per_id = defaultdict(set)  # map id_ -> Set[tool_id]
 
-    def _transform_tool(self, tool):
-        return {
-            'id': tool['id'],
-            'name': tool['tool_name'],
-            'version': tool['tool_version'],
-            'configuration': tool['tool_configuration'],
-        }
-
     def missing(self, ids):
-        """List metadata missing from storage.
+        """List data missing from storage.
 
         Args:
-            metadata (iterable): dictionaries with keys:
+            data (iterable): dictionaries with keys:
 
                 - **id** (bytes): sha1 identifier
                 - **indexer_configuration_id** (int): tool used to compute
@@ -44,7 +46,7 @@ class MetadataStorage:
                 yield id_
 
     def get(self, ids):
-        """Retrieve metadata per id.
+        """Retrieve data per id.
 
         Args:
             ids (iterable): sha1 checksums
@@ -53,8 +55,8 @@ class MetadataStorage:
             dict: dictionaries with the following keys:
 
               - **id** (bytes)
-              - **translated_metadata** (str): associated metadata
               - **tool** (dict): tool used to compute metadata
+              - arbitrary data (as provided to `add`)
 
         """
         for id_ in ids:
@@ -62,35 +64,36 @@ class MetadataStorage:
                 key = (id_, tool_id)
                 yield {
                     'id': id_,
-                    'tool': self._transform_tool(self._tools[tool_id]),
-                    'translated_metadata': self._metadata[key],
+                    'tool': _transform_tool(self._tools[tool_id]),
+                    **self._data[key],
                 }
 
-    def add(self, metadata, conflict_update):
-        """Add metadata not present in storage.
+    def add(self, data, conflict_update):
+        """Add data not present in storage.
 
         Args:
-            metadata (iterable): dictionaries with keys:
+            data (iterable): dictionaries with keys:
 
               - **id**: sha1
-              - **translated_metadata**: arbitrary dict
               - **indexer_configuration_id**: tool used to compute the
                 results
+              - arbitrary data
 
             conflict_update (bool): Flag to determine if we want to overwrite
               (true) or skip duplicates (false)
 
         """
-        for item in metadata:
-            tool_id = item['indexer_configuration_id']
-            data = item['translated_metadata']
-            id_ = item['id']
+        for item in data:
+            item = item.copy()
+            tool_id = item.pop('indexer_configuration_id')
+            id_ = item.pop('id')
+            data = item
             if not conflict_update and \
                     tool_id in self._tools_per_id.get(id_, set()):
                 # Duplicate, should not be updated
                 continue
             key = (id_, tool_id)
-            self._metadata[key] = data
+            self._data[key] = data
             self._tools_per_id[id_].add(tool_id)
 
 
@@ -99,8 +102,122 @@ class IndexerStorage:
 
     def __init__(self):
         self._tools = {}
-        self._content_metadata = MetadataStorage(self._tools)
-        self._revision_metadata = MetadataStorage(self._tools)
+        self._content_ctags = SubStorage(self._tools)
+        self._content_metadata = SubStorage(self._tools)
+        self._revision_metadata = SubStorage(self._tools)
+
+    def content_ctags_missing(self, ctags):
+        """List ctags missing from storage.
+
+        Args:
+            ctags (iterable): dicts with keys:
+
+                - **id** (bytes): sha1 identifier
+                - **indexer_configuration_id** (int): tool used to compute
+                  the results
+
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
+
+        """
+        yield from self._content_ctags.missing(ctags)
+
+    def content_ctags_get(self, ids):
+        """Retrieve ctags per id.
+
+        Args:
+            ids (iterable): sha1 checksums
+
+        Yields:
+            Dictionaries with keys:
+
+                - **id** (bytes): content's identifier
+                - **name** (str): symbol's name
+                - **kind** (str): symbol's kind
+                - **lang** (str): language for that content
+                - **tool** (dict): tool used to compute the ctags' info
+
+
+        """
+        for item in self._content_ctags.get(ids):
+            for item_ctags_item in item['ctags']:
+                yield {
+                    'id': item['id'],
+                    'tool': item['tool'],
+                    **item_ctags_item
+                }
+
+    def content_ctags_add(self, ctags, conflict_update=False):
+        """Add ctags not present in storage
+
+        Args:
+            ctags (iterable): dictionaries with keys:
+
+              - **id** (bytes): sha1
+              - **ctags** ([list): List of dictionary with keys: name, kind,
+                  line, lang
+              - **indexer_configuration_id**: tool used to compute the
+                results
+
+        """
+        for item in ctags:
+            tool_id = item['indexer_configuration_id']
+            if conflict_update:
+                item_ctags = []
+            else:
+                # TODO: this merges old ctags with new ctags. This is
+                # pointless, new ctags should replace the old ones.
+                existing = list(self._content_ctags.get([item['id']]))
+                item_ctags = [
+                    {
+                        key: ctags_item[key]
+                        for key in ('name', 'kind', 'line', 'lang')
+                    }
+                    for existing_item in existing
+                    if existing_item['tool']['id'] == tool_id
+                    for ctags_item in existing_item['ctags']
+                ]
+            for new_item_ctags in item['ctags']:
+                if new_item_ctags not in item_ctags:
+                    item_ctags.append(new_item_ctags)
+            self._content_ctags.add([
+                {
+                    'id': item['id'],
+                    'indexer_configuration_id': tool_id,
+                    'ctags': item_ctags,
+                }
+            ], conflict_update=True)
+
+    def content_ctags_search(self, expression,
+                             limit=10, last_sha1=None, db=None, cur=None):
+        """Search through content's raw ctags symbols.
+
+        Args:
+            expression (str): Expression to search for
+            limit (int): Number of rows to return (default to 10).
+            last_sha1 (str): Offset from which retrieving data (default to '').
+
+        Yields:
+            rows of ctags including id, name, lang, kind, line, etc...
+
+        """
+        nb_matches = 0
+        for ((id_, tool_id), item) in \
+                sorted(self._content_ctags._data.items()):
+            if id_ <= (last_sha1 or bytes(0 for _ in range(SHA1_DIGEST_SIZE))):
+                continue
+            nb_matches += 1
+            for ctags_item in item['ctags']:
+                if ctags_item['name'] != expression:
+                    continue
+                yield {
+                    'id': id_,
+                    'tool': _transform_tool(self._tools[tool_id]),
+                    **ctags_item
+                }
+            if nb_matches >= limit:
+                return
 
     def content_metadata_missing(self, metadata):
         """List metadata missing from storage.

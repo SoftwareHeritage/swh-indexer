@@ -346,7 +346,7 @@ class IndexerStorage:
                 - **id** (bytes): content's identifier
                 - **name** (str): symbol's name
                 - **kind** (str): symbol's kind
-                - **language** (str): language for that content
+                - **lang** (str): language for that content
                 - **tool** (dict): tool used to compute the ctags' info
 
 
@@ -365,7 +365,7 @@ class IndexerStorage:
 
                 - **id** (bytes): sha1
                 - **ctags** ([list): List of dictionary with keys: name, kind,
-                  line, language
+                  line, lang
 
         """
         def _convert_ctags(__ctags):

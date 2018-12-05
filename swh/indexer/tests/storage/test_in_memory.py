@@ -50,30 +50,6 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
         pass
 
     @pytest.mark.xfail
-    def test_content_ctags_missing(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_ctags_get(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_ctags_search(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_ctags_search_no_result(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_ctags_add__add_new_ctags_added(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_ctags_add__update_in_place(self):
-        pass
-
-    @pytest.mark.xfail
     def test_content_fossology_license_get(self):
         pass
 
