@@ -412,9 +412,8 @@ class IndexerStorage:
             ids (iterable): sha1 checksums
 
         Yields:
-            list: dictionaries with the following keys:
+            `{id: facts}` where `facts` is a dict with the following keys:
 
-                - **id** (bytes)
                 - **licenses** ([str]): associated licenses for that content
                 - **tool** (dict): Tool used to compute the license
 
@@ -439,7 +438,7 @@ class IndexerStorage:
             licenses (iterable): dictionaries with keys:
 
                 - **id**: sha1
-                - **license** ([bytes]): List of licenses associated to sha1
+                - **licenses** ([bytes]): List of licenses associated to sha1
                 - **tool** (str): nomossa
 
             conflict_update: Flag to determine if we want to overwrite (true)

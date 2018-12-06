@@ -13,6 +13,9 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
         }
         super().setUp()
 
+    def reset_storage_tables(self):
+        self.storage = self.storage.__class__()
+
     @pytest.mark.xfail
     def test_check_config(self):
         pass
@@ -31,18 +34,6 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
 
     @pytest.mark.xfail
     def test_content_language_add__update_in_place_duplicate(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_fossology_license_get(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_fossology_license_add__new_license_added(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_fossology_license_add__update_in_place_duplicate(self):
         pass
 
     @pytest.mark.xfail
@@ -83,21 +74,4 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
 
     @pytest.mark.xfail
     def test_generate_content_mimetype_get_range_limit(self, mimetypes):
-        pass
-
-    @pytest.mark.xfail
-    def test_generate_content_fossology_license_get_range_limit_none(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_generate_content_fossology_license_get_range_no_limit(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_generate_content_fossology_license_get_range_no_limit_with_filter(
-            self):
-        pass
-
-    @pytest.mark.xfail
-    def test_generate_fossology_license_get_range_limit(self):
         pass

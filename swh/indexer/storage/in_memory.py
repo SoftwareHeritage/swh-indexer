@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import bisect
 from collections import defaultdict
 import json
 
@@ -22,6 +23,7 @@ class SubStorage:
     """Implements common missing/get/add logic for each indexer type."""
     def __init__(self, tools):
         self._tools = tools
+        self._sorted_ids = []
         self._data = {}  # map (id_, tool_id) -> metadata_dict
         self._tools_per_id = defaultdict(set)  # map id_ -> Set[tool_id]
 
@@ -68,6 +70,42 @@ class SubStorage:
                     **self._data[key],
                 }
 
+    def get_range(self, start, end, indexer_configuration_id, limit):
+        """Retrieve data within range [start, end] bound by limit.
+
+        Args:
+            **start** (bytes): Starting identifier range (expected smaller
+                           than end)
+            **end** (bytes): Ending identifier range (expected larger
+                             than start)
+            **indexer_configuration_id** (int): The tool used to index data
+            **limit** (int): Limit result
+
+        Raises:
+            ValueError for limit to None
+
+        Returns:
+            a dict with keys:
+            - **ids** [bytes]: iterable of content ids within the range.
+            - **next** (Optional[bytes]): The next range of sha1 starts at
+                                          this sha1 if any
+
+        """
+        if limit is None:
+            raise ValueError('Development error: limit should not be None')
+        from_index = bisect.bisect_left(self._sorted_ids, start)
+        to_index = bisect.bisect_right(self._sorted_ids, end, lo=from_index)
+        if to_index - from_index >= limit:
+            return {
+                'ids': self._sorted_ids[from_index:from_index+limit],
+                'next': self._sorted_ids[from_index+limit],
+            }
+        else:
+            return {
+                'ids': self._sorted_ids[from_index:to_index],
+                'next': None,
+                }
+
     def add(self, data, conflict_update):
         """Add data not present in storage.
 
@@ -95,6 +133,35 @@ class SubStorage:
             key = (id_, tool_id)
             self._data[key] = data
             self._tools_per_id[id_].add(tool_id)
+            if id_ not in self._sorted_ids:
+                bisect.insort(self._sorted_ids, id_)
+
+    def add_merge(self, new_data, conflict_update, merged_key):
+        for new_item in new_data:
+            id_ = new_item['id']
+            tool_id = new_item['indexer_configuration_id']
+            if conflict_update:
+                all_subitems = []
+            else:
+                existing = list(self.get([id_]))
+                all_subitems = [
+                    old_subitem
+                    for existing_item in existing
+                    if existing_item['tool']['id'] == tool_id
+                    for old_subitem in existing_item[merged_key]
+                ]
+            for new_subitem in new_item[merged_key]:
+                if new_subitem not in all_subitems:
+                    all_subitems.append(new_subitem)
+            self.add([
+                {
+                    'id': id_,
+                    'indexer_configuration_id': tool_id,
+                    merged_key: all_subitems,
+                }
+            ], conflict_update=True)
+            if id_ not in self._sorted_ids:
+                bisect.insort(self._sorted_ids, id_)
 
 
 class IndexerStorage:
@@ -104,6 +171,7 @@ class IndexerStorage:
         self._tools = {}
         self._mimetypes = SubStorage(self._tools)
         self._content_ctags = SubStorage(self._tools)
+        self._licenses = SubStorage(self._tools)
         self._content_metadata = SubStorage(self._tools)
         self._revision_metadata = SubStorage(self._tools)
 
@@ -213,32 +281,7 @@ class IndexerStorage:
                 results
 
         """
-        for item in ctags:
-            tool_id = item['indexer_configuration_id']
-            if conflict_update:
-                item_ctags = []
-            else:
-                # merge old ctags with new ctags
-                existing = list(self._content_ctags.get([item['id']]))
-                item_ctags = [
-                    {
-                        key: ctags_item[key]
-                        for key in ('name', 'kind', 'line', 'lang')
-                    }
-                    for existing_item in existing
-                    if existing_item['tool']['id'] == tool_id
-                    for ctags_item in existing_item['ctags']
-                ]
-            for new_item_ctags in item['ctags']:
-                if new_item_ctags not in item_ctags:
-                    item_ctags.append(new_item_ctags)
-            self._content_ctags.add([
-                {
-                    'id': item['id'],
-                    'indexer_configuration_id': tool_id,
-                    'ctags': item_ctags,
-                }
-            ], conflict_update=True)
+        self._content_ctags.add_merge(ctags, conflict_update, 'ctags')
 
     def content_ctags_search(self, expression,
                              limit=10, last_sha1=None, db=None, cur=None):
@@ -269,6 +312,71 @@ class IndexerStorage:
                 }
             if nb_matches >= limit:
                 return
+
+    def content_fossology_license_get(self, ids):
+        """Retrieve licenses per id.
+
+        Args:
+            ids (iterable): sha1 checksums
+
+        Yields:
+            `{id: facts}` where `facts` is a dict with the following keys:
+
+                - **licenses** ([str]): associated licenses for that content
+                - **tool** (dict): Tool used to compute the license
+
+        """
+        # TODO: remove this reformatting in order to yield items with the
+        # same format as other _get methods.
+        res = {}
+        for d in self._licenses.get(ids):
+            res.setdefault(d.pop('id'), []).append(d)
+        for (id_, facts) in res.items():
+            yield {id_: facts}
+
+    def content_fossology_license_add(self, licenses, conflict_update=False):
+        """Add licenses not present in storage.
+
+        Args:
+            licenses (iterable): dictionaries with keys:
+
+                - **id**: sha1
+                - **licenses** ([bytes]): List of licenses associated to sha1
+                - **tool** (str): nomossa
+
+            conflict_update: Flag to determine if we want to overwrite (true)
+                or skip duplicates (false, the default)
+
+        Returns:
+            list: content_license entries which failed due to unknown licenses
+
+        """
+        self._licenses.add_merge(licenses, conflict_update, 'licenses')
+
+    def content_fossology_license_get_range(
+            self, start, end, indexer_configuration_id, limit=1000):
+        """Retrieve licenses within range [start, end] bound by limit.
+
+        Args:
+            **start** (bytes): Starting identifier range (expected smaller
+                           than end)
+            **end** (bytes): Ending identifier range (expected larger
+                             than start)
+            **indexer_configuration_id** (int): The tool used to index data
+            **limit** (int): Limit result (default to 1000)
+
+        Raises:
+            ValueError for limit to None
+
+        Returns:
+            a dict with keys:
+            - **ids** [bytes]: iterable of content ids within the range.
+            - **next** (Optional[bytes]): The next range of sha1 starts at
+                                          this sha1 if any
+
+        """
+        return self._licenses.get_range(
+            start, end, indexer_configuration_id, limit)
 
     def content_metadata_missing(self, metadata):
         """List metadata missing from storage.
