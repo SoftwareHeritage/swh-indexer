@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import unittest
-import logging
 
 from unittest.mock import patch
 
@@ -61,12 +60,6 @@ class MimetypeTestIndexer(MimetypeIndexer):
             },
         }
 
-    def prepare(self):
-        super().prepare()
-        self.idx_storage = BasicMockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
-        self.objstorage = MockObjStorage()
-
 
 class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
     """Mimetype indexer test scenarios:
@@ -75,8 +68,13 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
     - Unknown sha1 in the input list are not indexed
 
     """
+
+    def get_indexer_results(self, ids):
+        yield from self.idx_storage.content_mimetype_get(ids)
+
     def setUp(self):
         self.indexer = MimetypeTestIndexer()
+        self.idx_storage = self.indexer.idx_storage
 
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'

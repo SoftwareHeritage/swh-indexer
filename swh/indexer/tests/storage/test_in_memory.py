@@ -18,22 +18,6 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
         pass
 
     @pytest.mark.xfail
-    def test_content_mimetype_missing(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_mimetype_add__drop_duplicate(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_mimetype_add__update_in_place_duplicate(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_content_mimetype_get(self):
-        pass
-
-    @pytest.mark.xfail
     def test_content_language_missing(self):
         pass
 

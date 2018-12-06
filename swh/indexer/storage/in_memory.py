@@ -102,9 +102,61 @@ class IndexerStorage:
 
     def __init__(self):
         self._tools = {}
+        self._mimetypes = SubStorage(self._tools)
         self._content_ctags = SubStorage(self._tools)
         self._content_metadata = SubStorage(self._tools)
         self._revision_metadata = SubStorage(self._tools)
+
+    def content_mimetype_missing(self, mimetypes):
+        """Generate mimetypes missing from storage.
+
+        Args:
+            mimetypes (iterable): iterable of dict with keys:
+
+              - **id** (bytes): sha1 identifier
+              - **indexer_configuration_id** (int): tool used to compute the
+                results
+
+        Yields:
+            tuple (id, indexer_configuration_id): missing id
+
+        """
+        yield from self._mimetypes.missing(mimetypes)
+
+    def content_mimetype_add(self, mimetypes, conflict_update=False):
+        """Add mimetypes not present in storage.
+
+        Args:
+            mimetypes (iterable): dictionaries with keys:
+
+              - **id** (bytes): sha1 identifier
+              - **mimetype** (bytes): raw content's mimetype
+              - **encoding** (bytes): raw content's encoding
+              - **indexer_configuration_id** (int): tool's id used to
+                compute the results
+              - **conflict_update** (bool): Flag to determine if we want to
+                overwrite (``True``) or skip duplicates (``False``, the
+                default)
+
+        """
+        self._mimetypes.add(mimetypes, conflict_update)
+
+    def content_mimetype_get(self, ids, db=None, cur=None):
+        """Retrieve full content mimetype per ids.
+
+        Args:
+            ids (iterable): sha1 identifier
+
+        Yields:
+            mimetypes (iterable): dictionaries with keys:
+
+                - **id** (bytes): sha1 identifier
+                - **mimetype** (bytes): raw content's mimetype
+                - **encoding** (bytes): raw content's encoding
+                - **tool** (dict): Tool used to compute the language
+
+        """
+        yield from self._mimetypes.get(ids)
 
     def content_ctags_missing(self, ctags):
         """List ctags missing from storage.
