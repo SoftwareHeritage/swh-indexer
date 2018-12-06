@@ -78,12 +78,6 @@ class FossologyLicenseTestIndexer(
             },
         }
 
-    def prepare(self):
-        super().prepare()
-        self.idx_storage = BasicMockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
-        self.objstorage = MockObjStorage()
-
 
 class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
     """Language indexer test scenarios:
@@ -92,8 +86,13 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
     - Unknown sha1 in the input list are not indexed
 
     """
+
+    def get_indexer_results(self, ids):
+        yield from self.idx_storage.content_ctags_get(ids)
+
     def setUp(self):
         self.indexer = FossologyLicenseTestIndexer()
+        self.idx_storage = self.indexer.idx_storage
 
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
