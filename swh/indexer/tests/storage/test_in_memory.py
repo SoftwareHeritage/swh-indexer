@@ -63,15 +63,3 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
     @pytest.mark.xfail
     def test_indexer_configuration_metadata_get(self):
         pass
-
-    @pytest.mark.xfail
-    def test_generate_content_mimetype_get_range_limit_none(self):
-        pass
-
-    @pytest.mark.xfail
-    def test_generate_content_mimetype_get_range_no_limit(self, mimetypes):
-        pass
-
-    @pytest.mark.xfail
-    def test_generate_content_mimetype_get_range_limit(self, mimetypes):
-        pass

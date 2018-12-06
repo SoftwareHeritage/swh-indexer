@@ -405,11 +405,14 @@ class ContentRangeIndexer(BaseIndexer):
             bytes: Identifier of contents to index.
 
         """
+        if not isinstance(start, bytes) or not isinstance(end, bytes):
+            raise TypeError('identifiers must be bytes, not %r and %r.' %
+                            (start, end))
         while start:
             result = self.storage.content_get_range(start, end)
             contents = result['contents']
             for c in contents:
-                _id = c['sha1']
+                _id = hashutil.hash_to_bytes(c['sha1'])
                 if _id in indexed:
                     continue
                 yield _id
@@ -435,6 +438,10 @@ class ContentRangeIndexer(BaseIndexer):
                                  hashutil.hash_to_hex(sha1))
                 continue
             res = self.index(sha1, raw_content, **kwargs)
+            if not isinstance(res['id'], bytes):
+                raise TypeError(
+                    '%r.index should return ids as bytes, not %r' %
+                    (self.__class__.__name__, res['id']))
             if res:
                 yield res
 

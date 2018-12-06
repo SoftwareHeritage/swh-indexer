@@ -104,6 +104,7 @@ class MixinFossologyLicenseIndexer:
             - indexer_configuration_id (int): tool used to compute the output
 
         """
+        assert isinstance(id, bytes)
         content_path = self.write_to_temp(
             filename=hashutil.hash_to_hex(id),  # use the id as pathname
             data=data)

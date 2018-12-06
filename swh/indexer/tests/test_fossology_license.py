@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import unittest
-import logging
 
 from unittest.mock import patch
 
@@ -14,10 +13,9 @@ from swh.indexer.fossology_license import (
 )
 
 from swh.indexer.tests.test_utils import (
-    MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
     SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool, NoDiskIndexer,
-    BASE_TEST_CONFIG
+    BASE_TEST_CONFIG, fill_storage, fill_obj_storage
 )
 
 
@@ -91,6 +89,7 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         yield from self.idx_storage.content_ctags_get(ids)
 
     def setUp(self):
+        super().setUp()
         self.indexer = FossologyLicenseTestIndexer()
         self.idx_storage = self.indexer.idx_storage
 
@@ -137,15 +136,6 @@ class FossologyLicenseRangeIndexerTest(
             'write_batch_size': 100,
         }
 
-    def prepare(self):
-        super().prepare()
-        self.idx_storage = BasicMockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
-        # this hardcodes some contents, will use this to setup the storage
-        self.objstorage = MockObjStorage()
-        contents = [{'sha1': c_id} for c_id in self.objstorage]
-        self.storage = BasicMockStorage(contents)
-
 
 class TestFossologyLicenseRangeIndexer(
         CommonContentIndexerRangeTest, unittest.TestCase):
@@ -158,12 +148,10 @@ class TestFossologyLicenseRangeIndexer(
 
     """
     def setUp(self):
+        super().setUp()
         self.indexer = FossologyLicenseRangeIndexerTest()
-        # will play along with the objstorage's mocked contents for now
-        self.contents = sorted(self.indexer.objstorage)
-        # FIXME: leverage swh.objstorage.in_memory_storage's
-        # InMemoryObjStorage, swh.storage.tests's gen_contents, and
-        # hypothesis to generate data to actually run indexer on those
+        fill_storage(self.indexer.storage)
+        fill_obj_storage(self.indexer.objstorage)
 
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = '02fb2c89e14f7fab46701478c83779c7beb7b069'

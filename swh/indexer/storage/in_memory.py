@@ -191,6 +191,31 @@ class IndexerStorage:
         """
         yield from self._mimetypes.missing(mimetypes)
 
+    def content_mimetype_get_range(
+            self, start, end, indexer_configuration_id, limit=1000):
+        """Retrieve mimetypes within range [start, end] bound by limit.
+
+        Args:
+            **start** (bytes): Starting identifier range (expected smaller
+                           than end)
+            **end** (bytes): Ending identifier range (expected larger
+                             than start)
+            **indexer_configuration_id** (int): The tool used to index data
+            **limit** (int): Limit result (default to 1000)
+
+        Raises:
+            ValueError for limit to None
+
+        Returns:
+            a dict with keys:
+            - **ids** [bytes]: iterable of content ids within the range.
+            - **next** (Optional[bytes]): The next range of sha1 starts at
+                                          this sha1 if any
+
+        """
+        return self._mimetypes.get_range(
+            start, end, indexer_configuration_id, limit)
+
     def content_mimetype_add(self, mimetypes, conflict_update=False):
         """Add mimetypes not present in storage.
 
@@ -207,6 +232,8 @@ class IndexerStorage:
                 default)
 
         """
+        if not all(isinstance(x['id'], bytes) for x in mimetypes):
+            raise TypeError('identifiers must be bytes.')
         self._mimetypes.add(mimetypes, conflict_update)
 
     def content_mimetype_get(self, ids, db=None, cur=None):
@@ -281,6 +308,8 @@ class IndexerStorage:
                 results
 
         """
+        if not all(isinstance(x['id'], bytes) for x in ctags):
+            raise TypeError('identifiers must be bytes.')
         self._content_ctags.add_merge(ctags, conflict_update, 'ctags')
 
     def content_ctags_search(self, expression,
@@ -351,6 +380,8 @@ class IndexerStorage:
             list: content_license entries which failed due to unknown licenses
 
         """
+        if not all(isinstance(x['id'], bytes) for x in licenses):
+            raise TypeError('identifiers must be bytes.')
         self._licenses.add_merge(licenses, conflict_update, 'licenses')
 
     def content_fossology_license_get_range(
@@ -425,6 +456,8 @@ class IndexerStorage:
                 or skip duplicates (false, the default)
 
         """
+        if not all(isinstance(x['id'], bytes) for x in metadata):
+            raise TypeError('identifiers must be bytes.')
         self._content_metadata.add(metadata, conflict_update)
 
     def revision_metadata_missing(self, metadata):
@@ -473,6 +506,8 @@ class IndexerStorage:
               or skip duplicates (false, the default)
 
         """
+        if not all(isinstance(x['id'], bytes) for x in metadata):
+            raise TypeError('identifiers must be bytes.')
         self._revision_metadata.add(metadata, conflict_update)
 
     def indexer_configuration_add(self, tools):

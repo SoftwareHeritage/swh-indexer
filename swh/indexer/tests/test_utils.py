@@ -4,10 +4,12 @@
 # See top-level LICENSE file for more information
 
 import datetime
+import hashlib
+import random
 
 from swh.objstorage.exc import ObjNotFoundError
 from swh.model import hashutil
-from swh.model.hashutil import hash_to_bytes
+from swh.model.hashutil import hash_to_bytes, hash_to_hex
 
 from swh.indexer.storage import INDEXER_CFG_KEY
 
@@ -488,6 +490,22 @@ def fill_storage(storage):
         'id': DIRECTORY_ID,
         'entries': DIRECTORY,
     }])
+    for (obj_id, content) in OBJ_STORAGE_DATA.items():
+        # TODO: use MultiHash
+        if hasattr(hashlib, 'blake2s'):
+            blake2s256 = hashlib.blake2s(content, digest_size=32).digest()
+        else:
+            # fallback for Python <3.6
+            blake2s256 = bytes([random.randint(0, 255) for _ in range(32)])
+        storage.content_add([{
+            'data': content,
+            'length': len(content),
+            'status': 'visible',
+            'sha1': hash_to_bytes(obj_id),
+            'sha1_git': hash_to_bytes(obj_id),
+            'sha256': hashlib.sha256(content).digest(),
+            'blake2s256': blake2s256
+        }])
 
 
 class MockStorage():
@@ -664,6 +682,8 @@ class CommonContentIndexerTest:
         return self.indexer.idx_storage.state
 
     def assert_results_ok(self, sha1s, expected_results=None):
+        sha1s = [sha1 if isinstance(sha1, bytes) else hash_to_bytes(sha1)
+                 for sha1 in sha1s]
         actual_results = self.get_indexer_results(sha1s)
 
         if expected_results is None:
@@ -712,15 +732,22 @@ class CommonContentIndexerRangeTest:
     """Allows to factorize tests on range indexer.
 
     """
+    def setUp(self):
+        self.contents = sorted(OBJ_STORAGE_DATA)
+
     def assert_results_ok(self, start, end, actual_results,
                           expected_results=None):
         if expected_results is None:
             expected_results = self.expected_results
 
+        actual_results = list(actual_results)
         for indexed_data in actual_results:
             _id = indexed_data['id']
-            self.assertEqual(indexed_data, expected_results[_id])
-            self.assertTrue(start <= _id and _id <= end)
+            assert isinstance(_id, bytes)
+            indexed_data = indexed_data.copy()
+            indexed_data['id'] = hash_to_hex(indexed_data['id'])
+            self.assertEqual(indexed_data, expected_results[hash_to_hex(_id)])
+            self.assertTrue(start <= _id <= end)
             _tool_id = indexed_data['indexer_configuration_id']
             self.assertEqual(_tool_id, self.indexer.tool['id'])
 
@@ -728,7 +755,8 @@ class CommonContentIndexerRangeTest:
         """Indexing contents without existing data results in indexed data
 
         """
-        start, end = [self.contents[0], self.contents[2]]  # output hex ids
+        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
+        start, end = map(hashutil.hash_to_bytes, (_start, _end))
         # given
         actual_results = list(self.indexer._index_contents(
             start, end, indexed={}))
@@ -739,12 +767,13 @@ class CommonContentIndexerRangeTest:
         """Indexing contents with existing data results in less indexed data
 
         """
-        start, end = [self.contents[0], self.contents[2]]  # output hex ids
+        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
+        start, end = map(hashutil.hash_to_bytes, (_start, _end))
         data_indexed = [self.id0, self.id2]
 
         # given
         actual_results = self.indexer._index_contents(
-            start, end, indexed=set(data_indexed))
+            start, end, indexed=set(map(hash_to_bytes, data_indexed)))
 
         # craft the expected results
         expected_results = self.expected_results.copy()
@@ -758,7 +787,8 @@ class CommonContentIndexerRangeTest:
         """Optimal indexing should result in indexed data
 
         """
-        start, end = [self.contents[0], self.contents[2]]  # output hex ids
+        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
+        start, end = map(hashutil.hash_to_bytes, (_start, _end))
 
         # given
         actual_results = self.indexer.run(start, end)
@@ -785,8 +815,9 @@ class CommonContentIndexerRangeTest:
 
     def test_generate_content_get_no_result(self):
         """No result indexed returns False"""
-        start, end = ['0000000000000000000000000000000000000000',
-                      '0000000000000000000000000000000000000001']
+        _start, _end = ['0000000000000000000000000000000000000000',
+                        '0000000000000000000000000000000000000001']
+        start, end = map(hashutil.hash_to_bytes, (_start, _end))
         # given
         actual_results = self.indexer.run(
             start, end, incremental=False)
