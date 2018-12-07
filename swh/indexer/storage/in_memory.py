@@ -4,8 +4,12 @@
 # See top-level LICENSE file for more information
 
 import bisect
-from collections import defaultdict
+from collections import defaultdict, Counter
+import itertools
 import json
+import operator
+import math
+import re
 
 SHA1_DIGEST_SIZE = 160
 
@@ -69,6 +73,9 @@ class SubStorage:
                     'tool': _transform_tool(self._tools[tool_id]),
                     **self._data[key],
                 }
+
+    def get_all(self):
+        yield from self.get(list(self._tools_per_id))
 
     def get_range(self, start, end, indexer_configuration_id, limit):
         """Retrieve data within range [start, end] bound by limit.
@@ -175,6 +182,7 @@ class IndexerStorage:
         self._licenses = SubStorage(self._tools)
         self._content_metadata = SubStorage(self._tools)
         self._revision_metadata = SubStorage(self._tools)
+        self._origin_intrinsic_metadata = SubStorage(self._tools)
 
     def content_mimetype_missing(self, mimetypes):
         """Generate mimetypes missing from storage.
@@ -559,6 +567,96 @@ class IndexerStorage:
         if not all(isinstance(x['id'], bytes) for x in metadata):
             raise TypeError('identifiers must be bytes.')
         self._revision_metadata.add(metadata, conflict_update)
+
+    def origin_intrinsic_metadata_get(self, ids):
+        """Retrieve origin metadata per id.
+
+        Args:
+            ids (iterable): origin identifiers
+
+        Yields:
+            list: dictionaries with the following keys:
+
+                - **origin_id** (int)
+                - **translated_metadata** (str): associated metadata
+                - **tool** (dict): tool used to compute metadata
+
+        """
+        for item in self._origin_intrinsic_metadata.get(ids):
+            item['origin_id'] = item.pop('id')
+            yield item
+
+    def origin_intrinsic_metadata_add(self, metadata,
+                                      conflict_update=False):
+        """Add origin metadata not present in storage.
+
+        Args:
+            metadata (iterable): dictionaries with keys:
+
+                - **origin_id**: origin identifier
+                - **from_revision**: sha1 id of the revision used to generate
+                  these metadata.
+                - **metadata**: arbitrary dict
+                - **indexer_configuration_id**: tool used to compute metadata
+
+            conflict_update: Flag to determine if we want to overwrite (true)
+              or skip duplicates (false, the default)
+
+        """
+
+        for item in metadata:
+            item = item.copy()
+            item['id'] = item.pop('origin_id')
+            self._origin_intrinsic_metadata.add([item], conflict_update)
+
+    def origin_intrinsic_metadata_search_fulltext(
+            self, conjunction, limit=100):
+        """Returns the list of origins whose metadata contain all the terms.
+
+        Args:
+            conjunction (List[str]): List of terms to be searched for.
+            limit (int): The maximum number of results to return
+
+        Yields:
+            list: dictionaries with the following keys:
+
+                - **id** (int)
+                - **metadata** (str): associated metadata
+                - **tool** (dict): tool used to compute metadata
+
+        """
+        # A very crude fulltext search implementation, but that's enough
+        # to work on English metadata
+        tokens_re = re.compile('[a-zA-Z0-9]+')
+        search_tokens = list(itertools.chain(
+            *map(tokens_re.findall, conjunction)))
+
+        def rank(data):
+            # Tokenize the metadata
+            text = json.dumps(data['metadata'])
+            text_tokens = tokens_re.findall(text)
+            text_token_occurences = Counter(text_tokens)
+
+            # Count the number of occurences of search tokens in the text
+            score = 0
+            for search_token in search_tokens:
+                if text_token_occurences[search_token] == 0:
+                    # Search token is not in the text.
+                    return 0
+                score += text_token_occurences[search_token]
+
+            # Normalize according to the text's length
+            return score / math.log(len(text_tokens))
+
+        results = [(rank(data), data)
+                   for data in self._origin_intrinsic_metadata.get_all()]
+        results = [(rank_, data) for (rank_, data) in results if rank_ > 0]
+        results.sort(key=operator.itemgetter(0),  # Don't try to order 'data'
+                     reverse=True)
+        for (rank_, result) in results[:limit]:
+            result = result.copy()
+            result['origin_id'] = result.pop('id')
+            yield result
 
     def indexer_configuration_add(self, tools):
         """Add new tools to the storage.
