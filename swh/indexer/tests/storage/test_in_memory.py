@@ -1,5 +1,4 @@
 from unittest import TestCase
-import pytest
 
 from .test_storage import CommonTestStorage
 
@@ -16,6 +15,5 @@ class IndexerTestInMemoryStorage(CommonTestStorage, TestCase):
     def reset_storage_tables(self):
         self.storage = self.storage.__class__()
 
-    @pytest.mark.xfail
     def test_check_config(self):
         pass

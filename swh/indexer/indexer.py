@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import abc
+import ast
 import os
 import logging
 import shutil
@@ -543,6 +544,10 @@ class OriginIndexer(BaseIndexer):
         results = []
 
         for id_ in ids:
+            if isinstance(id_, str):
+                # Data coming from JSON, which requires string keys, so
+                # one extra level of deserialization is needed
+                id_ = ast.literal_eval(id_)
             if isinstance(id_, (tuple, list)):
                 if len(id_) != 2:
                     raise TypeError('Expected a (type, url) tuple.')
@@ -554,8 +559,8 @@ class OriginIndexer(BaseIndexer):
                 raise TypeError('Invalid value in "ids": %r' % id_)
             origin = self.storage.origin_get(params)
             if not origin:
-                self.log.warning('Origins %s not found in storage' %
-                                 list(ids))
+                self.log.warning('Origin %s not found in storage' %
+                                 list(id_))
                 continue
             try:
                 res = self.index(origin, **kwargs)
@@ -563,7 +568,7 @@ class OriginIndexer(BaseIndexer):
                     results.append(res)
             except Exception:
                 self.log.exception(
-                        'Problem when processing origin %s' % id_)
+                        'Problem when processing origin %s' % (id_,))
         self.persist_index_computations(results, policy_update)
         self.results = results
         return self.next_step(results, task=next_step)

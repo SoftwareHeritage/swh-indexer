@@ -323,6 +323,48 @@ OBJ_STORAGE_DATA = {
     'a7ab314d8a11d2c93e3dcf528ca294e7b431c449': b"""
     """,
     'da39a3ee5e6b4b0d3255bfef95601890afd80709': b'',
+    '636465': b"""
+    {
+      "name": "yarn-parser",
+      "version": "1.0.0",
+      "description": "Tiny web service for parsing yarn.lock files",
+      "main": "index.js",
+      "scripts": {
+        "start": "node index.js",
+        "test": "mocha"
+      },
+      "engines": {
+        "node": "9.8.0"
+      },
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/librariesio/yarn-parser.git"
+      },
+      "keywords": [
+        "yarn",
+        "parse",
+        "lock",
+        "dependencies"
+      ],
+      "author": "Andrew Nesbitt",
+      "license": "AGPL-3.0",
+      "bugs": {
+        "url": "https://github.com/librariesio/yarn-parser/issues"
+      },
+      "homepage": "https://github.com/librariesio/yarn-parser#readme",
+      "dependencies": {
+        "@yarnpkg/lockfile": "^1.0.0",
+        "body-parser": "^1.15.2",
+        "express": "^4.14.0"
+      },
+      "devDependencies": {
+        "chai": "^4.1.2",
+        "mocha": "^5.2.0",
+        "request": "^2.87.0",
+        "test": "^0.6.0"
+      }
+    }
+"""
 }
 
 CONTENT_METADATA = [{
@@ -478,12 +520,21 @@ def fill_storage(storage):
     for origin in ORIGINS:
         origin = origin.copy()
         del origin['id']
-        last_origin_id = storage.origin_add_one(origin)
-    visit = storage.origin_visit_add(last_origin_id, datetime.datetime.now())
-    for (snap_id, snap_branches) in SNAPSHOTS.items():
-        storage.snapshot_add(last_origin_id, visit['visit'], {
+        storage.origin_add_one(origin)
+    for (orig_pseudo_id, snap) in SNAPSHOTS.items():
+        for orig in ORIGINS:
+            if orig_pseudo_id == orig['id']:
+                origin_id = storage.origin_get(
+                    {'type': orig['type'], 'url': orig['url']})['id']
+                break
+        else:
+            assert False
+        visit = storage.origin_visit_add(origin_id, datetime.datetime.now())
+        snap_id = snap.get('id') or \
+            bytes([random.randint(0, 255) for _ in range(32)])
+        storage.snapshot_add(origin_id, visit['visit'], {
             'id': snap_id,
-            'branches': snap_branches
+            'branches': snap['branches']
         })
     storage.revision_add(REVISIONS)
     storage.directory_add([{

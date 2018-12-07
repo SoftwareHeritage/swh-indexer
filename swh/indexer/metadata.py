@@ -285,7 +285,7 @@ class OriginMetadataIndexer(OriginIndexer):
               of OriginHeadIndexer.
             policy_update (str): `'ignore-dups'` or `'update-dups'`
         """
-        origin_head_map = {int(origin_id): hashutil.hash_to_bytes(rev_id)
+        origin_head_map = {origin_id: hashutil.hash_to_bytes(rev_id)
                            for (origin_id, rev_id) in origin_head.items()}
 
         # Fix up the argument order. revisions_metadata has to be the
@@ -298,7 +298,7 @@ class OriginMetadataIndexer(OriginIndexer):
 
     def index(self, origin, *, origin_head_map):
         # Get the last revision of the origin.
-        revision_id = origin_head_map[origin['id']]
+        revision_id = origin_head_map[str(origin['id'])]
 
         revision_metadata = self.idx_storage \
             .revision_metadata_get([revision_id])

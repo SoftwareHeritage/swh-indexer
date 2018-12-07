@@ -628,7 +628,7 @@ class IndexerStorage:
             list: dictionaries with the following keys:
 
                 - **origin_id** (int)
-                - **translated_metadata** (str): associated metadata
+                - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
 
         """
