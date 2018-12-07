@@ -7,8 +7,8 @@ import unittest
 from swh.indexer import language
 from swh.indexer.language import LanguageIndexer
 from swh.indexer.tests.test_utils import (
-    BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool, BASE_TEST_CONFIG
+    CommonContentIndexerTest, CommonIndexerWithErrorsTest,
+    CommonIndexerNoTool, BASE_TEST_CONFIG, fill_storage, fill_obj_storage
 )
 
 
@@ -29,12 +29,6 @@ class LanguageTestIndexer(LanguageIndexer):
                 },
             }
         }
-
-    def prepare(self):
-        super().prepare()
-        self.idx_storage = BasicMockIndexerStorage()
-        self.objstorage = MockObjStorage()
-        self.tool_config = self.config['tools']['configuration']
 
 
 class Language(unittest.TestCase):
@@ -60,8 +54,14 @@ class TestLanguageIndexer(CommonContentIndexerTest, unittest.TestCase):
     - Unknown sha1 in the input list are not indexed
 
     """
+
+    def get_indexer_results(self, ids):
+        yield from self.indexer.idx_storage.content_language_get(ids)
+
     def setUp(self):
         self.indexer = LanguageTestIndexer()
+        fill_storage(self.indexer.storage)
+        fill_obj_storage(self.indexer.objstorage)
 
         self.id0 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
         self.id1 = '103bc087db1d26afc3a0283f38663d081e9b01e6'

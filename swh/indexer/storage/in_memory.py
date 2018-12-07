@@ -170,6 +170,7 @@ class IndexerStorage:
     def __init__(self):
         self._tools = {}
         self._mimetypes = SubStorage(self._tools)
+        self._languages = SubStorage(self._tools)
         self._content_ctags = SubStorage(self._tools)
         self._licenses = SubStorage(self._tools)
         self._content_metadata = SubStorage(self._tools)
@@ -252,6 +253,55 @@ class IndexerStorage:
 
         """
         yield from self._mimetypes.get(ids)
+
+    def content_language_missing(self, languages):
+        """List languages missing from storage.
+
+        Args:
+            languages (iterable): dictionaries with keys:
+
+                - **id** (bytes): sha1 identifier
+                - **indexer_configuration_id** (int): tool used to compute
+                  the results
+
+        Yields:
+            an iterable of missing id for the tuple (id,
+            indexer_configuration_id)
+
+        """
+        yield from self._languages.missing(languages)
+
+    def content_language_get(self, ids):
+        """Retrieve full content language per ids.
+
+        Args:
+            ids (iterable): sha1 identifier
+
+        Yields:
+            languages (iterable): dictionaries with keys:
+
+                - **id** (bytes): sha1 identifier
+                - **lang** (bytes): raw content's language
+                - **tool** (dict): Tool used to compute the language
+
+        """
+        yield from self._languages.get(ids)
+
+    def content_language_add(self, languages, conflict_update=False):
+        """Add languages not present in storage.
+
+        Args:
+            languages (iterable): dictionaries with keys:
+
+                - **id** (bytes): sha1
+                - **lang** (bytes): language detected
+
+            conflict_update (bool): Flag to determine if we want to
+                overwrite (true) or skip duplicates (false, the
+                default)
+
+        """
+        self._languages.add(languages, conflict_update)
 
     def content_ctags_missing(self, ctags):
         """List ctags missing from storage.
