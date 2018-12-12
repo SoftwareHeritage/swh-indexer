@@ -560,6 +560,12 @@ class CommonTestStorage:
                     'line': 119,
                     'lang': 'Python',
                 },
+                {
+                    'name': 'hello',
+                    'kind': 'variable',
+                    'line': 210,
+                    'lang': 'Python',
+                },
             ]
         }
 
@@ -571,6 +577,12 @@ class CommonTestStorage:
                     'name': 'hello',
                     'kind': 'variable',
                     'line': 100,
+                    'lang': 'C',
+                },
+                {
+                    'name': 'result',
+                    'kind': 'variable',
+                    'line': 120,
                     'lang': 'C',
                 },
             ]
@@ -626,6 +638,14 @@ class CommonTestStorage:
                 'lang': 'Python',
             },
             {
+                'id': ctag1['id'],
+                'tool': tool,
+                'name': 'hello',
+                'kind': 'variable',
+                'line': 210,
+                'lang': 'Python',
+            },
+            {
                 'id': ctag2['id'],
                 'tool': tool,
                 'name': 'hello',
@@ -646,6 +666,20 @@ class CommonTestStorage:
             'kind': 'variable',
             'line': 119,
             'lang': 'Python',
+        }])
+
+        # 5. when
+        actual_ctags = list(self.storage.content_ctags_search('result',
+                                                              limit=1))
+
+        # then
+        self.assertEqual(actual_ctags, [{
+            'id': ctag2['id'],
+            'tool': tool,
+            'name': 'result',
+            'kind': 'variable',
+            'line': 120,
+            'lang': 'C',
         }])
 
     def test_content_ctags_search_no_result(self):

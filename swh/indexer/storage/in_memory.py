@@ -388,17 +388,17 @@ class IndexerStorage:
                 sorted(self._content_ctags._data.items()):
             if id_ <= (last_sha1 or bytes(0 for _ in range(SHA1_DIGEST_SIZE))):
                 continue
-            nb_matches += 1
             for ctags_item in item['ctags']:
                 if ctags_item['name'] != expression:
                     continue
+                nb_matches += 1
                 yield {
                     'id': id_,
                     'tool': _transform_tool(self._tools[tool_id]),
                     **ctags_item
                 }
-            if nb_matches >= limit:
-                return
+                if nb_matches >= limit:
+                    return
 
     def content_fossology_license_get(self, ids):
         """Retrieve licenses per id.
