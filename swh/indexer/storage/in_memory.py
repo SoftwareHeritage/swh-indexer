@@ -413,8 +413,10 @@ class IndexerStorage:
                 - **tool** (dict): Tool used to compute the license
 
         """
-        # TODO: remove this reformatting in order to yield items with the
-        # same format as other _get methods.
+        # Rewrites the output of SubStorage.get from the old format to
+        # the new one. SubStorage.get should be updated once all other
+        # *_get methods use the new format.
+        # See: https://forge.softwareheritage.org/T1433
         res = {}
         for d in self._licenses.get(ids):
             res.setdefault(d.pop('id'), []).append(d)
