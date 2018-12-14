@@ -60,14 +60,14 @@ def run_from_webserver(environ, start_response,
 
 
 @click.command()
+@click.argument('config-path', required=1)
 @click.option('--host', default='0.0.0.0', help="Host to run the server")
 @click.option('--port', default=5007, type=click.INT,
               help="Binding port of the server")
 @click.option('--debug/--nodebug', default=True,
               help="Indicates if the server should run in debug mode")
-def launch(host, port, debug):
-    cfg = config.load_named_config(DEFAULT_CONFIG_PATH, DEFAULT_CONFIG)
-    app.config.update(cfg)
+def launch(config_path, host, port, debug):
+    app.config.update(config.read(config_path, DEFAULT_CONFIG))
     app.run(host, port=int(port), debug=bool(debug))
 
 
