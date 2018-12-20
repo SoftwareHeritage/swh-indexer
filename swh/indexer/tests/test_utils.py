@@ -482,16 +482,28 @@ class CommonContentIndexerTest:
     def assert_results_ok(self, sha1s, expected_results=None):
         sha1s = [sha1 if isinstance(sha1, bytes) else hash_to_bytes(sha1)
                  for sha1 in sha1s]
-        actual_results = self.get_indexer_results(sha1s)
+        actual_results = list(self.get_indexer_results(sha1s))
 
         if expected_results is None:
             expected_results = self.expected_results
 
+        self.assertEqual(len(expected_results), len(actual_results),
+                         (expected_results, actual_results))
         for indexed_data in actual_results:
-            _id = indexed_data['id']
-            self.assertEqual(indexed_data, expected_results[_id])
-            _tool_id = indexed_data['indexer_configuration_id']
-            self.assertEqual(_tool_id, self.indexer.tool['id'])
+            if 'id' in indexed_data:
+                # XXX old format, remove this when all endpoints are
+                #     updated to the new one
+                _id = indexed_data['id']
+            else:
+                (_id, indexed_data) = list(indexed_data.items())[0]
+            expected_data = expected_results[hashutil.hash_to_hex(_id)].copy()
+            if 'id' in indexed_data:
+                expected_data['id'] = \
+                    hashutil.hash_to_bytes(expected_data['id'])
+            else:
+                del expected_data['id']
+                expected_data = [expected_data]
+            self.assertEqual(indexed_data, expected_data)
 
     def test_index(self):
         """Known sha1 have their data indexed

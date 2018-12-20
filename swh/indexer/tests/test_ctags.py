@@ -13,7 +13,8 @@ from swh.indexer.ctags import (
 from swh.indexer.tests.test_utils import (
     CommonContentIndexerTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
-    SHA1_TO_CTAGS, NoDiskIndexer, BASE_TEST_CONFIG
+    SHA1_TO_CTAGS, NoDiskIndexer, BASE_TEST_CONFIG,
+    fill_storage, fill_obj_storage
 )
 
 
@@ -114,27 +115,31 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
     def setUp(self):
         self.indexer = CtagsIndexerTest()
         self.idx_storage = self.indexer.idx_storage
+        fill_storage(self.indexer.storage)
+        fill_obj_storage(self.indexer.objstorage)
 
         # Prepare test input
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = 'd4c647f0fc257591cc9ba1722484229780d1c607'
         self.id2 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
 
-        tool_id = self.indexer.tool['id']
+        tool = {k.replace('tool_', ''): v
+                for (k, v) in self.indexer.tool.items()}
+
         self.expected_results = {
             self.id0: {
                 'id': self.id0,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'ctags': SHA1_TO_CTAGS[self.id0],
             },
             self.id1: {
                 'id': self.id1,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'ctags': SHA1_TO_CTAGS[self.id1],
             },
             self.id2: {
                 'id': self.id2,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'ctags': SHA1_TO_CTAGS[self.id2],
             }
         }
