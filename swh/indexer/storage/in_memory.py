@@ -309,6 +309,8 @@ class IndexerStorage:
                 default)
 
         """
+        if not all(isinstance(x['id'], bytes) for x in languages):
+            raise TypeError('identifiers must be bytes.')
         self._languages.add(languages, conflict_update)
 
     def content_ctags_missing(self, ctags):
