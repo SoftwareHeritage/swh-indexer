@@ -336,7 +336,7 @@ class ContentIndexer(BaseIndexer):
         - store the results (according to policy_update)
 
         Args:
-            ids ([bytes]): sha1's identifier list
+            ids (Iterable[Union[bytes, str]]): sha1's identifier list
             policy_update (str): either 'update-dups' or 'ignore-dups' to
                                  respectively update duplicates or ignore
                                  them
@@ -346,6 +346,8 @@ class ContentIndexer(BaseIndexer):
             **kwargs: passed to the `index` method
 
         """
+        ids = [hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
+               for id_ in ids]
         results = []
         try:
             for sha1 in ids:
