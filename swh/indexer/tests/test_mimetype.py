@@ -67,6 +67,7 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
     - Unknown sha1 in the input list are not indexed
 
     """
+    legacy_get_format = True
 
     def get_indexer_results(self, ids):
         yield from self.idx_storage.content_mimetype_get(ids)

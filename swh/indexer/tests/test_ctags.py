@@ -109,6 +109,8 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     """
 
+    legacy_get_format = True
+
     def get_indexer_results(self, ids):
         yield from self.idx_storage.content_ctags_get(ids)
 

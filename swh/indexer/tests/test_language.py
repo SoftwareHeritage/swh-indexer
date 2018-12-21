@@ -55,6 +55,8 @@ class TestLanguageIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     """
 
+    legacy_get_format = True
+
     def get_indexer_results(self, ids):
         yield from self.indexer.idx_storage.content_language_get(ids)
 
