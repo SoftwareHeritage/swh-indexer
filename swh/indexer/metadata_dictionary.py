@@ -8,6 +8,8 @@ import re
 import abc
 import json
 import logging
+import email.parser
+
 import xmltodict
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
@@ -99,7 +101,8 @@ class DictMapping(BaseMapping):
         for k, v in content_dict.items():
             # First, check if there is a specific translation
             # method for this key
-            translation_method = getattr(self, 'translate_' + k, None)
+            translation_method = getattr(
+                self, 'translate_' + k.replace('-', '_'), None)
             if translation_method:
                 translation_method(translated_metadata, v)
             elif k in self.mapping:
@@ -107,7 +110,8 @@ class DictMapping(BaseMapping):
                 # crosswalk table
 
                 # if there is a normalization method, use it on the value
-                normalization_method = getattr(self, 'normalize_' + k, None)
+                normalization_method = getattr(
+                    self, 'normalize_' + k.replace('-', '_'), None)
                 if normalization_method:
                     v = normalization_method(v)
 
@@ -334,6 +338,55 @@ class MavenMapping(DictMapping, SingleFileMapping):
         if isinstance(licenses, dict):
             licenses = [licenses]
         return [{"@id": license['url']} for license in licenses]
+
+
+_normalize_pkginfo_key = str.lower
+
+
+@register_mapping
+class PythonPkginfoMapping(DictMapping, SingleFileMapping):
+    """Dedicated class for Python's PKG-INFO mapping and translation.
+
+    https://www.python.org/dev/peps/pep-0314/"""
+    filename = b'PKG-INFO'
+    mapping = {_normalize_pkginfo_key(k): v
+               for (k, v) in CROSSWALK_TABLE['Python PKG-INFO'].items()}
+
+    _parser = email.parser.BytesHeaderParser()
+
+    def translate(self, content):
+        msg = self._parser.parsebytes(content)
+        d = {}
+        for (key, value) in msg.items():
+            key = _normalize_pkginfo_key(key)
+            if value != 'UNKNOWN':
+                d.setdefault(key, []).append(value)
+        metadata = self.translate_dict(d, normalize=False)
+        if SCHEMA_URI+'author' in metadata or SCHEMA_URI+'email' in metadata:
+            metadata[SCHEMA_URI+'author'] = {
+                '@list': [{
+                    '@type': SCHEMA_URI+'Person',
+                    SCHEMA_URI+'name':
+                        metadata.pop(SCHEMA_URI+'author', [None])[0],
+                    SCHEMA_URI+'email':
+                        metadata.pop(SCHEMA_URI+'email', [None])[0],
+                }]
+            }
+        return self.normalize_translation(metadata)
+
+    def translate_summary(self, translated_metadata, v):
+        k = self.mapping['summary']
+        translated_metadata.setdefault(k, []).append(v)
+
+    def translate_description(self, translated_metadata, v):
+        k = self.mapping['description']
+        translated_metadata.setdefault(k, []).append(v)
+
+    def normalize_home_page(self, urls):
+        return [{'@id': url} for url in urls]
+
+    def normalize_license(self, licenses):
+        return [{'@id': license} for license in licenses]
 
 
 def main():

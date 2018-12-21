@@ -517,6 +517,78 @@ class Metadata(unittest.TestCase):
             ]
         })
 
+    def test_compute_metadata_pkginfo(self):
+        raw_content = (b"""\
+Metadata-Version: 2.1
+Name: swh.core
+Version: 0.0.49
+Summary: Software Heritage core utilities
+Home-page: https://forge.softwareheritage.org/diffusion/DCORE/
+Author: Software Heritage developers
+Author-email: swh-devel@inria.fr
+License: UNKNOWN
+Project-URL: Bug Reports, https://forge.softwareheritage.org/maniphest
+Project-URL: Funding, https://www.softwareheritage.org/donate
+Project-URL: Source, https://forge.softwareheritage.org/source/swh-core
+Description: swh-core
+        ========
+        
+        core library for swh's modules:
+        - config parser
+        - hash computations
+        - serialization
+        - logging mechanism
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 5 - Production/Stable
+Description-Content-Type: text/markdown
+Provides-Extra: testing
+""") # noqa
+        result = MAPPINGS["PythonPkginfoMapping"].translate(raw_content)
+        self.assertCountEqual(result['description'], [
+            'Software Heritage core utilities',  # note the comma here
+            'swh-core\n'
+            '        ========\n'
+            '        \n'
+            "        core library for swh's modules:\n"
+            '        - config parser\n'
+            '        - hash computations\n'
+            '        - serialization\n'
+            '        - logging mechanism\n'
+            '        '],
+            result)
+        del result['description']
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'url': 'https://forge.softwareheritage.org/diffusion/DCORE/',
+            'name': 'swh.core',
+            'author': [{
+                'type': 'Person',
+                'name': 'Software Heritage developers',
+                'email': 'swh-devel@inria.fr',
+            }],
+            'version': '0.0.49',
+        })
+
+    def test_compute_metadata_pkginfo_license(self):
+        raw_content = (b"""\
+Metadata-Version: 2.1
+Name: foo
+License: MIT
+""") # noqa
+        result = MAPPINGS["PythonPkginfoMapping"].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'foo',
+            'license': 'MIT',
+        })
+
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataTestIndexer()
         fill_obj_storage(metadata_indexer.objstorage)
