@@ -3,9 +3,11 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import json
 import unittest
-
 from unittest.mock import patch
+
+import swh.indexer.ctags
 from swh.indexer.ctags import (
     CtagsIndexer, run_ctags
 )
@@ -14,7 +16,7 @@ from swh.indexer.tests.test_utils import (
     CommonContentIndexerTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
     SHA1_TO_CTAGS, NoDiskIndexer, BASE_TEST_CONFIG,
-    fill_storage, fill_obj_storage
+    OBJ_STORAGE_DATA, fill_storage, fill_obj_storage
 )
 
 
@@ -115,6 +117,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
         yield from self.idx_storage.content_ctags_get(ids)
 
     def setUp(self):
+        super().setUp()
         self.indexer = CtagsIndexerTest()
         self.idx_storage = self.indexer.idx_storage
         fill_storage(self.indexer.storage)
@@ -132,19 +135,50 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
             self.id0: {
                 'id': self.id0,
                 'tool': tool,
-                'ctags': SHA1_TO_CTAGS[self.id0],
+                **SHA1_TO_CTAGS[self.id0][0],
             },
             self.id1: {
                 'id': self.id1,
                 'tool': tool,
-                'ctags': SHA1_TO_CTAGS[self.id1],
+                **SHA1_TO_CTAGS[self.id1][0],
             },
             self.id2: {
                 'id': self.id2,
                 'tool': tool,
-                'ctags': SHA1_TO_CTAGS[self.id2],
+                **SHA1_TO_CTAGS[self.id2][0],
             }
         }
+
+        self._set_mocks()
+
+    def _set_mocks(self):
+        def find_ctags_for_content(raw_content):
+            for (sha1, ctags) in SHA1_TO_CTAGS.items():
+                if OBJ_STORAGE_DATA[sha1] == raw_content:
+                    return ctags
+            else:
+                raise ValueError(('%r not found in objstorage, can\'t mock '
+                                  'its ctags.') % raw_content)
+
+        def fake_language(raw_content, *args, **kwargs):
+            ctags = find_ctags_for_content(raw_content)
+            return {'lang': ctags[0]['lang']}
+        self._real_compute_language = swh.indexer.ctags.compute_language
+        swh.indexer.ctags.compute_language = fake_language
+
+        def fake_check_output(cmd, *args, **kwargs):
+            print(cmd)
+            id_ = cmd[-1]  # when using NoDiskIndexer, path is replaced by id
+            return '\n'.join(
+                json.dumps({'language': ctag['lang'], **ctag})
+                for ctag in SHA1_TO_CTAGS[id_])
+        self._real_check_output = swh.indexer.ctags.subprocess.check_output
+        swh.indexer.ctags.subprocess.check_output = fake_check_output
+
+    def tearDown(self):
+        swh.indexer.ctags.compute_language = self._real_compute_language
+        swh.indexer.ctags.subprocess.check_output = self._real_check_output
+        super().tearDown()
 
 
 class CtagsIndexerUnknownToolTestStorage(
