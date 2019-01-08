@@ -3,11 +3,22 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import magic
+import pkgutil
 
-from swh.model import hashutil
+import pkg_resources
 
 from .indexer import ContentIndexer, ContentRangeIndexer
+
+
+def _import_python_magic():
+    """Imports python-magic (NOT file_magic; both are made available
+    with 'import magic')"""
+    magic_dist = pkg_resources.get_distribution('python-magic')
+    magic_importer = pkgutil.get_importer(magic_dist.module_path)
+    return magic_importer.find_module('magic').load_module()
+
+
+magic = _import_python_magic()
 
 
 def compute_mimetype_encoding(raw_content):
@@ -21,10 +32,12 @@ def compute_mimetype_encoding(raw_content):
         (as bytes).
 
     """
-    r = magic.detect_from_content(raw_content)
+    m = magic.Magic(mime=True, mime_encoding=True)
+    res = m.from_buffer(raw_content)
+    (mimetype, encoding) = res.split('; charset=')
     return {
-        'mimetype': r.mime_type,
-        'encoding': r.encoding,
+        'mimetype': mimetype,
+        'encoding': encoding,
     }
 
 
@@ -63,17 +76,11 @@ class MixinMimetypeIndexer:
             - **encoding** (bytes): encoding in bytes
 
         """
-        try:
-            properties = compute_mimetype_encoding(data)
-            properties.update({
-                'id': id,
-                'indexer_configuration_id': self.tool['id'],
-                })
-        except TypeError:
-            self.log.error('Detecting mimetype error for id %s' % (
-                hashutil.hash_to_hex(id), ))
-            return None
-
+        properties = compute_mimetype_encoding(data)
+        properties.update({
+            'id': id,
+            'indexer_configuration_id': self.tool['id'],
+            })
         return properties
 
     def persist_index_computations(self, results, policy_update):
