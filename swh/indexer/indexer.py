@@ -441,11 +441,11 @@ class ContentRangeIndexer(BaseIndexer):
                                  hashutil.hash_to_hex(sha1))
                 continue
             res = self.index(sha1, raw_content, **kwargs)
-            if not isinstance(res['id'], bytes):
-                raise TypeError(
-                    '%r.index should return ids as bytes, not %r' %
-                    (self.__class__.__name__, res['id']))
             if res:
+                if not isinstance(res['id'], bytes):
+                    raise TypeError(
+                        '%r.index should return ids as bytes, not %r' %
+                        (self.__class__.__name__, res['id']))
                 yield res
 
     def _index_with_skipping_already_done(self, start, end):
