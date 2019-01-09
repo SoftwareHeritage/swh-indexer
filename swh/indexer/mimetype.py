@@ -3,22 +3,14 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import pkgutil
-
-import pkg_resources
+import magic
 
 from .indexer import ContentIndexer, ContentRangeIndexer
 
-
-def _import_python_magic():
-    """Imports python-magic (NOT file_magic; both are made available
-    with 'import magic')"""
-    magic_dist = pkg_resources.get_distribution('python-magic')
-    magic_importer = pkgutil.get_importer(magic_dist.module_path)
-    return magic_importer.find_module('magic').load_module()
-
-
-magic = _import_python_magic()
+if not hasattr(magic.Magic, 'from_buffer'):
+    raise ImportError(
+        'Expected "import magic" to import python-magic, but file_magic '
+        'was imported instead.')
 
 
 def compute_mimetype_encoding(raw_content):
