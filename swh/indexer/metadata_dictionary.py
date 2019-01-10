@@ -8,6 +8,8 @@ import re
 import abc
 import json
 import logging
+import email.parser
+
 import xmltodict
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
@@ -39,12 +41,12 @@ class BaseMapping(metaclass=abc.ABCMeta):
     def detect_metadata_files(self, files):
         """
         Detects files potentially containing metadata
+
         Args:
-            - file_entries (list): list of files
+            file_entries (list): list of files
 
         Returns:
-            - empty list if nothing was found
-            - list of sha1 otherwise
+            list: list of sha1 (possibly empty)
         """
         pass
 
@@ -88,18 +90,19 @@ class DictMapping(BaseMapping):
         and translating with the appropriate mapping
 
         Args:
-            content_dict (dict)
+            content_dict (dict): content dict to translate
 
         Returns:
             dict: translated metadata in json-friendly form needed for
-                  the indexer
+            the indexer
 
         """
         translated_metadata = {'@type': SCHEMA_URI + 'SoftwareSourceCode'}
         for k, v in content_dict.items():
             # First, check if there is a specific translation
             # method for this key
-            translation_method = getattr(self, 'translate_' + k, None)
+            translation_method = getattr(
+                self, 'translate_' + k.replace('-', '_'), None)
             if translation_method:
                 translation_method(translated_metadata, v)
             elif k in self.mapping:
@@ -107,7 +110,8 @@ class DictMapping(BaseMapping):
                 # crosswalk table
 
                 # if there is a normalization method, use it on the value
-                normalization_method = getattr(self, 'normalize_' + k, None)
+                normalization_method = getattr(
+                    self, 'normalize_' + k.replace('-', '_'), None)
                 if normalization_method:
                     v = normalization_method(v)
 
@@ -128,11 +132,11 @@ class JsonMapping(DictMapping, SingleFileMapping):
         json data and translating with the appropriate mapping
 
         Args:
-            raw_content: bytes
+            raw_content (bytes): raw content to translate
 
         Returns:
             dict: translated metadata in json-friendly form needed for
-                  the indexer
+            the indexer
 
         """
         try:
@@ -166,24 +170,26 @@ class NpmMapping(JsonMapping):
     def normalize_repository(self, d):
         """https://docs.npmjs.com/files/package.json#repository"""
         if isinstance(d, dict):
-            return '{type}+{url}'.format(**d)
+            url = '{type}+{url}'.format(**d)
         elif isinstance(d, str):
             if '://' in d:
-                return d
+                url = d
             elif ':' in d:
                 (schema, rest) = d.split(':', 1)
                 if schema in self._schema_shortcuts:
-                    return self._schema_shortcuts[schema] + rest
+                    url = self._schema_shortcuts[schema] + rest
                 else:
                     return None
             else:
-                return self._schema_shortcuts['github'] + d
+                url = self._schema_shortcuts['github'] + d
 
         else:
             return None
 
+        return {'@id': url}
+
     def normalize_bugs(self, d):
-        return '{url}'.format(**d)
+        return {'@id': '{url}'.format(**d)}
 
     _parse_author = re.compile(r'^ *'
                                r'(?P<name>.*?)'
@@ -211,8 +217,14 @@ class NpmMapping(JsonMapping):
         if email:
             author[SCHEMA_URI+'email'] = email
         if url:
-            author[SCHEMA_URI+'url'] = url
-        return author
+            author[SCHEMA_URI+'url'] = {'@id': url}
+        return {"@list": [author]}
+
+    def normalize_license(self, s):
+        return {"@id": "https://spdx.org/licenses/" + s}
+
+    def normalize_homepage(self, s):
+        return {"@id": s}
 
 
 @register_mapping
@@ -238,6 +250,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
         d = xmltodict.parse(content)['project']
         metadata = self.translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
+        metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)
         return self.normalize_translation(metadata)
 
     _default_repository = {'url': 'https://repo.maven.apache.org/maven2/'}
@@ -265,7 +278,115 @@ class MavenMapping(DictMapping, SingleFileMapping):
             url = os.path.join(url, *d['groupId'].split('.'))
             if d['artifactId']:
                 url = os.path.join(url, d['artifactId'])
-        return url
+        return {"@id": url}
+
+    def normalize_groupId(self, id_):
+        return {"@id": id_}
+
+    def parse_licenses(self, d):
+        """https://maven.apache.org/pom.html#Licenses
+
+        The origin XML has the form:
+
+            <licenses>
+              <license>
+                <name>Apache License, Version 2.0</name>
+                <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              </license>
+            </licenses>
+
+        Which was translated to a dict by xmltodict and is given as `d`:
+
+        >>> d = {
+        ...     # ...
+        ...     "licenses": {
+        ...         "license": {
+        ...             "name": "Apache License, Version 2.0",
+        ...             "url":
+        ...             "https://www.apache.org/licenses/LICENSE-2.0.txt"
+        ...         }
+        ...     }
+        ... }
+        >>> MavenMapping().parse_licenses(d)
+        [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'}]
+
+        or, if there are more than one license:
+
+        >>> from pprint import pprint
+        >>> d = {
+        ...     # ...
+        ...     "licenses": {
+        ...         "license": [
+        ...             {
+        ...                 "name": "Apache License, Version 2.0",
+        ...                 "url":
+        ...                 "https://www.apache.org/licenses/LICENSE-2.0.txt"
+        ...             },
+        ...             {
+        ...                 "name": "MIT License, ",
+        ...                 "url": "https://opensource.org/licenses/MIT"
+        ...             }
+        ...         ]
+        ...     }
+        ... }
+        >>> pprint(MavenMapping().parse_licenses(d))
+        [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'},
+         {'@id': 'https://opensource.org/licenses/MIT'}]
+        """
+
+        licenses = d.get('licenses', {}).get('license', [])
+        if isinstance(licenses, dict):
+            licenses = [licenses]
+        return [{"@id": license['url']} for license in licenses]
+
+
+_normalize_pkginfo_key = str.lower
+
+
+@register_mapping
+class PythonPkginfoMapping(DictMapping, SingleFileMapping):
+    """Dedicated class for Python's PKG-INFO mapping and translation.
+
+    https://www.python.org/dev/peps/pep-0314/"""
+    filename = b'PKG-INFO'
+    mapping = {_normalize_pkginfo_key(k): v
+               for (k, v) in CROSSWALK_TABLE['Python PKG-INFO'].items()}
+
+    _parser = email.parser.BytesHeaderParser()
+
+    def translate(self, content):
+        msg = self._parser.parsebytes(content)
+        d = {}
+        for (key, value) in msg.items():
+            key = _normalize_pkginfo_key(key)
+            if value != 'UNKNOWN':
+                d.setdefault(key, []).append(value)
+        metadata = self.translate_dict(d, normalize=False)
+        if SCHEMA_URI+'author' in metadata or SCHEMA_URI+'email' in metadata:
+            metadata[SCHEMA_URI+'author'] = {
+                '@list': [{
+                    '@type': SCHEMA_URI+'Person',
+                    SCHEMA_URI+'name':
+                        metadata.pop(SCHEMA_URI+'author', [None])[0],
+                    SCHEMA_URI+'email':
+                        metadata.pop(SCHEMA_URI+'email', [None])[0],
+                }]
+            }
+        return self.normalize_translation(metadata)
+
+    def translate_summary(self, translated_metadata, v):
+        k = self.mapping['summary']
+        translated_metadata.setdefault(k, []).append(v)
+
+    def translate_description(self, translated_metadata, v):
+        k = self.mapping['description']
+        translated_metadata.setdefault(k, []).append(v)
+
+    def normalize_home_page(self, urls):
+        return [{'@id': url} for url in urls]
+
+    def normalize_license(self, licenses):
+        return [{'@id': license} for license in licenses]
 
 
 def main():

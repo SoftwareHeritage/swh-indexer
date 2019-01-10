@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import abc
+import ast
 import os
 import logging
 import shutil
@@ -38,7 +39,7 @@ class DiskIndexer:
         Args:
             filename (str): one of sha1's many filenames
             data (bytes): the sha1's content to write in temporary
-            file
+              file
 
         Returns:
             The path to the temporary file created. That file is
@@ -82,7 +83,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
     To implement a new object type indexer, inherit from the
     BaseIndexer and implement indexing:
 
-    :func:`run`:
+    :meth:`~BaseIndexer.run`:
       object_ids are different depending on object. For example: sha1 for
       content, sha1_git for revision, directory, release, and id for origin
 
@@ -92,27 +93,27 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
     Then you need to implement the following functions:
 
-    :func:`filter`:
+    :meth:`~BaseIndexer.filter`:
       filter out data already indexed (in storage).
 
-    :func:`index_object`:
+    :meth:`~BaseIndexer.index_object`:
       compute index on id with data (retrieved from the storage or the
       objstorage by the id key) and return the resulting index computation.
 
-    :func:`persist_index_computations`:
+    :meth:`~BaseIndexer.persist_index_computations`:
       persist the results of multiple index computations in the storage.
 
     The new indexer implementation can also override the following functions:
 
-    :func:`prepare`:
+    :meth:`~BaseIndexer.prepare`:
       Configuration preparation for the indexer.  When overriding, this must
       call the `super().prepare()` instruction.
 
-    :func:`check`:
+    :meth:`~BaseIndexer.check`:
       Configuration check for the indexer.  When overriding, this must call the
       `super().check()` instruction.
 
-    :func:`register_tools`:
+    :meth:`~BaseIndexer.register_tools`:
       This should return a dict of the tool(s) to use when indexing or
       filtering.
 
@@ -200,10 +201,10 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             tools (dict/[dict]): Either a dict or a list of dict.
 
         Returns:
-            List of dict with additional id key.
+            list: List of dicts with additional id key.
 
         Raises:
-            ValueError if not a list nor a dict.
+            ValueError: if not a list nor a dict.
 
         """
         if isinstance(tools, list):
@@ -225,11 +226,11 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         Args:
             id (bytes): identifier
             data (bytes): id's data from storage or objstorage depending on
-                             object type
+              object type
 
         Returns:
-            a dict that makes sense for the persist_index_computations
-        function.
+            dict: a dict that makes sense for the
+            :meth:`.persist_index_computations` method.
 
         """
         pass
@@ -241,10 +242,9 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         Args:
 
             results ([result]): List of results. One result is the
-                                result of the index function.
+              result of the index function.
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-                                   respectively update duplicates or ignore
-                                   them
+              respectively update duplicates or ignore them
 
         Returns:
             None
@@ -260,10 +260,10 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
         Args:
             results ([result]): List of results (dict) as returned
-                                by index function.
+              by index function.
             task (dict): a dict in the form expected by
-                        `scheduler.backend.SchedulerBackend.create_tasks`
-                        without `next_run`, plus an optional `result_name` key.
+              `scheduler.backend.SchedulerBackend.create_tasks`
+              without `next_run`, plus an optional `result_name` key.
 
         Returns:
             None
@@ -293,10 +293,10 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         Args:
             ids ([bytes]): id's identifier list
             policy_update (str): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+              respectively update duplicates or ignore them
             next_step (dict): a dict in the form expected by
-                        `scheduler.backend.SchedulerBackend.create_tasks`
-                        without `next_run`, plus a `result_name` key.
+              `scheduler.backend.SchedulerBackend.create_tasks`
+              without `next_run`, plus a `result_name` key.
             **kwargs: passed to the `index` method
 
         """
@@ -336,7 +336,7 @@ class ContentIndexer(BaseIndexer):
         - store the results (according to policy_update)
 
         Args:
-            ids ([bytes]): sha1's identifier list
+            ids (Iterable[Union[bytes, str]]): sha1's identifier list
             policy_update (str): either 'update-dups' or 'ignore-dups' to
                                  respectively update duplicates or ignore
                                  them
@@ -346,6 +346,8 @@ class ContentIndexer(BaseIndexer):
             **kwargs: passed to the `index` method
 
         """
+        ids = [hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
+               for id_ in ids]
         results = []
         try:
             for sha1 in ids:
@@ -383,12 +385,12 @@ class ContentRangeIndexer(BaseIndexer):
     def indexed_contents_in_range(self, start, end):
         """Retrieve indexed contents within range [start, end].
 
-        Args
-            **start** (bytes): Starting bound from range identifier
-            **end** (bytes): End range identifier
+        Args:
+            start (bytes): Starting bound from range identifier
+            end (bytes): End range identifier
 
         Yields:
-            Content identifier (bytes) present in the range [start, end]
+            bytes: Content identifier present in the range ``[start, end]``
 
         """
         pass
@@ -398,19 +400,22 @@ class ContentRangeIndexer(BaseIndexer):
            end]. The already indexed contents are skipped.
 
         Args:
-            **start** (bytes): Starting bound from range identifier
-            **end** (bytes): End range identifier
-            **indexed** (Set[bytes]): Set of content already indexed.
+            start (bytes): Starting bound from range identifier
+            end (bytes): End range identifier
+            indexed (Set[bytes]): Set of content already indexed.
 
         Yields:
-            Identifier (bytes) of contents to index.
+            bytes: Identifier of contents to index.
 
         """
+        if not isinstance(start, bytes) or not isinstance(end, bytes):
+            raise TypeError('identifiers must be bytes, not %r and %r.' %
+                            (start, end))
         while start:
             result = self.storage.content_get_range(start, end)
             contents = result['contents']
             for c in contents:
-                _id = c['sha1']
+                _id = hashutil.hash_to_bytes(c['sha1'])
                 if _id in indexed:
                     continue
                 yield _id
@@ -420,12 +425,12 @@ class ContentRangeIndexer(BaseIndexer):
         """Index the contents from within range [start, end]
 
         Args:
-            **start** (bytes): Starting bound from range identifier
-            **end** (bytes): End range identifier
-            **indexed** (Set[bytes]): Set of content already indexed.
+            start (bytes): Starting bound from range identifier
+            end (bytes): End range identifier
+            indexed (Set[bytes]): Set of content already indexed.
 
         Yields:
-            Data indexed (dict) to persist using the indexer storage
+            dict: Data indexed to persist using the indexer storage
 
         """
         for sha1 in self._list_contents_to_index(start, end, indexed):
@@ -437,18 +442,22 @@ class ContentRangeIndexer(BaseIndexer):
                 continue
             res = self.index(sha1, raw_content, **kwargs)
             if res:
+                if not isinstance(res['id'], bytes):
+                    raise TypeError(
+                        '%r.index should return ids as bytes, not %r' %
+                        (self.__class__.__name__, res['id']))
                 yield res
 
     def _index_with_skipping_already_done(self, start, end):
         """Index not already indexed contents in range [start, end].
 
         Args:
-            **start** (Union[bytes, str]): Starting range identifier
-            **end** (Union[bytes, str]): Ending range identifier
+            start** (Union[bytes, str]): Starting range identifier
+            end (Union[bytes, str]): Ending range identifier
 
         Yields:
-            Content identifier (bytes) present in the range [start,
-            end] which are not already indexed.
+            bytes: Content identifier present in the range
+            ``[start, end]`` which are not already indexed.
 
         """
         while start:
@@ -466,14 +475,14 @@ class ContentRangeIndexer(BaseIndexer):
            everything from scratch).
 
         Args:
-            **start** (Union[bytes, str]): Starting range identifier
-            **end** (Union[bytes, str]): Ending range identifier
-            **skip_existing** (bool): Skip existing indexed data
-                                     (default) or not
+            start (Union[bytes, str]): Starting range identifier
+            end (Union[bytes, str]): Ending range identifier
+            skip_existing (bool): Skip existing indexed data
+              (default) or not
             **kwargs: passed to the `index` method
 
         Returns:
-            a boolean. True if data was indexed, False otherwise.
+            bool: True if data was indexed, False otherwise.
 
         """
         with_indexed_data = False
@@ -520,13 +529,12 @@ class OriginIndexer(BaseIndexer):
 
         Args:
             ids ([Union[int, Tuple[str, bytes]]]): list of origin ids or
-                                                   (type, url) tuples.
+              (type, url) tuples.
             policy_update (str): either 'update-dups' or 'ignore-dups' to
-                                   respectively update duplicates (default)
-                                   or ignore them
+              respectively update duplicates (default) or ignore them
             next_step (dict): a dict in the form expected by
-                        `scheduler.backend.SchedulerBackend.create_tasks`
-                        without `next_run`, plus an optional `result_name` key.
+              `scheduler.backend.SchedulerBackend.create_tasks` without
+              `next_run`, plus an optional `result_name` key.
             parse_ids (bool): Do we need to parse id or not (default)
             **kwargs: passed to the `index` method
 
@@ -538,6 +546,10 @@ class OriginIndexer(BaseIndexer):
         results = []
 
         for id_ in ids:
+            if isinstance(id_, str):
+                # Data coming from JSON, which requires string keys, so
+                # one extra level of deserialization is needed
+                id_ = ast.literal_eval(id_)
             if isinstance(id_, (tuple, list)):
                 if len(id_) != 2:
                     raise TypeError('Expected a (type, url) tuple.')
@@ -549,8 +561,8 @@ class OriginIndexer(BaseIndexer):
                 raise TypeError('Invalid value in "ids": %r' % id_)
             origin = self.storage.origin_get(params)
             if not origin:
-                self.log.warning('Origins %s not found in storage' %
-                                 list(ids))
+                self.log.warning('Origin %s not found in storage' %
+                                 list(id_))
                 continue
             try:
                 res = self.index(origin, **kwargs)
@@ -558,7 +570,7 @@ class OriginIndexer(BaseIndexer):
                     results.append(res)
             except Exception:
                 self.log.exception(
-                        'Problem when processing origin %s' % id_)
+                        'Problem when processing origin %s' % (id_,))
         self.persist_index_computations(results, policy_update)
         self.results = results
         return self.next_step(results, task=next_step)
@@ -584,8 +596,7 @@ class RevisionIndexer(BaseIndexer):
         Args:
             ids ([bytes or str]): sha1_git's identifier list
             policy_update (str): either 'update-dups' or 'ignore-dups' to
-                                 respectively update duplicates or ignore
-                                 them
+              respectively update duplicates or ignore them
 
         """
         results = []

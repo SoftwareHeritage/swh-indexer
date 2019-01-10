@@ -22,11 +22,11 @@ def ctags_to_db(ctags):
     Returns:
         list: list of ctags entries as dicts with the following keys:
 
-            - id (bytes): content's identifier
-            - name (str): symbol's name
-            - kind (str): symbol's kind
-            - language (str): language for that content
-            - tool_id (int): tool id used to compute ctags
+        - id (bytes): content's identifier
+        - name (str): symbol's name
+        - kind (str): symbol's kind
+        - language (str): language for that content
+        - tool_id (int): tool id used to compute ctags
 
     """
     id = ctags['id']
@@ -47,15 +47,17 @@ def db_to_ctags(ctag):
 
     Args:
         ctags (dict): ctags entry with the following keys:
-        - id (bytes): content's identifier
-        - ctags ([dict]): List of dictionary with the following keys:
-          - name (str): symbol's name
-          - kind (str): symbol's kind
-          - line (int): symbol's line in the content
-          - language (str): language
+
+          - id (bytes): content's identifier
+          - ctags ([dict]): List of dictionary with the following keys:
+            - name (str): symbol's name
+            - kind (str): symbol's kind
+            - line (int): symbol's line in the content
+            - language (str): language
 
     Returns:
-        List of ctags ready entry (dict with the following keys):
+        list: list of ctags ready entry (dict with the following keys):
+
         - id (bytes): content's identifier
         - name (str): symbol's name
         - kind (str): symbol's kind
