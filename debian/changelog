@@ -1,3 +1,13 @@
+swh-indexer (0.0.124-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.124     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-01-08 14:09:32
+    +0100)
+  * Upstream changes:     - v0.0.124     - indexer: Fix type check on
+    indexing result
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 10 Jan 2019 17:12:07 +0000
+
 swh-indexer (0.0.118-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.118
