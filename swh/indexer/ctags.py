@@ -30,8 +30,8 @@ def run_ctags(path, lang=None, ctags_command='ctags'):
         path: path to the file
         lang: language for that path (optional)
 
-    Returns:
-        ctags' output
+    Yields:
+        dict: ctags' output
 
     """
     optional = []
@@ -105,9 +105,10 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
             data (bytes): raw content in bytes
 
         Returns:
-            A dict, representing a content_mimetype, with keys:
-              - id (bytes): content's identifier (sha1)
-              - ctags ([dict]): ctags list of symbols
+            dict: a dict representing a content_mimetype with keys:
+
+            - **id** (bytes): content's identifier (sha1)
+            - **ctags** ([dict]): ctags list of symbols
 
         """
         lang = compute_language(data, log=self.log)['lang']
@@ -144,11 +145,11 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
 
         Args:
             results ([dict]): list of content_mimetype, dict with the
-            following keys:
+              following keys:
               - id (bytes): content's identifier (sha1)
               - ctags ([dict]): ctags list of symbols
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+              respectively update duplicates or ignore them
 
         """
         self.idx_storage.content_ctags_add(

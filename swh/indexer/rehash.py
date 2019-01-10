@@ -97,11 +97,11 @@ class RecomputeChecksums(SWHConfig):
 
         Args:
             all_contents ([dict]): List of contents as dictionary with
-                                   the necessary primary keys
+              the necessary primary keys
             checksum_algorithms ([str]): List of checksums to compute
 
         Yields:
-            tuple of: content to update, list of checksums computed
+            tuple: tuple of (content to update, list of checksums computed)
 
         """
         content_ids = self._read_content_ids(all_contents)

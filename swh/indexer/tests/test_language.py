@@ -5,14 +5,14 @@
 
 import unittest
 from swh.indexer import language
-from swh.indexer.language import ContentLanguageIndexer
+from swh.indexer.language import LanguageIndexer
 from swh.indexer.tests.test_utils import (
-    BasicMockIndexerStorage, MockObjStorage, CommonContentIndexerTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool, BASE_TEST_CONFIG
+    CommonContentIndexerTest, CommonIndexerWithErrorsTest,
+    CommonIndexerNoTool, BASE_TEST_CONFIG, fill_storage, fill_obj_storage
 )
 
 
-class LanguageTestIndexer(ContentLanguageIndexer):
+class LanguageTestIndexer(LanguageIndexer):
     """Specific language whose configuration is enough to satisfy the
        indexing tests.
     """
@@ -29,12 +29,6 @@ class LanguageTestIndexer(ContentLanguageIndexer):
                 },
             }
         }
-
-    def prepare(self):
-        super().prepare()
-        self.idx_storage = BasicMockIndexerStorage()
-        self.objstorage = MockObjStorage()
-        self.tool_config = self.config['tools']['configuration']
 
 
 class Language(unittest.TestCase):
@@ -60,28 +54,38 @@ class TestLanguageIndexer(CommonContentIndexerTest, unittest.TestCase):
     - Unknown sha1 in the input list are not indexed
 
     """
+
+    legacy_get_format = True
+
+    def get_indexer_results(self, ids):
+        yield from self.indexer.idx_storage.content_language_get(ids)
+
     def setUp(self):
         self.indexer = LanguageTestIndexer()
+        fill_storage(self.indexer.storage)
+        fill_obj_storage(self.indexer.objstorage)
 
         self.id0 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
         self.id1 = '103bc087db1d26afc3a0283f38663d081e9b01e6'
         self.id2 = 'd4c647f0fc257591cc9ba1722484229780d1c607'
-        tool_id = self.indexer.tool['id']
+
+        tool = {k.replace('tool_', ''): v
+                for (k, v) in self.indexer.tool.items()}
 
         self.expected_results = {
             self.id0: {
                 'id': self.id0,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'lang': 'python',
             },
             self.id1: {
                 'id': self.id1,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'lang': 'c'
             },
             self.id2: {
                 'id': self.id2,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'lang': 'text-only'
             }
         }

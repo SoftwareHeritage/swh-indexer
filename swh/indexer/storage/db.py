@@ -20,7 +20,7 @@ class Db(BaseDb):
 
         Args:
             table (str): Table name (e.g content_mimetype, content_language,
-                         etc...)
+              etc...)
             data (dict): Dict of data to read from
             hash_keys ([str]): List of keys to read in the data dict.
 
@@ -65,11 +65,12 @@ class Db(BaseDb):
 
     def _convert_key(self, key, main_table='c'):
         """Convert keys according to specific use in the module.
+
         Args:
             key (str): Key expression to change according to the alias
-                       used in the query
+              used in the query
             main_table (str): Alias to use for the main table. Default
-                              to c for content_{something}.
+              to c for content_{something}.
 
         Expected:
             Tables content_{something} being aliased as 'c' (something

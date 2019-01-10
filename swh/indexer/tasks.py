@@ -7,11 +7,11 @@ import logging
 
 from swh.scheduler.task import Task as SchedulerTask
 
-from .mimetype import ContentMimetypeIndexer, MimetypeRangeIndexer
-from .language import ContentLanguageIndexer
+from .mimetype import MimetypeIndexer, MimetypeRangeIndexer
+from .language import LanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import (
-    ContentFossologyLicenseIndexer, FossologyLicenseRangeIndexer
+    FossologyLicenseIndexer, FossologyLicenseRangeIndexer
 )
 from .rehash import RecomputeChecksums
 from .metadata import RevisionMetadataIndexer, OriginMetadataIndexer
@@ -65,7 +65,7 @@ class ContentMimetype(StatusTask):
 
     """
     task_queue = 'swh_indexer_content_mimetype'
-    Indexer = ContentMimetypeIndexer
+    Indexer = MimetypeIndexer
 
 
 class ContentRangeMimetype(StatusTask):
@@ -82,7 +82,7 @@ class ContentLanguage(Task):
     """
     task_queue = 'swh_indexer_content_language'
 
-    Indexer = ContentLanguageIndexer
+    Indexer = LanguageIndexer
 
 
 class Ctags(Task):
@@ -99,7 +99,7 @@ class ContentFossologyLicense(Task):
 
     """
     task_queue = 'swh_indexer_content_fossology_license'
-    Indexer = ContentFossologyLicenseIndexer
+    Indexer = FossologyLicenseIndexer
 
 
 class ContentRangeFossologyLicense(StatusTask):
