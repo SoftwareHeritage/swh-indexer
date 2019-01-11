@@ -1,3 +1,14 @@
+swh-indexer (0.0.125-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.125     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-01-11 12:01:42
+    +0100)
+  * Upstream changes:     - v0.0.125     - Add journal client that
+    listens for origin visits and schedules     - OriginHead     - Fix
+    tests to work with the new version of swh.storage
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 11 Jan 2019 11:08:51 +0000
+
 swh-indexer (0.0.124-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.124     - (tagged by Antoine R. Dumont
