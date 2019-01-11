@@ -5,8 +5,6 @@
 
 import unittest
 
-from unittest.mock import patch
-
 from swh.indexer.mimetype import (
     MimetypeIndexer, MimetypeRangeIndexer, compute_mimetype_encoding
 )
@@ -18,21 +16,12 @@ from swh.indexer.tests.test_utils import (
 )
 
 
-class FakeMagicResult:
-    def __init__(self, mimetype, encoding):
-        self.mime_type = mimetype
-        self.encoding = encoding
-
-
 class BasicTest(unittest.TestCase):
-    @patch('swh.indexer.mimetype.magic')
-    def test_compute_mimetype_encoding(self, mock_magic):
+    def test_compute_mimetype_encoding(self):
         """Compute mimetype encoding should return results"""
         for _input, _mimetype, _encoding in [
-                (b'some-content', 'text/plain', 'utf-8'),
-                (b'raw-content', 'application/json', 'ascii')]:
-            mock_magic.detect_from_content.return_value = FakeMagicResult(
-                _mimetype, _encoding)
+                ('du français'.encode(), 'text/plain', 'utf-8'),
+                (b'def __init__(self):', 'text/x-python', 'us-ascii')]:
 
             actual_result = compute_mimetype_encoding(_input)
             self.assertEqual(actual_result, {

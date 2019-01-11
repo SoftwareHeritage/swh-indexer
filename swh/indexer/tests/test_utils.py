@@ -152,6 +152,12 @@ SNAPSHOTS = {
 
 REVISIONS = [{
     'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
+    'author': {
+        'id': 26,
+        'name': b'Andrew Nesbitt',
+        'fullname': b'Andrew Nesbitt <andrewnez@gmail.com>',
+        'email': b'andrewnez@gmail.com'
+    },
     'committer': {
         'id': 26,
         'name': b'Andrew Nesbitt',

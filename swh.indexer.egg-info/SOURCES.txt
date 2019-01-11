@@ -30,6 +30,7 @@ swh/indexer/codemeta.py
 swh/indexer/ctags.py
 swh/indexer/fossology_license.py
 swh/indexer/indexer.py
+swh/indexer/journal_client.py
 swh/indexer/language.py
 swh/indexer/metadata.py
 swh/indexer/metadata_detector.py
