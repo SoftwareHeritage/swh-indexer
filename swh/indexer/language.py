@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2017  The Software Heritage developers
+# Copyright (C) 2016-2018  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -56,8 +56,8 @@ def compute_language_from_chunk(encoding, length, raw_content, max_size,
         max_size (int): max size to split the raw content at
 
     Returns:
-        Dict with keys:
-        - lang: None if nothing found or the possible language
+        dict: Dict with keys:
+        - **lang**: None if nothing found or the possible language
 
     """
     try:
@@ -87,8 +87,8 @@ def compute_language(raw_content, encoding=None, log=None):
         raw_content (bytes): raw content to work with
 
     Returns:
-        Dict with keys:
-        - lang: None if nothing found or the possible language
+        dict: Dict with keys:
+        - **lang**: None if nothing found or the possible language
 
     """
     try:
@@ -107,7 +107,7 @@ def compute_language(raw_content, encoding=None, log=None):
     }
 
 
-class ContentLanguageIndexer(ContentIndexer):
+class LanguageIndexer(ContentIndexer):
     """Indexer in charge of:
 
     - filtering out content already indexed
@@ -155,9 +155,9 @@ class ContentLanguageIndexer(ContentIndexer):
             data (bytes): raw content in bytes
 
         Returns:
-            A dict, representing a content_mimetype, with keys:
-              - id (bytes): content's identifier (sha1)
-              - lang (bytes): detected language
+            dict: Dict that represents a content_mimetype, with keys:
+            - id (bytes): content's identifier (sha1)
+            - lang (bytes): detected language
 
         """
         result = {
@@ -198,11 +198,11 @@ class ContentLanguageIndexer(ContentIndexer):
 
         Args:
             results ([dict]): list of content_mimetype, dict with the
-            following keys:
+              following keys:
               - id (bytes): content's identifier (sha1)
               - lang (bytes): detected language
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+              respectively update duplicates or ignore them
 
         """
         self.idx_storage.content_language_add(

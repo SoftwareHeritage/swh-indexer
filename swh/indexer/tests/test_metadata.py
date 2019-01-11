@@ -37,9 +37,6 @@ class ContentMetadataTestIndexer(ContentMetadataIndexer):
     def parse_config_file(self, *args, **kwargs):
         assert False, 'should not be called; the rev indexer configures it.'
 
-    def prepare(self):
-        super().prepare()
-
 
 class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
     """Specific indexer whose configuration is enough to satisfy the
@@ -53,10 +50,6 @@ class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
             **BASE_TEST_CONFIG,
             'tools': TRANSLATOR_TOOL,
         }
-
-    def prepare(self):
-        super().prepare()
-        self.tools = list(self.register_tools(self.config['tools']))
 
 
 class Metadata(unittest.TestCase):
@@ -130,13 +123,13 @@ class Metadata(unittest.TestCase):
             'name': 'test_metadata',
             'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
-            'schema:codeRepository':
+            'codeRepository':
                 'git+https://github.com/moranegg/metadata_test',
-            'schema:author': {
+            'author': [{
                 'type': 'Person',
                 'name': 'Morane G',
                 'email': 'moranegg@example.com',
-            },
+            }],
         }
 
         # when
@@ -154,20 +147,20 @@ class Metadata(unittest.TestCase):
             'name': 'test_1',
             'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
-            'schema:codeRepository':
+            'codeRepository':
                 'git+https://github.com/moranegg/metadata_test',
         }, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'test_0_1',
             'version': '0.0.2',
             'description': 'Simple package.json test for indexer',
-            'schema:codeRepository':
+            'codeRepository':
                 'git+https://github.com/moranegg/metadata_test'
         }, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'test_metadata',
             'version': '0.0.2',
-            'schema:author': 'moranegg',
+            'author': 'moranegg',
         }]
 
         # when
@@ -179,8 +172,8 @@ class Metadata(unittest.TestCase):
             "version": '0.0.2',
             "description": 'Simple package.json test for indexer',
             "name": ['test_1', 'test_0_1', 'test_metadata'],
-            "schema:author": 'moranegg',
-            "schema:codeRepository":
+            "author": ['moranegg'],
+            "codeRepository":
                 'git+https://github.com/moranegg/metadata_test',
         }
         self.assertEqual(expected_results, results)
@@ -213,7 +206,7 @@ class Metadata(unittest.TestCase):
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
-                'schema:codeRepository':
+                'codeRepository':
                     'git+https://github.com/moranegg/metadata_test',
                 'description': 'Simple package.json test for indexer',
                 'name': 'test_metadata',
@@ -224,18 +217,18 @@ class Metadata(unittest.TestCase):
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
-                'codemeta:issueTracker':
+                'issueTracker':
                     'https://github.com/npm/npm/issues',
-                'schema:author': {
+                'author': [{
                     'type': 'Person',
                     'name': 'Isaac Z. Schlueter',
                     'email': 'i@izs.me',
-                    'schema:url': 'http://blog.izs.me',
-                },
-                'schema:codeRepository':
+                    'url': 'http://blog.izs.me',
+                }],
+                'codeRepository':
                     'git+https://github.com/npm/npm',
                 'description': 'a package manager for JavaScript',
-                'schema:license': 'Artistic-2.0',
+                'license': 'https://spdx.org/licenses/Artistic-2.0',
                 'version': '5.0.3',
                 'name': 'npm',
                 'keywords': [
@@ -244,7 +237,7 @@ class Metadata(unittest.TestCase):
                     'package manager',
                     'package.json'
                 ],
-                'schema:url': 'https://docs.npmjs.com/'
+                'url': 'https://docs.npmjs.com/'
             },
             'id': hash_to_bytes('d4c647f0fc257591cc9ba1722484229780d1c607')
             }, {
@@ -426,17 +419,175 @@ class Metadata(unittest.TestCase):
               </snapshots>
             </repository>
           </repositories>
+          <licenses>
+            <license>
+              <name>Apache License, Version 2.0</name>
+              <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              <distribution>repo</distribution>
+              <comments>A business-friendly OSS license</comments>
+            </license>
+          </licenses>
         </project>"""
         result = MAPPINGS["MavenMapping"].translate(raw_content)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
             'name': 'Maven Default Project',
-            'schema:identifier': 'com.mycompany.app',
+            'identifier': 'com.mycompany.app',
             'version': '1.2.3',
-            'schema:codeRepository':
+            'license': 'https://www.apache.org/licenses/LICENSE-2.0.txt',
+            'codeRepository':
                 'http://repo1.maven.org/maven2/com/mycompany/app/my-app',
-            })
+        })
+
+    def test_compute_metadata_maven_minimal(self):
+        raw_content = b"""
+        <project>
+          <name>Maven Default Project</name>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.mycompany.app</groupId>
+          <artifactId>my-app</artifactId>
+          <version>1.2.3</version>
+        </project>"""
+        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'Maven Default Project',
+            'identifier': 'com.mycompany.app',
+            'version': '1.2.3',
+            'codeRepository':
+            'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
+            'license': [],
+        })
+
+    def test_compute_metadata_maven_multiple(self):
+        '''Tests when there are multiple code repos and licenses.'''
+        raw_content = b"""
+        <project>
+          <name>Maven Default Project</name>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.mycompany.app</groupId>
+          <artifactId>my-app</artifactId>
+          <version>1.2.3</version>
+          <repositories>
+            <repository>
+              <id>central</id>
+              <name>Maven Repository Switchboard</name>
+              <layout>default</layout>
+              <url>http://repo1.maven.org/maven2</url>
+              <snapshots>
+                <enabled>false</enabled>
+              </snapshots>
+            </repository>
+            <repository>
+              <id>example</id>
+              <name>Example Maven Repo</name>
+              <layout>default</layout>
+              <url>http://example.org/maven2</url>
+            </repository>
+          </repositories>
+          <licenses>
+            <license>
+              <name>Apache License, Version 2.0</name>
+              <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+              <distribution>repo</distribution>
+              <comments>A business-friendly OSS license</comments>
+            </license>
+            <license>
+              <name>MIT license</name>
+              <url>https://opensource.org/licenses/MIT</url>
+            </license>
+          </licenses>
+        </project>"""
+        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'Maven Default Project',
+            'identifier': 'com.mycompany.app',
+            'version': '1.2.3',
+            'license': [
+                'https://www.apache.org/licenses/LICENSE-2.0.txt',
+                'https://opensource.org/licenses/MIT',
+            ],
+            'codeRepository': [
+                'http://repo1.maven.org/maven2/com/mycompany/app/my-app',
+                'http://example.org/maven2/com/mycompany/app/my-app',
+            ]
+        })
+
+    def test_compute_metadata_pkginfo(self):
+        raw_content = (b"""\
+Metadata-Version: 2.1
+Name: swh.core
+Version: 0.0.49
+Summary: Software Heritage core utilities
+Home-page: https://forge.softwareheritage.org/diffusion/DCORE/
+Author: Software Heritage developers
+Author-email: swh-devel@inria.fr
+License: UNKNOWN
+Project-URL: Bug Reports, https://forge.softwareheritage.org/maniphest
+Project-URL: Funding, https://www.softwareheritage.org/donate
+Project-URL: Source, https://forge.softwareheritage.org/source/swh-core
+Description: swh-core
+        ========
+        
+        core library for swh's modules:
+        - config parser
+        - hash computations
+        - serialization
+        - logging mechanism
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 5 - Production/Stable
+Description-Content-Type: text/markdown
+Provides-Extra: testing
+""") # noqa
+        result = MAPPINGS["PythonPkginfoMapping"].translate(raw_content)
+        self.assertCountEqual(result['description'], [
+            'Software Heritage core utilities',  # note the comma here
+            'swh-core\n'
+            '        ========\n'
+            '        \n'
+            "        core library for swh's modules:\n"
+            '        - config parser\n'
+            '        - hash computations\n'
+            '        - serialization\n'
+            '        - logging mechanism\n'
+            '        '],
+            result)
+        del result['description']
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'url': 'https://forge.softwareheritage.org/diffusion/DCORE/',
+            'name': 'swh.core',
+            'author': [{
+                'type': 'Person',
+                'name': 'Software Heritage developers',
+                'email': 'swh-devel@inria.fr',
+            }],
+            'version': '0.0.49',
+        })
+
+    def test_compute_metadata_pkginfo_license(self):
+        raw_content = (b"""\
+Metadata-Version: 2.1
+Name: foo
+License: MIT
+""") # noqa
+        result = MAPPINGS["PythonPkginfoMapping"].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'foo',
+            'license': 'MIT',
+        })
 
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataTestIndexer()
@@ -453,17 +604,17 @@ class Metadata(unittest.TestCase):
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
-                'codemeta:issueTracker':
+                'issueTracker':
                     'https://github.com/librariesio/yarn-parser/issues',
                 'version': '1.0.0',
                 'name': 'yarn-parser',
-                'schema:author': 'Andrew Nesbitt',
+                'author': ['Andrew Nesbitt'],
                 'url':
                     'https://github.com/librariesio/yarn-parser#readme',
                 'processorRequirements': {'node': '7.5'},
                 'license': 'AGPL-3.0',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'schema:codeRepository':
+                'codeRepository':
                     'git+https://github.com/librariesio/yarn-parser.git',
                 'description':
                     'Tiny web service for parsing yarn.lock files',
@@ -485,14 +636,14 @@ class Metadata(unittest.TestCase):
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'url':
                     'https://github.com/librariesio/yarn-parser#readme',
-                'schema:codeRepository':
+                'codeRepository':
                     'git+https://github.com/librariesio/yarn-parser.git',
-                'schema:author': 'Andrew Nesbitt',
+                'author': ['Andrew Nesbitt'],
                 'license': 'AGPL-3.0',
                 'version': '1.0.0',
                 'description':
                     'Tiny web service for parsing yarn.lock files',
-                'codemeta:issueTracker':
+                'issueTracker':
                     'https://github.com/librariesio/yarn-parser/issues',
                 'name': 'yarn-parser',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],

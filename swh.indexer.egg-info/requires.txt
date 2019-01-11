@@ -1,16 +1,17 @@
-chardet
-click
-file_magic
+vcversioner
 pygments
+click
+chardet
+file_magic
 pyld
+xmltodict
 swh.core>=0.0.44
 swh.model>=0.0.15
 swh.objstorage>=0.0.28
-swh.scheduler>=0.0.35
+swh.scheduler>=0.0.36
 swh.storage>=0.0.113
-vcversioner
-xmltodict
+swh.journal>=0.0.6
 
 [testing]
-hypothesis>=3.11.0
 pytest
+hypothesis>=3.11.0

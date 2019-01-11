@@ -17,7 +17,7 @@ def compute_mimetype_encoding(raw_content):
         raw_content (bytes): content's raw data
 
     Returns:
-        A dict with mimetype and encoding key and corresponding values
+        dict: mimetype and encoding key and corresponding values
         (as bytes).
 
     """
@@ -31,7 +31,7 @@ def compute_mimetype_encoding(raw_content):
 class MixinMimetypeIndexer:
     """Mixin mimetype indexer.
 
-    See :class:`ContentMimetypeIndexer` and :class:`MimetypeRangeIndexer`
+    See :class:`MimetypeIndexer` and :class:`MimetypeRangeIndexer`
 
     """
     ADDITIONAL_CONFIG = {
@@ -60,11 +60,11 @@ class MixinMimetypeIndexer:
             data (bytes): raw content in bytes
 
         Returns:
-            A dict, representing a content_mimetype, with keys:
+            dict: content's mimetype; dict keys being
 
-              - id (bytes): content's identifier (sha1)
-              - mimetype (bytes): mimetype in bytes
-              - encoding (bytes): encoding in bytes
+            - **id** (bytes): content's identifier (sha1)
+            - **mimetype** (bytes): mimetype in bytes
+            - **encoding** (bytes): encoding in bytes
 
         """
         try:
@@ -84,33 +84,27 @@ class MixinMimetypeIndexer:
         """Persist the results in storage.
 
         Args:
-            results ([dict]): list of content_mimetype, dict with the
-            following keys:
-
-              - id (bytes): content's identifier (sha1)
-              - mimetype (bytes): mimetype in bytes
-              - encoding (bytes): encoding in bytes
+            results ([dict]): list of content's mimetype dicts
+              (see :meth:`.index`)
 
             policy_update ([str]): either 'update-dups' or 'ignore-dups' to
-            respectively update duplicates or ignore them
+               respectively update duplicates or ignore them
 
         """
         self.idx_storage.content_mimetype_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
 
-class ContentMimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
+class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
     """Mimetype Indexer working on list of content identifiers.
 
     It:
-    - (optionally) filters out content already indexed (cf. :callable:`filter`)
+
+    - (optionally) filters out content already indexed (cf.
+      :meth:`.filter`)
     - reads content from objstorage per the content's id (sha1)
     - computes {mimetype, encoding} from that content
     - stores result in storage
-
-    FIXME:
-    - 1. Rename redundant ContentMimetypeIndexer to MimetypeIndexer
-    - 2. Do we keep it afterwards? ~> i think this can be used with the journal
 
     """
     def filter(self, ids):
@@ -129,7 +123,9 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
     """Mimetype Range Indexer working on range of content identifiers.
 
     It:
-    - (optionally) filters out content already indexed (cf :callable:`range`)
+
+    - (optionally) filters out content already indexed (cf
+      :meth:`.indexed_contents_in_range`)
     - reads content from objstorage per the content's id (sha1)
     - computes {mimetype, encoding} from that content
     - stores result in storage
@@ -138,15 +134,16 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
     def indexed_contents_in_range(self, start, end):
         """Retrieve indexed content id within range [start, end].
 
-        Args
-            **start** (bytes): Starting bound from range identifier
-            **end** (bytes): End range identifier
+        Args:
+            start (bytes): Starting bound from range identifier
+            end (bytes): End range identifier
 
         Returns:
-            a dict with keys:
+            dict: a dict with keys:
+
             - **ids** [bytes]: iterable of content ids within the range.
             - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
+              this sha1 if any
 
         """
         return self.idx_storage.content_mimetype_get_range(

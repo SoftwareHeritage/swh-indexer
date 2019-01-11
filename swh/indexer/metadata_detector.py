@@ -11,12 +11,12 @@ from swh.indexer.metadata_dictionary import MAPPINGS
 def detect_metadata(files):
     """
     Detects files potentially containing metadata
+
     Args:
-        - file_entries (list): list of files
+        file_entries (list): list of files
 
     Returns:
-        - empty list if nothing was found
-        - dictionary {mapping_filenames[name]:f['sha1']}
+        dict: {mapping_filenames[name]:f['sha1']} (may be empty)
     """
     results = {}
     for (mapping_name, mapping) in MAPPINGS.items():
@@ -39,14 +39,16 @@ MINIMAL_METADATA_SET = {make_absolute_uri(prop)
 def extract_minimal_metadata_dict(metadata_list):
     """
     Every item in the metadata_list is a dict of translated_metadata in the
-    CodeMeta vocabulary
-    we wish to extract a minimal set of terms and keep all values corresponding
-    to this term without duplication
+    CodeMeta vocabulary.
+
+    We wish to extract a minimal set of terms and keep all values corresponding
+    to this term without duplication.
+
     Args:
-        - metadata_list (list): list of dicts of translated_metadata
+        metadata_list (list): list of dicts of translated_metadata
 
     Returns:
-        - minimal_dict (dict): one dict with selected values of metadata
+        dict: minimal_dict; dict with selected values of metadata
     """
     minimal_dict = {}
     for document in metadata_list:

@@ -4,37 +4,24 @@
 # See top-level LICENSE file for more information
 
 import unittest
-import logging
-
-from unittest.mock import patch
 
 from swh.indexer.mimetype import (
-    ContentMimetypeIndexer, MimetypeRangeIndexer, compute_mimetype_encoding
+    MimetypeIndexer, MimetypeRangeIndexer, compute_mimetype_encoding
 )
 
 from swh.indexer.tests.test_utils import (
-    MockObjStorage, BasicMockStorage, BasicMockIndexerStorage,
     CommonContentIndexerTest, CommonContentIndexerRangeTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
-    BASE_TEST_CONFIG
+    BASE_TEST_CONFIG, fill_storage, fill_obj_storage
 )
 
 
-class FakeMagicResult:
-    def __init__(self, mimetype, encoding):
-        self.mime_type = mimetype
-        self.encoding = encoding
-
-
 class BasicTest(unittest.TestCase):
-    @patch('swh.indexer.mimetype.magic')
-    def test_compute_mimetype_encoding(self, mock_magic):
+    def test_compute_mimetype_encoding(self):
         """Compute mimetype encoding should return results"""
         for _input, _mimetype, _encoding in [
-                (b'some-content', 'text/plain', 'utf-8'),
-                (b'raw-content', 'application/json', 'ascii')]:
-            mock_magic.detect_from_content.return_value = FakeMagicResult(
-                _mimetype, _encoding)
+                ('du français'.encode(), 'text/plain', 'utf-8'),
+                (b'def __init__(self):', 'text/x-python', 'us-ascii')]:
 
             actual_result = compute_mimetype_encoding(_input)
             self.assertEqual(actual_result, {
@@ -43,7 +30,7 @@ class BasicTest(unittest.TestCase):
             })
 
 
-class MimetypeTestIndexer(ContentMimetypeIndexer):
+class MimetypeTestIndexer(MimetypeIndexer):
     """Specific mimetype indexer instance whose configuration is enough to
        satisfy the indexing tests.
 
@@ -61,12 +48,6 @@ class MimetypeTestIndexer(ContentMimetypeIndexer):
             },
         }
 
-    def prepare(self):
-        super().prepare()
-        self.idx_storage = BasicMockIndexerStorage()
-        self.log = logging.getLogger('swh.indexer')
-        self.objstorage = MockObjStorage()
-
 
 class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
     """Mimetype indexer test scenarios:
@@ -75,29 +56,40 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
     - Unknown sha1 in the input list are not indexed
 
     """
+    legacy_get_format = True
+
+    def get_indexer_results(self, ids):
+        yield from self.idx_storage.content_mimetype_get(ids)
+
     def setUp(self):
         self.indexer = MimetypeTestIndexer()
+        self.idx_storage = self.indexer.idx_storage
+        fill_storage(self.indexer.storage)
+        fill_obj_storage(self.indexer.objstorage)
 
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
         self.id2 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
-        tool_id = self.indexer.tool['id']
+
+        tool = {k.replace('tool_', ''): v
+                for (k, v) in self.indexer.tool.items()}
+
         self.expected_results = {
             self.id0: {
                 'id': self.id0,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'mimetype': 'text/plain',
                 'encoding': 'us-ascii',
             },
             self.id1: {
                 'id': self.id1,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'mimetype': 'text/plain',
                 'encoding': 'us-ascii',
             },
             self.id2: {
                 'id': self.id2,
-                'indexer_configuration_id': tool_id,
+                'tool': tool,
                 'mimetype': 'application/x-empty',
                 'encoding': 'binary',
             }
@@ -123,15 +115,6 @@ class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
             'write_batch_size': 100,
         }
 
-    def prepare(self):
-        super().prepare()
-        self.idx_storage = BasicMockIndexerStorage()
-        # this hardcodes some contents, will use this to setup the storage
-        self.objstorage = MockObjStorage()
-        # sync objstorage and storage
-        contents = [{'sha1': c_id} for c_id in self.objstorage]
-        self.storage = BasicMockStorage(contents)
-
 
 class TestMimetypeRangeIndexer(
         CommonContentIndexerRangeTest, unittest.TestCase):
@@ -144,12 +127,10 @@ class TestMimetypeRangeIndexer(
 
     """
     def setUp(self):
+        super().setUp()
         self.indexer = MimetypeRangeIndexerTest()
-        # will play along with the objstorage's mocked contents for now
-        self.contents = sorted(self.indexer.objstorage)
-        # FIXME: leverage swh.objstorage.in_memory_storage's
-        # InMemoryObjStorage, swh.storage.tests's gen_contents, and
-        # hypothesis to generate data to actually run indexer on those
+        fill_storage(self.indexer.storage)
+        fill_obj_storage(self.indexer.objstorage)
 
         self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
         self.id1 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
