@@ -10,6 +10,7 @@ swh.model>=0.0.15
 swh.objstorage>=0.0.28
 swh.scheduler>=0.0.36
 swh.storage>=0.0.113
+swh.journal>=0.0.6
 
 [testing]
 pytest
