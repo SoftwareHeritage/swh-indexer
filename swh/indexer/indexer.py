@@ -566,7 +566,7 @@ class OriginIndexer(BaseIndexer):
                 continue
             try:
                 res = self.index(origin, **kwargs)
-                if origin:  # If no results, skip it
+                if res:  # If no results, skip it
                     results.append(res)
             except Exception:
                 self.log.exception(
