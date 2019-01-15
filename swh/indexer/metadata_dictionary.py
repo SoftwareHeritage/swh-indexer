@@ -284,12 +284,15 @@ class MavenMapping(DictMapping, SingleFileMapping):
     def parse_repository(self, d, repo):
         if repo.get('layout', 'default') != 'default':
             return  # TODO ?
-        url = repo['url']
-        if d['groupId']:
-            url = os.path.join(url, *d['groupId'].split('.'))
-            if d['artifactId']:
-                url = os.path.join(url, d['artifactId'])
-        return {"@id": url}
+        url = repo.get('url')
+        group_id = d.get('groupId')
+        artifact_id = d.get('artifactId')
+        if isinstance(url, str):
+            if isinstance(group_id, str):
+                url = os.path.join(url, *group_id.split('.'))
+                if isinstance(artifact_id, str):
+                    url = os.path.join(url, artifact_id)
+            return {"@id": url}
 
     def normalize_groupId(self, id_):
         return {"@id": id_}
