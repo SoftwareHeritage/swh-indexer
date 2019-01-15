@@ -240,9 +240,6 @@ class Metadata(unittest.TestCase):
                 'url': 'https://docs.npmjs.com/'
             },
             'id': hash_to_bytes('d4c647f0fc257591cc9ba1722484229780d1c607')
-            }, {
-            'translated_metadata': None,
-            'id': hash_to_bytes('02fb2c89e14f7fab46701478c83779c7beb7b069')
         }]
 
         for result in results:
