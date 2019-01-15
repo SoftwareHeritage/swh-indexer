@@ -7,7 +7,8 @@ import unittest
 
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
+from swh.indexer.metadata_dictionary import (
+    CROSSWALK_TABLE, MAPPINGS, merge_values)
 from swh.indexer.metadata_detector import (
     detect_metadata, extract_minimal_metadata_dict
 )
@@ -73,6 +74,31 @@ class Metadata(unittest.TestCase):
             'bugs': 'https://codemeta.github.io/terms/issueTracker',
             'homepage': 'http://schema.org/url'
         })
+
+    def test_merge_values(self):
+        self.assertEqual(
+            merge_values('a', 'b'),
+            ['a', 'b'])
+        self.assertEqual(
+            merge_values(['a', 'b'], 'c'),
+            ['a', 'b', 'c'])
+        self.assertEqual(
+            merge_values('a', ['b', 'c']),
+            ['a', 'b', 'c'])
+        self.assertEqual(
+            merge_values({'@list': ['a']}, {'@list': ['b']}),
+            {'@list': ['a', 'b']})
+        self.assertEqual(
+            merge_values({'@list': ['a', 'b']}, {'@list': ['c']}),
+            {'@list': ['a', 'b', 'c']})
+        with self.assertRaises(ValueError):
+            merge_values({'@list': ['a']}, 'b')
+        with self.assertRaises(ValueError):
+            merge_values('a', {'@list': ['b']})
+        with self.assertRaises(ValueError):
+            merge_values({'@list': ['a']}, ['b'])
+        with self.assertRaises(ValueError):
+            merge_values(['a'], {'@list': ['b']})
 
     def test_compute_metadata_none(self):
         """

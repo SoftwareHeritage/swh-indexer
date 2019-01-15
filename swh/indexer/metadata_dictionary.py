@@ -28,6 +28,36 @@ def register_mapping(cls):
     return cls
 
 
+def merge_values(v1, v2):
+    """If v1 and v2 are of the form `{"@list": l1}` and `{"@list": l2}`,
+    returns `{"@list": l1 + l2}`.
+    Otherwise, make them lists (if they are not already) and concatenate
+    them.
+
+    >>> merge_values('a', 'b')
+    ['a', 'b']
+    >>> merge_values(['a', 'b'], 'c')
+    ['a', 'b', 'c']
+    >>> merge_values({'@list': ['a', 'b']}, {'@list': ['c']})
+    {'@list': ['a', 'b', 'c']}
+    """
+    if isinstance(v1, dict) and set(v1) == {'@list'}:
+        assert isinstance(v1['@list'], list)
+        if isinstance(v2, dict) and set(v2) == {'@list'}:
+            assert isinstance(v2['@list'], list)
+            return {'@list': v1['@list'] + v2['@list']}
+        else:
+            raise ValueError('Cannot merge %r and %r' % (v1, v2))
+    else:
+        if isinstance(v2, dict) and '@list' in v2:
+            raise ValueError('Cannot merge %r and %r' % (v1, v2))
+        if not isinstance(v1, list):
+            v1 = [v1]
+        if not isinstance(v2, list):
+            v2 = [v2]
+        return v1 + v2
+
+
 class BaseMapping(metaclass=abc.ABCMeta):
     """Base class for mappings to inherit from
 
@@ -112,6 +142,7 @@ class DictMapping(BaseMapping):
             elif k in self.mapping:
                 # if there is no method, but the key is known from the
                 # crosswalk table
+                codemeta_key = self.mapping[k]
 
                 # if there is a normalization method, use it on the value
                 normalization_method = getattr(
@@ -120,7 +151,11 @@ class DictMapping(BaseMapping):
                     v = normalization_method(v)
 
                 # set the translation metadata with the normalized value
-                translated_metadata[self.mapping[k]] = v
+                if codemeta_key in translated_metadata:
+                    translated_metadata[codemeta_key] = merge_values(
+                        translated_metadata[codemeta_key], v)
+                else:
+                    translated_metadata[codemeta_key] = v
         if normalize:
             return self.normalize_translation(translated_metadata)
         else:
@@ -468,14 +503,6 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
             }
         return self.normalize_translation(metadata)
 
-    def translate_summary(self, translated_metadata, v):
-        k = self.mapping['summary']
-        translated_metadata.setdefault(k, []).append(v)
-
-    def translate_description(self, translated_metadata, v):
-        k = self.mapping['description']
-        translated_metadata.setdefault(k, []).append(v)
-
     def normalize_home_page(self, urls):
         return [{'@id': url} for url in urls]
 
@@ -576,21 +603,11 @@ class GemspecMapping(DictMapping):
                     for license in licenses
                     if isinstance(license, str)]
 
-    def translate_author(self, translated_metadata, v):
-        k = self.mapping['author']
-        translated_metadata.setdefault(k, {"@list": []})["@list"].append(v)
+    def normalize_author(self, author):
+        return {"@list": [author]}
 
-    def translate_authors(self, translated_metadata, v):
-        k = self.mapping['authors']
-        translated_metadata.setdefault(k, {"@list": []})["@list"].extend(v)
-
-    def translate_summary(self, translated_metadata, v):
-        k = self.mapping['summary']
-        translated_metadata.setdefault(k, []).append(v)
-
-    def translate_description(self, translated_metadata, v):
-        k = self.mapping['description']
-        translated_metadata.setdefault(k, []).append(v)
+    def normalize_authors(self, authors):
+        return {"@list": authors}
 
 
 def main():
