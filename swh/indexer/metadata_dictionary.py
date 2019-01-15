@@ -221,7 +221,10 @@ class NpmMapping(JsonMapping):
         return {"@list": [author]}
 
     def normalize_license(self, s):
-        return {"@id": "https://spdx.org/licenses/" + s}
+        if isinstance(s, str):
+            return {"@id": "https://spdx.org/licenses/" + s}
+        else:
+            return None
 
     def normalize_homepage(self, s):
         return {"@id": s}
@@ -337,7 +340,9 @@ class MavenMapping(DictMapping, SingleFileMapping):
         licenses = d.get('licenses', {}).get('license', [])
         if isinstance(licenses, dict):
             licenses = [licenses]
-        return [{"@id": license['url']} for license in licenses]
+        return [{"@id": license['url']}
+                for license in licenses
+                if 'url' in license]
 
 
 _normalize_pkginfo_key = str.lower
