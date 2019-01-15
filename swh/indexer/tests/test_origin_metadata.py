@@ -5,6 +5,7 @@
 
 import time
 import unittest
+import unittest.mock
 
 from celery import task
 from swh.model.hashutil import hash_to_bytes

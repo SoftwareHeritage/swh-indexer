@@ -161,15 +161,17 @@ class NpmMapping(JsonMapping):
     filename = b'package.json'
 
     _schema_shortcuts = {
-            'github': 'https://github.com/',
-            'gist': 'https://gist.github.com/',
-            'bitbucket': 'https://bitbucket.org/',
-            'gitlab': 'https://gitlab.com/',
+            'github': 'git+https://github.com/%s.git',
+            'gist': 'git+https://gist.github.com/%s.git',
+            'gitlab': 'git+https://gitlab.com/%s.git',
+            # Bitbucket supports both hg and git, and the shortcut does not
+            # tell which one to use.
+            # 'bitbucket': 'https://bitbucket.org/',
             }
 
     def normalize_repository(self, d):
         """https://docs.npmjs.com/files/package.json#repository"""
-        if isinstance(d, dict):
+        if isinstance(d, dict) and {'type', 'url'} <= set(d):
             url = '{type}+{url}'.format(**d)
         elif isinstance(d, str):
             if '://' in d:
@@ -177,11 +179,11 @@ class NpmMapping(JsonMapping):
             elif ':' in d:
                 (schema, rest) = d.split(':', 1)
                 if schema in self._schema_shortcuts:
-                    url = self._schema_shortcuts[schema] + rest
+                    url = self._schema_shortcuts[schema] % rest
                 else:
                     return None
             else:
-                url = self._schema_shortcuts['github'] + d
+                url = self._schema_shortcuts['github'] % d
 
         else:
             return None
@@ -189,7 +191,13 @@ class NpmMapping(JsonMapping):
         return {'@id': url}
 
     def normalize_bugs(self, d):
-        return {'@id': '{url}'.format(**d)}
+        """https://docs.npmjs.com/files/package.json#bugs"""
+        if isinstance(d, dict) and 'url' in d:
+            return {'@id': '{url}'.format(**d)}
+        elif isinstance(d, str):
+            return {'@id': d}
+        else:
+            return None
 
     _parse_author = re.compile(r'^ *'
                                r'(?P<name>.*?)'
@@ -221,7 +229,10 @@ class NpmMapping(JsonMapping):
         return {"@list": [author]}
 
     def normalize_license(self, s):
-        return {"@id": "https://spdx.org/licenses/" + s}
+        if isinstance(s, str):
+            return {"@id": "https://spdx.org/licenses/" + s}
+        else:
+            return None
 
     def normalize_homepage(self, s):
         return {"@id": s}
@@ -273,12 +284,15 @@ class MavenMapping(DictMapping, SingleFileMapping):
     def parse_repository(self, d, repo):
         if repo.get('layout', 'default') != 'default':
             return  # TODO ?
-        url = repo['url']
-        if d['groupId']:
-            url = os.path.join(url, *d['groupId'].split('.'))
-            if d['artifactId']:
-                url = os.path.join(url, d['artifactId'])
-        return {"@id": url}
+        url = repo.get('url')
+        group_id = d.get('groupId')
+        artifact_id = d.get('artifactId')
+        if isinstance(url, str):
+            if isinstance(group_id, str):
+                url = os.path.join(url, *group_id.split('.'))
+                if isinstance(artifact_id, str):
+                    url = os.path.join(url, artifact_id)
+            return {"@id": url}
 
     def normalize_groupId(self, id_):
         return {"@id": id_}
@@ -337,7 +351,9 @@ class MavenMapping(DictMapping, SingleFileMapping):
         licenses = d.get('licenses', {}).get('license', [])
         if isinstance(licenses, dict):
             licenses = [licenses]
-        return [{"@id": license['url']} for license in licenses]
+        return [{"@id": license['url']}
+                for license in licenses
+                if 'url' in license]
 
 
 _normalize_pkginfo_key = str.lower
