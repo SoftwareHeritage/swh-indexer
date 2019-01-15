@@ -1,3 +1,12 @@
+swh-indexer (0.0.127-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.127     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-01-15 15:56:49 +0100)
+  * Upstream changes:     - Prevent repository normalization from
+    crashing on malformed input.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 15 Jan 2019 16:20:32 +0000
+
 swh-indexer (0.0.126-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.126     - (tagged by Valentin Lorentz
