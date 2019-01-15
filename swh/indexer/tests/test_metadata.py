@@ -248,6 +248,116 @@ class Metadata(unittest.TestCase):
         # The assertion below returns False sometimes because of nested lists
         self.assertEqual(expected_results, results)
 
+    def test_npm_bugs_normalization(self):
+        # valid dictionary
+        package_json = b"""{
+            "name": "foo",
+            "bugs": {
+                "url": "https://github.com/owner/project/issues",
+                "email": "foo@example.com"
+            }
+        }"""
+        result = MAPPINGS["NpmMapping"].translate(package_json)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'name': 'foo',
+            'issueTracker': 'https://github.com/owner/project/issues',
+            'type': 'SoftwareSourceCode',
+        })
+
+        # "invalid" dictionary
+        package_json = b"""{
+            "name": "foo",
+            "bugs": {
+                "email": "foo@example.com"
+            }
+        }"""
+        result = MAPPINGS["NpmMapping"].translate(package_json)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'name': 'foo',
+            'type': 'SoftwareSourceCode',
+        })
+
+        # string
+        package_json = b"""{
+            "name": "foo",
+            "bugs": "https://github.com/owner/project/issues"
+        }"""
+        result = MAPPINGS["NpmMapping"].translate(package_json)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'name': 'foo',
+            'issueTracker': 'https://github.com/owner/project/issues',
+            'type': 'SoftwareSourceCode',
+        })
+
+    def test_npm_repository_normalization(self):
+        # normal
+        package_json = b"""{
+            "name": "foo",
+            "repository": {
+                "type" : "git",
+                "url" : "https://github.com/npm/cli.git"
+            }
+        }"""
+        result = MAPPINGS["NpmMapping"].translate(package_json)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'name': 'foo',
+            'codeRepository': 'git+https://github.com/npm/cli.git',
+            'type': 'SoftwareSourceCode',
+        })
+
+        # missing url
+        package_json = b"""{
+            "name": "foo",
+            "repository": {
+                "type" : "git"
+            }
+        }"""
+        result = MAPPINGS["NpmMapping"].translate(package_json)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'name': 'foo',
+            'type': 'SoftwareSourceCode',
+        })
+
+        # github shortcut
+        package_json = b"""{
+            "name": "foo",
+            "repository": "github:npm/cli"
+        }"""
+        result = MAPPINGS["NpmMapping"].translate(package_json)
+        expected_result = {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'name': 'foo',
+            'codeRepository': 'git+https://github.com/npm/cli.git',
+            'type': 'SoftwareSourceCode',
+        }
+        self.assertEqual(result, expected_result)
+
+        # github shortshortcut
+        package_json = b"""{
+            "name": "foo",
+            "repository": "npm/cli"
+        }"""
+        result = MAPPINGS["NpmMapping"].translate(package_json)
+        self.assertEqual(result, expected_result)
+
+        # gitlab shortcut
+        package_json = b"""{
+            "name": "foo",
+            "repository": "gitlab:user/repo"
+        }"""
+        result = MAPPINGS["NpmMapping"].translate(package_json)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'name': 'foo',
+            'codeRepository': 'git+https://gitlab.com/user/repo.git',
+            'type': 'SoftwareSourceCode',
+        })
+
     def test_detect_metadata_package_json(self):
         # given
         df = [{
