@@ -735,6 +735,61 @@ License: MIT
             'license': 'MIT',
         })
 
+    def test_gemspec_base(self):
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.name        = 'example'
+  s.version     = '0.1.0'
+  s.licenses    = ['MIT']
+  s.summary     = "This is an example!"
+  s.description = "Much longer explanation of the example!"
+  s.authors     = ["Ruby Coder"]
+  s.email       = 'rubycoder@example.com'
+  s.files       = ["lib/example.rb"]
+  s.homepage    = 'https://rubygems.org/gems/example'
+  s.metadata    = { "source_code_uri" => "https://github.com/example/example" }
+end"""
+        result = MAPPINGS['GemspecMapping'].translate(raw_content)
+        self.assertCountEqual(result.pop('description'), [
+            "This is an example!",
+            "Much longer explanation of the example!"
+        ])
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'author': ['Ruby Coder'],
+            'name': 'example',
+            'license': 'https://spdx.org/licenses/MIT',
+            'codeRepository': 'https://rubygems.org/gems/example',
+            'email': 'rubycoder@example.com',
+            'version': '0.1.0',
+        })
+
+    def test_gemspec_two_author_fields(self):
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.authors     = ["Ruby Coder1"]
+  s.author      = "Ruby Coder2"
+end"""
+        result = MAPPINGS['GemspecMapping'].translate(raw_content)
+        self.assertCountEqual(result.pop('author'), [
+            'Ruby Coder1', 'Ruby Coder2'])
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+
+    def test_gemspec_invalid_author(self):
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.author      = "Ruby Coder1",
+end"""
+        result = MAPPINGS['GemspecMapping'].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataIndexer(
             config=REVISION_METADATA_CONFIG)
