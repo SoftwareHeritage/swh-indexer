@@ -76,7 +76,10 @@ class ContentMetadataIndexer(ContentIndexer):
                 .translate(data)
         except Exception:
             self.log.exception(
-                "Problem during tool retrieval of metadata translation")
+                "Problem during metadata translation "
+                "for content %s" % hashutil.hash_to_hex(id))
+        if result['translated_metadata'] is None:
+            return None
         return result
 
     def persist_index_computations(self, results, policy_update):
