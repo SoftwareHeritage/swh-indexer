@@ -85,12 +85,14 @@ class Metadata(unittest.TestCase):
         self.assertEqual(
             merge_values('a', ['b', 'c']),
             ['a', 'b', 'c'])
+
         self.assertEqual(
             merge_values({'@list': ['a']}, {'@list': ['b']}),
             {'@list': ['a', 'b']})
         self.assertEqual(
             merge_values({'@list': ['a', 'b']}, {'@list': ['c']}),
             {'@list': ['a', 'b', 'c']})
+
         with self.assertRaises(ValueError):
             merge_values({'@list': ['a']}, 'b')
         with self.assertRaises(ValueError):
@@ -99,6 +101,22 @@ class Metadata(unittest.TestCase):
             merge_values({'@list': ['a']}, ['b'])
         with self.assertRaises(ValueError):
             merge_values(['a'], {'@list': ['b']})
+
+        self.assertEqual(
+            merge_values('a', None),
+            'a')
+        self.assertEqual(
+            merge_values(['a', 'b'], None),
+            ['a', 'b'])
+        self.assertEqual(
+            merge_values(None, ['b', 'c']),
+            ['b', 'c'])
+        self.assertEqual(
+            merge_values({'@list': ['a']}, None),
+            {'@list': ['a']})
+        self.assertEqual(
+            merge_values(None, {'@list': ['a']}),
+            {'@list': ['a']})
 
     def test_compute_metadata_none(self):
         """
@@ -808,12 +826,31 @@ end"""
     def test_gemspec_invalid_author(self):
         raw_content = b"""
 Gem::Specification.new do |s|
+  s.author      = ["Ruby Coder"]
+end"""
+        result = MAPPINGS['GemspecMapping'].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+        raw_content = b"""
+Gem::Specification.new do |s|
   s.author      = "Ruby Coder1",
 end"""
         result = MAPPINGS['GemspecMapping'].translate(raw_content)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
+        })
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.authors     = ["Ruby Coder1", ["Ruby Coder2"]]
+end"""
+        result = MAPPINGS['GemspecMapping'].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'author': ['Ruby Coder1'],
         })
 
     def test_revision_metadata_indexer(self):

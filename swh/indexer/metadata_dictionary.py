@@ -41,7 +41,11 @@ def merge_values(v1, v2):
     >>> merge_values({'@list': ['a', 'b']}, {'@list': ['c']})
     {'@list': ['a', 'b', 'c']}
     """
-    if isinstance(v1, dict) and set(v1) == {'@list'}:
+    if v1 is None:
+        return v2
+    elif v2 is None:
+        return v1
+    elif isinstance(v1, dict) and set(v1) == {'@list'}:
         assert isinstance(v1['@list'], list)
         if isinstance(v2, dict) and set(v2) == {'@list'}:
             assert isinstance(v2['@list'], list)
@@ -325,7 +329,8 @@ class NpmMapping(JsonMapping):
         >>> NpmMapping().normalize_homepage('https://example.org/~john.doe')
         {'@id': 'https://example.org/~john.doe'}
         """
-        return {"@id": s}
+        if isinstance(s, str):
+            return {"@id": s}
 
 
 @register_mapping
@@ -591,7 +596,8 @@ class GemspecMapping(DictMapping):
             return evaluator(tree.body)
 
     def normalize_homepage(self, s):
-        return {"@id": s}
+        if isinstance(s, str):
+            return {"@id": s}
 
     def normalize_license(self, s):
         if isinstance(s, str):
@@ -604,10 +610,13 @@ class GemspecMapping(DictMapping):
                     if isinstance(license, str)]
 
     def normalize_author(self, author):
-        return {"@list": [author]}
+        if isinstance(author, str):
+            return {"@list": [author]}
 
     def normalize_authors(self, authors):
-        return {"@list": authors}
+        if isinstance(authors, list):
+            return {"@list": [author for author in authors
+                              if isinstance(author, str)]}
 
 
 def main():
