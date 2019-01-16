@@ -258,7 +258,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
     mapping = CROSSWALK_TABLE['Java (Maven)']
 
     def translate(self, content):
-        d = xmltodict.parse(content)['project']
+        d = xmltodict.parse(content).get('project')
         metadata = self.translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
         metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)
@@ -269,17 +269,14 @@ class MavenMapping(DictMapping, SingleFileMapping):
     def parse_repositories(self, d):
         """https://maven.apache.org/pom.html#Repositories"""
         if 'repositories' not in d:
-            return [self.parse_repository(d, self._default_repository)]
+            results = [self.parse_repository(d, self._default_repository)]
         else:
-            repositories = d['repositories'].get('repository', [])
+            repositories = d.get('repositories', {}).get('repository', [])
             if not isinstance(repositories, list):
                 repositories = [repositories]
-            results = []
-            for repo in repositories:
-                res = self.parse_repository(d, repo)
-                if res:
-                    results.append(res)
-            return results
+            results = [self.parse_repository(d, repo)
+                       for repo in repositories]
+        return [res for res in results if res] or None
 
     def parse_repository(self, d, repo):
         if repo.get('layout', 'default') != 'default':
@@ -287,12 +284,10 @@ class MavenMapping(DictMapping, SingleFileMapping):
         url = repo.get('url')
         group_id = d.get('groupId')
         artifact_id = d.get('artifactId')
-        if isinstance(url, str):
-            if isinstance(group_id, str):
-                url = os.path.join(url, *group_id.split('.'))
-                if isinstance(artifact_id, str):
-                    url = os.path.join(url, artifact_id)
-            return {"@id": url}
+        if (isinstance(url, str) and isinstance(group_id, str)
+                and isinstance(artifact_id, str)):
+            repo = os.path.join(url, *group_id.split('.'), artifact_id)
+            return {"@id": repo}
 
     def normalize_groupId(self, id_):
         return {"@id": id_}
@@ -353,7 +348,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
             licenses = [licenses]
         return [{"@id": license['url']}
                 for license in licenses
-                if 'url' in license]
+                if 'url' in license] or None
 
 
 _normalize_pkginfo_key = str.lower
