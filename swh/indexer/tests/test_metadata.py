@@ -548,6 +548,16 @@ class Metadata(unittest.TestCase):
                 'http://repo1.maven.org/maven2/com/mycompany/app/my-app',
         })
 
+    def test_compute_metadata_maven_empty(self):
+        raw_content = b"""
+        <project>
+        </project>"""
+        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+
     def test_compute_metadata_maven_almost_empty(self):
         raw_content = b"""
         <project>
@@ -558,6 +568,16 @@ class Metadata(unittest.TestCase):
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
         })
+
+    def test_compute_metadata_maven_invalid_xml(self):
+        raw_content = b"""
+        <project>"""
+        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        self.assertEqual(result, None)
+        raw_content = b"""
+        """
+        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        self.assertEqual(result, None)
 
     def test_compute_metadata_maven_minimal(self):
         raw_content = b"""

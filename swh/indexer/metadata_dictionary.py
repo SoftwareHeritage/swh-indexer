@@ -9,6 +9,7 @@ import abc
 import json
 import logging
 import email.parser
+import xml.parsers.expat
 
 import xmltodict
 
@@ -258,7 +259,11 @@ class MavenMapping(DictMapping, SingleFileMapping):
     mapping = CROSSWALK_TABLE['Java (Maven)']
 
     def translate(self, content):
-        d = xmltodict.parse(content).get('project')
+        try:
+            d = xmltodict.parse(content).get('project') or {}
+        except xml.parsers.expat.ExpatError:
+            self.log.warning('Error parsing XML of %r', content)
+            return None
         metadata = self.translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
         metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)
