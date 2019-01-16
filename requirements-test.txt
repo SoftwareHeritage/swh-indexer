@@ -1,2 +1,2 @@
-pytest
-hypothesis (>= 3.11.0)
+pytest<4
+hypothesis>=3.11.0
