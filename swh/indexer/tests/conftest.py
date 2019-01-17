@@ -25,4 +25,5 @@ def indexer_scheduler(swh_scheduler):
 def celery_includes():
     return [
         'swh.indexer.tests.tasks',
+        'swh.indexer.tasks',
     ]
