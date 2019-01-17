@@ -12,7 +12,7 @@ from swh.indexer.fossology_license import (
     compute_license
 )
 
-from swh.indexer.tests.test_utils import (
+from swh.indexer.tests.utils import (
     SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool, NoDiskIndexer,
     BASE_TEST_CONFIG, fill_storage, fill_obj_storage

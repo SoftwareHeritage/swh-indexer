@@ -1,9 +1,10 @@
-from swh.scheduler.celery_backend.config import app
+from celery import current_app as app
+
 from swh.indexer.metadata import (
     OriginMetadataIndexer, RevisionMetadataIndexer
 )
 from .test_metadata import ContentMetadataTestIndexer
-from .test_utils import BASE_TEST_CONFIG
+from .utils import BASE_TEST_CONFIG
 
 
 class RevisionMetadataTestIndexer(RevisionMetadataIndexer):

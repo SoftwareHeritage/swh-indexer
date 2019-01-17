@@ -15,7 +15,7 @@ from swh.indexer.metadata import (
     ContentMetadataIndexer, RevisionMetadataIndexer
 )
 
-from .test_utils import (
+from .utils import (
     BASE_TEST_CONFIG, fill_obj_storage, fill_storage
 )
 

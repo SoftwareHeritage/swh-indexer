@@ -9,7 +9,7 @@ from swh.indexer.mimetype import (
     MimetypeIndexer, MimetypeRangeIndexer, compute_mimetype_encoding
 )
 
-from swh.indexer.tests.test_utils import (
+from swh.indexer.tests.utils import (
     CommonContentIndexerTest, CommonContentIndexerRangeTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
     BASE_TEST_CONFIG, fill_storage, fill_obj_storage

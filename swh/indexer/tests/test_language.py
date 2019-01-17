@@ -6,7 +6,7 @@
 import unittest
 from swh.indexer import language
 from swh.indexer.language import LanguageIndexer
-from swh.indexer.tests.test_utils import (
+from swh.indexer.tests.utils import (
     CommonContentIndexerTest, CommonIndexerWithErrorsTest,
     CommonIndexerNoTool, BASE_TEST_CONFIG, fill_storage, fill_obj_storage
 )

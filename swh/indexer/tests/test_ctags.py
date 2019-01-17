@@ -12,7 +12,7 @@ from swh.indexer.ctags import (
     CtagsIndexer, run_ctags
 )
 
-from swh.indexer.tests.test_utils import (
+from swh.indexer.tests.utils import (
     CommonContentIndexerTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
     SHA1_TO_CTAGS, NoDiskIndexer, BASE_TEST_CONFIG,

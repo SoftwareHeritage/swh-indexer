@@ -15,7 +15,7 @@ from swh.objstorage.objstorage_in_memory import InMemoryObjStorage
 
 from swh.scheduler.celery_backend.runner import run_ready_tasks
 
-from .test_utils import fill_storage, fill_obj_storage
+from .utils import fill_storage, fill_obj_storage
 from .test_origin_head import OriginHeadTestIndexer
 from swh.indexer.tests.tasks import (
     RevisionMetadataTestIndexer, OriginMetadataTestIndexer)

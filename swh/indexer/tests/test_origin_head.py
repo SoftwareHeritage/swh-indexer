@@ -6,7 +6,7 @@
 import unittest
 
 from swh.indexer.origin_head import OriginHeadIndexer
-from swh.indexer.tests.test_utils import (
+from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG, fill_storage
 )
 
