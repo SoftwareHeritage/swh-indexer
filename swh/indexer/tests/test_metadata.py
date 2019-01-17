@@ -690,14 +690,14 @@ Provides-Extra: testing
         self.assertCountEqual(result['description'], [
             'Software Heritage core utilities',  # note the comma here
             'swh-core\n'
-            '        ========\n'
-            '        \n'
-            "        core library for swh's modules:\n"
-            '        - config parser\n'
-            '        - hash computations\n'
-            '        - serialization\n'
-            '        - logging mechanism\n'
-            '        '],
+            '========\n'
+            '\n'
+            "core library for swh's modules:\n"
+            '- config parser\n'
+            '- hash computations\n'
+            '- serialization\n'
+            '- logging mechanism\n'
+            ''],
             result)
         del result['description']
         self.assertEqual(result, {
@@ -711,6 +711,22 @@ Provides-Extra: testing
                 'email': 'swh-devel@inria.fr',
             }],
             'version': '0.0.49',
+        })
+
+    def test_compute_metadata_pkginfo_utf8(self):
+        raw_content = (b'''\
+Metadata-Version: 1.1
+Name: snowpyt
+Description-Content-Type: UNKNOWN
+Description: foo
+        Hydrology N\xc2\xb083
+''') # noqa
+        result = MAPPINGS["PythonPkginfoMapping"].translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'snowpyt',
+            'description': 'foo\nHydrology N°83',
         })
 
     def test_compute_metadata_pkginfo_license(self):

@@ -10,6 +10,7 @@ import json
 import logging
 import email.parser
 import xml.parsers.expat
+import email.policy
 
 import xmltodict
 
@@ -425,6 +426,14 @@ class MavenMapping(DictMapping, SingleFileMapping):
 _normalize_pkginfo_key = str.lower
 
 
+class LinebreakPreservingEmailPolicy(email.policy.EmailPolicy):
+    def header_fetch_parse(self, name, value):
+        if hasattr(value, 'name'):
+            return value
+        value = value.replace('\n        ', '\n')
+        return self.header_factory(name, value)
+
+
 @register_mapping
 class PythonPkginfoMapping(DictMapping, SingleFileMapping):
     """Dedicated class for Python's PKG-INFO mapping and translation.
@@ -434,7 +443,8 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
     mapping = {_normalize_pkginfo_key(k): v
                for (k, v) in CROSSWALK_TABLE['Python PKG-INFO'].items()}
 
-    _parser = email.parser.BytesHeaderParser()
+    _parser = email.parser.BytesHeaderParser(
+        policy=LinebreakPreservingEmailPolicy())
 
     def translate(self, content):
         msg = self._parser.parsebytes(content)
