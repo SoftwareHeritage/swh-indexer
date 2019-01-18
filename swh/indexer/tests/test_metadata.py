@@ -639,13 +639,13 @@ Project-URL: Funding, https://www.softwareheritage.org/donate
 Project-URL: Source, https://forge.softwareheritage.org/source/swh-core
 Description: swh-core
         ========
-        
+       \x20
         core library for swh's modules:
         - config parser
         - hash computations
         - serialization
         - logging mechanism
-        
+       \x20
 Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: Intended Audience :: Developers
