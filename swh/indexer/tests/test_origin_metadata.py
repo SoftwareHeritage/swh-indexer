@@ -58,16 +58,19 @@ def test_pipeline(storage_mock, idx_storage_mock,
         indexer = OriginHeadTestIndexer()
         indexer.scheduler = scheduler
         indexer.run(["git+https://github.com/librariesio/yarn-parser"])
+        tasks = []
 
-        tasks = run_ready_tasks(scheduler, swh_app)  # Run the first task
+        tasks.extend(run_ready_tasks(scheduler, swh_app))  # Run the first task
         # Wait for the task to complete and schedule the 2nd one
-        assert len(tasks) == 1
-        promise = AsyncResult(id=tasks[0]['backend_id'])
+        task = [x for x in tasks if x['task'] == 1]
+        assert len(task) == 1
+        promise = AsyncResult(id=task[0]['backend_id'])
         promise.wait()
 
-        tasks = run_ready_tasks(scheduler, swh_app)  # Run the second task
-        assert len(tasks) == 1
-        promise = AsyncResult(id=tasks[0]['backend_id'])
+        tasks.extend(run_ready_tasks(scheduler, swh_app))  # Run the 2nd task
+        task = [x for x in tasks if x['task'] == 2]
+        assert len(task) == 1
+        promise = AsyncResult(id=task[0]['backend_id'])
         promise.wait()
     finally:
         swh.objstorage._STORAGE_CLASSES['memory'] = old_inmem_objstorage
