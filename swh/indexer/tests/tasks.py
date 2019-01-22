@@ -3,6 +3,7 @@ from celery import current_app as app
 from swh.indexer.metadata import (
     OriginMetadataIndexer, RevisionMetadataIndexer
 )
+from .test_origin_head import OriginHeadTestIndexer
 from .test_metadata import ContentMetadataTestIndexer
 from .utils import BASE_TEST_CONFIG
 
@@ -33,6 +34,10 @@ class OriginMetadataTestIndexer(OriginMetadataIndexer):
             **BASE_TEST_CONFIG,
             'tools': []
         }
+
+    def _prepare_sub_indexers(self):
+        self.origin_head_indexer = OriginHeadTestIndexer()
+        self.revision_metadata_indexer = RevisionMetadataTestIndexer()
 
 
 @app.task

@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import click
-import itertools
 import logging
 from copy import deepcopy
 
@@ -257,62 +256,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
 
 class OriginMetadataIndexer(OriginIndexer):
-    CONFIG_BASE_FILENAME = 'indexer/origin_intrinsic_metadata'
-
-    ADDITIONAL_CONFIG = {
-        'tools': ('list', [])
-    }
-
-    USE_TOOLS = False
-
-    def run(self, origin_head, policy_update):
-        """Expected to be called with the result of RevisionMetadataIndexer
-        as first argument; ie. not a list of ids as other indexers would.
-
-        Args:
-            origin_head (dict): {str(origin_id): rev_id}
-              keys `origin_id` and `revision_id`, which is the result
-              of OriginHeadIndexer.
-            policy_update (str): `'ignore-dups'` or `'update-dups'`
-        """
-        origin_head_map = {origin_id: hashutil.hash_to_bytes(rev_id)
-                           for (origin_id, rev_id) in origin_head.items()}
-
-        # Fix up the argument order. revisions_metadata has to be the
-        # first argument because of celery.chain; the next line calls
-        # run() with the usual order, ie. origin ids first.
-        return super().run(ids=list(origin_head_map),
-                           policy_update=policy_update,
-                           parse_ids=False,
-                           origin_head_map=origin_head_map)
-
-    def index(self, origin, *, origin_head_map):
-        # Get the last revision of the origin.
-        revision_id = origin_head_map[str(origin['id'])]
-
-        revision_metadata = self.idx_storage \
-            .revision_metadata_get([revision_id])
-
-        results = []
-        for item in revision_metadata:
-            assert item['id'] == revision_id
-            # Get the metadata of that revision, and return it
-            results.append({
-                    'origin_id': origin['id'],
-                    'metadata': item['translated_metadata'],
-                    'from_revision': revision_id,
-                    'indexer_configuration_id':
-                    item['tool']['id'],
-                    })
-        return results
-
-    def persist_index_computations(self, results, policy_update):
-        self.idx_storage.origin_intrinsic_metadata_add(
-            list(itertools.chain(*results)),
-            conflict_update=(policy_update == 'update-dups'))
-
-
-class FullOriginMetadataIndexer(OriginIndexer):
     CONFIG_BASE_FILENAME = 'indexer/full_origin_intrinsic_metadata'
 
     ADDITIONAL_CONFIG = {
