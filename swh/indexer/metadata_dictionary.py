@@ -171,7 +171,20 @@ class NpmMapping(JsonMapping):
             }
 
     def normalize_repository(self, d):
-        """https://docs.npmjs.com/files/package.json#repository"""
+        """https://docs.npmjs.com/files/package.json#repository
+
+        >>> NpmMapping().normalize_repository({
+        ...     'type': 'git',
+        ...     'url': 'https://example.org/foo.git'
+        ... })
+        {'@id': 'git+https://example.org/foo.git'}
+        >>> NpmMapping().normalize_repository(
+        ...     'gitlab:foo/bar')
+        {'@id': 'git+https://gitlab.com/foo/bar.git'}
+        >>> NpmMapping().normalize_repository(
+        ...     'foo/bar')
+        {'@id': 'git+https://github.com/foo/bar.git'}
+        """
         if isinstance(d, dict) and {'type', 'url'} <= set(d):
             url = '{type}+{url}'.format(**d)
         elif isinstance(d, str):
@@ -192,7 +205,17 @@ class NpmMapping(JsonMapping):
         return {'@id': url}
 
     def normalize_bugs(self, d):
-        """https://docs.npmjs.com/files/package.json#bugs"""
+        """https://docs.npmjs.com/files/package.json#bugs
+
+        >>> NpmMapping().normalize_bugs({
+        ...     'url': 'https://example.org/bugs/',
+        ...     'email': 'bugs@example.org'
+        ... })
+        {'@id': 'https://example.org/bugs/'}
+        >>> NpmMapping().normalize_bugs(
+        ...     'https://example.org/bugs/')
+        {'@id': 'https://example.org/bugs/'}
+        """
         if isinstance(d, dict) and 'url' in d:
             return {'@id': '{url}'.format(**d)}
         elif isinstance(d, str):
@@ -207,8 +230,26 @@ class NpmMapping(JsonMapping):
                                r' *$')
 
     def normalize_author(self, d):
-        'https://docs.npmjs.com/files/package.json' \
-                '#people-fields-author-contributors'
+        """https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
+
+        >>> from pprint import pprint
+        >>> pprint(NpmMapping().normalize_author({
+        ...     'name': 'John Doe',
+        ...     'email': 'john.doe@example.org',
+        ...     'url': 'https://example.org/~john.doe',
+        ... }))
+        {'@list': [{'@type': 'http://schema.org/Person',
+                    'http://schema.org/email': 'john.doe@example.org',
+                    'http://schema.org/name': 'John Doe',
+                    'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
+        >>> pprint(NpmMapping().normalize_author(
+        ...     'John Doe <john.doe@example.org> (https://example.org/~john.doe)'
+        ... ))
+        {'@list': [{'@type': 'http://schema.org/Person',
+                    'http://schema.org/email': 'john.doe@example.org',
+                    'http://schema.org/name': 'John Doe',
+                    'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
+        """ # noqa
         author = {'@type': SCHEMA_URI+'Person'}
         if isinstance(d, dict):
             name = d.get('name', None)
@@ -230,12 +271,22 @@ class NpmMapping(JsonMapping):
         return {"@list": [author]}
 
     def normalize_license(self, s):
+        """https://docs.npmjs.com/files/package.json#license
+
+        >>> NpmMapping().normalize_license('MIT')
+        {'@id': 'https://spdx.org/licenses/MIT'}
+        """
         if isinstance(s, str):
             return {"@id": "https://spdx.org/licenses/" + s}
         else:
             return None
 
     def normalize_homepage(self, s):
+        """https://docs.npmjs.com/files/package.json#homepage
+
+        >>> NpmMapping().normalize_homepage('https://example.org/~john.doe')
+        {'@id': 'https://example.org/~john.doe'}
+        """
         return {"@id": s}
 
 
@@ -272,7 +323,23 @@ class MavenMapping(DictMapping, SingleFileMapping):
     _default_repository = {'url': 'https://repo.maven.apache.org/maven2/'}
 
     def parse_repositories(self, d):
-        """https://maven.apache.org/pom.html#Repositories"""
+        """https://maven.apache.org/pom.html#Repositories
+
+        >>> import xmltodict
+        >>> from pprint import pprint
+        >>> d = xmltodict.parse('''
+        ... <repositories>
+        ...   <repository>
+        ...     <id>codehausSnapshots</id>
+        ...     <name>Codehaus Snapshots</name>
+        ...     <url>http://snapshots.maven.codehaus.org/maven2</url>
+        ...     <layout>default</layout>
+        ...   </repository>
+        ... </repositories>
+        ... ''')
+        >>> MavenMapping().parse_repositories(d)
+        [{'@id': 'http://snapshots.maven.codehaus.org/maven2'}]
+        """
         if 'repositories' not in d:
             results = [self.parse_repository(d, self._default_repository)]
         else:
@@ -295,54 +362,54 @@ class MavenMapping(DictMapping, SingleFileMapping):
             return {"@id": repo}
 
     def normalize_groupId(self, id_):
+        """https://maven.apache.org/pom.html#Maven_Coordinates
+
+        >>> MavenMapping().normalize_groupId('org.example')
+        {'@id': 'org.example'}
+        """
         return {"@id": id_}
 
     def parse_licenses(self, d):
         """https://maven.apache.org/pom.html#Licenses
 
-        The origin XML has the form:
-
-            <licenses>
-              <license>
-                <name>Apache License, Version 2.0</name>
-                <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-              </license>
-            </licenses>
-
-        Which was translated to a dict by xmltodict and is given as `d`:
-
-        >>> d = {
-        ...     # ...
-        ...     "licenses": {
-        ...         "license": {
-        ...             "name": "Apache License, Version 2.0",
-        ...             "url":
-        ...             "https://www.apache.org/licenses/LICENSE-2.0.txt"
-        ...         }
-        ...     }
-        ... }
+        >>> import xmltodict
+        >>> import json
+        >>> d = xmltodict.parse('''
+        ... <licenses>
+        ...   <license>
+        ...     <name>Apache License, Version 2.0</name>
+        ...     <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        ...   </license>
+        ... </licenses>
+        ... ''')
+        >>> print(json.dumps(d, indent=4))
+        {
+            "licenses": {
+                "license": {
+                    "name": "Apache License, Version 2.0",
+                    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                }
+            }
+        }
         >>> MavenMapping().parse_licenses(d)
         [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'}]
 
         or, if there are more than one license:
 
+        >>> import xmltodict
         >>> from pprint import pprint
-        >>> d = {
-        ...     # ...
-        ...     "licenses": {
-        ...         "license": [
-        ...             {
-        ...                 "name": "Apache License, Version 2.0",
-        ...                 "url":
-        ...                 "https://www.apache.org/licenses/LICENSE-2.0.txt"
-        ...             },
-        ...             {
-        ...                 "name": "MIT License, ",
-        ...                 "url": "https://opensource.org/licenses/MIT"
-        ...             }
-        ...         ]
-        ...     }
-        ... }
+        >>> d = xmltodict.parse('''
+        ... <licenses>
+        ...   <license>
+        ...     <name>Apache License, Version 2.0</name>
+        ...     <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        ...   </license>
+        ...   <license>
+        ...     <name>MIT License</name>
+        ...     <url>https://opensource.org/licenses/MIT</url>
+        ...   </license>
+        ... </licenses>
+        ... ''')
         >>> pprint(MavenMapping().parse_licenses(d))
         [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'},
          {'@id': 'https://opensource.org/licenses/MIT'}]
