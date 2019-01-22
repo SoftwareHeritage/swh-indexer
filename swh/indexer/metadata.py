@@ -9,6 +9,7 @@ import logging
 from copy import deepcopy
 
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
+from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_detector import extract_minimal_metadata_dict
@@ -137,7 +138,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         - if multiple file detected -> translation needed at revision level
 
         Args:
-          rev (bytes): revision artifact from storage
+          rev (dict): revision artifact from storage
 
         Returns:
             dict: dictionary representing a revision_metadata, with keys:
@@ -308,6 +309,53 @@ class OriginMetadataIndexer(OriginIndexer):
     def persist_index_computations(self, results, policy_update):
         self.idx_storage.origin_intrinsic_metadata_add(
             list(itertools.chain(*results)),
+            conflict_update=(policy_update == 'update-dups'))
+
+
+class FullOriginMetadataIndexer(OriginIndexer):
+    CONFIG_BASE_FILENAME = 'indexer/full_origin_intrinsic_metadata'
+
+    ADDITIONAL_CONFIG = {
+        'tools': ('list', [])
+    }
+
+    USE_TOOLS = False
+
+    def __init__(self):
+        super().__init__()
+        self.origin_head_indexer = OriginHeadIndexer()
+        self.revision_metadata_indexer = RevisionMetadataIndexer()
+
+    def index(self, origin):
+        head_result = self.origin_head_indexer.index(origin)
+        if not head_result:
+            return
+        rev_id = head_result['revision_id']
+
+        rev = list(self.storage.revision_get([rev_id]))
+        if not rev:
+            self.warning('Missing head revision %s of origin %r',
+                         (hashutil.hash_to_bytes(rev_id), origin))
+            return
+        assert len(rev) == 1
+        rev = rev[0]
+        rev_metadata = self.revision_metadata_indexer.index(rev)
+        orig_metadata = {
+            'from_revision': rev_metadata['id'],
+            'origin_id': origin['id'],
+            'metadata': rev_metadata['translated_metadata'],
+            'indexer_configuration_id':
+                rev_metadata['indexer_configuration_id'],
+        }
+        return (orig_metadata, rev_metadata)
+
+    def persist_index_computations(self, results, policy_update):
+        self.idx_storage.revision_metadata_add(
+            [rev_item for (orig_item, rev_item) in results],
+            conflict_update=(policy_update == 'update-dups'))
+
+        self.idx_storage.origin_intrinsic_metadata_add(
+            [orig_item for (orig_item, rev_item) in results],
             conflict_update=(policy_update == 'update-dups'))
 
 

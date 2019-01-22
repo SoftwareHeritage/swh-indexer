@@ -13,7 +13,9 @@ from .fossology_license import (
     FossologyLicenseIndexer, FossologyLicenseRangeIndexer
 )
 from .rehash import RecomputeChecksums
-from .metadata import RevisionMetadataIndexer, OriginMetadataIndexer
+from .metadata import (
+    RevisionMetadataIndexer, OriginMetadataIndexer, FullOriginMetadataIndexer,
+)
 from .origin_head import OriginHeadIndexer
 
 
@@ -26,6 +28,12 @@ def revision_metadata(*args, **kwargs):
 @app.task(name=__name__ + '.OriginMetadata')
 def origin_metadata(*args, **kwargs):
     results = OriginMetadataIndexer().run(*args, **kwargs)
+    return getattr(results, 'results', results)
+
+
+@app.task(name=__name__ + '.FullOriginMetadata')
+def full_origin_metadata(*args, **kwargs):
+    results = FullOriginMetadataIndexer().run(*args, **kwargs)
     return getattr(results, 'results', results)
 
 

@@ -771,7 +771,7 @@ Description-Content-Type: UNKNOWN
 Description: foo
         Hydrology N\xc2\xb083
 ''') # noqa
-        result = MAPPINGS["PythonPkginfoMapping"].translate(raw_content)
+        result = self.pkginfo_mapping.translate(raw_content)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',

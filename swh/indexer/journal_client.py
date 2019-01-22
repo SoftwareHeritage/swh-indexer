@@ -26,7 +26,7 @@ class IndexerJournalClient(JournalClient):
         }),
         'origin_visit_tasks': ('List[dict]', [
             {
-                'type': 'indexer_origin_head',
+                'type': 'indexer_full_origin_metadata',
                 'kwargs': {
                     'policy_update': 'update-dups',
                     'parse_ids': False,
