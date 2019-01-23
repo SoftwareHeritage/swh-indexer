@@ -192,8 +192,9 @@ class Metadata(unittest.TestCase):
         ]
         # this metadata indexer computes only metadata for package.json
         # in npm context with a hard mapping
-        metadata_indexer = ContentMetadataTestIndexer(
-            tool=TRANSLATOR_TOOL, config=BASE_TEST_CONFIG.copy())
+        config = BASE_TEST_CONFIG.copy()
+        config['tools'] = [TRANSLATOR_TOOL]
+        metadata_indexer = ContentMetadataTestIndexer(config=config)
         fill_obj_storage(metadata_indexer.objstorage)
         fill_storage(metadata_indexer.storage)
 

@@ -6,6 +6,7 @@
 import click
 import itertools
 import logging
+from copy import deepcopy
 
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
 from swh.indexer.metadata_dictionary import MAPPINGS
@@ -31,16 +32,6 @@ class ContentMetadataIndexer(ContentIndexer):
     # Note: This used when the content metadata indexer is used alone
     # (not the case for example in the case of the RevisionMetadataIndexer)
     CONFIG_BASE_FILENAME = 'indexer/content_metadata'
-
-    def __init__(self, tool, config):
-        # FIXME: Simplify this twisted way to use the exact same
-        # config of RevisionMetadataIndexer object that uses
-        # internally ContentMetadataIndexer
-        self.config = config
-        self.config['tools'] = tool
-        self.results = []
-        super().__init__()
-        self.tool = self.tools[0]  # Tool is now registered (cf. prepare call)
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
@@ -124,12 +115,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
             },
         }),
     }
-
-    ContentMetadataIndexer = ContentMetadataIndexer
-
-    def prepare(self):
-        super().prepare()
-        self.tool = self.tools[0]
 
     def filter(self, sha1_gits):
         """Filter out known sha1s and return only missing ones.
@@ -226,9 +211,11 @@ class RevisionMetadataIndexer(RevisionIndexer):
             k: self.config[k]
             for k in [INDEXER_CFG_KEY, 'objstorage', 'storage']
         }
+        config['tools'] = [tool]
         for context in detected_files.keys():
-            tool['configuration']['context'] = context
-            c_metadata_indexer = self.ContentMetadataIndexer(tool, config)
+            cfg = deepcopy(config)
+            cfg['tools'][0]['configuration']['context'] = context
+            c_metadata_indexer = ContentMetadataIndexer(config=cfg)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
             metadata_generator = self.idx_storage.content_metadata_get(
@@ -271,12 +258,7 @@ class OriginMetadataIndexer(OriginIndexer):
         'tools': ('list', [])
     }
 
-    def check(self, **kwargs):
-        kwargs['check_tools'] = False
-        super().check(**kwargs)
-
-    def filter(self, ids):
-        return ids
+    USE_TOOLS = False
 
     def run(self, origin_head, policy_update):
         """Expected to be called with the result of RevisionMetadataIndexer

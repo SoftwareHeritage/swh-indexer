@@ -71,22 +71,6 @@ class MixinFossologyLicenseIndexer:
     def prepare(self):
         super().prepare()
         self.working_directory = self.config['workdir']
-        self.tool = self.tools[0]
-
-    def compute_license(self, path, log=None):
-        """Determine license from file at path.
-
-        Args:
-            path: filepath to determine the license
-
-        Returns:
-            dict: A dict with the following keys:
-
-            - licenses ([str]): associated detected licenses to path
-            - path (bytes): content filepath
-
-        """
-        return compute_license(path, log=log)
 
     def index(self, id, data):
         """Index sha1s' content and store result.
@@ -110,7 +94,7 @@ class MixinFossologyLicenseIndexer:
             data=data)
 
         try:
-            properties = self.compute_license(path=content_path, log=self.log)
+            properties = compute_license(path=content_path, log=self.log)
             properties.update({
                 'id': id,
                 'indexer_configuration_id': self.tool['id'],

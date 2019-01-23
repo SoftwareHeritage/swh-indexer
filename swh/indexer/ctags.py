@@ -78,7 +78,6 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
         super().prepare()
         self.working_directory = self.config['workdir']
         self.language_map = self.config['languages']
-        self.tool = self.tools[0]
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
@@ -90,12 +89,6 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
                 'indexer_configuration_id': self.tool['id'],
             } for sha1 in ids
         ))
-
-    def compute_ctags(self, path, lang):
-        """Compute ctags on file at path with language lang.
-
-        """
-        return run_ctags(path, lang=lang)
 
     def index(self, id, data):
         """Index sha1s' content and store result.

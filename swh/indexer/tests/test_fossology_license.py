@@ -7,6 +7,7 @@ import unittest
 
 from unittest.mock import patch
 
+from swh.indexer import fossology_license
 from swh.indexer.fossology_license import (
     FossologyLicenseIndexer, FossologyLicenseRangeIndexer,
     compute_license
@@ -42,23 +43,19 @@ class BasicTest(unittest.TestCase):
             })
 
 
-class InjectLicenseIndexer:
-    """Override license computations.
+def mock_compute_license(path, log=None):
+    """path is the content identifier
 
     """
-    def compute_license(self, path, log=None):
-        """path is the content identifier
-
-        """
-        if isinstance(id, bytes):
-            path = path.decode('utf-8')
-        return {
-            'licenses': SHA1_TO_LICENSES.get(path)
-        }
+    if isinstance(id, bytes):
+        path = path.decode('utf-8')
+    return {
+        'licenses': SHA1_TO_LICENSES.get(path)
+    }
 
 
 class FossologyLicenseTestIndexer(
-        NoDiskIndexer, InjectLicenseIndexer, FossologyLicenseIndexer):
+        NoDiskIndexer, FossologyLicenseIndexer):
     """Specific fossology license whose configuration is enough to satisfy
        the indexing checks.
 
@@ -90,6 +87,10 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     def setUp(self):
         super().setUp()
+        # replace actual license computation with a mock
+        self.orig_compute_license = fossology_license.compute_license
+        fossology_license.compute_license = mock_compute_license
+
         self.indexer = FossologyLicenseTestIndexer()
         self.idx_storage = self.indexer.idx_storage
         fill_storage(self.indexer.storage)
@@ -117,9 +118,13 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
             }
         }
 
+    def tearDown(self):
+        super().tearDown()
+        fossology_license.compute_license = self.orig_compute_license
+
 
 class FossologyLicenseRangeIndexerTest(
-        NoDiskIndexer, InjectLicenseIndexer, FossologyLicenseRangeIndexer):
+        NoDiskIndexer, FossologyLicenseRangeIndexer):
     """Testing the range indexer on fossology license.
 
     """
@@ -150,6 +155,11 @@ class TestFossologyLicenseRangeIndexer(
     """
     def setUp(self):
         super().setUp()
+
+        # replace actual license computation with a mock
+        self.orig_compute_license = fossology_license.compute_license
+        fossology_license.compute_license = mock_compute_license
+
         self.indexer = FossologyLicenseRangeIndexerTest()
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
@@ -175,6 +185,10 @@ class TestFossologyLicenseRangeIndexer(
                 'licenses': SHA1_TO_LICENSES[self.id2]
             }
         }
+
+    def tearDown(self):
+        super().tearDown()
+        fossology_license.compute_license = self.orig_compute_license
 
 
 class FossologyLicenseIndexerUnknownToolTestStorage(

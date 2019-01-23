@@ -36,9 +36,6 @@ class OriginHeadIndexer(OriginIndexer):
 
     CONFIG_BASE_FILENAME = 'indexer/origin_head'
 
-    def filter(self, ids):
-        yield from ids
-
     def persist_index_computations(self, results, policy_update):
         """Do nothing. The indexer's results are not persistent, they
         should only be piped to another indexer."""

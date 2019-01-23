@@ -48,10 +48,6 @@ class MixinMimetypeIndexer:
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'
 
-    def prepare(self):
-        super().prepare()
-        self.tool = self.tools[0]
-
     def index(self, id, data):
         """Index sha1s' content and store result.
 
