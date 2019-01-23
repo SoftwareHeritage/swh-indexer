@@ -658,16 +658,3 @@ class CommonContentIndexerRangeTest:
 
         # then
         self.assertFalse(actual_results)
-
-
-class NoDiskIndexer:
-    """Mixin to override the DiskIndexer behavior avoiding side-effects in
-       tests.
-
-    """
-
-    def write_to_temp(self, filename, data):  # noop
-        return filename
-
-    def cleanup(self, content_path):  # noop
-        return None

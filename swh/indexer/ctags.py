@@ -9,7 +9,7 @@ import json
 from swh.model import hashutil
 
 from .language import compute_language
-from .indexer import ContentIndexer, DiskIndexer
+from .indexer import ContentIndexer, write_to_temp
 
 
 # Options used to compute tags
@@ -53,7 +53,7 @@ def run_ctags(path, lang=None, ctags_command='ctags'):
         }
 
 
-class CtagsIndexer(ContentIndexer, DiskIndexer):
+class CtagsIndexer(ContentIndexer):
     CONFIG_BASE_FILENAME = 'indexer/ctags'
 
     ADDITIONAL_CONFIG = {
@@ -119,17 +119,14 @@ class CtagsIndexer(ContentIndexer, DiskIndexer):
         }
 
         filename = hashutil.hash_to_hex(id)
-        content_path = self.write_to_temp(
-            filename=filename,
-            data=data)
-
-        result = run_ctags(content_path, lang=ctags_lang)
-        ctags.update({
-            'ctags': list(result),
-            'indexer_configuration_id': self.tool['id'],
-        })
-
-        self.cleanup(content_path)
+        with write_to_temp(
+                filename=filename, data=data,
+                working_directory=self.working_directory) as content_path:
+            result = run_ctags(content_path, lang=ctags_lang)
+            ctags.update({
+                'ctags': list(result),
+                'indexer_configuration_id': self.tool['id'],
+            })
 
         return ctags
 

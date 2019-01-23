@@ -11,6 +11,7 @@ import shutil
 import tempfile
 import datetime
 from copy import deepcopy
+from contextlib import contextmanager
 
 from swh.scheduler import get_scheduler
 from swh.storage import get_storage
@@ -22,48 +23,29 @@ from swh.model import hashutil
 from swh.core import utils
 
 
-class DiskIndexer:
-    """Mixin intended to be used with other SomethingIndexer classes.
+@contextmanager
+def write_to_temp(filename, data, working_directory):
+    """Write the sha1's content in a temporary file.
 
-       Indexers inheriting from this class are a category of indexers
-       which needs the disk for their computations.
+    Args:
+        filename (str): one of sha1's many filenames
+        data (bytes): the sha1's content to write in temporary
+          file
 
-       Note:
-           This expects `self.working_directory` variable defined at
-           runtime.
+    Returns:
+        The path to the temporary file created. That file is
+        filled in with the raw content's data.
 
     """
-    def write_to_temp(self, filename, data):
-        """Write the sha1's content in a temporary file.
+    os.makedirs(working_directory, exist_ok=True)
+    temp_dir = tempfile.mkdtemp(dir=working_directory)
+    content_path = os.path.join(temp_dir, filename)
 
-        Args:
-            filename (str): one of sha1's many filenames
-            data (bytes): the sha1's content to write in temporary
-              file
+    with open(content_path, 'wb') as f:
+        f.write(data)
 
-        Returns:
-            The path to the temporary file created. That file is
-            filled in with the raw content's data.
-
-        """
-        os.makedirs(self.working_directory, exist_ok=True)
-        temp_dir = tempfile.mkdtemp(dir=self.working_directory)
-        content_path = os.path.join(temp_dir, filename)
-
-        with open(content_path, 'wb') as f:
-            f.write(data)
-
-        return content_path
-
-    def cleanup(self, content_path):
-        """Remove content_path from working directory.
-
-        Args:
-            content_path (str): the file to remove
-
-        """
-        temp_dir = os.path.dirname(content_path)
-        shutil.rmtree(temp_dir)
+    yield content_path
+    shutil.rmtree(temp_dir)
 
 
 class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):

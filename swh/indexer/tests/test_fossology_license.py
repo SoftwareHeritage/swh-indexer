@@ -15,7 +15,7 @@ from swh.indexer.fossology_license import (
 
 from swh.indexer.tests.utils import (
     SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool, NoDiskIndexer,
+    CommonIndexerWithErrorsTest, CommonIndexerNoTool,
     BASE_TEST_CONFIG, fill_storage, fill_obj_storage
 )
 
@@ -49,13 +49,14 @@ def mock_compute_license(path, log=None):
     """
     if isinstance(id, bytes):
         path = path.decode('utf-8')
+    # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
+    path = path.split('/')[-1]
     return {
         'licenses': SHA1_TO_LICENSES.get(path)
     }
 
 
-class FossologyLicenseTestIndexer(
-        NoDiskIndexer, FossologyLicenseIndexer):
+class FossologyLicenseTestIndexer(FossologyLicenseIndexer):
     """Specific fossology license whose configuration is enough to satisfy
        the indexing checks.
 
@@ -63,7 +64,7 @@ class FossologyLicenseTestIndexer(
     def parse_config_file(self, *args, **kwargs):
         return {
             **BASE_TEST_CONFIG,
-            'workdir': '/nowhere',
+            'workdir': '/tmp',
             'tools': {
                 'name': 'nomos',
                 'version': '3.1.0rc2-31-ga2cbb8c',
@@ -123,15 +124,14 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         fossology_license.compute_license = self.orig_compute_license
 
 
-class FossologyLicenseRangeIndexerTest(
-        NoDiskIndexer, FossologyLicenseRangeIndexer):
+class FossologyLicenseRangeIndexerTest(FossologyLicenseRangeIndexer):
     """Testing the range indexer on fossology license.
 
     """
     def parse_config_file(self, *args, **kwargs):
         return {
             **BASE_TEST_CONFIG,
-            'workdir': '/nowhere',
+            'workdir': '/tmp',
             'tools': {
                 'name': 'nomos',
                 'version': '3.1.0rc2-31-ga2cbb8c',

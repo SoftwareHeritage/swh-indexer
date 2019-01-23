@@ -15,7 +15,7 @@ from swh.indexer.ctags import (
 from swh.indexer.tests.utils import (
     CommonContentIndexerTest,
     CommonIndexerWithErrorsTest, CommonIndexerNoTool,
-    SHA1_TO_CTAGS, NoDiskIndexer, BASE_TEST_CONFIG,
+    SHA1_TO_CTAGS, BASE_TEST_CONFIG,
     OBJ_STORAGE_DATA, fill_storage, fill_obj_storage
 )
 
@@ -78,7 +78,7 @@ class InjectCtagsIndexer:
         }
 
 
-class CtagsIndexerTest(NoDiskIndexer, InjectCtagsIndexer, CtagsIndexer):
+class CtagsIndexerTest(InjectCtagsIndexer, CtagsIndexer):
     """Specific language whose configuration is enough to satisfy the
        indexing tests.
     """
@@ -99,7 +99,7 @@ class CtagsIndexerTest(NoDiskIndexer, InjectCtagsIndexer, CtagsIndexer):
                 'haskell': 'haskell',
                 'bar': 'bar',
             },
-            'workdir': '/nowhere',
+            'workdir': '/tmp',
         }
 
 
@@ -168,7 +168,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
 
         def fake_check_output(cmd, *args, **kwargs):
             print(cmd)
-            id_ = cmd[-1]  # when using NoDiskIndexer, path is replaced by id
+            id_ = cmd[-1].split('/')[-1]
             return '\n'.join(
                 json.dumps({'language': ctag['lang'], **ctag})
                 for ctag in SHA1_TO_CTAGS[id_])
