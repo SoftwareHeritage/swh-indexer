@@ -11,6 +11,9 @@ In order to deduplicate the work between origins, we split this work between
 multiple indexers, which coordinate with each other and save their results
 at each step in the indexer storage.
 
+Indexer architecture
+--------------------
+
 .. thumbnail:: images/tasks-metadata-indexers.svg
 
 
@@ -42,6 +45,7 @@ To do so, it lists files in that directory, and looks for known names, such
 as `codemeta.json`, `package.json`, or `pom.xml`. If there are any, it
 runs the Content Metadata Indexer on them, which in turn fetches their
 contents and runs them through extraction dictionaries/mappings.
+See below for details.
 
 Their results are saved in a database (the indexer storage), associated with
 the content and revision hashes.
@@ -62,3 +66,33 @@ The reason for this is to be able to perform searches on metadata, and
 efficiently find out which origins matched the pattern.
 Running that search on the `revision_metadata` table would require either
 a reverse lookup from revisions to origins, which is costly.
+
+
+Translation from language-specific metadata to CodeMeta
+-------------------------------------------------------
+
+Intrinsic metadata are extracted from files provided with a project's source
+code, and translated using `CodeMeta`_'s `crosswalk table`_.
+
+All input formats supported so far are straightforward dictionaries (eg. JSON)
+or can be accessed as such (eg. XML); and the first part of the translation is
+to map their keys to a term in the CodeMeta vocabulary.
+This is done by parsing the crosswalk table's `CSV file`_ and using it as a
+map between these two vocabularies; and this does not require any
+format-specific code in the indexers.
+
+The second part is to normalize values. As language-specific metadata files
+each have their way(s) of formating these values, we need to turn them into
+the data type required by CodeMeta.
+This normalization makes up for most of the code of
+:py:mod:`swh.indexer.metadata_dictionary`.
+
+
+Supported intrinsic metadata
+----------------------------
+
+
+
+.. _CodeMeta: https://codemeta.github.io/
+.. _crosswalk table: https://codemeta.github.io/crosswalk/
+.. _CSV file: https://github.com/codemeta/codemeta/blob/master/crosswalk.csv
