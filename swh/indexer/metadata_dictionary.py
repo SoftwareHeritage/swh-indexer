@@ -338,7 +338,6 @@ class MavenMapping(DictMapping, SingleFileMapping):
         ... </repositories>
         ... ''')
         >>> MavenMapping().parse_repositories(d)
-        [{'@id': 'http://snapshots.maven.codehaus.org/maven2'}]
         """
         if 'repositories' not in d:
             results = [self.parse_repository(d, self._default_repository)]
