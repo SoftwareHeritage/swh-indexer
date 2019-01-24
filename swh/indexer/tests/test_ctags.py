@@ -7,6 +7,8 @@ import json
 import unittest
 from unittest.mock import patch
 
+import pytest
+
 import swh.indexer.ctags
 from swh.indexer.ctags import (
     CtagsIndexer, run_ctags
@@ -14,9 +16,9 @@ from swh.indexer.ctags import (
 
 from swh.indexer.tests.utils import (
     CommonContentIndexerTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool,
     SHA1_TO_CTAGS, BASE_TEST_CONFIG,
-    OBJ_STORAGE_DATA, fill_storage, fill_obj_storage
+    OBJ_STORAGE_DATA, fill_storage, fill_obj_storage,
+    filter_dict,
 )
 
 
@@ -78,29 +80,24 @@ class InjectCtagsIndexer:
         }
 
 
-class CtagsIndexerTest(InjectCtagsIndexer, CtagsIndexer):
-    """Specific language whose configuration is enough to satisfy the
-       indexing tests.
-    """
-    def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'tools': {
-                'name': 'universal-ctags',
-                'version': '~git7859817b',
-                'configuration': {
-                    'command_line': '''ctags --fields=+lnz --sort=no '''
-                                    ''' --links=no <filepath>''',
-                    'max_content_size': 1000,
-                },
-            },
-            'languages': {
-                'python': 'python',
-                'haskell': 'haskell',
-                'bar': 'bar',
-            },
-            'workdir': '/tmp',
-        }
+CONFIG = {
+    **BASE_TEST_CONFIG,
+    'tools': {
+        'name': 'universal-ctags',
+        'version': '~git7859817b',
+        'configuration': {
+            'command_line': '''ctags --fields=+lnz --sort=no '''
+            ''' --links=no <filepath>''',
+            'max_content_size': 1000,
+        },
+    },
+    'languages': {
+        'python': 'python',
+        'haskell': 'haskell',
+        'bar': 'bar',
+    },
+    'workdir': '/tmp',
+}
 
 
 class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
@@ -118,7 +115,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     def setUp(self):
         super().setUp()
-        self.indexer = CtagsIndexerTest()
+        self.indexer = CtagsIndexer(config=CONFIG)
         self.idx_storage = self.indexer.idx_storage
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
@@ -181,12 +178,6 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
         super().tearDown()
 
 
-class CtagsIndexerUnknownToolTestStorage(
-        CommonIndexerNoTool, CtagsIndexerTest):
-    """Fossology license indexer with wrong configuration"""
-
-
-class TestCtagsIndexersErrors(
-        CommonIndexerWithErrorsTest, unittest.TestCase):
-    """Test the indexer raise the right errors when wrongly initialized"""
-    Indexer = CtagsIndexerUnknownToolTestStorage
+def test_ctags_w_no_tool():
+    with pytest.raises(ValueError):
+        CtagsIndexer(config=filter_dict(CONFIG, 'tools'))

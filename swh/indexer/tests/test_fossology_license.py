@@ -4,8 +4,9 @@
 # See top-level LICENSE file for more information
 
 import unittest
-
 from unittest.mock import patch
+
+import pytest
 
 from swh.indexer import fossology_license
 from swh.indexer.fossology_license import (
@@ -15,8 +16,7 @@ from swh.indexer.fossology_license import (
 
 from swh.indexer.tests.utils import (
     SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool,
-    BASE_TEST_CONFIG, fill_storage, fill_obj_storage
+    BASE_TEST_CONFIG, fill_storage, fill_obj_storage, filter_dict,
 )
 
 
@@ -56,23 +56,19 @@ def mock_compute_license(path, log=None):
     }
 
 
-class FossologyLicenseTestIndexer(FossologyLicenseIndexer):
-    """Specific fossology license whose configuration is enough to satisfy
-       the indexing checks.
+CONFIG = {
+    **BASE_TEST_CONFIG,
+    'workdir': '/tmp',
+    'tools': {
+        'name': 'nomos',
+        'version': '3.1.0rc2-31-ga2cbb8c',
+        'configuration': {
+            'command_line': 'nomossa <filepath>',
+        },
+    },
+}
 
-    """
-    def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'workdir': '/tmp',
-            'tools': {
-                'name': 'nomos',
-                'version': '3.1.0rc2-31-ga2cbb8c',
-                'configuration': {
-                    'command_line': 'nomossa <filepath>',
-                },
-            },
-        }
+RANGE_CONFIG = dict(list(CONFIG.items()) + [('write_batch_size', 100)])
 
 
 class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
@@ -92,7 +88,7 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         self.orig_compute_license = fossology_license.compute_license
         fossology_license.compute_license = mock_compute_license
 
-        self.indexer = FossologyLicenseTestIndexer()
+        self.indexer = FossologyLicenseIndexer(CONFIG)
         self.idx_storage = self.indexer.idx_storage
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
@@ -124,25 +120,6 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         fossology_license.compute_license = self.orig_compute_license
 
 
-class FossologyLicenseRangeIndexerTest(FossologyLicenseRangeIndexer):
-    """Testing the range indexer on fossology license.
-
-    """
-    def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'workdir': '/tmp',
-            'tools': {
-                'name': 'nomos',
-                'version': '3.1.0rc2-31-ga2cbb8c',
-                'configuration': {
-                    'command_line': 'nomossa <filepath>',
-                },
-            },
-            'write_batch_size': 100,
-        }
-
-
 class TestFossologyLicenseRangeIndexer(
         CommonContentIndexerRangeTest, unittest.TestCase):
     """Range Fossology License Indexer tests.
@@ -160,7 +137,7 @@ class TestFossologyLicenseRangeIndexer(
         self.orig_compute_license = fossology_license.compute_license
         fossology_license.compute_license = mock_compute_license
 
-        self.indexer = FossologyLicenseRangeIndexerTest()
+        self.indexer = FossologyLicenseRangeIndexer(config=RANGE_CONFIG)
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 
@@ -191,18 +168,11 @@ class TestFossologyLicenseRangeIndexer(
         fossology_license.compute_license = self.orig_compute_license
 
 
-class FossologyLicenseIndexerUnknownToolTestStorage(
-        CommonIndexerNoTool, FossologyLicenseTestIndexer):
-    """Fossology license indexer with wrong configuration"""
+def test_fossology_w_no_tool():
+    with pytest.raises(ValueError):
+        FossologyLicenseIndexer(config=filter_dict(CONFIG, 'tools'))
 
 
-class FossologyLicenseRangeIndexerUnknownToolTestStorage(
-        CommonIndexerNoTool, FossologyLicenseRangeIndexerTest):
-    """Fossology license range indexer with wrong configuration"""
-
-
-class TestFossologyLicenseIndexersErrors(
-        CommonIndexerWithErrorsTest, unittest.TestCase):
-    """Test the indexer raise the right errors when wrongly initialized"""
-    Indexer = FossologyLicenseIndexerUnknownToolTestStorage
-    RangeIndexer = FossologyLicenseRangeIndexerUnknownToolTestStorage
+def test_fossology_range_w_no_tool():
+    with pytest.raises(ValueError):
+        FossologyLicenseRangeIndexer(config=filter_dict(RANGE_CONFIG, 'tools'))
