@@ -138,9 +138,13 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             config_keys = ('base_filename', 'config_filename',
                            'additional_configs', 'global_config')
             config_args = {k: v for k, v in kw.items() if k in config_keys}
+            if self.ADDITIONAL_CONFIG:
+                config_args.setdefault('additional_configs', []).append(
+                    self.ADDITIONAL_CONFIG)
             self.config = self.parse_config_file(**config_args)
         self.prepare()
         self.check()
+        self.log.debug('%s: config=%s', self, self.config)
 
     def prepare(self):
         """Prepare the indexer's needed runtime configuration.
