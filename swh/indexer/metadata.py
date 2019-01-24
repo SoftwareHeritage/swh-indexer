@@ -43,7 +43,7 @@ class ContentMetadataIndexer(ContentIndexer):
             } for sha1 in ids
         ))
 
-    def index(self, id, data):
+    def index(self, id, data, log_suffix='unknown revision'):
         """Index sha1s' content and store result.
 
         Args:
@@ -63,8 +63,9 @@ class ContentMetadataIndexer(ContentIndexer):
         }
         try:
             mapping_name = self.tool['tool_configuration']['context']
-            result['translated_metadata'] = MAPPINGS[mapping_name] \
-                .translate(data)
+            log_suffix += ', content_id=%s' % hashutil.hash_to_hex(id)
+            result['translated_metadata'] = \
+                MAPPINGS[mapping_name](log_suffix).translate(data)
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
@@ -111,7 +112,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
             'version': '0.0.2',
             'configuration': {
                 'type': 'local',
-                'context': ['NpmMapping', 'CodemetaMapping']
+                'context': list(MAPPINGS),
             },
         }),
     }
@@ -158,7 +159,9 @@ class RevisionMetadataIndexer(RevisionIndexer):
             files = [entry for entry in dir_ls if entry['type'] == 'file']
             detected_files = detect_metadata(files)
             result['translated_metadata'] = self.translate_revision_metadata(
-                    detected_files)
+                detected_files,
+                log_suffix='revision=%s' % hashutil.hash_to_hex(rev['id'])
+            )
         except Exception as e:
             self.log.exception(
                 'Problem when indexing rev: %r', e)
@@ -181,7 +184,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         self.idx_storage.revision_metadata_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
-    def translate_revision_metadata(self, detected_files):
+    def translate_revision_metadata(self, detected_files, log_suffix):
         """
         Determine plan of action to translate metadata when containing
         one or multiple detected files:
@@ -236,7 +239,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
                 # content indexing
                 try:
                     c_metadata_indexer.run(sha1s_filtered,
-                                           policy_update='ignore-dups')
+                                           policy_update='ignore-dups',
+                                           log_suffix=log_suffix)
                     # on the fly possibility:
                     for result in c_metadata_indexer.results:
                         local_metadata = result['translated_metadata']

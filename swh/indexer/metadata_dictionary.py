@@ -24,7 +24,7 @@ MAPPINGS = {}
 
 
 def register_mapping(cls):
-    MAPPINGS[cls.__name__] = cls()
+    MAPPINGS[cls.__name__] = cls
     return cls
 
 
@@ -70,13 +70,15 @@ class BaseMapping(metaclass=abc.ABCMeta):
     - inherit this class
     - override translate function
     """
-    def __init__(self):
+    def __init__(self, log_suffix=''):
+        self.log_suffix = log_suffix
         self.log = logging.getLogger('%s.%s' % (
             self.__class__.__module__,
             self.__class__.__name__))
 
+    @classmethod
     @abc.abstractmethod
-    def detect_metadata_files(self, files):
+    def detect_metadata_files(cls, files):
         """
         Detects files potentially containing metadata
 
@@ -105,9 +107,10 @@ class SingleFileMapping(BaseMapping):
         """The .json file to extract metadata from."""
         pass
 
-    def detect_metadata_files(self, file_entries):
+    @classmethod
+    def detect_metadata_files(cls, file_entries):
         for entry in file_entries:
-            if entry['name'] == self.filename:
+            if entry['name'] == cls.filename:
                 return [entry['sha1']]
         return []
 
@@ -185,12 +188,12 @@ class JsonMapping(DictMapping, SingleFileMapping):
         try:
             raw_content = raw_content.decode()
         except UnicodeDecodeError:
-            self.log.warning('Error unidecoding %r', raw_content)
+            self.log.warning('Error unidecoding from %s', self.log_suffix)
             return
         try:
             content_dict = json.loads(raw_content)
         except json.JSONDecodeError:
-            self.log.warning('Error unjsoning %r' % raw_content)
+            self.log.warning('Error unjsoning from %s', self.log_suffix)
             return
         return self.translate_dict(content_dict)
 
@@ -356,7 +359,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
         try:
             d = xmltodict.parse(content).get('project') or {}
         except xml.parsers.expat.ExpatError:
-            self.log.warning('Error parsing XML of %r', content)
+            self.log.warning('Error parsing XML from %s', self.log_suffix)
             return None
         metadata = self.translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
@@ -522,7 +525,8 @@ class GemspecMapping(DictMapping):
 
     mapping = CROSSWALK_TABLE['Ruby Gem']
 
-    def detect_metadata_files(self, file_entries):
+    @classmethod
+    def detect_metadata_files(cls, file_entries):
         for entry in file_entries:
             if entry['name'].endswith(b'.gemspec'):
                 return [entry['sha1']]
@@ -532,7 +536,7 @@ class GemspecMapping(DictMapping):
         try:
             raw_content = raw_content.decode()
         except UnicodeDecodeError:
-            self.log.warning('Error unidecoding %r', raw_content)
+            self.log.warning('Error unidecoding from %s', self.log_suffix)
             return
 
         # Skip lines before 'Gem::Specification.new'
@@ -543,8 +547,8 @@ class GemspecMapping(DictMapping):
         try:
             next(lines)  # Consume 'Gem::Specification.new'
         except StopIteration:
-            self.log.warning('Could not find Gem::Specification in %r',
-                             raw_content)
+            self.log.warning('Could not find Gem::Specification in %s',
+                             self.log_suffix)
             return
 
         content_dict = {}
@@ -617,19 +621,3 @@ class GemspecMapping(DictMapping):
         if isinstance(authors, list):
             return {"@list": [author for author in authors
                               if isinstance(author, str)]}
-
-
-def main():
-    raw_content = """{"name": "test_name", "unknown_term": "ut"}"""
-    raw_content1 = b"""{"name": "test_name",
-                        "unknown_term": "ut",
-                        "prerequisites" :"packageXYZ"}"""
-    result = MAPPINGS["NpmMapping"].translate(raw_content)
-    result1 = MAPPINGS["MavenMapping"].translate(raw_content1)
-
-    print(result)
-    print(result1)
-
-
-if __name__ == "__main__":
-    main()
