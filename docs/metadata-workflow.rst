@@ -87,12 +87,24 @@ the data type required by CodeMeta.
 This normalization makes up for most of the code of
 :py:mod:`swh.indexer.metadata_dictionary`.
 
+.. _CodeMeta: https://codemeta.github.io/
+.. _crosswalk table: https://codemeta.github.io/crosswalk/
+.. _CSV file: https://github.com/codemeta/codemeta/blob/master/crosswalk.csv
+
 
 Supported intrinsic metadata
 ----------------------------
 
+The following sources of intrinsic metadata are supported:
 
+* CodeMeta's `codemeta.json`_,
+* Maven's `pom.xml`_,
+* NPM's `package.json`_,
+* Python's `PKG-INFO`_,
+* Ruby's `.gemspec`_
 
-.. _CodeMeta: https://codemeta.github.io/
-.. _crosswalk table: https://codemeta.github.io/crosswalk/
-.. _CSV file: https://github.com/codemeta/codemeta/blob/master/crosswalk.csv
+.. _codemeta.json: https://codemeta.github.io/terms/
+.. _pom.xml: https://maven.apache.org/pom.html
+.. _package.json: https://docs.npmjs.com/files/package.json
+.. _PKG-INFO: https://www.python.org/dev/peps/pep-0314/
+.. _.gemspec: https://guides.rubygems.org/specification-reference/
