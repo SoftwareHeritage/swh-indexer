@@ -94,11 +94,13 @@ def test_full_origin_metadata_indexer(
     rev_metadata = {
         'id': rev_id,
         'translated_metadata': metadata,
+        'mappings': ['npm'],
     }
     origin_metadata = {
         'origin_id': origin['id'],
         'from_revision': rev_id,
         'metadata': metadata,
+        'mappings': ['npm'],
     }
 
     results = list(indexer.idx_storage.revision_metadata_get([rev_id]))

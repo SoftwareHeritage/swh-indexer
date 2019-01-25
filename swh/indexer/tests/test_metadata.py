@@ -254,7 +254,7 @@ class Metadata(unittest.TestCase):
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'id': hash_to_bytes('26a9f72a7c87cc9205725cfd879f514ff4f3d8d5')
+            'id': hash_to_bytes('26a9f72a7c87cc9205725cfd879f514ff4f3d8d5'),
             }, {
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
@@ -927,6 +927,7 @@ end"""
                 'name': 'yarn-parser',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
             },
+            'mappings': ['npm'],
         }]
 
         for result in results:

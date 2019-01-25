@@ -150,6 +150,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         result = {
             'id': rev['id'],
             'indexer_configuration_id': self.tool['id'],
+            'mappings': None,
             'translated_metadata': None
         }
 
@@ -158,10 +159,11 @@ class RevisionMetadataIndexer(RevisionIndexer):
             dir_ls = self.storage.directory_ls(root_dir, recursive=False)
             files = [entry for entry in dir_ls if entry['type'] == 'file']
             detected_files = detect_metadata(files)
-            result['translated_metadata'] = self.translate_revision_metadata(
+            (mappings, metadata) = self.translate_revision_metadata(
                 detected_files,
-                log_suffix='revision=%s' % hashutil.hash_to_hex(rev['id'])
-            )
+                log_suffix='revision=%s' % hashutil.hash_to_hex(rev['id']))
+            result['mappings'] = mappings
+            result['translated_metadata'] = metadata
         except Exception as e:
             self.log.exception(
                 'Problem when indexing rev: %r', e)
@@ -194,10 +196,11 @@ class RevisionMetadataIndexer(RevisionIndexer):
               "npm", "authors") to list of sha1
 
         Returns:
-            dict: dict with translated metadata according to the CodeMeta
-            vocabulary
+            (List[str], dict): list of mappings used and dict with
+            translated metadata according to the CodeMeta vocabulary
 
         """
+        used_mappings = [MAPPINGS[context].name for context in detected_files]
         translated_metadata = []
         tool = {
                 'name': 'swh-metadata-translator',
@@ -252,7 +255,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         # transform translated_metadata into min set with swh-metadata-detector
         min_metadata = extract_minimal_metadata_dict(translated_metadata)
-        return min_metadata
+        return (used_mappings, min_metadata)
 
 
 class OriginMetadataIndexer(OriginIndexer):
@@ -287,6 +290,7 @@ class OriginMetadataIndexer(OriginIndexer):
             'from_revision': rev_metadata['id'],
             'origin_id': origin['id'],
             'metadata': rev_metadata['translated_metadata'],
+            'mappings': rev_metadata['mappings'],
             'indexer_configuration_id':
                 rev_metadata['indexer_configuration_id'],
         }

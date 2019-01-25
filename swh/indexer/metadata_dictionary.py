@@ -76,6 +76,13 @@ class BaseMapping(metaclass=abc.ABCMeta):
             self.__class__.__module__,
             self.__class__.__name__))
 
+    @property
+    @abc.abstractmethod
+    def name(self):
+        """A name of this mapping, used as an identifier in the
+        indexer storage."""
+        pass
+
     @classmethod
     @abc.abstractmethod
     def detect_metadata_files(cls, files):
@@ -203,6 +210,7 @@ class NpmMapping(JsonMapping):
     """
     dedicated class for NPM (package.json) mapping and translation
     """
+    name = 'npm'
     mapping = CROSSWALK_TABLE['NodeJS']
     filename = b'package.json'
 
@@ -341,6 +349,7 @@ class CodemetaMapping(SingleFileMapping):
     """
     dedicated class for CodeMeta (codemeta.json) mapping and translation
     """
+    name = 'codemeta'
     filename = b'codemeta.json'
 
     def translate(self, content):
@@ -352,6 +361,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
     """
     dedicated class for Maven (pom.xml) mapping and translation
     """
+    name = 'maven'
     filename = b'pom.xml'
     mapping = CROSSWALK_TABLE['Java (Maven)']
 
@@ -484,6 +494,7 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
     """Dedicated class for Python's PKG-INFO mapping and translation.
 
     https://www.python.org/dev/peps/pep-0314/"""
+    name = 'pkg-info'
     filename = b'PKG-INFO'
     mapping = {_normalize_pkginfo_key(k): v
                for (k, v) in CROSSWALK_TABLE['Python PKG-INFO'].items()}
@@ -520,10 +531,11 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
 
 @register_mapping
 class GemspecMapping(DictMapping):
+    name = 'gemspec'
+    mapping = CROSSWALK_TABLE['Ruby Gem']
+
     _re_spec_new = re.compile(r'.*Gem::Specification.new do \|.*\|.*')
     _re_spec_entry = re.compile(r'\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)')
-
-    mapping = CROSSWALK_TABLE['Ruby Gem']
 
     @classmethod
     def detect_metadata_files(cls, file_entries):
