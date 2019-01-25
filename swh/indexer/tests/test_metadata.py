@@ -38,18 +38,10 @@ class ContentMetadataTestIndexer(ContentMetadataIndexer):
         assert False, 'should not be called; the rev indexer configures it.'
 
 
-class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
-    """Specific indexer whose configuration is enough to satisfy the
-       indexing tests.
-    """
-
-    ContentMetadataIndexer = ContentMetadataTestIndexer
-
-    def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'tools': TRANSLATOR_TOOL,
-        }
+REVISION_METADATA_CONFIG = {
+    **BASE_TEST_CONFIG,
+    'tools': TRANSLATOR_TOOL,
+}
 
 
 class Metadata(unittest.TestCase):
@@ -744,7 +736,8 @@ License: MIT
         })
 
     def test_revision_metadata_indexer(self):
-        metadata_indexer = RevisionMetadataTestIndexer()
+        metadata_indexer = RevisionMetadataIndexer(
+            config=REVISION_METADATA_CONFIG)
         fill_obj_storage(metadata_indexer.objstorage)
         fill_storage(metadata_indexer.storage)
 

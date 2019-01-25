@@ -14,25 +14,35 @@ from swh.indexer.storage.in_memory import IndexerStorage
 from swh.objstorage.objstorage_in_memory import InMemoryObjStorage
 
 from swh.scheduler.celery_backend.runner import run_ready_tasks
+from swh.indexer.metadata import (
+    OriginMetadataIndexer, RevisionMetadataIndexer
+)
+from swh.indexer.origin_head import OriginHeadIndexer
 
-from .utils import fill_storage, fill_obj_storage
-from .test_origin_head import OriginHeadTestIndexer
-from swh.indexer.tests.tasks import (
-    RevisionMetadataTestIndexer, OriginMetadataTestIndexer)
-
-
-class OriginHeadTestIndexer(OriginHeadTestIndexer):
-    def prepare(self):
-        super().prepare()
-        self.config['tasks'] = {
-            'revision_metadata': 'revision_metadata',
-            'origin_intrinsic_metadata': 'origin_intrinsic_metadata',
-        }
+from .utils import fill_storage, fill_obj_storage, BASE_TEST_CONFIG
+from .test_metadata import REVISION_METADATA_CONFIG
 
 
+ORIGIN_HEAD_CONFIG = {
+    **BASE_TEST_CONFIG,
+    'tools': {
+        'name': 'origin-metadata',
+        'version': '0.0.1',
+        'configuration': {},
+    },
+    'tasks': {
+        'revision_metadata': 'revision_metadata',
+        'origin_intrinsic_metadata': 'origin_intrinsic_metadata',
+    }
+}
+
+
+@mock.patch('swh.indexer.metadata.RevisionMetadataIndexer.parse_config_file')
+@mock.patch('swh.indexer.origin_head.OriginHeadIndexer.parse_config_file')
 @mock.patch('swh.indexer.storage.in_memory.IndexerStorage')
 @mock.patch('swh.storage.in_memory.Storage')
 def test_pipeline(storage_mock, idx_storage_mock,
+                  origin_head_parse_config, revision_metadata_parse_config,
                   swh_app, celery_session_worker, indexer_scheduler):
     scheduler = indexer_scheduler
     # Always returns the same instance of the idx storage, because
@@ -41,6 +51,8 @@ def test_pipeline(storage_mock, idx_storage_mock,
     storage = Storage()
     idx_storage = IndexerStorage()
 
+    origin_head_parse_config.return_value = ORIGIN_HEAD_CONFIG
+    revision_metadata_parse_config.return_value = REVISION_METADATA_CONFIG
     storage_mock.return_value = storage
     idx_storage_mock.return_value = idx_storage
 
@@ -53,9 +65,9 @@ def test_pipeline(storage_mock, idx_storage_mock,
     old_inmem_objstorage = swh.objstorage._STORAGE_CLASSES['memory']
     swh.objstorage._STORAGE_CLASSES['memory'] = lambda: objstorage
     try:
-        RevisionMetadataTestIndexer.scheduler = scheduler
-        OriginMetadataTestIndexer.scheduler = scheduler
-        indexer = OriginHeadTestIndexer()
+        RevisionMetadataIndexer.scheduler = scheduler
+        OriginMetadataIndexer.scheduler = scheduler
+        indexer = OriginHeadIndexer()
         indexer.scheduler = scheduler
         indexer.run(["git+https://github.com/librariesio/yarn-parser"])
         tasks = []
@@ -74,8 +86,8 @@ def test_pipeline(storage_mock, idx_storage_mock,
         promise.wait()
     finally:
         swh.objstorage._STORAGE_CLASSES['memory'] = old_inmem_objstorage
-        del RevisionMetadataTestIndexer.scheduler
-        del OriginMetadataTestIndexer.scheduler
+        del RevisionMetadataIndexer.scheduler
+        del OriginMetadataIndexer.scheduler
 
     origin = storage.origin_get({
         'type': 'git',
