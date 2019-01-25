@@ -1217,6 +1217,7 @@ class CommonTestStorage:
                 'softwareRequirements': None,
                 'identifier': None
             },
+            'mappings': [],
             'indexer_configuration_id': tool_id
         }])
 
@@ -1250,6 +1251,7 @@ class CommonTestStorage:
                 'softwareRequirements': None,
                 'identifier': None
             },
+            'mappings': ['mapping1', 'mapping2'],
             'indexer_configuration_id': tool_id
         }
 
@@ -1263,9 +1265,11 @@ class CommonTestStorage:
         expected_metadata = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_rev['translated_metadata'],
+            'mappings': ['mapping1', 'mapping2'],
             'tool': self.tools['swh-metadata-detector']
         }]
 
+        self.maxDiff = None
         self.assertEqual(actual_metadata, expected_metadata)
 
     def test_revision_metadata_add_drop_duplicate(self):
@@ -1291,6 +1295,7 @@ class CommonTestStorage:
                 'softwareRequirements': None,
                 'identifier': None
             },
+            'mappings': [],
             'indexer_configuration_id': tool_id,
         }
 
@@ -1304,6 +1309,7 @@ class CommonTestStorage:
         expected_metadata_v1 = [{
             'id': self.revision_id_1,
             'translated_metadata':  metadata_v1['translated_metadata'],
+            'mappings': [],
             'tool': self.tools['swh-metadata-detector']
         }]
 
@@ -1350,6 +1356,7 @@ class CommonTestStorage:
                 'softwareRequirements': None,
                 'identifier': None
             },
+            'mappings': [],
             'indexer_configuration_id': tool_id,
         }
 
@@ -1364,6 +1371,7 @@ class CommonTestStorage:
         expected_metadata_v1 = [{
             'id': self.revision_id_2,
             'translated_metadata':  metadata_v1['translated_metadata'],
+            'mappings': [],
             'tool': self.tools['swh-metadata-detector']
         }]
         self.assertEqual(actual_metadata, expected_metadata_v1)
@@ -1384,6 +1392,7 @@ class CommonTestStorage:
         expected_metadata_v2 = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_v2['translated_metadata'],
+            'mappings': [],
             'tool': self.tools['swh-metadata-detector']
         }]
 
@@ -1414,12 +1423,14 @@ class CommonTestStorage:
         metadata_rev = {
             'id': self.revision_id_2,
             'translated_metadata': metadata,
+            'mappings': ['mapping1'],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin = {
             'origin_id': self.origin_id_1,
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
+            'mappings': ['mapping1'],
             'from_revision': self.revision_id_2,
             }
 
@@ -1436,6 +1447,7 @@ class CommonTestStorage:
             'metadata': metadata,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
+            'mappings': ['mapping1'],
         }]
 
         self.assertEqual(actual_metadata, expected_metadata)
@@ -1464,12 +1476,14 @@ class CommonTestStorage:
         metadata_rev_v1 = {
             'id': self.revision_id_1,
             'translated_metadata': metadata_v1.copy(),
+            'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin_v1 = {
             'origin_id': self.origin_id_1,
             'metadata': metadata_v1.copy(),
             'indexer_configuration_id': tool_id,
+            'mappings': [],
             'from_revision': self.revision_id_1,
         }
 
@@ -1486,6 +1500,7 @@ class CommonTestStorage:
             'metadata': metadata_v1,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_1,
+            'mappings': [],
         }]
 
         self.assertEqual(actual_metadata, expected_metadata_v1)
@@ -1535,12 +1550,14 @@ class CommonTestStorage:
         metadata_rev_v1 = {
             'id': self.revision_id_2,
             'translated_metadata': metadata_v1,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin_v1 = {
             'origin_id': self.origin_id_1,
             'metadata': metadata_v1.copy(),
             'indexer_configuration_id': tool_id,
+            'mappings': [],
             'from_revision': self.revision_id_2,
         }
 
@@ -1558,6 +1575,7 @@ class CommonTestStorage:
             'metadata': metadata_v1,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
+            'mappings': [],
         }]
         self.assertEqual(actual_metadata, expected_metadata_v1)
 
@@ -1585,6 +1603,7 @@ class CommonTestStorage:
             'metadata': metadata_v2,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
+            'mappings': [],
         }]
 
         # metadata did change as the v2 was used to overwrite v1
@@ -1600,11 +1619,13 @@ class CommonTestStorage:
         metadata1_rev = {
             'id': self.revision_id_1,
             'translated_metadata': metadata1,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata1_origin = {
             'origin_id': self.origin_id_1,
             'metadata': metadata1,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
             'from_revision': self.revision_id_1,
         }
@@ -1614,11 +1635,13 @@ class CommonTestStorage:
         metadata2_rev = {
             'id': self.revision_id_2,
             'translated_metadata': metadata2,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata2_origin = {
             'origin_id': self.origin_id_2,
             'metadata': metadata2,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
             'from_revision': self.revision_id_2,
         }
@@ -1662,11 +1685,13 @@ class CommonTestStorage:
         metadata1_rev = {
             'id': self.revision_id_1,
             'translated_metadata': metadata1,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata1_origin = {
             'origin_id': self.origin_id_1,
             'metadata': metadata1,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
             'from_revision': self.revision_id_1,
         }
@@ -1679,11 +1704,13 @@ class CommonTestStorage:
         metadata2_rev = {
             'id': self.revision_id_2,
             'translated_metadata': metadata2,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata2_origin = {
             'origin_id': self.origin_id_2,
             'metadata': metadata2,
+            'mappings': [],
             'indexer_configuration_id': tool_id,
             'from_revision': self.revision_id_2,
         }
