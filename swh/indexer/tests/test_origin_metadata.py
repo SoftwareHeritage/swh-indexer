@@ -1,7 +1,9 @@
-# Copyright (C) 2018  The Software Heritage developers
+# Copyright (C) 2018-2019  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
+
+import pytest
 
 from celery.result import AsyncResult
 from unittest import mock
@@ -37,6 +39,7 @@ ORIGIN_HEAD_CONFIG = {
 }
 
 
+@pytest.mark.db
 @mock.patch('swh.indexer.metadata.RevisionMetadataIndexer.parse_config_file')
 @mock.patch('swh.indexer.origin_head.OriginHeadIndexer.parse_config_file')
 @mock.patch('swh.indexer.storage.in_memory.IndexerStorage')
