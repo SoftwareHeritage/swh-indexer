@@ -6,9 +6,13 @@
 import os
 import re
 import abc
+import ast
 import json
 import logging
+import itertools
 import email.parser
+import xml.parsers.expat
+import email.policy
 
 import xmltodict
 
@@ -20,8 +24,42 @@ MAPPINGS = {}
 
 
 def register_mapping(cls):
-    MAPPINGS[cls.__name__] = cls()
+    MAPPINGS[cls.__name__] = cls
     return cls
+
+
+def merge_values(v1, v2):
+    """If v1 and v2 are of the form `{"@list": l1}` and `{"@list": l2}`,
+    returns `{"@list": l1 + l2}`.
+    Otherwise, make them lists (if they are not already) and concatenate
+    them.
+
+    >>> merge_values('a', 'b')
+    ['a', 'b']
+    >>> merge_values(['a', 'b'], 'c')
+    ['a', 'b', 'c']
+    >>> merge_values({'@list': ['a', 'b']}, {'@list': ['c']})
+    {'@list': ['a', 'b', 'c']}
+    """
+    if v1 is None:
+        return v2
+    elif v2 is None:
+        return v1
+    elif isinstance(v1, dict) and set(v1) == {'@list'}:
+        assert isinstance(v1['@list'], list)
+        if isinstance(v2, dict) and set(v2) == {'@list'}:
+            assert isinstance(v2['@list'], list)
+            return {'@list': v1['@list'] + v2['@list']}
+        else:
+            raise ValueError('Cannot merge %r and %r' % (v1, v2))
+    else:
+        if isinstance(v2, dict) and '@list' in v2:
+            raise ValueError('Cannot merge %r and %r' % (v1, v2))
+        if not isinstance(v1, list):
+            v1 = [v1]
+        if not isinstance(v2, list):
+            v2 = [v2]
+        return v1 + v2
 
 
 class BaseMapping(metaclass=abc.ABCMeta):
@@ -32,13 +70,22 @@ class BaseMapping(metaclass=abc.ABCMeta):
     - inherit this class
     - override translate function
     """
-    def __init__(self):
+    def __init__(self, log_suffix=''):
+        self.log_suffix = log_suffix
         self.log = logging.getLogger('%s.%s' % (
             self.__class__.__module__,
             self.__class__.__name__))
 
+    @property
     @abc.abstractmethod
-    def detect_metadata_files(self, files):
+    def name(self):
+        """A name of this mapping, used as an identifier in the
+        indexer storage."""
+        pass
+
+    @classmethod
+    @abc.abstractmethod
+    def detect_metadata_files(cls, files):
         """
         Detects files potentially containing metadata
 
@@ -67,9 +114,10 @@ class SingleFileMapping(BaseMapping):
         """The .json file to extract metadata from."""
         pass
 
-    def detect_metadata_files(self, file_entries):
+    @classmethod
+    def detect_metadata_files(cls, file_entries):
         for entry in file_entries:
-            if entry['name'] == self.filename:
+            if entry['name'] == cls.filename:
                 return [entry['sha1']]
         return []
 
@@ -108,6 +156,7 @@ class DictMapping(BaseMapping):
             elif k in self.mapping:
                 # if there is no method, but the key is known from the
                 # crosswalk table
+                codemeta_key = self.mapping[k]
 
                 # if there is a normalization method, use it on the value
                 normalization_method = getattr(
@@ -116,7 +165,11 @@ class DictMapping(BaseMapping):
                     v = normalization_method(v)
 
                 # set the translation metadata with the normalized value
-                translated_metadata[self.mapping[k]] = v
+                if codemeta_key in translated_metadata:
+                    translated_metadata[codemeta_key] = merge_values(
+                        translated_metadata[codemeta_key], v)
+                else:
+                    translated_metadata[codemeta_key] = v
         if normalize:
             return self.normalize_translation(translated_metadata)
         else:
@@ -142,12 +195,12 @@ class JsonMapping(DictMapping, SingleFileMapping):
         try:
             raw_content = raw_content.decode()
         except UnicodeDecodeError:
-            self.log.warning('Error unidecoding %r', raw_content)
+            self.log.warning('Error unidecoding from %s', self.log_suffix)
             return
         try:
             content_dict = json.loads(raw_content)
         except json.JSONDecodeError:
-            self.log.warning('Error unjsoning %r' % raw_content)
+            self.log.warning('Error unjsoning from %s', self.log_suffix)
             return
         return self.translate_dict(content_dict)
 
@@ -157,6 +210,7 @@ class NpmMapping(JsonMapping):
     """
     dedicated class for NPM (package.json) mapping and translation
     """
+    name = 'npm'
     mapping = CROSSWALK_TABLE['NodeJS']
     filename = b'package.json'
 
@@ -170,7 +224,20 @@ class NpmMapping(JsonMapping):
             }
 
     def normalize_repository(self, d):
-        """https://docs.npmjs.com/files/package.json#repository"""
+        """https://docs.npmjs.com/files/package.json#repository
+
+        >>> NpmMapping().normalize_repository({
+        ...     'type': 'git',
+        ...     'url': 'https://example.org/foo.git'
+        ... })
+        {'@id': 'git+https://example.org/foo.git'}
+        >>> NpmMapping().normalize_repository(
+        ...     'gitlab:foo/bar')
+        {'@id': 'git+https://gitlab.com/foo/bar.git'}
+        >>> NpmMapping().normalize_repository(
+        ...     'foo/bar')
+        {'@id': 'git+https://github.com/foo/bar.git'}
+        """
         if isinstance(d, dict) and {'type', 'url'} <= set(d):
             url = '{type}+{url}'.format(**d)
         elif isinstance(d, str):
@@ -191,7 +258,17 @@ class NpmMapping(JsonMapping):
         return {'@id': url}
 
     def normalize_bugs(self, d):
-        """https://docs.npmjs.com/files/package.json#bugs"""
+        """https://docs.npmjs.com/files/package.json#bugs
+
+        >>> NpmMapping().normalize_bugs({
+        ...     'url': 'https://example.org/bugs/',
+        ...     'email': 'bugs@example.org'
+        ... })
+        {'@id': 'https://example.org/bugs/'}
+        >>> NpmMapping().normalize_bugs(
+        ...     'https://example.org/bugs/')
+        {'@id': 'https://example.org/bugs/'}
+        """
         if isinstance(d, dict) and 'url' in d:
             return {'@id': '{url}'.format(**d)}
         elif isinstance(d, str):
@@ -206,8 +283,26 @@ class NpmMapping(JsonMapping):
                                r' *$')
 
     def normalize_author(self, d):
-        'https://docs.npmjs.com/files/package.json' \
-                '#people-fields-author-contributors'
+        """https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
+
+        >>> from pprint import pprint
+        >>> pprint(NpmMapping().normalize_author({
+        ...     'name': 'John Doe',
+        ...     'email': 'john.doe@example.org',
+        ...     'url': 'https://example.org/~john.doe',
+        ... }))
+        {'@list': [{'@type': 'http://schema.org/Person',
+                    'http://schema.org/email': 'john.doe@example.org',
+                    'http://schema.org/name': 'John Doe',
+                    'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
+        >>> pprint(NpmMapping().normalize_author(
+        ...     'John Doe <john.doe@example.org> (https://example.org/~john.doe)'
+        ... ))
+        {'@list': [{'@type': 'http://schema.org/Person',
+                    'http://schema.org/email': 'john.doe@example.org',
+                    'http://schema.org/name': 'John Doe',
+                    'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
+        """ # noqa
         author = {'@type': SCHEMA_URI+'Person'}
         if isinstance(d, dict):
             name = d.get('name', None)
@@ -229,13 +324,24 @@ class NpmMapping(JsonMapping):
         return {"@list": [author]}
 
     def normalize_license(self, s):
+        """https://docs.npmjs.com/files/package.json#license
+
+        >>> NpmMapping().normalize_license('MIT')
+        {'@id': 'https://spdx.org/licenses/MIT'}
+        """
         if isinstance(s, str):
             return {"@id": "https://spdx.org/licenses/" + s}
         else:
             return None
 
     def normalize_homepage(self, s):
-        return {"@id": s}
+        """https://docs.npmjs.com/files/package.json#homepage
+
+        >>> NpmMapping().normalize_homepage('https://example.org/~john.doe')
+        {'@id': 'https://example.org/~john.doe'}
+        """
+        if isinstance(s, str):
+            return {"@id": s}
 
 
 @register_mapping
@@ -243,6 +349,7 @@ class CodemetaMapping(SingleFileMapping):
     """
     dedicated class for CodeMeta (codemeta.json) mapping and translation
     """
+    name = 'codemeta'
     filename = b'codemeta.json'
 
     def translate(self, content):
@@ -254,11 +361,16 @@ class MavenMapping(DictMapping, SingleFileMapping):
     """
     dedicated class for Maven (pom.xml) mapping and translation
     """
+    name = 'maven'
     filename = b'pom.xml'
     mapping = CROSSWALK_TABLE['Java (Maven)']
 
     def translate(self, content):
-        d = xmltodict.parse(content)['project']
+        try:
+            d = xmltodict.parse(content).get('project') or {}
+        except xml.parsers.expat.ExpatError:
+            self.log.warning('Error parsing XML from %s', self.log_suffix)
+            return None
         metadata = self.translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
         metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)
@@ -267,19 +379,31 @@ class MavenMapping(DictMapping, SingleFileMapping):
     _default_repository = {'url': 'https://repo.maven.apache.org/maven2/'}
 
     def parse_repositories(self, d):
-        """https://maven.apache.org/pom.html#Repositories"""
+        """https://maven.apache.org/pom.html#Repositories
+
+        >>> import xmltodict
+        >>> from pprint import pprint
+        >>> d = xmltodict.parse('''
+        ... <repositories>
+        ...   <repository>
+        ...     <id>codehausSnapshots</id>
+        ...     <name>Codehaus Snapshots</name>
+        ...     <url>http://snapshots.maven.codehaus.org/maven2</url>
+        ...     <layout>default</layout>
+        ...   </repository>
+        ... </repositories>
+        ... ''')
+        >>> MavenMapping().parse_repositories(d)
+        """
         if 'repositories' not in d:
-            return [self.parse_repository(d, self._default_repository)]
+            results = [self.parse_repository(d, self._default_repository)]
         else:
-            repositories = d['repositories'].get('repository', [])
+            repositories = d.get('repositories', {}).get('repository', [])
             if not isinstance(repositories, list):
                 repositories = [repositories]
-            results = []
-            for repo in repositories:
-                res = self.parse_repository(d, repo)
-                if res:
-                    results.append(res)
-            return results
+            results = [self.parse_repository(d, repo)
+                       for repo in repositories]
+        return [res for res in results if res] or None
 
     def parse_repository(self, d, repo):
         if repo.get('layout', 'default') != 'default':
@@ -287,62 +411,60 @@ class MavenMapping(DictMapping, SingleFileMapping):
         url = repo.get('url')
         group_id = d.get('groupId')
         artifact_id = d.get('artifactId')
-        if isinstance(url, str):
-            if isinstance(group_id, str):
-                url = os.path.join(url, *group_id.split('.'))
-                if isinstance(artifact_id, str):
-                    url = os.path.join(url, artifact_id)
-            return {"@id": url}
+        if (isinstance(url, str) and isinstance(group_id, str)
+                and isinstance(artifact_id, str)):
+            repo = os.path.join(url, *group_id.split('.'), artifact_id)
+            return {"@id": repo}
 
     def normalize_groupId(self, id_):
+        """https://maven.apache.org/pom.html#Maven_Coordinates
+
+        >>> MavenMapping().normalize_groupId('org.example')
+        {'@id': 'org.example'}
+        """
         return {"@id": id_}
 
     def parse_licenses(self, d):
         """https://maven.apache.org/pom.html#Licenses
 
-        The origin XML has the form:
-
-            <licenses>
-              <license>
-                <name>Apache License, Version 2.0</name>
-                <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-              </license>
-            </licenses>
-
-        Which was translated to a dict by xmltodict and is given as `d`:
-
-        >>> d = {
-        ...     # ...
-        ...     "licenses": {
-        ...         "license": {
-        ...             "name": "Apache License, Version 2.0",
-        ...             "url":
-        ...             "https://www.apache.org/licenses/LICENSE-2.0.txt"
-        ...         }
-        ...     }
-        ... }
+        >>> import xmltodict
+        >>> import json
+        >>> d = xmltodict.parse('''
+        ... <licenses>
+        ...   <license>
+        ...     <name>Apache License, Version 2.0</name>
+        ...     <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        ...   </license>
+        ... </licenses>
+        ... ''')
+        >>> print(json.dumps(d, indent=4))
+        {
+            "licenses": {
+                "license": {
+                    "name": "Apache License, Version 2.0",
+                    "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                }
+            }
+        }
         >>> MavenMapping().parse_licenses(d)
         [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'}]
 
         or, if there are more than one license:
 
+        >>> import xmltodict
         >>> from pprint import pprint
-        >>> d = {
-        ...     # ...
-        ...     "licenses": {
-        ...         "license": [
-        ...             {
-        ...                 "name": "Apache License, Version 2.0",
-        ...                 "url":
-        ...                 "https://www.apache.org/licenses/LICENSE-2.0.txt"
-        ...             },
-        ...             {
-        ...                 "name": "MIT License, ",
-        ...                 "url": "https://opensource.org/licenses/MIT"
-        ...             }
-        ...         ]
-        ...     }
-        ... }
+        >>> d = xmltodict.parse('''
+        ... <licenses>
+        ...   <license>
+        ...     <name>Apache License, Version 2.0</name>
+        ...     <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        ...   </license>
+        ...   <license>
+        ...     <name>MIT License</name>
+        ...     <url>https://opensource.org/licenses/MIT</url>
+        ...   </license>
+        ... </licenses>
+        ... ''')
         >>> pprint(MavenMapping().parse_licenses(d))
         [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'},
          {'@id': 'https://opensource.org/licenses/MIT'}]
@@ -353,10 +475,18 @@ class MavenMapping(DictMapping, SingleFileMapping):
             licenses = [licenses]
         return [{"@id": license['url']}
                 for license in licenses
-                if 'url' in license]
+                if 'url' in license] or None
 
 
 _normalize_pkginfo_key = str.lower
+
+
+class LinebreakPreservingEmailPolicy(email.policy.EmailPolicy):
+    def header_fetch_parse(self, name, value):
+        if hasattr(value, 'name'):
+            return value
+        value = value.replace('\n        ', '\n')
+        return self.header_factory(name, value)
 
 
 @register_mapping
@@ -364,11 +494,13 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
     """Dedicated class for Python's PKG-INFO mapping and translation.
 
     https://www.python.org/dev/peps/pep-0314/"""
+    name = 'pkg-info'
     filename = b'PKG-INFO'
     mapping = {_normalize_pkginfo_key(k): v
                for (k, v) in CROSSWALK_TABLE['Python PKG-INFO'].items()}
 
-    _parser = email.parser.BytesHeaderParser()
+    _parser = email.parser.BytesHeaderParser(
+        policy=LinebreakPreservingEmailPolicy())
 
     def translate(self, content):
         msg = self._parser.parsebytes(content)
@@ -390,14 +522,6 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
             }
         return self.normalize_translation(metadata)
 
-    def translate_summary(self, translated_metadata, v):
-        k = self.mapping['summary']
-        translated_metadata.setdefault(k, []).append(v)
-
-    def translate_description(self, translated_metadata, v):
-        k = self.mapping['description']
-        translated_metadata.setdefault(k, []).append(v)
-
     def normalize_home_page(self, urls):
         return [{'@id': url} for url in urls]
 
@@ -405,17 +529,107 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
         return [{'@id': license} for license in licenses]
 
 
-def main():
-    raw_content = """{"name": "test_name", "unknown_term": "ut"}"""
-    raw_content1 = b"""{"name": "test_name",
-                        "unknown_term": "ut",
-                        "prerequisites" :"packageXYZ"}"""
-    result = MAPPINGS["NpmMapping"].translate(raw_content)
-    result1 = MAPPINGS["MavenMapping"].translate(raw_content1)
+@register_mapping
+class GemspecMapping(DictMapping):
+    name = 'gemspec'
+    mapping = CROSSWALK_TABLE['Ruby Gem']
 
-    print(result)
-    print(result1)
+    _re_spec_new = re.compile(r'.*Gem::Specification.new do \|.*\|.*')
+    _re_spec_entry = re.compile(r'\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)')
 
+    @classmethod
+    def detect_metadata_files(cls, file_entries):
+        for entry in file_entries:
+            if entry['name'].endswith(b'.gemspec'):
+                return [entry['sha1']]
+        return []
 
-if __name__ == "__main__":
-    main()
+    def translate(self, raw_content):
+        try:
+            raw_content = raw_content.decode()
+        except UnicodeDecodeError:
+            self.log.warning('Error unidecoding from %s', self.log_suffix)
+            return
+
+        # Skip lines before 'Gem::Specification.new'
+        lines = itertools.dropwhile(
+            lambda x: not self._re_spec_new.match(x),
+            raw_content.split('\n'))
+
+        try:
+            next(lines)  # Consume 'Gem::Specification.new'
+        except StopIteration:
+            self.log.warning('Could not find Gem::Specification in %s',
+                             self.log_suffix)
+            return
+
+        content_dict = {}
+        for line in lines:
+            match = self._re_spec_entry.match(line)
+            if match:
+                value = self.eval_ruby_expression(match.group('expr'))
+                if value:
+                    content_dict[match.group('key')] = value
+        return self.translate_dict(content_dict)
+
+    def eval_ruby_expression(self, expr):
+        """Very simple evaluator of Ruby expressions.
+
+        >>> GemspecMapping().eval_ruby_expression('"Foo bar"')
+        'Foo bar'
+        >>> GemspecMapping().eval_ruby_expression("'Foo bar'")
+        'Foo bar'
+        >>> GemspecMapping().eval_ruby_expression("['Foo', 'bar']")
+        ['Foo', 'bar']
+        >>> GemspecMapping().eval_ruby_expression("'Foo bar'.freeze")
+        'Foo bar'
+        >>> GemspecMapping().eval_ruby_expression( \
+                "['Foo'.freeze, 'bar'.freeze]")
+        ['Foo', 'bar']
+        """
+        def evaluator(node):
+            if isinstance(node, ast.Str):
+                return node.s
+            elif isinstance(node, ast.List):
+                res = []
+                for element in node.elts:
+                    val = evaluator(element)
+                    if not val:
+                        return
+                    res.append(val)
+                return res
+
+        expr = expr.replace('.freeze', '')
+        try:
+            # We're parsing Ruby expressions here, but Python's
+            # ast.parse works for very simple Ruby expressions
+            # (mainly strings delimited with " or ', and lists
+            # of such strings).
+            tree = ast.parse(expr, mode='eval')
+        except (SyntaxError, ValueError):
+            return
+        if isinstance(tree, ast.Expression):
+            return evaluator(tree.body)
+
+    def normalize_homepage(self, s):
+        if isinstance(s, str):
+            return {"@id": s}
+
+    def normalize_license(self, s):
+        if isinstance(s, str):
+            return [{"@id": "https://spdx.org/licenses/" + s}]
+
+    def normalize_licenses(self, licenses):
+        if isinstance(licenses, list):
+            return [{"@id": "https://spdx.org/licenses/" + license}
+                    for license in licenses
+                    if isinstance(license, str)]
+
+    def normalize_author(self, author):
+        if isinstance(author, str):
+            return {"@list": [author]}
+
+    def normalize_authors(self, authors):
+        if isinstance(authors, list):
+            return {"@list": [author for author in authors
+                              if isinstance(author, str)]}

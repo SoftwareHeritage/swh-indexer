@@ -7,7 +7,7 @@ import subprocess
 
 from swh.model import hashutil
 
-from .indexer import ContentIndexer, ContentRangeIndexer, DiskIndexer
+from .indexer import ContentIndexer, ContentRangeIndexer, write_to_temp
 
 
 def compute_license(path, log=None):
@@ -71,22 +71,6 @@ class MixinFossologyLicenseIndexer:
     def prepare(self):
         super().prepare()
         self.working_directory = self.config['workdir']
-        self.tool = self.tools[0]
-
-    def compute_license(self, path, log=None):
-        """Determine license from file at path.
-
-        Args:
-            path: filepath to determine the license
-
-        Returns:
-            dict: A dict with the following keys:
-
-            - licenses ([str]): associated detected licenses to path
-            - path (bytes): content filepath
-
-        """
-        return compute_license(path, log=log)
 
     def index(self, id, data):
         """Index sha1s' content and store result.
@@ -105,19 +89,15 @@ class MixinFossologyLicenseIndexer:
 
         """
         assert isinstance(id, bytes)
-        content_path = self.write_to_temp(
-            filename=hashutil.hash_to_hex(id),  # use the id as pathname
-            data=data)
-
-        try:
-            properties = self.compute_license(path=content_path, log=self.log)
+        with write_to_temp(
+                filename=hashutil.hash_to_hex(id),  # use the id as pathname
+                data=data,
+                working_directory=self.working_directory) as content_path:
+            properties = compute_license(path=content_path, log=self.log)
             properties.update({
                 'id': id,
                 'indexer_configuration_id': self.tool['id'],
             })
-        finally:
-            self.cleanup(content_path)
-
         return properties
 
     def persist_index_computations(self, results, policy_update):
@@ -140,7 +120,7 @@ class MixinFossologyLicenseIndexer:
 
 
 class FossologyLicenseIndexer(
-        MixinFossologyLicenseIndexer, DiskIndexer, ContentIndexer):
+        MixinFossologyLicenseIndexer, ContentIndexer):
     """Indexer in charge of:
 
     - filtering out content already indexed
@@ -162,7 +142,7 @@ class FossologyLicenseIndexer(
 
 
 class FossologyLicenseRangeIndexer(
-        MixinFossologyLicenseIndexer, DiskIndexer, ContentRangeIndexer):
+        MixinFossologyLicenseIndexer, ContentRangeIndexer):
     """FossologyLicense Range Indexer working on range of content identifiers.
 
     - filters out the non textual content

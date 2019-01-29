@@ -1,8 +1,11 @@
-swh-indexer (0.0.127-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.128-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.128     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-01-25 15:22:52 +0100)
+  * Upstream changes:     - Make metadata indexers store the mappings
+    used to translate metadata.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 15 Jan 2019 16:22:04 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 29 Jan 2019 12:18:16 +0000
 
 swh-indexer (0.0.127-1~swh1) unstable-swh; urgency=medium
 

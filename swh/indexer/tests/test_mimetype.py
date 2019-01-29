@@ -3,16 +3,16 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import pytest
 import unittest
 
 from swh.indexer.mimetype import (
     MimetypeIndexer, MimetypeRangeIndexer, compute_mimetype_encoding
 )
 
-from swh.indexer.tests.test_utils import (
+from swh.indexer.tests.utils import (
     CommonContentIndexerTest, CommonContentIndexerRangeTest,
-    CommonIndexerWithErrorsTest, CommonIndexerNoTool,
-    BASE_TEST_CONFIG, fill_storage, fill_obj_storage
+    BASE_TEST_CONFIG, fill_storage, fill_obj_storage, filter_dict,
 )
 
 
@@ -30,23 +30,17 @@ class BasicTest(unittest.TestCase):
             })
 
 
-class MimetypeTestIndexer(MimetypeIndexer):
-    """Specific mimetype indexer instance whose configuration is enough to
-       satisfy the indexing tests.
-
-    """
-    def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'tools': {
-                'name': 'file',
-                'version': '1:5.30-1+deb9u1',
-                'configuration': {
-                    "type": "library",
-                    "debian-package": "python3-magic"
-                },
-            },
-        }
+CONFIG = {
+    **BASE_TEST_CONFIG,
+    'tools': {
+        'name': 'file',
+        'version': '1:5.30-1+deb9u1',
+        'configuration': {
+            "type": "library",
+            "debian-package": "python3-magic"
+        },
+    },
+}
 
 
 class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
@@ -62,7 +56,7 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
         yield from self.idx_storage.content_mimetype_get(ids)
 
     def setUp(self):
-        self.indexer = MimetypeTestIndexer()
+        self.indexer = MimetypeIndexer(config=CONFIG)
         self.idx_storage = self.indexer.idx_storage
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
@@ -96,24 +90,7 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
         }
 
 
-class MimetypeRangeIndexerTest(MimetypeRangeIndexer):
-    """Specific mimetype whose configuration is enough to satisfy the
-       indexing tests.
-
-    """
-    def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'tools': {
-                'name': 'file',
-                'version': '1:5.30-1+deb9u1',
-                'configuration': {
-                    "type": "library",
-                    "debian-package": "python3-magic"
-                },
-            },
-            'write_batch_size': 100,
-        }
+RANGE_CONFIG = dict(list(CONFIG.items()) + [('write_batch_size', 100)])
 
 
 class TestMimetypeRangeIndexer(
@@ -128,7 +105,7 @@ class TestMimetypeRangeIndexer(
     """
     def setUp(self):
         super().setUp()
-        self.indexer = MimetypeRangeIndexerTest()
+        self.indexer = MimetypeRangeIndexer(config=RANGE_CONFIG)
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 
@@ -156,18 +133,11 @@ class TestMimetypeRangeIndexer(
         }
 
 
-class MimetypeIndexerUnknownToolTestStorage(
-        CommonIndexerNoTool, MimetypeTestIndexer):
-    """Mimetype indexer with wrong configuration"""
+def test_mimetype_w_no_tool():
+    with pytest.raises(ValueError):
+        MimetypeIndexer(config=filter_dict(CONFIG, 'tools'))
 
 
-class MimetypeRangeIndexerUnknownToolTestStorage(
-        CommonIndexerNoTool, MimetypeRangeIndexerTest):
-    """Mimetype range indexer with wrong configuration"""
-
-
-class TestMimetypeIndexersErrors(
-        CommonIndexerWithErrorsTest, unittest.TestCase):
-    """Test the indexer raise the right errors when wrongly initialized"""
-    Indexer = MimetypeIndexerUnknownToolTestStorage
-    RangeIndexer = MimetypeRangeIndexerUnknownToolTestStorage
+def test_mimetype_range_w_no_tool():
+    with pytest.raises(ValueError):
+        MimetypeRangeIndexer(config=filter_dict(CONFIG, 'tools'))

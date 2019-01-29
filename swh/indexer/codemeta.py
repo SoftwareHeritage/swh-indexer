@@ -6,6 +6,7 @@
 import csv
 import json
 import os.path
+import re
 
 import swh.indexer
 from pyld import jsonld
@@ -33,6 +34,8 @@ PROPERTY_BLACKLIST = {
     # Duplicate of 'author'
     SCHEMA_URI + 'creator',
     }
+
+_codemeta_field_separator = re.compile(r'\s*[,/]\s*')
 
 
 def make_absolute_uri(local_name):
@@ -76,7 +79,7 @@ def _read_crosstable(fd):
         for (col, value) in zip(header, line):  # For each cell in the row
             if col in data_sources:
                 # If that's not the parentType/property/type/description
-                for local_name in value.split('/'):
+                for local_name in _codemeta_field_separator.split(value):
                     # For each of the data source's properties that maps
                     # to this canonical name
                     if local_name.strip():
