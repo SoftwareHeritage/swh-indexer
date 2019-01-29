@@ -130,11 +130,9 @@ class LanguageIndexer(ContentIndexer):
         }),
     }
 
-    def prepare(self):
-        super().prepare()
-        c = self.config
-        self.max_content_size = c['tools']['configuration']['max_content_size']
-        self.tool = self.tools[0]
+    @property
+    def max_content_size(self):
+        return self.tool['tool_configuration']['max_content_size']
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.

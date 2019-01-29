@@ -14,7 +14,7 @@ create table dbversion
 );
 
 insert into dbversion(version, release, description)
-      values(118, now(), 'Work In Progress');
+      values(119, now(), 'Work In Progress');
 -- Computing metadata on sha1's contents
 
 -- a SHA1 checksum (not necessarily originating from Git)
@@ -118,7 +118,8 @@ comment on column content_metadata.indexer_configuration_id is 'tool used for tr
 create table revision_metadata(
   id                       sha1_git   not null,
   translated_metadata      jsonb      not null,
-  indexer_configuration_id bigint     not null
+  indexer_configuration_id bigint     not null,
+  mappings                 text array not null
 );
 
 comment on table revision_metadata is 'metadata semantically detected and translated in a revision';
@@ -131,7 +132,8 @@ create table origin_intrinsic_metadata(
   metadata                  jsonb,
   indexer_configuration_id  bigint     not null,
   from_revision             sha1_git   not null,
-  metadata_tsvector         tsvector
+  metadata_tsvector         tsvector,
+  mappings                  text array not null
 );
 
 comment on table origin_intrinsic_metadata is 'keeps intrinsic metadata for an origin';

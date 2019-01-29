@@ -586,6 +586,8 @@ class IndexerStorage:
                 - **id** (bytes)
                 - **translated_metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
         """
         for c in db.revision_metadata_get_from_list(ids, cur):
@@ -604,6 +606,8 @@ class IndexerStorage:
                 - **id**: sha1_git of revision
                 - **translated_metadata**: arbitrary dict
                 - **indexer_configuration_id**: tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -612,7 +616,8 @@ class IndexerStorage:
         db.mktemp_revision_metadata(cur)
 
         db.copy_to(metadata, 'tmp_revision_metadata',
-                   ['id', 'translated_metadata', 'indexer_configuration_id'],
+                   ['id', 'translated_metadata', 'mappings',
+                    'indexer_configuration_id'],
                    cur)
         db.revision_metadata_add_from_temp(conflict_update, cur)
 
@@ -630,6 +635,8 @@ class IndexerStorage:
                 - **origin_id** (int)
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
         """
         for c in db.origin_intrinsic_metadata_get_from_list(ids, cur):
@@ -651,6 +658,8 @@ class IndexerStorage:
                   these metadata.
                 - **metadata**: arbitrary dict
                 - **indexer_configuration_id**: tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -660,7 +669,7 @@ class IndexerStorage:
 
         db.copy_to(metadata, 'tmp_origin_intrinsic_metadata',
                    ['origin_id', 'metadata', 'indexer_configuration_id',
-                       'from_revision'],
+                    'from_revision', 'mappings'],
                    cur)
         db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)
 
@@ -680,6 +689,8 @@ class IndexerStorage:
                 - **id** (int)
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
         """
         for c in db.origin_intrinsic_metadata_search_fulltext(

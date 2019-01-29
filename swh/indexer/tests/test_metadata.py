@@ -7,7 +7,8 @@ import unittest
 
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer.metadata_dictionary import CROSSWALK_TABLE, MAPPINGS
+from swh.indexer.metadata_dictionary import (
+    CROSSWALK_TABLE, MAPPINGS, merge_values)
 from swh.indexer.metadata_detector import (
     detect_metadata, extract_minimal_metadata_dict
 )
@@ -15,7 +16,7 @@ from swh.indexer.metadata import (
     ContentMetadataIndexer, RevisionMetadataIndexer
 )
 
-from .test_utils import (
+from .utils import (
     BASE_TEST_CONFIG, fill_obj_storage, fill_storage
 )
 
@@ -38,18 +39,10 @@ class ContentMetadataTestIndexer(ContentMetadataIndexer):
         assert False, 'should not be called; the rev indexer configures it.'
 
 
-class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
-    """Specific indexer whose configuration is enough to satisfy the
-       indexing tests.
-    """
-
-    ContentMetadataIndexer = ContentMetadataTestIndexer
-
-    def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'tools': TRANSLATOR_TOOL,
-        }
+REVISION_METADATA_CONFIG = {
+    **BASE_TEST_CONFIG,
+    'tools': TRANSLATOR_TOOL,
+}
 
 
 class Metadata(unittest.TestCase):
@@ -61,6 +54,11 @@ class Metadata(unittest.TestCase):
         shows the entire diff in the results
         """
         self.maxDiff = None
+        self.npm_mapping = MAPPINGS['NpmMapping']()
+        self.codemeta_mapping = MAPPINGS['CodemetaMapping']()
+        self.maven_mapping = MAPPINGS['MavenMapping']()
+        self.pkginfo_mapping = MAPPINGS['PythonPkginfoMapping']()
+        self.gemspec_mapping = MAPPINGS['GemspecMapping']()
 
     def test_crosstable(self):
         self.assertEqual(CROSSWALK_TABLE['NodeJS'], {
@@ -82,6 +80,49 @@ class Metadata(unittest.TestCase):
             'homepage': 'http://schema.org/url'
         })
 
+    def test_merge_values(self):
+        self.assertEqual(
+            merge_values('a', 'b'),
+            ['a', 'b'])
+        self.assertEqual(
+            merge_values(['a', 'b'], 'c'),
+            ['a', 'b', 'c'])
+        self.assertEqual(
+            merge_values('a', ['b', 'c']),
+            ['a', 'b', 'c'])
+
+        self.assertEqual(
+            merge_values({'@list': ['a']}, {'@list': ['b']}),
+            {'@list': ['a', 'b']})
+        self.assertEqual(
+            merge_values({'@list': ['a', 'b']}, {'@list': ['c']}),
+            {'@list': ['a', 'b', 'c']})
+
+        with self.assertRaises(ValueError):
+            merge_values({'@list': ['a']}, 'b')
+        with self.assertRaises(ValueError):
+            merge_values('a', {'@list': ['b']})
+        with self.assertRaises(ValueError):
+            merge_values({'@list': ['a']}, ['b'])
+        with self.assertRaises(ValueError):
+            merge_values(['a'], {'@list': ['b']})
+
+        self.assertEqual(
+            merge_values('a', None),
+            'a')
+        self.assertEqual(
+            merge_values(['a', 'b'], None),
+            ['a', 'b'])
+        self.assertEqual(
+            merge_values(None, ['b', 'c']),
+            ['b', 'c'])
+        self.assertEqual(
+            merge_values({'@list': ['a']}, None),
+            {'@list': ['a']})
+        self.assertEqual(
+            merge_values(None, {'@list': ['a']}),
+            {'@list': ['a']})
+
     def test_compute_metadata_none(self):
         """
         testing content empty content is empty
@@ -93,7 +134,7 @@ class Metadata(unittest.TestCase):
         # None if no metadata was found or an error occurred
         declared_metadata = None
         # when
-        result = MAPPINGS["NpmMapping"].translate(content)
+        result = self.npm_mapping.translate(content)
         # then
         self.assertEqual(declared_metadata, result)
 
@@ -133,7 +174,7 @@ class Metadata(unittest.TestCase):
         }
 
         # when
-        result = MAPPINGS["NpmMapping"].translate(content)
+        result = self.npm_mapping.translate(content)
         # then
         self.assertEqual(declared_metadata, result)
 
@@ -192,8 +233,9 @@ class Metadata(unittest.TestCase):
         ]
         # this metadata indexer computes only metadata for package.json
         # in npm context with a hard mapping
-        metadata_indexer = ContentMetadataTestIndexer(
-            tool=TRANSLATOR_TOOL, config=BASE_TEST_CONFIG.copy())
+        config = BASE_TEST_CONFIG.copy()
+        config['tools'] = [TRANSLATOR_TOOL]
+        metadata_indexer = ContentMetadataTestIndexer(config=config)
         fill_obj_storage(metadata_indexer.objstorage)
         fill_storage(metadata_indexer.storage)
 
@@ -212,7 +254,7 @@ class Metadata(unittest.TestCase):
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'id': hash_to_bytes('26a9f72a7c87cc9205725cfd879f514ff4f3d8d5')
+            'id': hash_to_bytes('26a9f72a7c87cc9205725cfd879f514ff4f3d8d5'),
             }, {
             'translated_metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
@@ -257,7 +299,7 @@ class Metadata(unittest.TestCase):
                 "email": "foo@example.com"
             }
         }"""
-        result = MAPPINGS["NpmMapping"].translate(package_json)
+        result = self.npm_mapping.translate(package_json)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'foo',
@@ -272,7 +314,7 @@ class Metadata(unittest.TestCase):
                 "email": "foo@example.com"
             }
         }"""
-        result = MAPPINGS["NpmMapping"].translate(package_json)
+        result = self.npm_mapping.translate(package_json)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'foo',
@@ -284,7 +326,7 @@ class Metadata(unittest.TestCase):
             "name": "foo",
             "bugs": "https://github.com/owner/project/issues"
         }"""
-        result = MAPPINGS["NpmMapping"].translate(package_json)
+        result = self.npm_mapping.translate(package_json)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'foo',
@@ -301,7 +343,7 @@ class Metadata(unittest.TestCase):
                 "url" : "https://github.com/npm/cli.git"
             }
         }"""
-        result = MAPPINGS["NpmMapping"].translate(package_json)
+        result = self.npm_mapping.translate(package_json)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'foo',
@@ -316,7 +358,7 @@ class Metadata(unittest.TestCase):
                 "type" : "git"
             }
         }"""
-        result = MAPPINGS["NpmMapping"].translate(package_json)
+        result = self.npm_mapping.translate(package_json)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'foo',
@@ -328,7 +370,7 @@ class Metadata(unittest.TestCase):
             "name": "foo",
             "repository": "github:npm/cli"
         }"""
-        result = MAPPINGS["NpmMapping"].translate(package_json)
+        result = self.npm_mapping.translate(package_json)
         expected_result = {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'foo',
@@ -342,7 +384,7 @@ class Metadata(unittest.TestCase):
             "name": "foo",
             "repository": "npm/cli"
         }"""
-        result = MAPPINGS["NpmMapping"].translate(package_json)
+        result = self.npm_mapping.translate(package_json)
         self.assertEqual(result, expected_result)
 
         # gitlab shortcut
@@ -350,7 +392,7 @@ class Metadata(unittest.TestCase):
             "name": "foo",
             "repository": "gitlab:user/repo"
         }"""
-        result = MAPPINGS["NpmMapping"].translate(package_json)
+        result = self.npm_mapping.translate(package_json)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'foo',
@@ -504,7 +546,7 @@ class Metadata(unittest.TestCase):
             "datePublished": "2017-06-05",
             "programmingLanguage": "JSON-LD"
           }
-        result = MAPPINGS["CodemetaMapping"].translate(raw_content)
+        result = self.codemeta_mapping.translate(raw_content)
         self.assertEqual(result, expected_result)
 
     def test_compute_metadata_maven(self):
@@ -535,7 +577,7 @@ class Metadata(unittest.TestCase):
             </license>
           </licenses>
         </project>"""
-        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        result = self.maven_mapping.translate(raw_content)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
@@ -547,6 +589,46 @@ class Metadata(unittest.TestCase):
                 'http://repo1.maven.org/maven2/com/mycompany/app/my-app',
         })
 
+    def test_compute_metadata_maven_empty(self):
+        raw_content = b"""
+        <project>
+        </project>"""
+        result = self.maven_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+
+    def test_compute_metadata_maven_almost_empty(self):
+        raw_content = b"""
+        <project>
+          <foo/>
+        </project>"""
+        result = self.maven_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+
+    def test_compute_metadata_maven_invalid_xml(self):
+        expected_warning = (
+            'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
+            'Error parsing XML from foo')
+        raw_content = b"""
+        <project>"""
+        with self.assertLogs('swh.indexer.metadata_dictionary',
+                             level='WARNING') as cm:
+            result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
+            self.assertEqual(cm.output, [expected_warning])
+        self.assertEqual(result, None)
+        raw_content = b"""
+        """
+        with self.assertLogs('swh.indexer.metadata_dictionary',
+                             level='WARNING') as cm:
+            result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
+            self.assertEqual(cm.output, [expected_warning])
+        self.assertEqual(result, None)
+
     def test_compute_metadata_maven_minimal(self):
         raw_content = b"""
         <project>
@@ -556,7 +638,7 @@ class Metadata(unittest.TestCase):
           <artifactId>my-app</artifactId>
           <version>1.2.3</version>
         </project>"""
-        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        result = self.maven_mapping.translate(raw_content)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
@@ -565,7 +647,6 @@ class Metadata(unittest.TestCase):
             'version': '1.2.3',
             'codeRepository':
             'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
-            'license': [],
         })
 
     def test_compute_metadata_maven_multiple(self):
@@ -607,7 +688,7 @@ class Metadata(unittest.TestCase):
             </license>
           </licenses>
         </project>"""
-        result = MAPPINGS["MavenMapping"].translate(raw_content)
+        result = self.maven_mapping.translate(raw_content)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
@@ -639,13 +720,13 @@ Project-URL: Funding, https://www.softwareheritage.org/donate
 Project-URL: Source, https://forge.softwareheritage.org/source/swh-core
 Description: swh-core
         ========
-        
+       \x20
         core library for swh's modules:
         - config parser
         - hash computations
         - serialization
         - logging mechanism
-        
+       \x20
 Platform: UNKNOWN
 Classifier: Programming Language :: Python :: 3
 Classifier: Intended Audience :: Developers
@@ -655,18 +736,18 @@ Classifier: Development Status :: 5 - Production/Stable
 Description-Content-Type: text/markdown
 Provides-Extra: testing
 """) # noqa
-        result = MAPPINGS["PythonPkginfoMapping"].translate(raw_content)
+        result = self.pkginfo_mapping.translate(raw_content)
         self.assertCountEqual(result['description'], [
             'Software Heritage core utilities',  # note the comma here
             'swh-core\n'
-            '        ========\n'
-            '        \n'
-            "        core library for swh's modules:\n"
-            '        - config parser\n'
-            '        - hash computations\n'
-            '        - serialization\n'
-            '        - logging mechanism\n'
-            '        '],
+            '========\n'
+            '\n'
+            "core library for swh's modules:\n"
+            '- config parser\n'
+            '- hash computations\n'
+            '- serialization\n'
+            '- logging mechanism\n'
+            ''],
             result)
         del result['description']
         self.assertEqual(result, {
@@ -682,13 +763,29 @@ Provides-Extra: testing
             'version': '0.0.49',
         })
 
+    def test_compute_metadata_pkginfo_utf8(self):
+        raw_content = (b'''\
+Metadata-Version: 1.1
+Name: snowpyt
+Description-Content-Type: UNKNOWN
+Description: foo
+        Hydrology N\xc2\xb083
+''') # noqa
+        result = self.pkginfo_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'snowpyt',
+            'description': 'foo\nHydrology N°83',
+        })
+
     def test_compute_metadata_pkginfo_license(self):
         raw_content = (b"""\
 Metadata-Version: 2.1
 Name: foo
 License: MIT
 """) # noqa
-        result = MAPPINGS["PythonPkginfoMapping"].translate(raw_content)
+        result = self.pkginfo_mapping.translate(raw_content)
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
@@ -696,8 +793,83 @@ License: MIT
             'license': 'MIT',
         })
 
+    def test_gemspec_base(self):
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.name        = 'example'
+  s.version     = '0.1.0'
+  s.licenses    = ['MIT']
+  s.summary     = "This is an example!"
+  s.description = "Much longer explanation of the example!"
+  s.authors     = ["Ruby Coder"]
+  s.email       = 'rubycoder@example.com'
+  s.files       = ["lib/example.rb"]
+  s.homepage    = 'https://rubygems.org/gems/example'
+  s.metadata    = { "source_code_uri" => "https://github.com/example/example" }
+end"""
+        result = self.gemspec_mapping.translate(raw_content)
+        self.assertCountEqual(result.pop('description'), [
+            "This is an example!",
+            "Much longer explanation of the example!"
+        ])
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'author': ['Ruby Coder'],
+            'name': 'example',
+            'license': 'https://spdx.org/licenses/MIT',
+            'codeRepository': 'https://rubygems.org/gems/example',
+            'email': 'rubycoder@example.com',
+            'version': '0.1.0',
+        })
+
+    def test_gemspec_two_author_fields(self):
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.authors     = ["Ruby Coder1"]
+  s.author      = "Ruby Coder2"
+end"""
+        result = self.gemspec_mapping.translate(raw_content)
+        self.assertCountEqual(result.pop('author'), [
+            'Ruby Coder1', 'Ruby Coder2'])
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+
+    def test_gemspec_invalid_author(self):
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.author      = ["Ruby Coder"]
+end"""
+        result = self.gemspec_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.author      = "Ruby Coder1",
+end"""
+        result = self.gemspec_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+        })
+        raw_content = b"""
+Gem::Specification.new do |s|
+  s.authors     = ["Ruby Coder1", ["Ruby Coder2"]]
+end"""
+        result = self.gemspec_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'author': ['Ruby Coder1'],
+        })
+
     def test_revision_metadata_indexer(self):
-        metadata_indexer = RevisionMetadataTestIndexer()
+        metadata_indexer = RevisionMetadataIndexer(
+            config=REVISION_METADATA_CONFIG)
         fill_obj_storage(metadata_indexer.objstorage)
         fill_storage(metadata_indexer.storage)
 
@@ -755,6 +927,7 @@ License: MIT
                 'name': 'yarn-parser',
                 'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
             },
+            'mappings': ['npm'],
         }]
 
         for result in results:
