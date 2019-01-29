@@ -6,9 +6,22 @@
 import unittest
 
 from swh.indexer.origin_head import OriginHeadIndexer
-from swh.indexer.tests.test_utils import (
+from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG, fill_storage
 )
+
+ORIGIN_HEAD_CONFIG = {
+    **BASE_TEST_CONFIG,
+    'tools': {
+        'name': 'origin-metadata',
+        'version': '0.0.1',
+        'configuration': {},
+    },
+    'tasks': {
+        'revision_metadata': None,
+        'origin_intrinsic_metadata': None,
+    }
+}
 
 
 class OriginHeadTestIndexer(OriginHeadIndexer):
@@ -16,18 +29,7 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
        indexing tests.
     """
     def parse_config_file(self, *args, **kwargs):
-        return {
-            **BASE_TEST_CONFIG,
-            'tools': {
-                'name': 'origin-metadata',
-                'version': '0.0.1',
-                'configuration': {},
-            },
-            'tasks': {
-                'revision_metadata': None,
-                'origin_intrinsic_metadata': None,
-            }
-        }
+        return ORIGIN_HEAD_CONFIG
 
     def persist_index_computations(self, results, policy_update):
         self.results = results

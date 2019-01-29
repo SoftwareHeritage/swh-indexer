@@ -7,11 +7,7 @@ import re
 import click
 import logging
 
-from swh.scheduler import get_scheduler
-from swh.scheduler.utils import create_task_dict
 from swh.indexer.indexer import OriginIndexer
-
-from swh.model.hashutil import hash_to_hex
 
 
 class OriginHeadIndexer(OriginIndexer):
@@ -28,69 +24,14 @@ class OriginHeadIndexer(OriginIndexer):
             'version': '0.0.1',
             'configuration': {},
         }),
-        'tasks': ('dict', {
-            'revision_metadata': 'revision_metadata',
-            'origin_intrinsic_metadata': 'origin_metadata',
-        })
     }
 
     CONFIG_BASE_FILENAME = 'indexer/origin_head'
-
-    def filter(self, ids):
-        yield from ids
 
     def persist_index_computations(self, results, policy_update):
         """Do nothing. The indexer's results are not persistent, they
         should only be piped to another indexer."""
         pass
-
-    def next_step(self, results, task):
-        """Once the head is found, call the RevisionMetadataIndexer
-        on these revisions, then call the OriginMetadataIndexer with
-        both the origin_id and the revision metadata, so it can copy the
-        revision metadata to the origin's metadata.
-
-        Args:
-            results (Iterable[dict]): Iterable of return values from `index`.
-
-        """
-        super().next_step(results, task)
-        revision_metadata_task = self.config['tasks']['revision_metadata']
-        origin_intrinsic_metadata_task = self.config['tasks'][
-            'origin_intrinsic_metadata']
-        if revision_metadata_task is None and \
-                origin_intrinsic_metadata_task is None:
-            return
-        assert revision_metadata_task is not None
-        assert origin_intrinsic_metadata_task is not None
-
-        # Second task to run after this one: copy the revision's metadata
-        # to the origin
-        sub_task = create_task_dict(
-            origin_intrinsic_metadata_task,
-            'oneshot',
-            origin_head={
-                str(result['origin_id']):
-                    hash_to_hex(result['revision_id'])
-                for result in results},
-            policy_update='update-dups',
-            )
-        del sub_task['next_run']  # Not json-serializable
-
-        # First task to run after this one: index the metadata of the
-        # revision
-        task = create_task_dict(
-            revision_metadata_task,
-            'oneshot',
-            ids=[hash_to_hex(res['revision_id']) for res in results],
-            policy_update='update-dups',
-            next_step=sub_task,
-            )
-        if getattr(self, 'scheduler', None):
-            scheduler = self.scheduler
-        else:
-            scheduler = get_scheduler(**self.config['scheduler'])
-        scheduler.create_tasks([task])
 
     # Dispatch
 

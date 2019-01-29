@@ -11,6 +11,7 @@ import shutil
 import tempfile
 import datetime
 from copy import deepcopy
+from contextlib import contextmanager
 
 from swh.scheduler import get_scheduler
 from swh.storage import get_storage
@@ -22,48 +23,29 @@ from swh.model import hashutil
 from swh.core import utils
 
 
-class DiskIndexer:
-    """Mixin intended to be used with other SomethingIndexer classes.
+@contextmanager
+def write_to_temp(filename, data, working_directory):
+    """Write the sha1's content in a temporary file.
 
-       Indexers inheriting from this class are a category of indexers
-       which needs the disk for their computations.
+    Args:
+        filename (str): one of sha1's many filenames
+        data (bytes): the sha1's content to write in temporary
+          file
 
-       Note:
-           This expects `self.working_directory` variable defined at
-           runtime.
+    Returns:
+        The path to the temporary file created. That file is
+        filled in with the raw content's data.
 
     """
-    def write_to_temp(self, filename, data):
-        """Write the sha1's content in a temporary file.
+    os.makedirs(working_directory, exist_ok=True)
+    temp_dir = tempfile.mkdtemp(dir=working_directory)
+    content_path = os.path.join(temp_dir, filename)
 
-        Args:
-            filename (str): one of sha1's many filenames
-            data (bytes): the sha1's content to write in temporary
-              file
+    with open(content_path, 'wb') as f:
+        f.write(data)
 
-        Returns:
-            The path to the temporary file created. That file is
-            filled in with the raw content's data.
-
-        """
-        os.makedirs(self.working_directory, exist_ok=True)
-        temp_dir = tempfile.mkdtemp(dir=self.working_directory)
-        content_path = os.path.join(temp_dir, filename)
-
-        with open(content_path, 'wb') as f:
-            f.write(data)
-
-        return content_path
-
-    def cleanup(self, content_path):
-        """Remove content_path from working directory.
-
-        Args:
-            content_path (str): the file to remove
-
-        """
-        temp_dir = os.path.dirname(content_path)
-        shutil.rmtree(temp_dir)
+    yield content_path
+    shutil.rmtree(temp_dir)
 
 
 class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
@@ -143,42 +125,62 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
     ADDITIONAL_CONFIG = {}
 
-    def __init__(self):
+    USE_TOOLS = True
+
+    def __init__(self, config=None, **kw):
         """Prepare and check that the indexer is ready to run.
 
         """
         super().__init__()
+        if config is not None:
+            self.config = config
+        else:
+            config_keys = ('base_filename', 'config_filename',
+                           'additional_configs', 'global_config')
+            config_args = {k: v for k, v in kw.items() if k in config_keys}
+            if self.ADDITIONAL_CONFIG:
+                config_args.setdefault('additional_configs', []).append(
+                    self.ADDITIONAL_CONFIG)
+            self.config = self.parse_config_file(**config_args)
         self.prepare()
         self.check()
+        self.log.debug('%s: config=%s', self, self.config)
 
     def prepare(self):
         """Prepare the indexer's needed runtime configuration.
            Without this step, the indexer cannot possibly run.
 
         """
-        # HACK to deal with edge case (e.g revision metadata indexer)
-        if not hasattr(self, 'config'):
-            self.config = self.parse_config_file(
-                additional_configs=[self.ADDITIONAL_CONFIG])
         config_storage = self.config.get('storage')
         if config_storage:
             self.storage = get_storage(**config_storage)
+
         objstorage = self.config['objstorage']
-        self.objstorage = get_objstorage(objstorage['cls'], objstorage['args'])
+        self.objstorage = get_objstorage(objstorage['cls'],
+                                         objstorage['args'])
+
         idx_storage = self.config[INDEXER_CFG_KEY]
         self.idx_storage = get_indexer_storage(**idx_storage)
 
         _log = logging.getLogger('requests.packages.urllib3.connectionpool')
         _log.setLevel(logging.WARN)
         self.log = logging.getLogger('swh.indexer')
-        self.tools = list(self.register_tools(self.config['tools']))
 
-    def check(self, *, check_tools=True):
+        if self.USE_TOOLS:
+            self.tools = list(self.register_tools(
+                self.config.get('tools', [])))
+        self.results = []
+
+    @property
+    def tool(self):
+        return self.tools[0]
+
+    def check(self):
         """Check the indexer's configuration is ok before proceeding.
            If ok, does nothing. If not raise error.
 
         """
-        if check_tools and not self.tools:
+        if self.USE_TOOLS and not self.tools:
             raise ValueError('Tools %s is unknown, cannot continue' %
                              self.tools)
 
@@ -234,6 +236,18 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
         """
         pass
+
+    def filter(self, ids):
+        """Filter missing ids for that particular indexer.
+
+        Args:
+            ids ([bytes]): list of ids
+
+        Yields:
+            iterator of missing ids
+
+        """
+        yield from ids
 
     @abc.abstractmethod
     def persist_index_computations(self, results, policy_update):
@@ -314,18 +328,6 @@ class ContentIndexer(BaseIndexer):
     methods mentioned in the :class:`BaseIndexer` class.
 
     """
-    @abc.abstractmethod
-    def filter(self, ids):
-        """Filter missing ids for that particular indexer.
-
-        Args:
-            ids ([bytes]): list of ids
-
-        Yields:
-            iterator of missing ids
-
-        """
-        pass
 
     def run(self, ids, policy_update,
             next_step=None, **kwargs):

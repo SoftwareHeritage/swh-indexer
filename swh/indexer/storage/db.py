@@ -295,7 +295,8 @@ class Db(BaseDb):
         yield from self._get_from_list(
             'content_metadata', ids, self.content_metadata_cols, cur=cur)
 
-    revision_metadata_hash_keys = ['id', 'indexer_configuration_id']
+    revision_metadata_hash_keys = [
+        'id', 'indexer_configuration_id']
 
     def revision_metadata_missing_from_list(self, metadata, cur=None):
         """List missing metadata.
@@ -306,7 +307,7 @@ class Db(BaseDb):
             cur=cur)
 
     revision_metadata_cols = [
-        'id', 'translated_metadata',
+        'id', 'translated_metadata', 'mappings',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     @stored_procedure('swh_mktemp_revision_metadata')
@@ -321,7 +322,7 @@ class Db(BaseDb):
             'revision_metadata', ids, self.revision_metadata_cols, cur=cur)
 
     origin_intrinsic_metadata_cols = [
-        'origin_id', 'metadata', 'from_revision',
+        'origin_id', 'metadata', 'from_revision', 'mappings',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     origin_intrinsic_metadata_regconfig = 'pg_catalog.simple'

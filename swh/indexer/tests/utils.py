@@ -405,6 +405,13 @@ CONTENT_METADATA = [{
 }]
 
 
+def filter_dict(d, keys):
+    'return a copy of the dict with keys deleted'
+    if not isinstance(keys, (list, tuple)):
+        keys = (keys, )
+    return dict((k, v) for (k, v) in d.items() if k not in keys)
+
+
 def fill_obj_storage(obj_storage):
     """Add some content in an object storage."""
     for (obj_id, content) in OBJ_STORAGE_DATA.items():
@@ -452,33 +459,6 @@ def fill_storage(storage):
             'sha256': hashlib.sha256(content).digest(),
             'blake2s256': blake2s256
         }])
-
-
-class CommonIndexerNoTool:
-    """Mixin to wronly initialize content indexer"""
-    def prepare(self):
-        super().prepare()
-        self.tools = None
-
-
-class CommonIndexerWithErrorsTest:
-    """Test indexer configuration checks.
-
-    """
-    Indexer = None
-    RangeIndexer = None
-
-    def test_wrong_unknown_configuration_tool(self):
-        """Indexer with unknown configuration tool fails check"""
-        with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
-            print('indexer: %s' % self.Indexer)
-            self.Indexer()
-
-    def test_wrong_unknown_configuration_tool_range(self):
-        """Range Indexer with unknown configuration tool fails check"""
-        if self.RangeIndexer is not None:
-            with self.assertRaisesRegex(ValueError, 'Tools None is unknown'):
-                self.RangeIndexer()
 
 
 class CommonContentIndexerTest(metaclass=abc.ABCMeta):
@@ -658,16 +638,3 @@ class CommonContentIndexerRangeTest:
 
         # then
         self.assertFalse(actual_results)
-
-
-class NoDiskIndexer:
-    """Mixin to override the DiskIndexer behavior avoiding side-effects in
-       tests.
-
-    """
-
-    def write_to_temp(self, filename, data):  # noop
-        return filename
-
-    def cleanup(self, content_path):  # noop
-        return None
