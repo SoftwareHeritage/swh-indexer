@@ -1,8 +1,10 @@
-swh-indexer (0.0.128-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.129-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.129     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-01-29 14:11:22 +0100)
+  * Upstream changes:     - Fix missing config file name change.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 29 Jan 2019 12:19:39 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 29 Jan 2019 13:34:17 +0000
 
 swh-indexer (0.0.128-1~swh1) unstable-swh; urgency=medium
 
