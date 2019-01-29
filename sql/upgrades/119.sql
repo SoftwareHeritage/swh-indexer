@@ -7,13 +7,13 @@ insert into dbversion(version, release, description)
 values(119, now(), 'Work In Progress');
 
 alter table revision_metadata
-  add column mappings text array not null default {};
+  add column mappings text array not null default '{}';
 alter table revision_metadata
   alter column mappings
     drop default;
 
 alter table origin_intrinsic_metadata
-  add column mappings text array not null default {};
+  add column mappings text array not null default '{}';
 alter table origin_intrinsic_metadata
   alter column mappings
     drop default;
