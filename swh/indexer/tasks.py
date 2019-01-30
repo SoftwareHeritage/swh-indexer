@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2018  The Software Heritage developers
+# Copyright (C) 2016-2019  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -69,11 +69,11 @@ def mimetype(*args, **kwargs):
 
 @app.task(name=__name__ + '.ContentRangeMimetype')
 def range_mimetype(*args, **kwargs):
-    results = MimetypeRangeIndexer(*args, **kwargs)
+    results = MimetypeRangeIndexer().run(*args, **kwargs)
     return {'status': 'eventful' if results else 'uneventful'}
 
 
 @app.task(name=__name__ + '.ContentRangeFossologyLicense')
 def range_license(*args, **kwargs):
-    results = FossologyLicenseRangeIndexer(*args, **kwargs)
+    results = FossologyLicenseRangeIndexer().run(*args, **kwargs)
     return {'status': 'eventful' if results else 'uneventful'}
