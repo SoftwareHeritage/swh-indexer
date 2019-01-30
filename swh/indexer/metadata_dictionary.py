@@ -395,10 +395,11 @@ class MavenMapping(DictMapping, SingleFileMapping):
         ... ''')
         >>> MavenMapping().parse_repositories(d)
         """
-        if 'repositories' not in d:
+        repositories = d.get('repositories')
+        if not repositories:
             results = [self.parse_repository(d, self._default_repository)]
         else:
-            repositories = d.get('repositories', {}).get('repository', [])
+            repositories = repositories.get('repository') or []
             if not isinstance(repositories, list):
                 repositories = [repositories]
             results = [self.parse_repository(d, repo)
