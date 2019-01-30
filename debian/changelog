@@ -1,3 +1,14 @@
+swh-indexer (0.0.132-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.132     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-01-30 15:03:14
+    +0100)
+  * Upstream changes:     - v0.0.132     - swh/indexer/tasks: Fix range
+    indexer tasks     - Maven: Add support for empty XML nodes.     -
+    Add support for alternative call format for Gem::Specification.new.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 30 Jan 2019 14:09:48 +0000
+
 swh-indexer (0.0.131-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.131     - (tagged by Antoine R. Dumont
