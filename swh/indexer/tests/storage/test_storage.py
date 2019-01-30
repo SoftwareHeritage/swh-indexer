@@ -124,8 +124,11 @@ class CommonTestStorage:
             '7026b7c1a2af56521e951c01ed20f255fa054238')
         self.revision_id_2 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904321')
+        self.revision_id_3 = hash_to_bytes(
+            '7026b7c1a2af56521e9587659012345678904320')
         self.origin_id_1 = 54974445
         self.origin_id_2 = 44434342
+        self.origin_id_3 = 44434341
 
     def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
@@ -1740,6 +1743,83 @@ class CommonTestStorage:
         self.assertEqual(
                 [res['origin_id'] for res in search(['John', 'Jane'])],
                 [self.origin_id_1])
+
+    def test_origin_intrinsic_metadata_stats(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata1 = {
+            '@context': 'foo',
+            'author': 'John Doe',
+        }
+        metadata1_rev = {
+            'id': self.revision_id_1,
+            'translated_metadata': metadata1,
+            'mappings': ['npm'],
+            'indexer_configuration_id': tool_id,
+        }
+        metadata1_origin = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata1,
+            'mappings': ['npm'],
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_1,
+        }
+        metadata2 = {
+            '@context': 'foo',
+            'author': 'Jane Doe',
+        }
+        metadata2_rev = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata2,
+            'mappings': ['npm', 'gemspec'],
+            'indexer_configuration_id': tool_id,
+        }
+        metadata2_origin = {
+            'origin_id': self.origin_id_2,
+            'metadata': metadata2,
+            'mappings': ['npm', 'gemspec'],
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_2,
+        }
+        metadata3 = {
+            '@context': 'foo',
+        }
+        metadata3_rev = {
+            'id': self.revision_id_3,
+            'translated_metadata': metadata3,
+            'mappings': ['npm', 'gemspec'],
+            'indexer_configuration_id': tool_id,
+        }
+        metadata3_origin = {
+            'origin_id': self.origin_id_3,
+            'metadata': metadata3,
+            'mappings': ['pkg-info'],
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_3,
+        }
+
+        # when
+        self.storage.revision_metadata_add([metadata1_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata1_origin])
+        self.storage.revision_metadata_add([metadata2_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata2_origin])
+        self.storage.revision_metadata_add([metadata3_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata3_origin])
+
+        # then
+        result = self.storage.origin_intrinsic_metadata_stats()
+        self.assertEqual(result, {
+            'per_mapping': {
+                'gemspec': 1,
+                'npm': 2,
+                'pkg-info': 1,
+                'codemeta': 0,
+                'maven': 0,
+            },
+            'total': 3,
+            'non_empty': 2,
+        })
 
     def test_indexer_configuration_add(self):
         tool = {

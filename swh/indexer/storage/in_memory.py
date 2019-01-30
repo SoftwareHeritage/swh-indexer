@@ -11,6 +11,8 @@ import operator
 import math
 import re
 
+from ..metadata_dictionary import MAPPINGS
+
 SHA1_DIGEST_SIZE = 160
 
 
@@ -661,6 +663,35 @@ class IndexerStorage:
             result = result.copy()
             result['origin_id'] = result.pop('id')
             yield result
+
+    def origin_intrinsic_metadata_stats(self):
+        """Returns statistics on stored intrinsic metadata.
+
+        Returns:
+            dict: dictionary with keys:
+
+                - total (int): total number of origins that were indexed
+                  (possibly yielding an empty metadata dictionary)
+                - non_empty (int): total number of origins that we extracted
+                  a non-empty metadata dictionary from
+                - per_mapping (dict): a dictionary with mapping names as
+                  keys and number of origins whose indexing used this
+                  mapping. Note that indexing a given origin may use
+                  0, 1, or many mappings.
+        """
+        mapping_count = {m.name: 0 for m in MAPPINGS.values()}
+        total = non_empty = 0
+        for data in self._origin_intrinsic_metadata.get_all():
+            total += 1
+            if set(data['metadata']) - {'@context'}:
+                non_empty += 1
+            for mapping in data['mappings']:
+                mapping_count[mapping] += 1
+        return {
+            'per_mapping': mapping_count,
+            'total': total,
+            'non_empty': non_empty
+        }
 
     def indexer_configuration_add(self, tools):
         """Add new tools to the storage.
