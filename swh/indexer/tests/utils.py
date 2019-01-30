@@ -463,9 +463,10 @@ def fill_storage(storage):
 
 class CommonContentIndexerTest(metaclass=abc.ABCMeta):
     legacy_get_format = False
-    """True iff the tested indexer uses the legacy format.
-    see: https://forge.softwareheritage.org/T1433"""
+    """True if and only if the tested indexer uses the legacy format.
+    see: https://forge.softwareheritage.org/T1433
 
+    """
     def get_indexer_results(self, ids):
         """Override this for indexers that don't have a mock storage."""
         return self.indexer.idx_storage.state
