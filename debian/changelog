@@ -1,3 +1,13 @@
+swh-indexer (0.0.131-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.131     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-01-30 10:56:43
+    +0100)
+  * Upstream changes:     - v0.0.131     - fix pep8 violations     - fix
+    misspellings
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 30 Jan 2019 10:01:47 +0000
+
 swh-indexer (0.0.129-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.129     - (tagged by Valentin Lorentz
