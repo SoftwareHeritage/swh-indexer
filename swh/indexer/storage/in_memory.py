@@ -641,7 +641,7 @@ class IndexerStorage:
             text_tokens = tokens_re.findall(text)
             text_token_occurences = Counter(text_tokens)
 
-            # Count the number of occurences of search tokens in the text
+            # Count the number of occurrences of search tokens in the text
             score = 0
             for search_token in search_tokens:
                 if text_token_occurences[search_token] == 0:

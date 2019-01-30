@@ -82,7 +82,7 @@ map between these two vocabularies; and this does not require any
 format-specific code in the indexers.
 
 The second part is to normalize values. As language-specific metadata files
-each have their way(s) of formating these values, we need to turn them into
+each have their way(s) of formatting these values, we need to turn them into
 the data type required by CodeMeta.
 This normalization makes up for most of the code of
 :py:mod:`swh.indexer.metadata_dictionary`.
