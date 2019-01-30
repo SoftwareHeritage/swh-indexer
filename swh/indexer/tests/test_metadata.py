@@ -867,6 +867,23 @@ end"""
             'author': ['Ruby Coder1'],
         })
 
+    def test_gemspec_alternative_header(self):
+        raw_content = b"""
+require './lib/version'
+
+Gem::Specification.new { |s|
+  s.name = 'rb-system-with-aliases'
+  s.summary = 'execute system commands with aliases'
+}
+"""
+        result = self.gemspec_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'rb-system-with-aliases',
+            'description': 'execute system commands with aliases',
+        })
+
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataIndexer(
             config=REVISION_METADATA_CONFIG)

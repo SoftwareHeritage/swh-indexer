@@ -534,7 +534,7 @@ class GemspecMapping(DictMapping):
     name = 'gemspec'
     mapping = CROSSWALK_TABLE['Ruby Gem']
 
-    _re_spec_new = re.compile(r'.*Gem::Specification.new do \|.*\|.*')
+    _re_spec_new = re.compile(r'.*Gem::Specification.new +(do|\{) +\|.*\|.*')
     _re_spec_entry = re.compile(r'\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)')
 
     @classmethod
