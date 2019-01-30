@@ -117,11 +117,12 @@ class RecomputeChecksums(SWHConfig):
                 continue
 
             for content in content_metadata:
-                if self.recompute_checksums:    # Recompute checksums provided
-                                                # in compute_checksums options
+                # Recompute checksums provided in compute_checksums options
+                if self.recompute_checksums:
                     checksums_to_compute = list(self.compute_checksums)
-                else:   # Compute checksums provided in compute_checksums
-                        # options not already defined for that content
+                else:
+                    # Compute checksums provided in compute_checksums
+                    # options not already defined for that content
                     checksums_to_compute = [h for h in self.compute_checksums
                                             if not content.get(h)]
 
