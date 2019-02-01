@@ -564,7 +564,7 @@ class OriginIndexer(BaseIndexer):
             origin = self.storage.origin_get(params)
             if not origin:
                 self.log.warning('Origin %s not found in storage' %
-                                 list(id_))
+                                 id_)
                 continue
             try:
                 res = self.index(origin, **kwargs)
