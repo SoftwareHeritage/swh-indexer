@@ -472,12 +472,17 @@ class MavenMapping(DictMapping, SingleFileMapping):
          {'@id': 'https://opensource.org/licenses/MIT'}]
         """
 
-        licenses = d.get('licenses', {}).get('license', [])
+        licenses = d.get('licenses')
+        if not isinstance(licenses, dict):
+            return
+        licenses = licenses.get('license')
         if isinstance(licenses, dict):
             licenses = [licenses]
+        elif not isinstance(licenses, list):
+            return
         return [{"@id": license['url']}
                 for license in licenses
-                if 'url' in license] or None
+                if isinstance(license, dict) and 'url' in license] or None
 
 
 _normalize_pkginfo_key = str.lower

@@ -707,6 +707,50 @@ class Metadata(unittest.TestCase):
             'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
         })
 
+        raw_content = b"""
+        <project>
+          <name>Maven Default Project</name>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.mycompany.app</groupId>
+          <artifactId>my-app</artifactId>
+          <version>1.2.3</version>
+          <licenses>
+          </licenses>
+        </project>"""
+        result = self.maven_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'Maven Default Project',
+            'identifier': 'com.mycompany.app',
+            'version': '1.2.3',
+            'codeRepository':
+            'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
+        })
+
+    def test_compute_metadata_maven_invalid_licenses(self):
+        raw_content = b"""
+        <project>
+          <name>Maven Default Project</name>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.mycompany.app</groupId>
+          <artifactId>my-app</artifactId>
+          <version>1.2.3</version>
+          <licenses>
+            foo
+          </licenses>
+        </project>"""
+        result = self.maven_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'Maven Default Project',
+            'identifier': 'com.mycompany.app',
+            'version': '1.2.3',
+            'codeRepository':
+            'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
+        })
+
     def test_compute_metadata_maven_multiple(self):
         '''Tests when there are multiple code repos and licenses.'''
         raw_content = b"""
