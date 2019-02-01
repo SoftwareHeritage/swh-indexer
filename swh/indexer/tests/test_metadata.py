@@ -549,6 +549,21 @@ class Metadata(unittest.TestCase):
         result = self.codemeta_mapping.translate(raw_content)
         self.assertEqual(result, expected_result)
 
+    def test_compute_metadata_codemeta_alternate_context(self):
+        raw_content = (
+            b"""{
+            "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+            "@type": "SoftwareSourceCode",
+            "identifier": "CodeMeta"
+        }""")  # noqa
+        expected_result = {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "identifier": "CodeMeta",
+        }
+        result = self.codemeta_mapping.translate(raw_content)
+        self.assertEqual(result, expected_result)
+
     def test_compute_metadata_maven(self):
         raw_content = b"""
         <project>
