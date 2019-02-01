@@ -5,8 +5,8 @@
 
 from swh.model import hashutil
 
-from swh.storage.db import BaseDb, stored_procedure, cursor_to_bytes
-from swh.storage.db import line_to_bytes, execute_values_to_bytes
+from swh.core.db import BaseDb
+from swh.core.db.db_utils import execute_values_generator, stored_procedure
 
 
 class Db(BaseDb):
@@ -33,7 +33,7 @@ class Db(BaseDb):
         equality = ' AND '.join(
             ('t.%s = c.%s' % (key, key)) for key in hash_keys
         )
-        yield from execute_values_to_bytes(
+        yield from execute_values_generator(
             cur, """
             select %s from (values %%s) as t(%s)
             where not exists (
@@ -109,7 +109,7 @@ class Db(BaseDb):
                 keys=', '.join(keys),
                 id_col=id_col,
                 table=table)
-        yield from execute_values_to_bytes(
+        yield from execute_values_generator(
             cur, query,
             ((_id,) for _id in ids)
         )
@@ -147,7 +147,7 @@ class Db(BaseDb):
                    order by t.indexer_configuration_id, t.id
                    limit %%s""" % (table, extra)
         cur.execute(query, (indexer_configuration_id, start, end, limit))
-        yield from cursor_to_bytes(cur)
+        yield from cur
 
     def content_mimetype_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
@@ -202,7 +202,7 @@ class Db(BaseDb):
     def content_ctags_get_from_list(self, ids, cur=None):
         cur = self._cursor(cur)
         keys = map(self._convert_key, self.content_ctags_cols)
-        yield from execute_values_to_bytes(
+        yield from execute_values_generator(
             cur, """
             select %s
             from (values %%s) as t(id)
@@ -233,7 +233,7 @@ class Db(BaseDb):
                            ','.join(self.content_ctags_cols))
             cur.execute(query, (expression, limit, last_sha1))
 
-        yield from cursor_to_bytes(cur)
+        yield from cur
 
     content_fossology_license_cols = [
         'id', 'tool_id', 'tool_name', 'tool_version', 'tool_configuration',
@@ -257,7 +257,7 @@ class Db(BaseDb):
         """
         cur = self._cursor(cur)
         keys = map(self._convert_key, self.content_fossology_license_cols)
-        yield from execute_values_to_bytes(
+        yield from execute_values_generator(
             cur, """
             select %s
             from (values %%s) as t(id)
@@ -366,7 +366,7 @@ class Db(BaseDb):
                           regconfig=regconfig,
                           tsquery_template=tsquery_template)
         cur.execute(query, tsquery_args + [limit])
-        yield from cursor_to_bytes(cur)
+        yield from cur
 
     indexer_configuration_cols = ['id', 'tool_name', 'tool_version',
                                   'tool_configuration']
@@ -379,7 +379,7 @@ class Db(BaseDb):
         cur = self._cursor(cur)
         cur.execute("SELECT %s from swh_indexer_configuration_add()" % (
             ','.join(self.indexer_configuration_cols), ))
-        yield from cursor_to_bytes(cur)
+        yield from cur
 
     def indexer_configuration_get(self, tool_name,
                                   tool_version, tool_configuration, cur=None):
@@ -392,7 +392,4 @@ class Db(BaseDb):
                                  ','.join(self.indexer_configuration_cols)),
                     (tool_name, tool_version, tool_configuration))
 
-        data = cur.fetchone()
-        if not data:
-            return None
-        return line_to_bytes(data)
+        return cur.fetchone()
