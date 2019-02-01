@@ -202,7 +202,8 @@ class JsonMapping(DictMapping, SingleFileMapping):
         except json.JSONDecodeError:
             self.log.warning('Error unjsoning from %s', self.log_suffix)
             return
-        return self.translate_dict(content_dict)
+        if isinstance(content_dict, dict):
+            return self.translate_dict(content_dict)
 
 
 @register_mapping
