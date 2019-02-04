@@ -372,6 +372,14 @@ class MavenMapping(DictMapping, SingleFileMapping):
         except xml.parsers.expat.ExpatError:
             self.log.warning('Error parsing XML from %s', self.log_suffix)
             return None
+        except UnicodeDecodeError:
+            self.log.warning('Error unidecoding XML from %s', self.log_suffix)
+            return None
+        except (LookupError, ValueError):
+            # unknown encoding or multi-byte encoding
+            self.log.warning('Error detecting XML encoding from %s',
+                             self.log_suffix)
+            return None
         metadata = self.translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
         metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)

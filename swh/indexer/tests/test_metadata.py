@@ -629,6 +629,7 @@ class Metadata(unittest.TestCase):
         expected_warning = (
             'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
             'Error parsing XML from foo')
+
         raw_content = b"""
         <project>"""
         with self.assertLogs('swh.indexer.metadata_dictionary',
@@ -636,8 +637,46 @@ class Metadata(unittest.TestCase):
             result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
             self.assertEqual(cm.output, [expected_warning])
         self.assertEqual(result, None)
+
         raw_content = b"""
         """
+        with self.assertLogs('swh.indexer.metadata_dictionary',
+                             level='WARNING') as cm:
+            result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
+            self.assertEqual(cm.output, [expected_warning])
+        self.assertEqual(result, None)
+
+    def test_compute_metadata_maven_unknown_encoding(self):
+        expected_warning = (
+            'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
+            'Error detecting XML encoding from foo')
+
+        raw_content = b"""<?xml version="1.0" encoding="foo"?>
+        <project>
+        </project>"""
+        with self.assertLogs('swh.indexer.metadata_dictionary',
+                             level='WARNING') as cm:
+            result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
+            self.assertEqual(cm.output, [expected_warning])
+        self.assertEqual(result, None)
+
+        raw_content = b"""<?xml version="1.0" encoding="UTF-7"?>
+        <project>
+        </project>"""
+        with self.assertLogs('swh.indexer.metadata_dictionary',
+                             level='WARNING') as cm:
+            result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
+            self.assertEqual(cm.output, [expected_warning])
+        self.assertEqual(result, None)
+
+    def test_compute_metadata_maven_invalid_encoding(self):
+        expected_warning = (
+            'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
+            'Error unidecoding XML from foo')
+
+        raw_content = b"""<?xml version="1.0" encoding="UTF-8"?>
+        <foo\xe5ct>
+        </foo>"""
         with self.assertLogs('swh.indexer.metadata_dictionary',
                              level='WARNING') as cm:
             result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
