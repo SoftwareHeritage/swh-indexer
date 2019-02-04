@@ -132,7 +132,7 @@ class DictMapping(BaseMapping):
         """A translation dict to map dict keys into a canonical name."""
         pass
 
-    def translate_dict(self, content_dict, *, normalize=True):
+    def _translate_dict(self, content_dict, *, normalize=True):
         """
         Translates content  by parsing content from a dict object
         and translating with the appropriate mapping
@@ -203,7 +203,7 @@ class JsonMapping(DictMapping, SingleFileMapping):
             self.log.warning('Error unjsoning from %s', self.log_suffix)
             return
         if isinstance(content_dict, dict):
-            return self.translate_dict(content_dict)
+            return self._translate_dict(content_dict)
 
 
 @register_mapping
@@ -380,7 +380,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
             self.log.warning('Error detecting XML encoding from %s',
                              self.log_suffix)
             return None
-        metadata = self.translate_dict(d, normalize=False)
+        metadata = self._translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
         metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)
         return self.normalize_translation(metadata)
@@ -524,7 +524,7 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
             key = _normalize_pkginfo_key(key)
             if value != 'UNKNOWN':
                 d.setdefault(key, []).append(value)
-        metadata = self.translate_dict(d, normalize=False)
+        metadata = self._translate_dict(d, normalize=False)
         if SCHEMA_URI+'author' in metadata or SCHEMA_URI+'email' in metadata:
             metadata[SCHEMA_URI+'author'] = {
                 '@list': [{
@@ -585,7 +585,7 @@ class GemspecMapping(DictMapping):
                 value = self.eval_ruby_expression(match.group('expr'))
                 if value:
                     content_dict[match.group('key')] = value
-        return self.translate_dict(content_dict)
+        return self._translate_dict(content_dict)
 
     def eval_ruby_expression(self, expr):
         """Very simple evaluator of Ruby expressions.
