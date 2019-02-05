@@ -359,7 +359,7 @@ class Db(BaseDb):
                  "INNER JOIN indexer_configuration AS i "
                  "ON oim.indexer_configuration_id=i.id "
                  "JOIN LATERAL (SELECT {tsquery_template}) AS s(tsq) ON true "
-                 "WHERE to_tsvector('{regconfig}', metadata) @@ tsq "
+                 "WHERE oim.metadata_tsvector @@ tsq "
                  "ORDER BY ts_rank(oim.metadata_tsvector, tsq, 1) DESC "
                  "LIMIT %s;"
                  ).format(keys=', '.join(keys),
