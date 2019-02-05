@@ -130,6 +130,10 @@ class SubStorage:
               (true) or skip duplicates (false)
 
         """
+        data = list(data)
+        if len({x['id'] for x in data}) < len(data):
+            # For "exception-compatibility" with the pgsql backend
+            raise ValueError('The same id is present more than once.')
         for item in data:
             item = item.copy()
             tool_id = item.pop('indexer_configuration_id')
