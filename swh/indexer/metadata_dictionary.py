@@ -14,6 +14,7 @@ import email.parser
 import xml.parsers.expat
 import email.policy
 
+import click
 import xmltodict
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
@@ -648,3 +649,18 @@ class GemspecMapping(DictMapping):
         if isinstance(authors, list):
             return {"@list": [author for author in authors
                               if isinstance(author, str)]}
+
+
+@click.command()
+@click.argument('mapping_name')
+@click.argument('file_name')
+def main(mapping_name, file_name):
+    from pprint import pprint
+    with open(file_name, 'rb') as fd:
+        file_content = fd.read()
+    res = MAPPINGS[mapping_name]().translate(file_content)
+    pprint(res)
+
+
+if __name__ == '__main__':
+    main()
