@@ -240,7 +240,8 @@ class NpmMapping(JsonMapping):
         ...     'foo/bar')
         {'@id': 'git+https://github.com/foo/bar.git'}
         """
-        if isinstance(d, dict) and {'type', 'url'} <= set(d):
+        if isinstance(d, dict) and isinstance(d.get('type'), str) \
+                and isinstance(d.get('url'), str):
             url = '{type}+{url}'.format(**d)
         elif isinstance(d, str):
             if '://' in d:
@@ -271,8 +272,8 @@ class NpmMapping(JsonMapping):
         ...     'https://example.org/bugs/')
         {'@id': 'https://example.org/bugs/'}
         """
-        if isinstance(d, dict) and 'url' in d:
-            return {'@id': '{url}'.format(**d)}
+        if isinstance(d, dict) and isinstance(d.get('url'), str):
+            return {'@id': d['url']}
         elif isinstance(d, str):
             return {'@id': d}
         else:
@@ -317,11 +318,11 @@ class NpmMapping(JsonMapping):
             url = match.group('url')
         else:
             return None
-        if name:
+        if name and isinstance(name, str):
             author[SCHEMA_URI+'name'] = name
-        if email:
+        if email and isinstance(email, str):
             author[SCHEMA_URI+'email'] = email
-        if url:
+        if url and isinstance(url, str):
             author[SCHEMA_URI+'url'] = {'@id': url}
         return {"@list": [author]}
 
@@ -433,7 +434,8 @@ class MavenMapping(DictMapping, SingleFileMapping):
         >>> MavenMapping().normalize_groupId('org.example')
         {'@id': 'org.example'}
         """
-        return {"@id": id_}
+        if isinstance(id_, str):
+            return {"@id": id_}
 
     def parse_licenses(self, d):
         """https://maven.apache.org/pom.html#Licenses
@@ -491,7 +493,8 @@ class MavenMapping(DictMapping, SingleFileMapping):
             return
         return [{"@id": license['url']}
                 for license in licenses
-                if isinstance(license, dict) and 'url' in license] or None
+                if isinstance(license, dict)
+                and isinstance(license.get('url'), str)] or None
 
 
 _normalize_pkginfo_key = str.lower

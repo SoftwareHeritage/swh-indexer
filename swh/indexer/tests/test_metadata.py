@@ -783,6 +783,18 @@ class Metadata(unittest.TestCase):
             'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
         })
 
+        raw_content = b"""
+        <project>
+          <groupId></groupId>
+          <version>1.2.3</version>
+        </project>"""
+        result = self.maven_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'version': '1.2.3',
+        })
+
     def test_compute_metadata_maven_invalid_licenses(self):
         raw_content = b"""
         <project>
