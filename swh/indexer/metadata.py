@@ -272,29 +272,35 @@ class OriginMetadataIndexer(OriginIndexer):
         self.origin_head_indexer = OriginHeadIndexer()
         self.revision_metadata_indexer = RevisionMetadataIndexer()
 
-    def index(self, origin):
-        head_result = self.origin_head_indexer.index(origin)
-        if not head_result:
-            return
-        rev_id = head_result['revision_id']
+    def index_list(self, origins):
+        head_rev_ids = []
+        for origin in origins:
+            head_result = self.origin_head_indexer.index(origin)
+            if not head_result:
+                return
+            head_rev_ids.append(head_result['revision_id'])
 
-        rev = list(self.storage.revision_get([rev_id]))
-        if not rev:
-            self.warning('Missing head revision %s of origin %r',
-                         (hashutil.hash_to_bytes(rev_id), origin))
-            return
-        assert len(rev) == 1
-        rev = rev[0]
-        rev_metadata = self.revision_metadata_indexer.index(rev)
-        orig_metadata = {
-            'from_revision': rev_metadata['id'],
-            'origin_id': origin['id'],
-            'metadata': rev_metadata['translated_metadata'],
-            'mappings': rev_metadata['mappings'],
-            'indexer_configuration_id':
-                rev_metadata['indexer_configuration_id'],
-        }
-        return (orig_metadata, rev_metadata)
+        head_revs = list(self.storage.revision_get(head_rev_ids))
+        assert len(head_revs) == len(head_rev_ids)
+
+        results = []
+        for (orig, rev) in zip(origins, head_revs):
+            if not rev:
+                self.warning('Missing head revision %s of origin %r',
+                             (hashutil.hash_to_bytes(rev['id']), origin))
+                continue
+
+            rev_metadata = self.revision_metadata_indexer.index(rev)
+            orig_metadata = {
+                'from_revision': rev_metadata['id'],
+                'origin_id': origin['id'],
+                'metadata': rev_metadata['translated_metadata'],
+                'mappings': rev_metadata['mappings'],
+                'indexer_configuration_id':
+                    rev_metadata['indexer_configuration_id'],
+            }
+            results.append((orig_metadata, rev_metadata))
+        return results
 
     def persist_index_computations(self, results, policy_update):
         self.idx_storage.revision_metadata_add(

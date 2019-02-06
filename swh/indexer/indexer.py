@@ -221,7 +221,6 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         else:
             return []
 
-    @abc.abstractmethod
     def index(self, id, data):
         """Index computation for the id and associated raw data.
 
@@ -235,7 +234,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             :meth:`.persist_index_computations` method.
 
         """
-        pass
+        raise NotImplementedError()
 
     def filter(self, ids):
         """Filter missing ids for that particular indexer.
