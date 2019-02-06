@@ -511,6 +511,37 @@ class ContentRangeIndexer(BaseIndexer):
             return with_indexed_data
 
 
+def origin_get_params(id_):
+    """From any of the two types of origin identifiers (int or
+    type+url), returns a dict that can be passed to Storage.origin_get.
+    Also accepts JSON-encoded forms of these (used via the task scheduler).
+
+    >>> from pprint import pprint
+    >>> origin_get_params(123)
+    {'id': 123}
+    >>> pprint(origin_get_params(['git', 'https://example.com/foo.git']))
+    {'type': 'git', 'url': 'https://example.com/foo.git'}
+    >>> origin_get_params("123")
+    {'id': 123}
+    >>> pprint(origin_get_params('["git", "https://example.com/foo.git"]'))
+    {'type': 'git', 'url': 'https://example.com/foo.git'}
+    """
+    if isinstance(id_, str):
+        # Data coming from JSON, which requires string keys, so
+        # one extra level of deserialization is needed
+        id_ = ast.literal_eval(id_)
+    if isinstance(id_, (tuple, list)):
+        if len(id_) != 2:
+            raise TypeError('Expected a (type, url) tuple.')
+        (type_, url) = id_
+        params = {'type': type_, 'url': url}
+    elif isinstance(id_, int):
+        params = {'id': id_}
+    else:
+        raise TypeError('Invalid value in "ids": %r' % id_)
+    return params
+
+
 class OriginIndexer(BaseIndexer):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
     implements Origin indexing using the run method
@@ -545,37 +576,33 @@ class OriginIndexer(BaseIndexer):
             ids = [o.split('+', 1) if ':' in o else int(o)  # type+url or id
                    for o in ids]
 
-        results = []
-
+        origins = []
         for id_ in ids:
-            if isinstance(id_, str):
-                # Data coming from JSON, which requires string keys, so
-                # one extra level of deserialization is needed
-                id_ = ast.literal_eval(id_)
-            if isinstance(id_, (tuple, list)):
-                if len(id_) != 2:
-                    raise TypeError('Expected a (type, url) tuple.')
-                (type_, url) = id_
-                params = {'type': type_, 'url': url}
-            elif isinstance(id_, int):
-                params = {'id': id_}
-            else:
-                raise TypeError('Invalid value in "ids": %r' % id_)
-            origin = self.storage.origin_get(params)
+            origin = self.storage.origin_get(origin_get_params(id_))
             if not origin:
                 self.log.warning('Origin %s not found in storage' %
                                  id_)
                 continue
+            origins.append(origin)
+
+        results = self.index_list(origins, **kwargs)
+
+        self.persist_index_computations(results, policy_update)
+        self.results = results
+        return self.next_step(results, task=next_step)
+
+    def index_list(self, origins, **kwargs):
+        results = []
+        for origin in origins:
             try:
                 res = self.index(origin, **kwargs)
                 if res:  # If no results, skip it
                     results.append(res)
             except Exception:
                 self.log.exception(
-                        'Problem when processing origin %s' % (id_,))
-        self.persist_index_computations(results, policy_update)
-        self.results = results
-        return self.next_step(results, task=next_step)
+                    'Problem when processing origin %s',
+                    origin['id'])
+        return results
 
 
 class RevisionIndexer(BaseIndexer):
