@@ -576,16 +576,17 @@ class OriginIndexer(BaseIndexer):
             ids = [o.split('+', 1) if ':' in o else int(o)  # type+url or id
                    for o in ids]
 
-        origins = []
-        for id_ in ids:
-            origin = self.storage.origin_get(origin_get_params(id_))
+        origins_filtered = []
+        origins = self.storage.origin_get(
+            [origin_get_params(id_) for id_ in ids])
+        for (id_, origin) in zip(ids, origins):
             if not origin:
                 self.log.warning('Origin %s not found in storage' %
                                  id_)
                 continue
-            origins.append(origin)
+            origins_filtered.append(origin)
 
-        results = self.index_list(origins, **kwargs)
+        results = self.index_list(origins_filtered, **kwargs)
 
         self.persist_index_computations(results, policy_update)
         self.results = results
