@@ -1295,7 +1295,7 @@ class CommonTestStorage:
                 'softwareRequirements': None,
                 'identifier': None
             },
-            'mappings': [],
+            'mappings': ['mapping1'],
             'indexer_configuration_id': tool_id,
         }
 
@@ -1309,7 +1309,7 @@ class CommonTestStorage:
         expected_metadata_v1 = [{
             'id': self.revision_id_1,
             'translated_metadata':  metadata_v1['translated_metadata'],
-            'mappings': [],
+            'mappings': ['mapping1'],
             'tool': self.tools['swh-metadata-detector']
         }]
 
@@ -1322,6 +1322,7 @@ class CommonTestStorage:
                 'name': 'test_metadata',
                 'author': 'MG',
             },
+            'mappings': ['mapping2'],
         })
 
         self.storage.revision_metadata_add([metadata_v2])
@@ -1356,7 +1357,7 @@ class CommonTestStorage:
                 'softwareRequirements': None,
                 'identifier': None
             },
-            'mappings': [],
+            'mappings': ['mapping1'],
             'indexer_configuration_id': tool_id,
         }
 
@@ -1371,7 +1372,7 @@ class CommonTestStorage:
         expected_metadata_v1 = [{
             'id': self.revision_id_2,
             'translated_metadata':  metadata_v1['translated_metadata'],
-            'mappings': [],
+            'mappings': ['mapping1'],
             'tool': self.tools['swh-metadata-detector']
         }]
         self.assertEqual(actual_metadata, expected_metadata_v1)
@@ -1383,6 +1384,7 @@ class CommonTestStorage:
                 'name': 'test_update_duplicated_metadata',
                 'author': 'MG'
             },
+            'mappings': ['mapping2'],
         })
         self.storage.revision_metadata_add([metadata_v2], conflict_update=True)
 
@@ -1392,7 +1394,7 @@ class CommonTestStorage:
         expected_metadata_v2 = [{
             'id': self.revision_id_2,
             'translated_metadata': metadata_v2['translated_metadata'],
-            'mappings': [],
+            'mappings': ['mapping2'],
             'tool': self.tools['swh-metadata-detector']
         }]
 
