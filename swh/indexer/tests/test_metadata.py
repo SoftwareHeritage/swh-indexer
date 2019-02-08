@@ -17,7 +17,8 @@ from swh.indexer.metadata import (
 )
 
 from .utils import (
-    BASE_TEST_CONFIG, fill_obj_storage, fill_storage
+    BASE_TEST_CONFIG, fill_obj_storage, fill_storage,
+    YARN_PARSER_METADATA
 )
 
 
@@ -1053,24 +1054,7 @@ Gem::Specification.new { |s|
         metadata_indexer.idx_storage.content_metadata_add([{
             'indexer_configuration_id': tool['id'],
             'id': b'cde',
-            'translated_metadata': {
-                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-                'type': 'SoftwareSourceCode',
-                'issueTracker':
-                    'https://github.com/librariesio/yarn-parser/issues',
-                'version': '1.0.0',
-                'name': 'yarn-parser',
-                'author': ['Andrew Nesbitt'],
-                'url':
-                    'https://github.com/librariesio/yarn-parser#readme',
-                'processorRequirements': {'node': '7.5'},
-                'license': 'AGPL-3.0',
-                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'codeRepository':
-                    'git+https://github.com/librariesio/yarn-parser.git',
-                'description':
-                    'Tiny web service for parsing yarn.lock files',
-                }
+            'translated_metadata': YARN_PARSER_METADATA,
         }])
 
         sha1_gits = [
@@ -1084,22 +1068,7 @@ Gem::Specification.new { |s|
         expected_results = [{
             'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'tool': TRANSLATOR_TOOL,
-            'translated_metadata': {
-                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-                'url':
-                    'https://github.com/librariesio/yarn-parser#readme',
-                'codeRepository':
-                    'git+https://github.com/librariesio/yarn-parser.git',
-                'author': ['Andrew Nesbitt'],
-                'license': 'AGPL-3.0',
-                'version': '1.0.0',
-                'description':
-                    'Tiny web service for parsing yarn.lock files',
-                'issueTracker':
-                    'https://github.com/librariesio/yarn-parser/issues',
-                'name': 'yarn-parser',
-                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-            },
+            'translated_metadata': YARN_PARSER_METADATA,
             'mappings': ['npm'],
         }]
 

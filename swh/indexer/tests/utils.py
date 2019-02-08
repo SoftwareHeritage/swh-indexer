@@ -374,6 +374,27 @@ OBJ_STORAGE_DATA = {
 }
 
 
+YARN_PARSER_METADATA = {
+    '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+    'url':
+        'https://github.com/librariesio/yarn-parser#readme',
+    'codeRepository':
+        'git+git+https://github.com/librariesio/yarn-parser.git',
+    'author': [{
+        'type': 'Person',
+        'name': 'Andrew Nesbitt'
+    }],
+    'license': 'https://spdx.org/licenses/AGPL-3.0',
+    'version': '1.0.0',
+    'description':
+        'Tiny web service for parsing yarn.lock files',
+    'issueTracker':
+        'https://github.com/librariesio/yarn-parser/issues',
+    'name': 'yarn-parser',
+    'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+}
+
+
 def filter_dict(d, keys):
     'return a copy of the dict with keys deleted'
     if not isinstance(keys, (list, tuple)):
