@@ -3,10 +3,15 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import json
 import unittest
+
+from hypothesis import given, strategies
+import xmltodict
 
 from swh.model.hashutil import hash_to_bytes
 
+from swh.indexer.codemeta import CODEMETA_KEYS
 from swh.indexer.metadata_dictionary import (
     CROSSWALK_TABLE, MAPPINGS, merge_values)
 from swh.indexer.metadata_detector import (
@@ -18,7 +23,7 @@ from swh.indexer.metadata import (
 
 from .utils import (
     BASE_TEST_CONFIG, fill_obj_storage, fill_storage,
-    YARN_PARSER_METADATA
+    YARN_PARSER_METADATA, json_document_strategy
 )
 
 
@@ -1052,6 +1057,42 @@ Gem::Specification.new { |s|
             'name': 'rb-system-with-aliases',
             'description': 'execute system commands with aliases',
         })
+
+    @given(json_document_strategy(
+        keys=list(MAPPINGS['NpmMapping'].mapping)))
+    def test_npm_adversarial(self, doc):
+        raw = json.dumps(doc).encode()
+        self.npm_mapping.translate(raw)
+
+    @given(json_document_strategy(keys=CODEMETA_KEYS))
+    def test_codemeta_adversarial(self, doc):
+        raw = json.dumps(doc).encode()
+        self.codemeta_mapping.translate(raw)
+
+    @given(json_document_strategy(
+        keys=list(MAPPINGS['MavenMapping'].mapping)))
+    def test_maven_adversarial(self, doc):
+        raw = xmltodict.unparse({'project': doc}, pretty=True)
+        self.maven_mapping.translate(raw)
+
+    @given(strategies.dictionaries(
+        # keys
+        strategies.one_of(
+            strategies.characters(),
+            *map(strategies.just, MAPPINGS['GemspecMapping'].mapping)
+        ),
+        # values
+        strategies.recursive(
+            strategies.characters(),
+            lambda children: strategies.lists(children, 1)
+        )
+    ))
+    def test_gemspec_adversarial(self, doc):
+        parts = ['Gem::Specification.new do |s|\n']
+        for (k, v) in doc.items():
+            parts.append('  s.{} = {}\n'.format(k, repr(v)))
+        parts.append('end\n')
+        self.maven_mapping.translate(''.join(parts))
 
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataIndexer(

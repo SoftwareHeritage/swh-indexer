@@ -90,11 +90,11 @@ def _read_crosstable(fd):
                         codemeta_translation[col][local_name.strip()] = \
                                 canonical_name
 
-    return codemeta_translation
+    return (header, codemeta_translation)
 
 
 with open(CROSSWALK_TABLE_PATH) as fd:
-    CROSSWALK_TABLE = _read_crosstable(fd)
+    (CODEMETA_KEYS, CROSSWALK_TABLE) = _read_crosstable(fd)
 
 
 def _document_loader(url):
