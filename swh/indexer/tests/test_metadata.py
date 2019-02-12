@@ -1078,7 +1078,7 @@ Gem::Specification.new { |s|
     @given(strategies.dictionaries(
         # keys
         strategies.one_of(
-            strategies.characters(),
+            strategies.text(),
             *map(strategies.just, MAPPINGS['GemspecMapping'].mapping)
         ),
         # values
@@ -1088,11 +1088,11 @@ Gem::Specification.new { |s|
         )
     ))
     def test_gemspec_adversarial(self, doc):
-        parts = ['Gem::Specification.new do |s|\n']
+        parts = [b'Gem::Specification.new do |s|\n']
         for (k, v) in doc.items():
-            parts.append('  s.{} = {}\n'.format(k, repr(v)))
-        parts.append('end\n')
-        self.maven_mapping.translate(''.join(parts))
+            parts.append('  s.{} = {}\n'.format(k, repr(v)).encode())
+        parts.append(b'end\n')
+        self.gemspec_mapping.translate(b''.join(parts))
 
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataIndexer(
