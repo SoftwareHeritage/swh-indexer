@@ -412,6 +412,7 @@ json_dict_keys = strategies.one_of(
     strategies.characters(),
     *map(strategies.just, ['type', 'url', 'name', 'email', '@id',
                            '@context', 'repository', 'license',
+                           'repositories', 'licenses'
                            ]),
 )
 """Hypothesis strategy that generates strings, with an emphasis on those
