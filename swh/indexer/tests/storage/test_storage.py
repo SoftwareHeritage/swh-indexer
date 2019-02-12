@@ -98,6 +98,167 @@ class BasePgTestStorage(SingleDbTestFixture):
         db.conn.commit()
 
 
+def gen_generic_endpoint_tests(endpoint_type, tool_name,
+                               example_data1, example_data2):
+    def rename(f):
+        f.__name__ = 'test_' + endpoint_type + f.__name__
+        return f
+
+    def endpoint(self, endpoint_name):
+        return getattr(self.storage, endpoint_type + '_' + endpoint_name)
+
+    @rename
+    def missing(self):
+        # given
+        tool_id = self.tools[tool_name]['id']
+
+        query = [
+            {
+                'id': self.sha1_1,
+                'indexer_configuration_id': tool_id,
+            },
+            {
+                'id': self.sha1_2,
+                'indexer_configuration_id': tool_id,
+            }]
+
+        # when
+        actual_missing = endpoint(self, 'missing')(query)
+
+        # then
+        self.assertEqual(list(actual_missing), [
+            self.sha1_1,
+            self.sha1_2,
+        ])
+
+        # given
+        endpoint(self, 'add')([{
+            'id': self.sha1_2,
+            **example_data1,
+            'indexer_configuration_id': tool_id,
+        }])
+
+        # when
+        actual_missing = endpoint(self, 'missing')(query)
+
+        # then
+        self.assertEqual(list(actual_missing), [self.sha1_1])
+
+    @rename
+    def add__drop_duplicate(self):
+        # given
+        tool_id = self.tools[tool_name]['id']
+
+        data_v1 = {
+            'id': self.sha1_2,
+            **example_data1,
+            'indexer_configuration_id': tool_id,
+        }
+
+        # given
+        endpoint(self, 'add')([data_v1])
+
+        # when
+        actual_data = list(endpoint(self, 'get')([self.sha1_2]))
+
+        # then
+        expected_data_v1 = [{
+            'id': self.sha1_2,
+            **example_data1,
+            'tool': self.tools[tool_name],
+        }]
+        self.assertEqual(actual_data, expected_data_v1)
+
+        # given
+        data_v2 = data_v1.copy()
+        data_v2.update(example_data2)
+
+        endpoint(self, 'add')([data_v2])
+
+        actual_data = list(endpoint(self, 'get')([self.sha1_2]))
+
+        # data did not change as the v2 was dropped.
+        self.assertEqual(actual_data, expected_data_v1)
+
+    @rename
+    def add__update_in_place_duplicate(self):
+        # given
+        tool_id = self.tools[tool_name]['id']
+
+        data_v1 = {
+            'id': self.sha1_2,
+            **example_data1,
+            'indexer_configuration_id': tool_id,
+        }
+
+        # given
+        endpoint(self, 'add')([data_v1])
+
+        # when
+        actual_data = list(endpoint(self, 'get')([self.sha1_2]))
+
+        expected_data_v1 = [{
+            'id': self.sha1_2,
+            **example_data1,
+            'tool': self.tools[tool_name],
+        }]
+
+        # then
+        self.assertEqual(actual_data, expected_data_v1)
+
+        # given
+        data_v2 = data_v1.copy()
+        data_v2.update(example_data2)
+
+        endpoint(self, 'add')([data_v2], conflict_update=True)
+
+        actual_data = list(endpoint(self, 'get')([self.sha1_2]))
+
+        expected_data_v2 = [{
+            'id': self.sha1_2,
+            **example_data2,
+            'tool': self.tools[tool_name],
+        }]
+
+        # data did change as the v2 was used to overwrite v1
+        self.assertEqual(actual_data, expected_data_v2)
+
+    @rename
+    def get(self):
+        # given
+        tool_id = self.tools[tool_name]['id']
+
+        query = [self.sha1_2, self.sha1_1]
+
+        data1 = {
+            'id': self.sha1_2,
+            **example_data1,
+            'indexer_configuration_id': tool_id,
+        }
+
+        # when
+        endpoint(self, 'add')([data1])
+
+        # then
+        actual_data = list(endpoint(self, 'get')(query))
+
+        # then
+        expected_data = [{
+            'id': self.sha1_2,
+            **example_data1,
+            'tool': self.tools[tool_name]
+        }]
+
+        self.assertEqual(actual_data, expected_data)
+
+    return (
+        missing,
+        add__drop_duplicate,
+        add__update_in_place_duplicate,
+        get,
+    )
+
+
 class CommonTestStorage:
     """Base class for Indexer Storage testing.
 
@@ -124,377 +285,71 @@ class CommonTestStorage:
             '7026b7c1a2af56521e951c01ed20f255fa054238')
         self.revision_id_2 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904321')
+        self.revision_id_3 = hash_to_bytes(
+            '7026b7c1a2af56521e9587659012345678904320')
         self.origin_id_1 = 54974445
         self.origin_id_2 = 44434342
+        self.origin_id_3 = 44434341
 
     def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
         self.assertTrue(self.storage.check_config(check_write=False))
 
-    def test_content_mimetype_missing(self):
-        # given
-        tool_id = self.tools['file']['id']
-
-        mimetypes = [
-            {
-                'id': self.sha1_1,
-                'indexer_configuration_id': tool_id,
-            },
-            {
-                'id': self.sha1_2,
-                'indexer_configuration_id': tool_id,
-            }]
-
-        # when
-        actual_missing = self.storage.content_mimetype_missing(mimetypes)
-
-        # then
-        self.assertEqual(list(actual_missing), [
-            self.sha1_1,
-            self.sha1_2,
-        ])
-
-        # given
-        self.storage.content_mimetype_add([{
-            'id': self.sha1_2,
+    # generate content_mimetype tests
+    (
+        test_content_mimetype_missing,
+        test_content_mimetype_add__drop_duplicate,
+        test_content_mimetype_add__update_in_place_duplicate,
+        test_content_mimetype_get,
+    ) = gen_generic_endpoint_tests(
+        endpoint_type='content_mimetype',
+        tool_name='file',
+        example_data1={
             'mimetype': 'text/plain',
             'encoding': 'utf-8',
-            'indexer_configuration_id': tool_id,
-        }])
-
-        # when
-        actual_missing = self.storage.content_mimetype_missing(mimetypes)
-
-        # then
-        self.assertEqual(list(actual_missing), [self.sha1_1])
-
-    def test_content_mimetype_add__drop_duplicate(self):
-        # given
-        tool_id = self.tools['file']['id']
-
-        mimetype_v1 = {
-            'id': self.sha1_2,
-            'mimetype': 'text/plain',
-            'encoding': 'utf-8',
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.content_mimetype_add([mimetype_v1])
-
-        # when
-        actual_mimetypes = list(self.storage.content_mimetype_get(
-            [self.sha1_2]))
-
-        # then
-        expected_mimetypes_v1 = [{
-            'id': self.sha1_2,
-            'mimetype': 'text/plain',
-            'encoding': 'utf-8',
-            'tool': self.tools['file'],
-        }]
-        self.assertEqual(actual_mimetypes, expected_mimetypes_v1)
-
-        # given
-        mimetype_v2 = mimetype_v1.copy()
-        mimetype_v2.update({
+        },
+        example_data2={
             'mimetype': 'text/html',
             'encoding': 'us-ascii',
-        })
+        },
+    )
 
-        self.storage.content_mimetype_add([mimetype_v2])
-
-        actual_mimetypes = list(self.storage.content_mimetype_get(
-            [self.sha1_2]))
-
-        # mimetype did not change as the v2 was dropped.
-        self.assertEqual(actual_mimetypes, expected_mimetypes_v1)
-
-    def test_content_mimetype_add__update_in_place_duplicate(self):
-        # given
-        tool_id = self.tools['file']['id']
-
-        mimetype_v1 = {
-            'id': self.sha1_2,
-            'mimetype': 'text/plain',
-            'encoding': 'utf-8',
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.content_mimetype_add([mimetype_v1])
-
-        # when
-        actual_mimetypes = list(self.storage.content_mimetype_get(
-            [self.sha1_2]))
-
-        expected_mimetypes_v1 = [{
-            'id': self.sha1_2,
-            'mimetype': 'text/plain',
-            'encoding': 'utf-8',
-            'tool': self.tools['file'],
-        }]
-
-        # then
-        self.assertEqual(actual_mimetypes, expected_mimetypes_v1)
-
-        # given
-        mimetype_v2 = mimetype_v1.copy()
-        mimetype_v2.update({
-            'mimetype': 'text/html',
-            'encoding': 'us-ascii',
-        })
-
-        self.storage.content_mimetype_add([mimetype_v2], conflict_update=True)
-
-        actual_mimetypes = list(self.storage.content_mimetype_get(
-            [self.sha1_2]))
-
-        expected_mimetypes_v2 = [{
-            'id': self.sha1_2,
-            'mimetype': 'text/html',
-            'encoding': 'us-ascii',
-            'tool': {
-                'id': self.tools['file']['id'],
-                'name': 'file',
-                'version': '5.22',
-                'configuration': {'command_line': 'file --mime <filepath>'}
-            }
-        }]
-
-        # mimetype did change as the v2 was used to overwrite v1
-        self.assertEqual(actual_mimetypes, expected_mimetypes_v2)
-
-    def test_content_mimetype_get(self):
-        # given
-        tool_id = self.tools['file']['id']
-
-        mimetypes = [self.sha1_2, self.sha1_1]
-
-        mimetype1 = {
-            'id': self.sha1_2,
-            'mimetype': 'text/plain',
-            'encoding': 'utf-8',
-            'indexer_configuration_id': tool_id,
-        }
-
-        # when
-        self.storage.content_mimetype_add([mimetype1])
-
-        # then
-        actual_mimetypes = list(self.storage.content_mimetype_get(mimetypes))
-
-        # then
-        expected_mimetypes = [{
-            'id': self.sha1_2,
-            'mimetype': 'text/plain',
-            'encoding': 'utf-8',
-            'tool': self.tools['file']
-        }]
-
-        self.assertEqual(actual_mimetypes, expected_mimetypes)
-
-    def test_content_language_missing(self):
-        # given
-        tool_id = self.tools['pygments']['id']
-
-        languages = [
-            {
-                'id': self.sha1_2,
-                'indexer_configuration_id': tool_id,
-            },
-            {
-                'id': self.sha1_1,
-                'indexer_configuration_id': tool_id,
-            }
-        ]
-
-        # when
-        actual_missing = list(self.storage.content_language_missing(languages))
-
-        # then
-        self.assertEqual(list(actual_missing), [
-            self.sha1_2,
-            self.sha1_1,
-        ])
-
-        # given
-        self.storage.content_language_add([{
-            'id': self.sha1_2,
+    # content_language tests
+    (
+        test_content_language_missing,
+        test_content_language_add__drop_duplicate,
+        test_content_language_add__update_in_place_duplicate,
+        test_content_language_get,
+    ) = gen_generic_endpoint_tests(
+        endpoint_type='content_language',
+        tool_name='pygments',
+        example_data1={
             'lang': 'haskell',
-            'indexer_configuration_id': tool_id,
-        }])
-
-        # when
-        actual_missing = list(self.storage.content_language_missing(languages))
-
-        # then
-        self.assertEqual(actual_missing, [self.sha1_1])
-
-    def test_content_language_get(self):
-        # given
-        tool_id = self.tools['pygments']['id']
-
-        language1 = {
-            'id': self.sha1_2,
+        },
+        example_data2={
             'lang': 'common-lisp',
-            'indexer_configuration_id': tool_id,
-        }
+        },
+    )
 
-        # when
-        self.storage.content_language_add([language1])
-
-        # then
-        actual_languages = list(self.storage.content_language_get(
-            [self.sha1_2, self.sha1_1]))
-
-        # then
-        expected_languages = [{
-            'id': self.sha1_2,
-            'lang': 'common-lisp',
-            'tool': self.tools['pygments']
-        }]
-
-        self.assertEqual(actual_languages, expected_languages)
-
-    def test_content_language_add__drop_duplicate(self):
-        # given
-        tool_id = self.tools['pygments']['id']
-
-        language_v1 = {
-            'id': self.sha1_2,
-            'lang': 'emacslisp',
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.content_language_add([language_v1])
-
-        # when
-        actual_languages = list(self.storage.content_language_get(
-            [self.sha1_2]))
-
-        # then
-        expected_languages_v1 = [{
-            'id': self.sha1_2,
-            'lang': 'emacslisp',
-            'tool': self.tools['pygments']
-        }]
-        self.assertEqual(actual_languages, expected_languages_v1)
-
-        # given
-        language_v2 = language_v1.copy()
-        language_v2.update({
-            'lang': 'common-lisp',
-        })
-
-        self.storage.content_language_add([language_v2])
-
-        actual_languages = list(self.storage.content_language_get(
-            [self.sha1_2]))
-
-        # language did not change as the v2 was dropped.
-        self.assertEqual(actual_languages, expected_languages_v1)
-
-    def test_content_language_add__update_in_place_duplicate(self):
-        # given
-        tool_id = self.tools['pygments']['id']
-
-        language_v1 = {
-            'id': self.sha1_2,
-            'lang': 'common-lisp',
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.content_language_add([language_v1])
-
-        # when
-        actual_languages = list(self.storage.content_language_get(
-            [self.sha1_2]))
-
-        # then
-        expected_languages_v1 = [{
-            'id': self.sha1_2,
-            'lang': 'common-lisp',
-            'tool': self.tools['pygments']
-        }]
-        self.assertEqual(actual_languages, expected_languages_v1)
-
-        # given
-        language_v2 = language_v1.copy()
-        language_v2.update({
-            'lang': 'emacslisp',
-        })
-
-        self.storage.content_language_add([language_v2], conflict_update=True)
-
-        actual_languages = list(self.storage.content_language_get(
-            [self.sha1_2]))
-
-        # language did not change as the v2 was dropped.
-        expected_languages_v2 = [{
-            'id': self.sha1_2,
-            'lang': 'emacslisp',
-            'tool': self.tools['pygments']
-        }]
-
-        # language did change as the v2 was used to overwrite v1
-        self.assertEqual(actual_languages, expected_languages_v2)
-
-    def test_content_ctags_missing(self):
-        # given
-        tool_id = self.tools['universal-ctags']['id']
-
-        ctags = [
-            {
-                'id': self.sha1_2,
-                'indexer_configuration_id': tool_id,
-            },
-            {
-                'id': self.sha1_1,
-                'indexer_configuration_id': tool_id,
-            }
-        ]
-
-        # when
-        actual_missing = self.storage.content_ctags_missing(ctags)
-
-        # then
-        self.assertEqual(list(actual_missing), [
-            self.sha1_2,
-            self.sha1_1
-        ])
-
-        # given
-        self.storage.content_ctags_add([
-            {
-                'id': self.sha1_2,
-                'indexer_configuration_id': tool_id,
-                'ctags': [{
-                    'name': 'done',
-                    'kind': 'variable',
-                    'line': 119,
-                    'lang': 'OCaml',
-                }]
-            },
-        ])
-
-        # when
-        actual_missing = self.storage.content_ctags_missing(ctags)
-
-        # then
-        self.assertEqual(list(actual_missing), [self.sha1_1])
-
-    def test_content_ctags_get(self):
-        # given
-        tool_id = self.tools['universal-ctags']['id']
-
-        ctags = [self.sha1_2, self.sha1_1]
-
-        ctag1 = {
-            'id': self.sha1_2,
-            'indexer_configuration_id': tool_id,
+    # content_ctags tests
+    (
+        test_content_ctags_missing,
+        # the following tests are disabled because CTAGS behave differently
+        _,  # test_content_ctags_add__drop_duplicate,
+        _,  # test_content_ctags_add__update_in_place_duplicate,
+        _,  # test_content_ctags_get,
+    ) = gen_generic_endpoint_tests(
+        endpoint_type='content_ctags',
+        tool_name='universal-ctags',
+        example_data1={
+            'ctags': [{
+                'name': 'done',
+                'kind': 'variable',
+                'line': 119,
+                'lang': 'OCaml',
+            }]
+        },
+        example_data2={
             'ctags': [
                 {
                     'name': 'done',
@@ -508,36 +363,8 @@ class CommonTestStorage:
                     'line': 119,
                     'lang': 'Python',
                 }]
-        }
-
-        # when
-        self.storage.content_ctags_add([ctag1])
-
-        # then
-        actual_ctags = list(self.storage.content_ctags_get(ctags))
-
-        # then
-
-        expected_ctags = [
-            {
-                'id': self.sha1_2,
-                'tool': self.tools['universal-ctags'],
-                'name': 'done',
-                'kind': 'variable',
-                'line': 100,
-                'lang': 'Python',
-            },
-            {
-                'id': self.sha1_2,
-                'tool': self.tools['universal-ctags'],
-                'name': 'main',
-                'kind': 'function',
-                'line': 119,
-                'lang': 'Python',
-            }
-        ]
-
-        self.assertEqual(actual_ctags, expected_ctags)
+        },
+    )
 
     def test_content_ctags_search(self):
         # 1. given
@@ -842,33 +669,24 @@ class CommonTestStorage:
         ]
         self.assertEqual(actual_ctags, expected_ctags)
 
-    def test_content_fossology_license_get(self):
-        # given
-        tool = self.tools['nomos']
-        tool_id = tool['id']
-
-        license1 = {
-            'id': self.sha1_1,
-            'licenses': ['GPL-2.0+'],
-            'indexer_configuration_id': tool_id,
-        }
-
-        # when
-        self.storage.content_fossology_license_add([license1])
-
-        # then
-        actual_licenses = list(self.storage.content_fossology_license_get(
-            [self.sha1_2, self.sha1_1]))
-
-        expected_license = {
-            self.sha1_1: [{
-                'licenses': ['GPL-2.0+'],
-                'tool': tool,
-            }]
-        }
-
-        # then
-        self.assertEqual(actual_licenses, [expected_license])
+    # content_fossology_license tests
+    (
+        _,  # The endpoint content_fossology_license_missing does not exist
+        # the following tests are disabled because fossology_license tests
+        # behave differently
+        _,  # test_content_fossology_license_add__drop_duplicate,
+        _,  # test_content_fossology_license_add__update_in_place_duplicate,
+        _,  # test_content_fossology_license_get,
+    ) = gen_generic_endpoint_tests(
+        endpoint_type='content_fossology_license',
+        tool_name='nomos',
+        example_data1={
+            'licenses': ['Apache-2.0'],
+        },
+        example_data2={
+            'licenses': ['BSD-2-Clause'],
+        },
+    )
 
     def test_content_fossology_license_add__new_license_added(self):
         # given
@@ -920,83 +738,16 @@ class CommonTestStorage:
         # license did not change as the v2 was dropped.
         self.assertEqual(actual_licenses, [expected_license])
 
-    def test_content_fossology_license_add__update_in_place_duplicate(self):
-        # given
-        tool = self.tools['nomos']
-        tool_id = tool['id']
-
-        license_v1 = {
-            'id': self.sha1_1,
-            'licenses': ['CECILL'],
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.content_fossology_license_add([license_v1])
-        # conflict does nothing
-        self.storage.content_fossology_license_add([license_v1])
-
-        # when
-        actual_licenses = list(self.storage.content_fossology_license_get(
-            [self.sha1_1]))
-
-        # then
-        expected_license = {
-            self.sha1_1: [{
-                'licenses': ['CECILL'],
-                'tool': tool,
-            }]
-        }
-        self.assertEqual(actual_licenses, [expected_license])
-
-        # given
-        license_v2 = license_v1.copy()
-        license_v2.update({
-            'licenses': ['CECILL-2.0']
-        })
-
-        self.storage.content_fossology_license_add([license_v2],
-                                                   conflict_update=True)
-
-        actual_licenses = list(self.storage.content_fossology_license_get(
-            [self.sha1_1]))
-
-        # license did change as the v2 was used to overwrite v1
-        expected_license = {
-            self.sha1_1: [{
-                'licenses': ['CECILL-2.0'],
-                'tool': tool,
-            }]
-        }
-        self.assertEqual(actual_licenses, [expected_license])
-
-    def test_content_metadata_missing(self):
-        # given
-        tool_id = self.tools['swh-metadata-translator']['id']
-
-        metadata = [
-            {
-                'id': self.sha1_2,
-                'indexer_configuration_id': tool_id,
-            },
-            {
-                'id': self.sha1_1,
-                'indexer_configuration_id': tool_id,
-            }
-        ]
-
-        # when
-        actual_missing = list(self.storage.content_metadata_missing(metadata))
-
-        # then
-        self.assertEqual(list(actual_missing), [
-            self.sha1_2,
-            self.sha1_1,
-        ])
-
-        # given
-        self.storage.content_metadata_add([{
-            'id': self.sha1_2,
+    # content_metadata tests
+    (
+        test_content_metadata_missing,
+        test_content_metadata_add__drop_duplicate,
+        test_content_metadata_add__update_in_place_duplicate,
+        test_content_metadata_get,
+    ) = gen_generic_endpoint_tests(
+        endpoint_type='content_metadata',
+        tool_name='swh-metadata-detector',
+        example_data1={
             'translated_metadata': {
                 'other': {},
                 'codeRepository': {
@@ -1007,21 +758,26 @@ class CommonTestStorage:
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'indexer_configuration_id': tool_id
-        }])
+        },
+        example_data2={
+            'translated_metadata': {
+                'other': {},
+                'name': 'test_metadata',
+                'version': '0.0.1'
+            },
+        },
+    )
 
-        # when
-        actual_missing = list(self.storage.content_metadata_missing(metadata))
-
-        # then
-        self.assertEqual(actual_missing, [self.sha1_1])
-
-    def test_content_metadata_get(self):
-        # given
-        tool_id = self.tools['swh-metadata-translator']['id']
-
-        metadata1 = {
-            'id': self.sha1_2,
+    # revision_metadata tests
+    (
+        test_revision_metadata_missing,
+        test_revision_metadata_add__drop_duplicate,
+        test_revision_metadata_add__update_in_place_duplicate,
+        test_revision_metadata_get,
+    ) = gen_generic_endpoint_tests(
+        endpoint_type='revision_metadata',
+        tool_name='swh-metadata-detector',
+        example_data1={
             'translated_metadata': {
                 'other': {},
                 'codeRepository': {
@@ -1032,372 +788,17 @@ class CommonTestStorage:
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'indexer_configuration_id': tool_id,
-        }
-
-        # when
-        self.storage.content_metadata_add([metadata1])
-
-        # then
-        actual_metadata = list(self.storage.content_metadata_get(
-            [self.sha1_2, self.sha1_1]))
-
-        expected_metadata = [{
-            'id': self.sha1_2,
-            'translated_metadata': {
-                'other': {},
-                'codeRepository': {
-                    'type': 'git',
-                    'url': 'https://github.com/moranegg/metadata_test'
-                },
-                'description': 'Simple package.json test for indexer',
-                'name': 'test_metadata',
-                'version': '0.0.1'
-            },
-            'tool': self.tools['swh-metadata-translator']
-        }]
-
-        self.assertEqual(actual_metadata, expected_metadata)
-
-    def test_content_metadata_add_drop_duplicate(self):
-        # given
-        tool_id = self.tools['swh-metadata-translator']['id']
-
-        metadata_v1 = {
-            'id': self.sha1_2,
+            'mappings': ['mapping1'],
+        },
+        example_data2={
             'translated_metadata': {
                 'other': {},
                 'name': 'test_metadata',
                 'version': '0.0.1'
             },
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.content_metadata_add([metadata_v1])
-
-        # when
-        actual_metadata = list(self.storage.content_metadata_get(
-            [self.sha1_2]))
-
-        expected_metadata_v1 = [{
-            'id': self.sha1_2,
-            'translated_metadata': {
-                'other': {},
-                'name': 'test_metadata',
-                'version': '0.0.1'
-            },
-            'tool': self.tools['swh-metadata-translator']
-        }]
-
-        self.assertEqual(actual_metadata, expected_metadata_v1)
-
-        # given
-        metadata_v2 = metadata_v1.copy()
-        metadata_v2.update({
-            'translated_metadata': {
-                'other': {},
-                'name': 'test_drop_duplicated_metadata',
-                'version': '0.0.1'
-            },
-        })
-
-        self.storage.content_metadata_add([metadata_v2])
-
-        # then
-        actual_metadata = list(self.storage.content_metadata_get(
-            [self.sha1_2]))
-
-        # metadata did not change as the v2 was dropped.
-        self.assertEqual(actual_metadata, expected_metadata_v1)
-
-    def test_content_metadata_add_update_in_place_duplicate(self):
-        # given
-        tool_id = self.tools['swh-metadata-translator']['id']
-
-        metadata_v1 = {
-            'id': self.sha1_2,
-            'translated_metadata': {
-                'other': {},
-                'name': 'test_metadata',
-                'version': '0.0.1'
-            },
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.content_metadata_add([metadata_v1])
-
-        # when
-        actual_metadata = list(self.storage.content_metadata_get(
-            [self.sha1_2]))
-
-        # then
-        expected_metadata_v1 = [{
-            'id': self.sha1_2,
-            'translated_metadata': {
-                'other': {},
-                'name': 'test_metadata',
-                'version': '0.0.1'
-            },
-            'tool': self.tools['swh-metadata-translator']
-        }]
-        self.assertEqual(actual_metadata, expected_metadata_v1)
-
-        # given
-        metadata_v2 = metadata_v1.copy()
-        metadata_v2.update({
-            'translated_metadata': {
-                'other': {},
-                'name': 'test_update_duplicated_metadata',
-                'version': '0.0.1'
-            },
-        })
-        self.storage.content_metadata_add([metadata_v2], conflict_update=True)
-
-        actual_metadata = list(self.storage.content_metadata_get(
-            [self.sha1_2]))
-
-        # language did not change as the v2 was dropped.
-        expected_metadata_v2 = [{
-            'id': self.sha1_2,
-            'translated_metadata': {
-                'other': {},
-                'name': 'test_update_duplicated_metadata',
-                'version': '0.0.1'
-            },
-            'tool': self.tools['swh-metadata-translator']
-        }]
-
-        # metadata did change as the v2 was used to overwrite v1
-        self.assertEqual(actual_metadata, expected_metadata_v2)
-
-    def test_revision_metadata_missing(self):
-        # given
-        tool_id = self.tools['swh-metadata-detector']['id']
-
-        metadata = [
-            {
-                'id': self.revision_id_1,
-                'indexer_configuration_id': tool_id,
-            },
-            {
-                'id': self.revision_id_2,
-                'indexer_configuration_id': tool_id,
-            }
-        ]
-
-        # when
-        actual_missing = list(self.storage.revision_metadata_missing(
-                              metadata))
-
-        # then
-        self.assertEqual(list(actual_missing), [
-            self.revision_id_1,
-            self.revision_id_2,
-        ])
-
-        # given
-        self.storage.revision_metadata_add([{
-            'id': self.revision_id_1,
-            'translated_metadata': {
-                'developmentStatus': None,
-                'version': None,
-                'operatingSystem': None,
-                'description': None,
-                'keywords': None,
-                'issueTracker': None,
-                'name': None,
-                'author': None,
-                'relatedLink': None,
-                'url': None,
-                'license': None,
-                'maintainer': None,
-                'email': None,
-                'softwareRequirements': None,
-                'identifier': None
-            },
-            'mappings': [],
-            'indexer_configuration_id': tool_id
-        }])
-
-        # when
-        actual_missing = list(self.storage.revision_metadata_missing(
-                              metadata))
-
-        # then
-        self.assertEqual(actual_missing, [self.revision_id_2])
-
-    def test_revision_metadata_get(self):
-        # given
-        tool_id = self.tools['swh-metadata-detector']['id']
-
-        metadata_rev = {
-            'id': self.revision_id_2,
-            'translated_metadata': {
-                'developmentStatus': None,
-                'version': None,
-                'operatingSystem': None,
-                'description': None,
-                'keywords': None,
-                'issueTracker': None,
-                'name': None,
-                'author': None,
-                'relatedLink': None,
-                'url': None,
-                'license': None,
-                'maintainer': None,
-                'email': None,
-                'softwareRequirements': None,
-                'identifier': None
-            },
-            'mappings': ['mapping1', 'mapping2'],
-            'indexer_configuration_id': tool_id
-        }
-
-        # when
-        self.storage.revision_metadata_add([metadata_rev])
-
-        # then
-        actual_metadata = list(self.storage.revision_metadata_get(
-            [self.revision_id_2, self.revision_id_1]))
-
-        expected_metadata = [{
-            'id': self.revision_id_2,
-            'translated_metadata': metadata_rev['translated_metadata'],
-            'mappings': ['mapping1', 'mapping2'],
-            'tool': self.tools['swh-metadata-detector']
-        }]
-
-        self.maxDiff = None
-        self.assertEqual(actual_metadata, expected_metadata)
-
-    def test_revision_metadata_add_drop_duplicate(self):
-        # given
-        tool_id = self.tools['swh-metadata-detector']['id']
-
-        metadata_v1 = {
-            'id': self.revision_id_1,
-            'translated_metadata':  {
-                'developmentStatus': None,
-                'version': None,
-                'operatingSystem': None,
-                'description': None,
-                'keywords': None,
-                'issueTracker': None,
-                'name': None,
-                'author': None,
-                'relatedLink': None,
-                'url': None,
-                'license': None,
-                'maintainer': None,
-                'email': None,
-                'softwareRequirements': None,
-                'identifier': None
-            },
-            'mappings': [],
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.revision_metadata_add([metadata_v1])
-
-        # when
-        actual_metadata = list(self.storage.revision_metadata_get(
-            [self.revision_id_1]))
-
-        expected_metadata_v1 = [{
-            'id': self.revision_id_1,
-            'translated_metadata':  metadata_v1['translated_metadata'],
-            'mappings': [],
-            'tool': self.tools['swh-metadata-detector']
-        }]
-
-        self.assertEqual(actual_metadata, expected_metadata_v1)
-
-        # given
-        metadata_v2 = metadata_v1.copy()
-        metadata_v2.update({
-            'translated_metadata':  {
-                'name': 'test_metadata',
-                'author': 'MG',
-            },
-        })
-
-        self.storage.revision_metadata_add([metadata_v2])
-
-        # then
-        actual_metadata = list(self.storage.revision_metadata_get(
-            [self.revision_id_1]))
-
-        # metadata did not change as the v2 was dropped.
-        self.assertEqual(actual_metadata, expected_metadata_v1)
-
-    def test_revision_metadata_add_update_in_place_duplicate(self):
-        # given
-        tool_id = self.tools['swh-metadata-detector']['id']
-
-        metadata_v1 = {
-            'id': self.revision_id_2,
-            'translated_metadata': {
-                'developmentStatus': None,
-                'version': None,
-                'operatingSystem': None,
-                'description': None,
-                'keywords': None,
-                'issueTracker': None,
-                'name': None,
-                'author': None,
-                'relatedLink': None,
-                'url': None,
-                'license': None,
-                'maintainer': None,
-                'email': None,
-                'softwareRequirements': None,
-                'identifier': None
-            },
-            'mappings': [],
-            'indexer_configuration_id': tool_id,
-        }
-
-        # given
-        self.storage.revision_metadata_add([metadata_v1])
-
-        # when
-        actual_metadata = list(self.storage.revision_metadata_get(
-            [self.revision_id_2]))
-
-        # then
-        expected_metadata_v1 = [{
-            'id': self.revision_id_2,
-            'translated_metadata':  metadata_v1['translated_metadata'],
-            'mappings': [],
-            'tool': self.tools['swh-metadata-detector']
-        }]
-        self.assertEqual(actual_metadata, expected_metadata_v1)
-
-        # given
-        metadata_v2 = metadata_v1.copy()
-        metadata_v2.update({
-            'translated_metadata':  {
-                'name': 'test_update_duplicated_metadata',
-                'author': 'MG'
-            },
-        })
-        self.storage.revision_metadata_add([metadata_v2], conflict_update=True)
-
-        actual_metadata = list(self.storage.revision_metadata_get(
-            [self.revision_id_2]))
-
-        expected_metadata_v2 = [{
-            'id': self.revision_id_2,
-            'translated_metadata': metadata_v2['translated_metadata'],
-            'mappings': [],
-            'tool': self.tools['swh-metadata-detector']
-        }]
-
-        # metadata did change as the v2 was used to overwrite v1
-        self.assertEqual(actual_metadata, expected_metadata_v2)
+            'mappings': ['mapping2'],
+        },
+    )
 
     def test_origin_intrinsic_metadata_get(self):
         # given
@@ -1738,6 +1139,83 @@ class CommonTestStorage:
         self.assertEqual(
                 [res['origin_id'] for res in search(['John', 'Jane'])],
                 [self.origin_id_1])
+
+    def test_origin_intrinsic_metadata_stats(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata1 = {
+            '@context': 'foo',
+            'author': 'John Doe',
+        }
+        metadata1_rev = {
+            'id': self.revision_id_1,
+            'translated_metadata': metadata1,
+            'mappings': ['npm'],
+            'indexer_configuration_id': tool_id,
+        }
+        metadata1_origin = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata1,
+            'mappings': ['npm'],
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_1,
+        }
+        metadata2 = {
+            '@context': 'foo',
+            'author': 'Jane Doe',
+        }
+        metadata2_rev = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata2,
+            'mappings': ['npm', 'gemspec'],
+            'indexer_configuration_id': tool_id,
+        }
+        metadata2_origin = {
+            'origin_id': self.origin_id_2,
+            'metadata': metadata2,
+            'mappings': ['npm', 'gemspec'],
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_2,
+        }
+        metadata3 = {
+            '@context': 'foo',
+        }
+        metadata3_rev = {
+            'id': self.revision_id_3,
+            'translated_metadata': metadata3,
+            'mappings': ['npm', 'gemspec'],
+            'indexer_configuration_id': tool_id,
+        }
+        metadata3_origin = {
+            'origin_id': self.origin_id_3,
+            'metadata': metadata3,
+            'mappings': ['pkg-info'],
+            'indexer_configuration_id': tool_id,
+            'from_revision': self.revision_id_3,
+        }
+
+        # when
+        self.storage.revision_metadata_add([metadata1_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata1_origin])
+        self.storage.revision_metadata_add([metadata2_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata2_origin])
+        self.storage.revision_metadata_add([metadata3_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata3_origin])
+
+        # then
+        result = self.storage.origin_intrinsic_metadata_stats()
+        self.assertEqual(result, {
+            'per_mapping': {
+                'gemspec': 1,
+                'npm': 2,
+                'pkg-info': 1,
+                'codemeta': 0,
+                'maven': 0,
+            },
+            'total': 3,
+            'non_empty': 2,
+        })
 
     def test_indexer_configuration_add(self):
         tool = {

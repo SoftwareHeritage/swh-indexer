@@ -373,37 +373,6 @@ OBJ_STORAGE_DATA = {
 """
 }
 
-CONTENT_METADATA = [{
-    'tool': {
-        'configuration': {
-            'type': 'local',
-            'context': 'NpmMapping'
-            },
-        'version': '0.0.1',
-        'id': 6,
-        'name': 'swh-metadata-translator'
-    },
-    'id': b'cde',
-    'translated_metadata': {
-        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-        'type': 'SoftwareSourceCode',
-        'codemeta:issueTracker':
-            'https://github.com/librariesio/yarn-parser/issues',
-        'version': '1.0.0',
-        'name': 'yarn-parser',
-        'schema:author': 'Andrew Nesbitt',
-        'url':
-            'https://github.com/librariesio/yarn-parser#readme',
-        'processorRequirements': {'node': '7.5'},
-        'license': 'AGPL-3.0',
-        'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-        'schema:codeRepository':
-            'git+https://github.com/librariesio/yarn-parser.git',
-        'description':
-            'Tiny web service for parsing yarn.lock files',
-        }
-}]
-
 
 def filter_dict(d, keys):
     'return a copy of the dict with keys deleted'

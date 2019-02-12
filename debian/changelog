@@ -1,8 +1,16 @@
-swh-indexer (0.0.132-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.133-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.133     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-02-12 10:28:01
+    +0100)
+  * Upstream changes:     - v0.0.133     - Migrate BaseDB api calls from
+    core to storage     - Improve storage api calls using latest storage
+    api     - OriginIndexer: Refactoring     - tests: Refactoring     -
+    metadata search: Use index     - indexer metadata: Provide stats per
+    origin     - indexer metadata: Update mapping column     - indexer
+    metadata: Improve and fix issues
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 30 Jan 2019 14:11:11 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 12 Feb 2019 09:34:43 +0000
 
 swh-indexer (0.0.132-1~swh1) unstable-swh; urgency=medium
 

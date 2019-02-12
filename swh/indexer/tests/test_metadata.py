@@ -549,6 +549,21 @@ class Metadata(unittest.TestCase):
         result = self.codemeta_mapping.translate(raw_content)
         self.assertEqual(result, expected_result)
 
+    def test_compute_metadata_codemeta_alternate_context(self):
+        raw_content = (
+            b"""{
+            "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+            "@type": "SoftwareSourceCode",
+            "identifier": "CodeMeta"
+        }""")  # noqa
+        expected_result = {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "identifier": "CodeMeta",
+        }
+        result = self.codemeta_mapping.translate(raw_content)
+        self.assertEqual(result, expected_result)
+
     def test_compute_metadata_maven(self):
         raw_content = b"""
         <project>
@@ -614,6 +629,7 @@ class Metadata(unittest.TestCase):
         expected_warning = (
             'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
             'Error parsing XML from foo')
+
         raw_content = b"""
         <project>"""
         with self.assertLogs('swh.indexer.metadata_dictionary',
@@ -621,8 +637,46 @@ class Metadata(unittest.TestCase):
             result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
             self.assertEqual(cm.output, [expected_warning])
         self.assertEqual(result, None)
+
         raw_content = b"""
         """
+        with self.assertLogs('swh.indexer.metadata_dictionary',
+                             level='WARNING') as cm:
+            result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
+            self.assertEqual(cm.output, [expected_warning])
+        self.assertEqual(result, None)
+
+    def test_compute_metadata_maven_unknown_encoding(self):
+        expected_warning = (
+            'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
+            'Error detecting XML encoding from foo')
+
+        raw_content = b"""<?xml version="1.0" encoding="foo"?>
+        <project>
+        </project>"""
+        with self.assertLogs('swh.indexer.metadata_dictionary',
+                             level='WARNING') as cm:
+            result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
+            self.assertEqual(cm.output, [expected_warning])
+        self.assertEqual(result, None)
+
+        raw_content = b"""<?xml version="1.0" encoding="UTF-7"?>
+        <project>
+        </project>"""
+        with self.assertLogs('swh.indexer.metadata_dictionary',
+                             level='WARNING') as cm:
+            result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
+            self.assertEqual(cm.output, [expected_warning])
+        self.assertEqual(result, None)
+
+    def test_compute_metadata_maven_invalid_encoding(self):
+        expected_warning = (
+            'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
+            'Error unidecoding XML from foo')
+
+        raw_content = b"""<?xml version="1.0" encoding="UTF-8"?>
+        <foo\xe5ct>
+        </foo>"""
         with self.assertLogs('swh.indexer.metadata_dictionary',
                              level='WARNING') as cm:
             result = MAPPINGS["MavenMapping"]('foo').translate(raw_content)
@@ -701,6 +755,50 @@ class Metadata(unittest.TestCase):
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
+            'identifier': 'com.mycompany.app',
+            'version': '1.2.3',
+            'codeRepository':
+            'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
+        })
+
+        raw_content = b"""
+        <project>
+          <name>Maven Default Project</name>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.mycompany.app</groupId>
+          <artifactId>my-app</artifactId>
+          <version>1.2.3</version>
+          <licenses>
+          </licenses>
+        </project>"""
+        result = self.maven_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'Maven Default Project',
+            'identifier': 'com.mycompany.app',
+            'version': '1.2.3',
+            'codeRepository':
+            'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
+        })
+
+    def test_compute_metadata_maven_invalid_licenses(self):
+        raw_content = b"""
+        <project>
+          <name>Maven Default Project</name>
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>com.mycompany.app</groupId>
+          <artifactId>my-app</artifactId>
+          <version>1.2.3</version>
+          <licenses>
+            foo
+          </licenses>
+        </project>"""
+        result = self.maven_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'Maven Default Project',
             'identifier': 'com.mycompany.app',
             'version': '1.2.3',
             'codeRepository':
