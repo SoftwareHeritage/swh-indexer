@@ -20,6 +20,7 @@ sql/upgrades/116.sql
 sql/upgrades/117.sql
 sql/upgrades/118.sql
 sql/upgrades/119.sql
+sql/upgrades/120.sql
 swh/__init__.py
 swh.indexer.egg-info/PKG-INFO
 swh.indexer.egg-info/SOURCES.txt
