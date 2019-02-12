@@ -715,6 +715,7 @@ class CommonTestStorage:
         # behave differently
         _,  # test_content_fossology_license_add__drop_duplicate,
         _,  # test_content_fossology_license_add__update_in_place_duplicate,
+        _,  # test_content_metadata_add__duplicate_twice,
         _,  # test_content_fossology_license_get,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_fossology_license',
