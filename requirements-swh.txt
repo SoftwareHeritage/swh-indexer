@@ -1,6 +1,6 @@
-swh.core >= 0.0.44
+swh.core >= 0.0.53
 swh.model >= 0.0.15
 swh.objstorage >= 0.0.28
 swh.scheduler >= 0.0.39
-swh.storage >= 0.0.113
+swh.storage >= 0.0.123
 swh.journal >= 0.0.6

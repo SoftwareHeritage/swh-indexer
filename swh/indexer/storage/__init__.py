@@ -13,6 +13,7 @@ from swh.core.api import remote_api_endpoint
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
 from .db import Db
+from ..metadata_dictionary import MAPPINGS
 
 from . import converters
 
@@ -697,6 +698,52 @@ class IndexerStorage:
                 conjunction, limit=limit, cur=cur):
             yield converters.db_to_metadata(
                 dict(zip(db.origin_intrinsic_metadata_cols, c)))
+
+    @remote_api_endpoint('origin_intrinsic_metadata/stats')
+    @db_transaction()
+    def origin_intrinsic_metadata_stats(
+            self, db=None, cur=None):
+        """Returns counts of indexed metadata per origins, broken down
+        into metadata types.
+
+        Returns:
+            dict: dictionary with keys:
+
+                - total (int): total number of origins that were indexed
+                  (possibly yielding an empty metadata dictionary)
+                - non_empty (int): total number of origins that we extracted
+                  a non-empty metadata dictionary from
+                - per_mapping (dict): a dictionary with mapping names as
+                  keys and number of origins whose indexing used this
+                  mapping. Note that indexing a given origin may use
+                  0, 1, or many mappings.
+        """
+        mapping_names = [m.name for m in MAPPINGS.values()]
+        select_parts = []
+
+        # Count rows for each mapping
+        for mapping_name in mapping_names:
+            select_parts.append((
+                "sum(case when (mappings @> ARRAY['%s']) "
+                "         then 1 else 0 end)"
+                ) % mapping_name)
+
+        # Total
+        select_parts.append("sum(1)")
+
+        # Rows whose metadata has at least one key that is not '@context'
+        select_parts.append(
+            "sum(case when ('{}'::jsonb @> (metadata - '@context')) "
+            "         then 0 else 1 end)")
+        cur.execute('select ' + ', '.join(select_parts)
+                    + ' from origin_intrinsic_metadata')
+        results = dict(zip(mapping_names + ['total', 'non_empty'],
+                           cur.fetchone()))
+        return {
+            'total': results.pop('total'),
+            'non_empty': results.pop('non_empty'),
+            'per_mapping': results,
+        }
 
     @remote_api_endpoint('indexer_configuration/add')
     @db_transaction_generator()

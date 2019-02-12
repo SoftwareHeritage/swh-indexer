@@ -319,7 +319,9 @@ begin
       select id, translated_metadata, mappings, indexer_configuration_id
     	from tmp_revision_metadata tcm
             on conflict(id, indexer_configuration_id)
-                do update set translated_metadata = excluded.translated_metadata;
+                do update set
+                    translated_metadata = excluded.translated_metadata,
+                    mappings = excluded.mappings;
 
     else
         insert into revision_metadata (id, translated_metadata, mappings, indexer_configuration_id)
@@ -415,7 +417,9 @@ begin
              metadata_tsvector, mappings
     	from tmp_origin_intrinsic_metadata
             on conflict(origin_id, indexer_configuration_id)
-                do update set metadata = excluded.metadata;
+                do update set
+                    metadata = excluded.metadata,
+                    mappings = excluded.mappings;
 
     else
         insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)

@@ -14,6 +14,7 @@ import email.parser
 import xml.parsers.expat
 import email.policy
 
+import click
 import xmltodict
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
@@ -132,7 +133,7 @@ class DictMapping(BaseMapping):
         """A translation dict to map dict keys into a canonical name."""
         pass
 
-    def translate_dict(self, content_dict, *, normalize=True):
+    def _translate_dict(self, content_dict, *, normalize=True):
         """
         Translates content  by parsing content from a dict object
         and translating with the appropriate mapping
@@ -202,7 +203,8 @@ class JsonMapping(DictMapping, SingleFileMapping):
         except json.JSONDecodeError:
             self.log.warning('Error unjsoning from %s', self.log_suffix)
             return
-        return self.translate_dict(content_dict)
+        if isinstance(content_dict, dict):
+            return self._translate_dict(content_dict)
 
 
 @register_mapping
@@ -371,7 +373,15 @@ class MavenMapping(DictMapping, SingleFileMapping):
         except xml.parsers.expat.ExpatError:
             self.log.warning('Error parsing XML from %s', self.log_suffix)
             return None
-        metadata = self.translate_dict(d, normalize=False)
+        except UnicodeDecodeError:
+            self.log.warning('Error unidecoding XML from %s', self.log_suffix)
+            return None
+        except (LookupError, ValueError):
+            # unknown encoding or multi-byte encoding
+            self.log.warning('Error detecting XML encoding from %s',
+                             self.log_suffix)
+            return None
+        metadata = self._translate_dict(d, normalize=False)
         metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
         metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)
         return self.normalize_translation(metadata)
@@ -471,12 +481,17 @@ class MavenMapping(DictMapping, SingleFileMapping):
          {'@id': 'https://opensource.org/licenses/MIT'}]
         """
 
-        licenses = d.get('licenses', {}).get('license', [])
+        licenses = d.get('licenses')
+        if not isinstance(licenses, dict):
+            return
+        licenses = licenses.get('license')
         if isinstance(licenses, dict):
             licenses = [licenses]
+        elif not isinstance(licenses, list):
+            return
         return [{"@id": license['url']}
                 for license in licenses
-                if 'url' in license] or None
+                if isinstance(license, dict) and 'url' in license] or None
 
 
 _normalize_pkginfo_key = str.lower
@@ -510,7 +525,7 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
             key = _normalize_pkginfo_key(key)
             if value != 'UNKNOWN':
                 d.setdefault(key, []).append(value)
-        metadata = self.translate_dict(d, normalize=False)
+        metadata = self._translate_dict(d, normalize=False)
         if SCHEMA_URI+'author' in metadata or SCHEMA_URI+'email' in metadata:
             metadata[SCHEMA_URI+'author'] = {
                 '@list': [{
@@ -571,7 +586,7 @@ class GemspecMapping(DictMapping):
                 value = self.eval_ruby_expression(match.group('expr'))
                 if value:
                     content_dict[match.group('key')] = value
-        return self.translate_dict(content_dict)
+        return self._translate_dict(content_dict)
 
     def eval_ruby_expression(self, expr):
         """Very simple evaluator of Ruby expressions.
@@ -634,3 +649,18 @@ class GemspecMapping(DictMapping):
         if isinstance(authors, list):
             return {"@list": [author for author in authors
                               if isinstance(author, str)]}
+
+
+@click.command()
+@click.argument('mapping_name')
+@click.argument('file_name')
+def main(mapping_name, file_name):
+    from pprint import pprint
+    with open(file_name, 'rb') as fd:
+        file_content = fd.read()
+    res = MAPPINGS[mapping_name]().translate(file_content)
+    pprint(res)
+
+
+if __name__ == '__main__':
+    main()

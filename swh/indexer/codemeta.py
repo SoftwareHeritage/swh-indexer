@@ -22,6 +22,10 @@ with open(CODEMETA_CONTEXT_PATH) as fd:
     CODEMETA_CONTEXT = json.load(fd)
 
 CODEMETA_CONTEXT_URL = 'https://doi.org/10.5063/schema/codemeta-2.0'
+CODEMETA_ALTERNATE_CONTEXT_URLS = {
+    ('https://raw.githubusercontent.com/codemeta/codemeta/'
+     'master/codemeta.jsonld')
+}
 CODEMETA_URI = 'https://codemeta.github.io/terms/'
 SCHEMA_URI = 'http://schema.org/'
 
@@ -98,7 +102,7 @@ def _document_loader(url):
 
     Reads the local codemeta.jsonld file instead of fetching it
     from the Internet every single time."""
-    if url == CODEMETA_CONTEXT_URL:
+    if url == CODEMETA_CONTEXT_URL or url in CODEMETA_ALTERNATE_CONTEXT_URLS:
         return {
                 'contextUrl': None,
                 'documentUrl': url,
