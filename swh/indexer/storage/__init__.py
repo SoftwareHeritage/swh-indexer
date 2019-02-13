@@ -13,12 +13,14 @@ from swh.core.api import remote_api_endpoint
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
 from .db import Db
-from ..metadata_dictionary import MAPPINGS
 
 from . import converters
 
 
 INDEXER_CFG_KEY = 'indexer_storage'
+
+
+MAPPING_NAMES = ['codemeta', 'gemspec', 'maven', 'npm', 'pkg-info']
 
 
 def get_indexer_storage(cls, args):
@@ -756,7 +758,7 @@ class IndexerStorage:
                   mapping. Note that indexing a given origin may use
                   0, 1, or many mappings.
         """
-        mapping_names = [m.name for m in MAPPINGS.values()]
+        mapping_names = [m for m in MAPPING_NAMES]
         select_parts = []
 
         # Count rows for each mapping

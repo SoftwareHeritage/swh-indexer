@@ -11,12 +11,13 @@ from hypothesis import given
 
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer.storage import get_indexer_storage
+from swh.indexer.storage import get_indexer_storage, MAPPING_NAMES
 from swh.core.tests.db_testing import SingleDbTestFixture
 from swh.indexer.tests.storage.generate_data_test import (
     gen_content_mimetypes, gen_content_fossology_licenses
 )
 from swh.indexer.tests.storage import SQL_DIR
+from swh.indexer.metadata_dictionary import MAPPINGS
 
 TOOLS = [
     {
@@ -1594,3 +1595,7 @@ class IndexerTestStorage(CommonTestStorage, BasePgTestStorage,
 
     """
     pass
+
+
+def test_mapping_names():
+    assert set(MAPPING_NAMES) == {m.name for m in MAPPINGS.values()}
