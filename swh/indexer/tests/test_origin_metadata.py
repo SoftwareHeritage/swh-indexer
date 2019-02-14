@@ -97,3 +97,67 @@ def test_origin_metadata_indexer_duplicates(
     results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
         origin['id']]))
     assert len(results) == 1
+
+
+def test_origin_metadata_indexer_missing_head(
+        idx_storage, storage, obj_storage, origin_metadata_indexer):
+
+    storage.origin_add([{
+        'type': 'git',
+        'url': 'https://example.com'
+    }])
+
+    indexer = OriginMetadataIndexer()
+    indexer.run(["git+https://example.com"])
+
+    origin = storage.origin_get({
+        'type': 'git',
+        'url': 'https://example.com'})
+
+    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
+        origin['id']]))
+    assert results == []
+
+
+def test_origin_metadata_indexer_partial_missing_head(
+        idx_storage, storage, obj_storage, origin_metadata_indexer):
+
+    storage.origin_add([{
+        'type': 'git',
+        'url': 'https://example.com'
+    }])
+
+    indexer = OriginMetadataIndexer()
+    indexer.run(["git+https://example.com",
+                 "git+https://github.com/librariesio/yarn-parser"])
+
+    origin1 = storage.origin_get({
+        'type': 'git',
+        'url': 'https://example.com'})
+    origin2 = storage.origin_get({
+        'type': 'git',
+        'url': 'https://github.com/librariesio/yarn-parser'})
+    rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
+
+    rev_metadata = {
+        'id': rev_id,
+        'translated_metadata': YARN_PARSER_METADATA,
+        'mappings': ['npm'],
+    }
+    origin_metadata = {
+        'origin_id': origin2['id'],
+        'from_revision': rev_id,
+        'metadata': YARN_PARSER_METADATA,
+        'mappings': ['npm'],
+    }
+
+    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    for result in results:
+        del result['tool']
+    assert results == [rev_metadata]
+
+    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
+        origin1['id'], origin2['id']]))
+    for result in results:
+        del result['tool']
+    assert results == [origin_metadata]

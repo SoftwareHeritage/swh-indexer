@@ -277,7 +277,7 @@ class OriginMetadataIndexer(OriginIndexer):
         for origin in origins:
             head_result = self.origin_head_indexer.index(origin)
             if not head_result:
-                return
+                continue
             head_rev_ids.append(head_result['revision_id'])
 
         head_revs = list(self.storage.revision_get(head_rev_ids))
