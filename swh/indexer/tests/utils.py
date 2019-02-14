@@ -70,6 +70,12 @@ ORIGINS = [
             'project': None,
             'type': 'git',
             'url': 'https://github.com/librariesio/yarn-parser'},
+        {
+            'id': 54974446,
+            'lister': None,
+            'project': None,
+            'type': 'git',
+            'url': 'https://github.com/librariesio/yarn-parser.git'},
         ]
 
 SNAPSHOTS = {
@@ -148,7 +154,13 @@ SNAPSHOTS = {
                     b'HEAD': {
                         'target': hash_to_bytes(
                             '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
-                        'target_type': 'revision'}}}
+                        'target_type': 'revision'}}},
+        54974446: {
+                'branches': {
+                    b'HEAD': {
+                        'target': hash_to_bytes(
+                            '8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
+                        'target_type': 'revision'}}},
         }
 
 
