@@ -312,7 +312,7 @@ class OriginMetadataIndexer(OriginIndexer):
         for (orig_item, rev_item) in results:
             if rev_item not in rev_metadata:
                 rev_metadata.append(rev_item)
-            if rev_item not in orig_metadata:
+            if orig_item not in orig_metadata:
                 orig_metadata.append(orig_item)
 
         self.idx_storage.revision_metadata_add(
