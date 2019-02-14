@@ -1,8 +1,19 @@
-swh-indexer (0.0.133-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.134-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.134     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-02-13 23:46:44
+    +0100)
+  * Upstream changes:     - v0.0.134     - package: Break dependency of
+    swh.indexer.storage on swh.indexer.     - api/server: Do not read
+    configuration at each request     - metadata: Fix gemspec test     -
+    metadata: Prevent OriginMetadataIndexer from sending duplicate     -
+    revisions to revision_metadata_add.     - test: Fix bugs found by
+    hypothesis.     - test: Use hypothesis to generate adversarial
+    inputs.     - Add more type checks in metadata dictionary.     - Add
+    checks in the idx_storage that the same content/rev/orig is not     -
+    present twice in the new data.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 12 Feb 2019 09:37:46 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 14 Feb 2019 09:16:15 +0000
 
 swh-indexer (0.0.133-1~swh1) unstable-swh; urgency=medium
 

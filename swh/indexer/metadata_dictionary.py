@@ -127,6 +127,10 @@ class DictMapping(BaseMapping):
     """Base class for mappings that take as input a file that is mostly
     a key-value store (eg. a shallow JSON dict)."""
 
+    string_fields = []
+    '''List of fields that are simple strings, and don't need any
+    normalization.'''
+
     @property
     @abc.abstractmethod
     def mapping(self):
@@ -164,6 +168,12 @@ class DictMapping(BaseMapping):
                     self, 'normalize_' + k.replace('-', '_'), None)
                 if normalization_method:
                     v = normalization_method(v)
+                elif k in self.string_fields and isinstance(v, str):
+                    pass
+                elif k in self.string_fields and isinstance(v, list):
+                    v = [x for x in v if isinstance(x, str)]
+                else:
+                    continue
 
                 # set the translation metadata with the normalized value
                 if codemeta_key in translated_metadata:
@@ -215,6 +225,7 @@ class NpmMapping(JsonMapping):
     name = 'npm'
     mapping = CROSSWALK_TABLE['NodeJS']
     filename = b'package.json'
+    string_fields = ['name', 'version', 'homepage', 'description', 'email']
 
     _schema_shortcuts = {
             'github': 'git+https://github.com/%s.git',
@@ -240,7 +251,8 @@ class NpmMapping(JsonMapping):
         ...     'foo/bar')
         {'@id': 'git+https://github.com/foo/bar.git'}
         """
-        if isinstance(d, dict) and {'type', 'url'} <= set(d):
+        if isinstance(d, dict) and isinstance(d.get('type'), str) \
+                and isinstance(d.get('url'), str):
             url = '{type}+{url}'.format(**d)
         elif isinstance(d, str):
             if '://' in d:
@@ -271,8 +283,8 @@ class NpmMapping(JsonMapping):
         ...     'https://example.org/bugs/')
         {'@id': 'https://example.org/bugs/'}
         """
-        if isinstance(d, dict) and 'url' in d:
-            return {'@id': '{url}'.format(**d)}
+        if isinstance(d, dict) and isinstance(d.get('url'), str):
+            return {'@id': d['url']}
         elif isinstance(d, str):
             return {'@id': d}
         else:
@@ -317,11 +329,11 @@ class NpmMapping(JsonMapping):
             url = match.group('url')
         else:
             return None
-        if name:
+        if name and isinstance(name, str):
             author[SCHEMA_URI+'name'] = name
-        if email:
+        if email and isinstance(email, str):
             author[SCHEMA_URI+'email'] = email
-        if url:
+        if url and isinstance(url, str):
             author[SCHEMA_URI+'url'] = {'@id': url}
         return {"@list": [author]}
 
@@ -345,6 +357,15 @@ class NpmMapping(JsonMapping):
         if isinstance(s, str):
             return {"@id": s}
 
+    def normalize_keywords(self, l):
+        """https://docs.npmjs.com/files/package.json#homepage
+
+        >>> NpmMapping().normalize_keywords(['foo', 'bar'])
+        ['foo', 'bar']
+        """
+        if isinstance(l, list):
+            return [x for x in l if isinstance(x, str)]
+
 
 @register_mapping
 class CodemetaMapping(SingleFileMapping):
@@ -353,9 +374,14 @@ class CodemetaMapping(SingleFileMapping):
     """
     name = 'codemeta'
     filename = b'codemeta.json'
+    string_fields = ['name', 'version', 'url', 'description', 'email']
 
     def translate(self, content):
-        return self.normalize_translation(expand(json.loads(content.decode())))
+        try:
+            return self.normalize_translation(expand(
+                json.loads(content.decode())))
+        except Exception:
+            return None
 
 
 @register_mapping
@@ -366,6 +392,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
     name = 'maven'
     filename = b'pom.xml'
     mapping = CROSSWALK_TABLE['Java (Maven)']
+    string_fields = ['name', 'version', 'description', 'email']
 
     def translate(self, content):
         try:
@@ -408,15 +435,19 @@ class MavenMapping(DictMapping, SingleFileMapping):
         repositories = d.get('repositories')
         if not repositories:
             results = [self.parse_repository(d, self._default_repository)]
-        else:
+        elif isinstance(repositories, dict):
             repositories = repositories.get('repository') or []
             if not isinstance(repositories, list):
                 repositories = [repositories]
             results = [self.parse_repository(d, repo)
                        for repo in repositories]
+        else:
+            results = []
         return [res for res in results if res] or None
 
     def parse_repository(self, d, repo):
+        if not isinstance(repo, dict):
+            return
         if repo.get('layout', 'default') != 'default':
             return  # TODO ?
         url = repo.get('url')
@@ -433,7 +464,8 @@ class MavenMapping(DictMapping, SingleFileMapping):
         >>> MavenMapping().normalize_groupId('org.example')
         {'@id': 'org.example'}
         """
-        return {"@id": id_}
+        if isinstance(id_, str):
+            return {"@id": id_}
 
     def parse_licenses(self, d):
         """https://maven.apache.org/pom.html#Licenses
@@ -491,7 +523,8 @@ class MavenMapping(DictMapping, SingleFileMapping):
             return
         return [{"@id": license['url']}
                 for license in licenses
-                if isinstance(license, dict) and 'url' in license] or None
+                if isinstance(license, dict)
+                and isinstance(license.get('url'), str)] or None
 
 
 _normalize_pkginfo_key = str.lower
@@ -514,6 +547,8 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
     filename = b'PKG-INFO'
     mapping = {_normalize_pkginfo_key(k): v
                for (k, v) in CROSSWALK_TABLE['Python PKG-INFO'].items()}
+    string_fields = ['name', 'version', 'description', 'summary',
+                     'author', 'author-email']
 
     _parser = email.parser.BytesHeaderParser(
         policy=LinebreakPreservingEmailPolicy())
@@ -549,6 +584,7 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
 class GemspecMapping(DictMapping):
     name = 'gemspec'
     mapping = CROSSWALK_TABLE['Ruby Gem']
+    string_fields = ['name', 'version', 'description', 'summary', 'email']
 
     _re_spec_new = re.compile(r'.*Gem::Specification.new +(do|\{) +\|.*\|.*')
     _re_spec_entry = re.compile(r'\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)')

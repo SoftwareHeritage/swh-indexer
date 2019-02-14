@@ -3,10 +3,15 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import json
 import unittest
+
+from hypothesis import given, strategies
+import xmltodict
 
 from swh.model.hashutil import hash_to_bytes
 
+from swh.indexer.codemeta import CODEMETA_KEYS
 from swh.indexer.metadata_dictionary import (
     CROSSWALK_TABLE, MAPPINGS, merge_values)
 from swh.indexer.metadata_detector import (
@@ -17,7 +22,8 @@ from swh.indexer.metadata import (
 )
 
 from .utils import (
-    BASE_TEST_CONFIG, fill_obj_storage, fill_storage
+    BASE_TEST_CONFIG, fill_obj_storage, fill_storage,
+    YARN_PARSER_METADATA, json_document_strategy
 )
 
 
@@ -782,6 +788,18 @@ class Metadata(unittest.TestCase):
             'https://repo.maven.apache.org/maven2/com/mycompany/app/my-app',
         })
 
+        raw_content = b"""
+        <project>
+          <groupId></groupId>
+          <version>1.2.3</version>
+        </project>"""
+        result = self.maven_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'version': '1.2.3',
+        })
+
     def test_compute_metadata_maven_invalid_licenses(self):
         raw_content = b"""
         <project>
@@ -1040,6 +1058,42 @@ Gem::Specification.new { |s|
             'description': 'execute system commands with aliases',
         })
 
+    @given(json_document_strategy(
+        keys=list(MAPPINGS['NpmMapping'].mapping)))
+    def test_npm_adversarial(self, doc):
+        raw = json.dumps(doc).encode()
+        self.npm_mapping.translate(raw)
+
+    @given(json_document_strategy(keys=CODEMETA_KEYS))
+    def test_codemeta_adversarial(self, doc):
+        raw = json.dumps(doc).encode()
+        self.codemeta_mapping.translate(raw)
+
+    @given(json_document_strategy(
+        keys=list(MAPPINGS['MavenMapping'].mapping)))
+    def test_maven_adversarial(self, doc):
+        raw = xmltodict.unparse({'project': doc}, pretty=True)
+        self.maven_mapping.translate(raw)
+
+    @given(strategies.dictionaries(
+        # keys
+        strategies.one_of(
+            strategies.text(),
+            *map(strategies.just, MAPPINGS['GemspecMapping'].mapping)
+        ),
+        # values
+        strategies.recursive(
+            strategies.characters(),
+            lambda children: strategies.lists(children, 1)
+        )
+    ))
+    def test_gemspec_adversarial(self, doc):
+        parts = [b'Gem::Specification.new do |s|\n']
+        for (k, v) in doc.items():
+            parts.append('  s.{} = {}\n'.format(k, repr(v)).encode())
+        parts.append(b'end\n')
+        self.gemspec_mapping.translate(b''.join(parts))
+
     def test_revision_metadata_indexer(self):
         metadata_indexer = RevisionMetadataIndexer(
             config=REVISION_METADATA_CONFIG)
@@ -1053,24 +1107,7 @@ Gem::Specification.new { |s|
         metadata_indexer.idx_storage.content_metadata_add([{
             'indexer_configuration_id': tool['id'],
             'id': b'cde',
-            'translated_metadata': {
-                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-                'type': 'SoftwareSourceCode',
-                'issueTracker':
-                    'https://github.com/librariesio/yarn-parser/issues',
-                'version': '1.0.0',
-                'name': 'yarn-parser',
-                'author': ['Andrew Nesbitt'],
-                'url':
-                    'https://github.com/librariesio/yarn-parser#readme',
-                'processorRequirements': {'node': '7.5'},
-                'license': 'AGPL-3.0',
-                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-                'codeRepository':
-                    'git+https://github.com/librariesio/yarn-parser.git',
-                'description':
-                    'Tiny web service for parsing yarn.lock files',
-                }
+            'translated_metadata': YARN_PARSER_METADATA,
         }])
 
         sha1_gits = [
@@ -1084,22 +1121,7 @@ Gem::Specification.new { |s|
         expected_results = [{
             'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'tool': TRANSLATOR_TOOL,
-            'translated_metadata': {
-                '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-                'url':
-                    'https://github.com/librariesio/yarn-parser#readme',
-                'codeRepository':
-                    'git+https://github.com/librariesio/yarn-parser.git',
-                'author': ['Andrew Nesbitt'],
-                'license': 'AGPL-3.0',
-                'version': '1.0.0',
-                'description':
-                    'Tiny web service for parsing yarn.lock files',
-                'issueTracker':
-                    'https://github.com/librariesio/yarn-parser/issues',
-                'name': 'yarn-parser',
-                'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
-            },
+            'translated_metadata': YARN_PARSER_METADATA,
             'mappings': ['npm'],
         }]
 

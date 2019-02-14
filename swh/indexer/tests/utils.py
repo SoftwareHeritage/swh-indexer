@@ -8,6 +8,8 @@ import datetime
 import hashlib
 import random
 
+from hypothesis import strategies
+
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
 
@@ -372,6 +374,60 @@ OBJ_STORAGE_DATA = {
     }
 """
 }
+
+
+YARN_PARSER_METADATA = {
+    '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+    'url':
+        'https://github.com/librariesio/yarn-parser#readme',
+    'codeRepository':
+        'git+git+https://github.com/librariesio/yarn-parser.git',
+    'author': [{
+        'type': 'Person',
+        'name': 'Andrew Nesbitt'
+    }],
+    'license': 'https://spdx.org/licenses/AGPL-3.0',
+    'version': '1.0.0',
+    'description':
+        'Tiny web service for parsing yarn.lock files',
+    'issueTracker':
+        'https://github.com/librariesio/yarn-parser/issues',
+    'name': 'yarn-parser',
+    'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+}
+
+
+json_dict_keys = strategies.one_of(
+    strategies.characters(),
+    *map(strategies.just, ['type', 'url', 'name', 'email', '@id',
+                           '@context', 'repository', 'license',
+                           ]),
+)
+"""Hypothesis strategy that generates strings, with an emphasis on those
+that are often used as dictionary keys in metadata files."""
+
+
+generic_json_document = strategies.recursive(
+    strategies.none() | strategies.booleans() | strategies.floats() |
+    strategies.characters(),
+    lambda children: (
+        strategies.lists(children, 1) |
+        strategies.dictionaries(json_dict_keys, children, min_size=1)
+    )
+)
+"""Hypothesis strategy that generates possible values for values of JSON
+metadata files."""
+
+
+def json_document_strategy(keys=None):
+    """Generates an hypothesis strategy that generates metadata files
+    for a format that uses the given keys."""
+    if keys is None:
+        keys = strategies.characters()
+    else:
+        keys = strategies.one_of(map(strategies.just, keys))
+
+    return strategies.dictionaries(keys, generic_json_document, min_size=1)
 
 
 def filter_dict(d, keys):

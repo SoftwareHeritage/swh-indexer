@@ -303,13 +303,22 @@ class OriginMetadataIndexer(OriginIndexer):
         return results
 
     def persist_index_computations(self, results, policy_update):
+        conflict_update = (policy_update == 'update-dups')
+
+        # Deduplicate revisions
+        rev_metadata = []
+        orig_metadata = []
+        for (orig_item, rev_item) in results:
+            if rev_item not in rev_metadata:
+                rev_metadata.append(rev_item)
+            if rev_item not in orig_metadata:
+                orig_metadata.append(orig_item)
+
         self.idx_storage.revision_metadata_add(
-            [rev_item for (orig_item, rev_item) in results],
-            conflict_update=(policy_update == 'update-dups'))
+            rev_metadata, conflict_update=conflict_update)
 
         self.idx_storage.origin_intrinsic_metadata_add(
-            [orig_item for (orig_item, rev_item) in results],
-            conflict_update=(policy_update == 'update-dups'))
+            orig_metadata, conflict_update=conflict_update)
 
 
 @click.command()
