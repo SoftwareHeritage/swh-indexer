@@ -1,3 +1,12 @@
+swh-indexer (0.0.135-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.135     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-02-14 14:45:24 +0100)
+  * Upstream changes:     - Fix deduplication of origins when persisting
+    origin intrinsic metadata.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 14 Feb 2019 14:32:55 +0000
+
 swh-indexer (0.0.134-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.134     - (tagged by Antoine R. Dumont
