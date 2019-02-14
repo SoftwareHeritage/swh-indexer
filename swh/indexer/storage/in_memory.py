@@ -11,7 +11,7 @@ import operator
 import math
 import re
 
-from ..metadata_dictionary import MAPPINGS
+from . import MAPPING_NAMES
 
 SHA1_DIGEST_SIZE = 160
 
@@ -130,6 +130,10 @@ class SubStorage:
               (true) or skip duplicates (false)
 
         """
+        data = list(data)
+        if len({x['id'] for x in data}) < len(data):
+            # For "exception-compatibility" with the pgsql backend
+            raise ValueError('The same id is present more than once.')
         for item in data:
             item = item.copy()
             tool_id = item.pop('indexer_configuration_id')
@@ -679,7 +683,7 @@ class IndexerStorage:
                   mapping. Note that indexing a given origin may use
                   0, 1, or many mappings.
         """
-        mapping_count = {m.name: 0 for m in MAPPINGS.values()}
+        mapping_count = {m: 0 for m in MAPPING_NAMES}
         total = non_empty = 0
         for data in self._origin_intrinsic_metadata.get_all():
             total += 1

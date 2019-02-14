@@ -11,12 +11,13 @@ from hypothesis import given
 
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer.storage import get_indexer_storage
+from swh.indexer.storage import get_indexer_storage, MAPPING_NAMES
 from swh.core.tests.db_testing import SingleDbTestFixture
 from swh.indexer.tests.storage.generate_data_test import (
     gen_content_mimetypes, gen_content_fossology_licenses
 )
 from swh.indexer.tests.storage import SQL_DIR
+from swh.indexer.metadata_dictionary import MAPPINGS
 
 TOOLS = [
     {
@@ -223,6 +224,41 @@ def gen_generic_endpoint_tests(endpoint_type, tool_name,
         # data did change as the v2 was used to overwrite v1
         self.assertEqual(actual_data, expected_data_v2)
 
+    def add__duplicate_twice(self):
+        # given
+        tool_id = self.tools[tool_name]['id']
+
+        data_rev1 = {
+            'id': self.revision_id_2,
+            **example_data1,
+            'indexer_configuration_id': tool_id
+        }
+
+        data_rev2 = {
+            'id': self.revision_id_2,
+            **example_data2,
+            'indexer_configuration_id': tool_id
+        }
+
+        # when
+        endpoint(self, 'add')([data_rev1])
+
+        with self.assertRaises(ValueError):
+            endpoint(self, 'add')(
+                [data_rev2, data_rev2],
+                conflict_update=True)
+
+        # then
+        actual_data = list(endpoint(self, 'get')(
+            [self.revision_id_2, self.revision_id_1]))
+
+        expected_data = [{
+            'id': self.revision_id_2,
+            **example_data1,
+            'tool': self.tools[tool_name]
+        }]
+        self.assertEqual(actual_data, expected_data)
+
     @rename
     def get(self):
         # given
@@ -255,6 +291,7 @@ def gen_generic_endpoint_tests(endpoint_type, tool_name,
         missing,
         add__drop_duplicate,
         add__update_in_place_duplicate,
+        add__duplicate_twice,
         get,
     )
 
@@ -300,6 +337,7 @@ class CommonTestStorage:
         test_content_mimetype_missing,
         test_content_mimetype_add__drop_duplicate,
         test_content_mimetype_add__update_in_place_duplicate,
+        test_content_mimetype_add__duplicate_twice,
         test_content_mimetype_get,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_mimetype',
@@ -319,6 +357,7 @@ class CommonTestStorage:
         test_content_language_missing,
         test_content_language_add__drop_duplicate,
         test_content_language_add__update_in_place_duplicate,
+        test_content_language_add__duplicate_twice,
         test_content_language_get,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_language',
@@ -337,6 +376,7 @@ class CommonTestStorage:
         # the following tests are disabled because CTAGS behave differently
         _,  # test_content_ctags_add__drop_duplicate,
         _,  # test_content_ctags_add__update_in_place_duplicate,
+        _,  # test_content_ctags_add__duplicate_twice,
         _,  # test_content_ctags_get,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_ctags',
@@ -676,6 +716,7 @@ class CommonTestStorage:
         # behave differently
         _,  # test_content_fossology_license_add__drop_duplicate,
         _,  # test_content_fossology_license_add__update_in_place_duplicate,
+        _,  # test_content_metadata_add__duplicate_twice,
         _,  # test_content_fossology_license_get,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_fossology_license',
@@ -743,6 +784,7 @@ class CommonTestStorage:
         test_content_metadata_missing,
         test_content_metadata_add__drop_duplicate,
         test_content_metadata_add__update_in_place_duplicate,
+        test_content_metadata_add__duplicate_twice,
         test_content_metadata_get,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_metadata',
@@ -773,6 +815,7 @@ class CommonTestStorage:
         test_revision_metadata_missing,
         test_revision_metadata_add__drop_duplicate,
         test_revision_metadata_add__update_in_place_duplicate,
+        test_revision_metadata_add__duplicate_twice,
         test_revision_metadata_get,
     ) = gen_generic_endpoint_tests(
         endpoint_type='revision_metadata',
@@ -1552,3 +1595,7 @@ class IndexerTestStorage(CommonTestStorage, BasePgTestStorage,
 
     """
     pass
+
+
+def test_mapping_names():
+    assert set(MAPPING_NAMES) == {m.name for m in MAPPINGS.values()}

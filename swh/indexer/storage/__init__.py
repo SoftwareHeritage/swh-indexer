@@ -13,12 +13,14 @@ from swh.core.api import remote_api_endpoint
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
 from .db import Db
-from ..metadata_dictionary import MAPPINGS
 
 from . import converters
 
 
 INDEXER_CFG_KEY = 'indexer_storage'
+
+
+MAPPING_NAMES = ['codemeta', 'gemspec', 'maven', 'npm', 'pkg-info']
 
 
 def get_indexer_storage(cls, args):
@@ -47,6 +49,34 @@ def get_indexer_storage(cls, args):
         raise ValueError('Unknown indexer storage class `%s`' % cls)
 
     return IndexerStorage(**args)
+
+
+def _check_duplicates(data, key):
+    """
+    If any two dictionaries in `data` have the same value for the
+    key, raises a `ValueError`.
+
+    Values associated to the key must be hashable.
+
+    Args:
+        data (List[dict]): List of dictionaries to be inserted
+        key (str): Name of the key that acts as id.
+
+    >>> _check_duplicates([
+    ...     {'id': 'foo', 'data': 'spam'},
+    ...     {'id': 'bar', 'data': 'egg'},
+    ... ], 'id')
+    >>> _check_duplicates([
+    ...     {'id': 'foo', 'data': 'spam'},
+    ...     {'id': 'foo', 'data': 'egg'},
+    ... ], 'id')
+    Traceback (most recent call last):
+      ...
+    ValueError: The same id is present more than once.
+    """
+    if len({item[key] for item in data}) < len(data):
+        raise ValueError(
+            'The same {} is present more than once.'.format(key))
 
 
 class IndexerStorage:
@@ -216,6 +246,7 @@ class IndexerStorage:
                 default)
 
         """
+        _check_duplicates(mimetypes, 'id')
         db.mktemp_content_mimetype(cur)
         db.copy_to(mimetypes, 'tmp_content_mimetype',
                    ['id', 'mimetype', 'encoding', 'indexer_configuration_id'],
@@ -300,6 +331,7 @@ class IndexerStorage:
                 default)
 
         """
+        _check_duplicates(languages, 'id')
         db.mktemp_content_language(cur)
         # empty language is mapped to 'unknown'
         db.copy_to(
@@ -369,6 +401,8 @@ class IndexerStorage:
                   line, lang
 
         """
+        _check_duplicates(ctags, 'id')
+
         def _convert_ctags(__ctags):
             """Convert ctags dict to list of ctags.
 
@@ -449,7 +483,7 @@ class IndexerStorage:
             list: content_license entries which failed due to unknown licenses
 
         """
-        # Then, we add the correct ones
+        _check_duplicates(licenses, 'id')
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
             ({
@@ -547,6 +581,8 @@ class IndexerStorage:
                 or skip duplicates (false, the default)
 
         """
+        _check_duplicates(metadata, 'id')
+
         db.mktemp_content_metadata(cur)
 
         db.copy_to(metadata, 'tmp_content_metadata',
@@ -614,6 +650,8 @@ class IndexerStorage:
               or skip duplicates (false, the default)
 
         """
+        _check_duplicates(metadata, 'id')
+
         db.mktemp_revision_metadata(cur)
 
         db.copy_to(metadata, 'tmp_revision_metadata',
@@ -666,6 +704,8 @@ class IndexerStorage:
               or skip duplicates (false, the default)
 
         """
+        _check_duplicates(metadata, 'origin_id')
+
         db.mktemp_origin_intrinsic_metadata(cur)
 
         db.copy_to(metadata, 'tmp_origin_intrinsic_metadata',
@@ -718,7 +758,7 @@ class IndexerStorage:
                   mapping. Note that indexing a given origin may use
                   0, 1, or many mappings.
         """
-        mapping_names = [m.name for m in MAPPINGS.values()]
+        mapping_names = [m for m in MAPPING_NAMES]
         select_parts = []
 
         # Count rows for each mapping
