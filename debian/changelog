@@ -1,8 +1,13 @@
-swh-indexer (0.0.135-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.136-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.136     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-02-14 17:09:00 +0100)
+  * Upstream changes:     - Don't send 'None' as a revision id to
+    storage.revision_get.     - This error wasn't caught before because
+    the in-mem storage     - accepts None values, but the pg storage
+    doesn't.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 14 Feb 2019 14:34:27 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 14 Feb 2019 16:22:41 +0000
 
 swh-indexer (0.0.135-1~swh1) unstable-swh; urgency=medium
 
