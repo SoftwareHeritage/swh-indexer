@@ -1,0 +1,377 @@
+{
+	"$schema": "http://json-schema.org/draft-04/schema",
+	"id": "lib://package.json",
+	"title": "package.json-schema",
+	"description": "JSON Schema for node/npm package.json",
+	"$ref": "lib://package.json#/definitions/standard",
+	"definitions": {
+		"minimal": {
+			"allOf": [
+				{
+					"$ref": "lib://package.json#/definitions/structure"
+				},
+				{
+					"required": [
+						"name",
+						"version"
+					]
+				}
+			]
+		},
+		"standard": {
+			"allOf": [
+				{
+					"$ref": "lib://package.json#/definitions/structure"
+				},
+				{
+					"required": [
+						"name",
+						"version",
+						"description",
+						"keywords",
+						"author",
+						"homepage",
+						"repository",
+						"bugs",
+						"licenses",
+						"engines",
+						"main",
+						"scripts",
+						"dependencies",
+						"devDependencies"
+					],
+					"properties": {
+						"scripts": {
+							"type": "object",
+							"properties": {
+								"test": {
+									"type" : "string",
+									"pattern": "[a-zA-Z]"
+								}
+							}
+						},
+						"author": {
+							"$ref": "lib://package.json#/definitions/person-object"
+						},
+						"contributors": {
+							"type": "array",
+							"items": {
+								"$ref": "lib://package.json#/definitions/person-object"
+							}
+						},
+						"maintainers": {
+							"type": "array",
+							"items": {
+								"$ref": "lib://package.json#/definitions/person-object"
+							}
+						}
+					}
+				}
+			]
+		},
+		"structure": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"$ref": "lib://package.json#/definitions/name"
+				},
+				"version": {
+					"$ref": "lib://package.json#/definitions/semver"
+				},
+				"description": {
+					"type": "string",
+					"minLength": 1
+				},
+				"keywords": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": {
+						"$ref": "lib://package.json#/definitions/name"
+					}
+				},
+				"author": {
+					"$ref": "lib://package.json#/definitions/person"
+				},
+				"contributors": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": {
+						"$ref": "lib://package.json#/definitions/person"
+					}
+				},
+				"maintainers": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": {
+						"$ref": "lib://package.json#/definitions/person"
+					}
+				},
+				"homepage": {
+					"$ref": "lib://package.json#/definitions/uri-http"
+				},
+				"repository": {
+					"$ref": "lib://package.json#/definitions/repository"
+				},
+				"man": {
+					"oneOf": [
+						{
+							"$ref": "lib://package.json#/definitions/path"
+						},
+						{
+							"type": "array",
+							"uniqueItems": true,
+							"items": {
+								"$ref": "lib://package.json#/definitions/path"
+							}
+						}
+					]
+				},
+				"bugs": {
+					"oneOf": [
+						{
+							"$ref": "lib://package.json#/definitions/uri-http"
+						},
+						{
+							"type": "object",
+							"required": [
+								"url"
+							],
+							"properties": {
+								"url": {
+									"$ref": "lib://package.json#/definitions/uri-http"
+								},
+								"email": {
+									"$ref": "lib://package.json#/definitions/email"
+								}
+							}
+						}
+					]
+				},
+				"license": {
+					"$ref": "lib://package.json#/definitions/licence"
+				},
+				"licenses": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": {
+						"$ref": "lib://package.json#/definitions/licence"
+					}
+				},
+				"private": {
+					"type": "boolean"
+				},
+				"preferGlobal": {
+					"type": "boolean"
+				},
+				"engines": {
+					"$ref": "lib://package.json#/definitions/string-map"
+				},
+				"engineStrict": {
+					"type": "boolean"
+				},
+				"main": {
+					"$ref": "lib://package.json#/definitions/path"
+				},
+				"bin": {
+					"oneOf": [
+						{
+							"$ref": "lib://package.json#/definitions/path"
+						},
+						{
+
+							"$ref": "lib://package.json#/definitions/path-map"
+						}
+					]
+				},
+				"files": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": {
+						"$ref": "lib://package.json#/definitions/path"
+					}
+				},
+				"os": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": {
+						"$ref": "lib://package.json#/definitions/identifier"
+					}
+				},
+				"cpu": {
+					"type": "array",
+					"uniqueItems": true,
+					"items": {
+						"$ref": "lib://package.json#/definitions/identifier"
+					}
+				},
+				"config": {
+					"type": "object"
+				},
+				"publishConfig": {
+					"type": "object"
+				},
+				"directories": {
+					"type": "object",
+					"properties": {
+						"lib": {
+							"$ref": "lib://package.json#/definitions/path"
+						},
+						"bin": {
+							"$ref": "lib://package.json#/definitions/path"
+						},
+						"man": {
+							"$ref": "lib://package.json#/definitions/path"
+						},
+						"doc": {
+							"$ref": "lib://package.json#/definitions/path"
+						},
+						"example": {
+							"$ref": "lib://package.json#/definitions/path"
+						}
+					}
+				},
+				"scripts": {
+					"$ref": "lib://package.json#/definitions/string-map"
+				},
+				"dependencies": {
+					"$ref": "lib://package.json#/definitions/dependency-map"
+				},
+				"devDependencies": {
+					"$ref": "lib://package.json#/definitions/dependency-map"
+				},
+				"bundledDependencies": {
+					"$ref": "lib://package.json#/definitions/dependency-map"
+				},
+				"bundleDependencies": {
+					"$ref": "lib://package.json#/definitions/dependency-map"
+				},
+				"optionalDependencies": {
+					"$ref": "lib://package.json#/definitions/dependency-map"
+				},
+				"peerDependencies": {
+					"$ref": "lib://package.json#/definitions/dependency-map"
+				}
+			}
+		},
+		"uri-http": {
+			"type": "string",
+			"pattern": "^https?:\/\/"
+		},
+		"email": {
+			"type": "string",
+			"pattern": "^([0-9a-zA-Z]([-\\.\\w]*[0-9a-zA-Z])*@([0-9a-zA-Z][-\\w]*[0-9a-zA-Z]\\.)+[a-zA-Z]{2,9})$"
+		},
+		"path": {
+			"type": "string",
+			"minLength": 1
+		},
+		"name": {
+			"type": "string",
+			"pattern": "^[A-Za-z](?:[_\\.-]?[A-Za-z0-9]+)*$"
+		},
+		"identifier": {
+			"type": "string",
+			"pattern": "^[A-Za-z](?:[_-]?[A-Za-z0-9]+)*$"
+		},
+		"semver": {
+			"type": "string",
+			"pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-z]+(?:[_\\.-]*[a-z0-9]+)*)*$"
+		},
+		"type-url": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": [
+				"type",
+				"url"
+			],
+			"properties": {
+				"type": {
+					"type": "string",
+					"pattern": "[a-zA-Z]"
+				},
+				"url": {
+					"$ref": "lib://package.json#/definitions/uri-http"
+				}
+			}
+
+		},
+		"repository": {
+			"$ref": "lib://package.json#/definitions/type-url"
+		},
+		"licence": {
+			"oneOf": [
+				{
+					"type": "string",
+					"pattern": "[a-zA-Z]"
+				},
+				{
+					"$ref": "lib://package.json#/definitions/licence-object"
+				}
+			]
+		},
+		"licence-object": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"type": {
+					"type": "string",
+					"pattern": "[a-zA-Z]"
+				},
+				"url": {
+					"$ref": "lib://package.json#/definitions/uri-http"
+				}
+			}
+		},
+		"person": {
+			"oneOf": [
+				{
+					"type": "string",
+					"pattern": "[a-zA-Z]"
+				},
+				{
+					"$ref": "lib://package.json#/definitions/person-object"
+				}
+			]
+		},
+		"person-object": {
+			"type": "object",
+			"required": [
+				"name"
+			],
+			"properties": {
+				"name": {
+					"type": "string",
+					"pattern": "[a-zA-Z]"
+				},
+				"email": {
+					"$ref": "lib://package.json#/definitions/email"
+				},
+				"url": {
+					"$ref": "lib://package.json#/definitions/uri-http"
+				}
+			}
+		},
+		"string-map": {
+			"type": "object",
+			"additionalProperties": false,
+			"patternProperties": {
+				".+": {
+					"type": "string"
+				}
+			}
+		},
+		"path-map": {
+			"type": "object",
+			"additionalProperties": false,
+			"patternProperties": {
+				".+": {
+					"$ref": "lib://package.json#/definitions/path",
+					"pattern": "[a-zA-Z]"
+				}
+			}
+		},
+		"dependency-map": {
+			"$ref": "lib://package.json#/definitions/string-map"
+		}
+	}
+}

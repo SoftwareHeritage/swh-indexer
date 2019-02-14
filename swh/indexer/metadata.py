@@ -284,7 +284,7 @@ class OriginMetadataIndexer(OriginIndexer):
         assert len(head_revs) == len(head_rev_ids)
 
         results = []
-        for (orig, rev) in zip(origins, head_revs):
+        for (origin, rev) in zip(origins, head_revs):
             if not rev:
                 self.warning('Missing head revision %s of origin %r',
                              (hashutil.hash_to_bytes(rev['id']), origin))

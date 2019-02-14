@@ -77,7 +77,7 @@ def test_origin_metadata_indexer(
     assert results == [origin_metadata]
 
 
-def test_origin_metadata_indexer_duplicates(
+def test_origin_metadata_indexer_duplicate_origin(
         idx_storage, storage, obj_storage, origin_metadata_indexer):
     indexer = OriginMetadataIndexer()
     indexer.storage = storage
@@ -161,3 +161,28 @@ def test_origin_metadata_indexer_partial_missing_head(
     for result in results:
         del result['tool']
     assert results == [origin_metadata]
+
+
+def test_origin_metadata_indexer_duplicate_revision(
+        idx_storage, storage, obj_storage, origin_metadata_indexer):
+    indexer = OriginMetadataIndexer()
+    indexer.storage = storage
+    indexer.idx_storage = idx_storage
+    indexer.run(["git+https://github.com/librariesio/yarn-parser",
+                 "git+https://github.com/librariesio/yarn-parser.git"])
+
+    origin1 = storage.origin_get({
+        'type': 'git',
+        'url': 'https://github.com/librariesio/yarn-parser'})
+    origin2 = storage.origin_get({
+        'type': 'git',
+        'url': 'https://github.com/librariesio/yarn-parser.git'})
+    assert origin1['id'] != origin2['id']
+    rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
+
+    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    assert len(results) == 1
+
+    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
+        origin1['id'], origin2['id']]))
+    assert len(results) == 2
