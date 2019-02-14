@@ -614,10 +614,12 @@ class IndexerStorage:
 
         """
 
+        items = []
         for item in metadata:
             item = item.copy()
             item['id'] = item.pop('origin_id')
-            self._origin_intrinsic_metadata.add([item], conflict_update)
+            items.append(item)
+        self._origin_intrinsic_metadata.add(items, conflict_update)
 
     def origin_intrinsic_metadata_search_fulltext(
             self, conjunction, limit=100):
