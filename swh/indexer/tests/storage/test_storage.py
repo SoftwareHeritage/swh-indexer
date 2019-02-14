@@ -1053,6 +1053,48 @@ class CommonTestStorage:
         # metadata did change as the v2 was used to overwrite v1
         self.assertEqual(actual_metadata, expected_metadata_v2)
 
+    def test_origin_intrinsic_metadata_add__duplicate_twice(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata = {
+            'developmentStatus': None,
+            'version': None,
+            'operatingSystem': None,
+            'description': None,
+            'keywords': None,
+            'issueTracker': None,
+            'name': None,
+            'author': None,
+            'relatedLink': None,
+            'url': None,
+            'license': None,
+            'maintainer': None,
+            'email': None,
+            'softwareRequirements': None,
+            'identifier': None,
+        }
+        metadata_rev = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata,
+            'mappings': ['mapping1'],
+            'indexer_configuration_id': tool_id,
+        }
+        metadata_origin = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata,
+            'indexer_configuration_id': tool_id,
+            'mappings': ['mapping1'],
+            'from_revision': self.revision_id_2,
+            }
+
+        # when
+        self.storage.revision_metadata_add([metadata_rev])
+
+        with self.assertRaises(ValueError):
+            self.storage.origin_intrinsic_metadata_add([
+                metadata_origin, metadata_origin])
+
     def test_origin_intrinsic_metadata_search_fulltext(self):
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
