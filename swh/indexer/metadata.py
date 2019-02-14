@@ -274,18 +274,18 @@ class OriginMetadataIndexer(OriginIndexer):
 
     def index_list(self, origins):
         head_rev_ids = []
+        origins_with_head = []
         for origin in origins:
             head_result = self.origin_head_indexer.index(origin)
-            if not head_result:
-                head_rev_ids.append(None)
-            else:
+            if head_result:
+                origins_with_head.append(origin)
                 head_rev_ids.append(head_result['revision_id'])
 
         head_revs = list(self.storage.revision_get(head_rev_ids))
         assert len(head_revs) == len(head_rev_ids)
 
         results = []
-        for (origin, rev) in zip(origins, head_revs):
+        for (origin, rev) in zip(origins_with_head, head_revs):
             if not rev:
                 self.log.warning('Missing head revision of origin %r',
                                  origin)
