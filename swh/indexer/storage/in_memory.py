@@ -556,6 +556,8 @@ class IndexerStorage:
             - **id** (bytes)
             - **translated_metadata** (str): associated metadata
             - **tool** (dict): tool used to compute metadata
+            - **mappings** (List[str]): list of mappings used to translate
+              these metadata
 
         """
         yield from self._revision_metadata.get(ids)
@@ -569,6 +571,8 @@ class IndexerStorage:
               - **id**: sha1_git of revision
               - **translated_metadata**: arbitrary dict
               - **indexer_configuration_id**: tool used to compute metadata
+              - **mappings** (List[str]): list of mappings used to translate
+                these metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -590,6 +594,8 @@ class IndexerStorage:
                 - **origin_id** (int)
                 - **translated_metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
         """
         for item in self._origin_intrinsic_metadata.get(ids):
@@ -608,6 +614,8 @@ class IndexerStorage:
                   these metadata.
                 - **metadata**: arbitrary dict
                 - **indexer_configuration_id**: tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -635,6 +643,8 @@ class IndexerStorage:
                 - **id** (int)
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
         """
         # A very crude fulltext search implementation, but that's enough
