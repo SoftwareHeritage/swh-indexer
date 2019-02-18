@@ -324,9 +324,9 @@ class CommonTestStorage:
             '7026b7c1a2af56521e9587659012345678904321')
         self.revision_id_3 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904320')
-        self.origin_id_1 = 54974445
+        self.origin_id_1 = 44434341
         self.origin_id_2 = 44434342
-        self.origin_id_3 = 44434341
+        self.origin_id_3 = 54974445
 
     def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
@@ -1173,8 +1173,7 @@ class CommonTestStorage:
                 [res['origin_id'] for res in search(['John', 'Jane'])],
                 [self.origin_id_1])
 
-    def test_origin_intrinsic_metadata_stats(self):
-        # given
+    def _fill_origin_intrinsic_metadata(self):
         tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata1 = {
@@ -1228,7 +1227,6 @@ class CommonTestStorage:
             'from_revision': self.revision_id_3,
         }
 
-        # when
         self.storage.revision_metadata_add([metadata1_rev])
         self.storage.origin_intrinsic_metadata_add([metadata1_origin])
         self.storage.revision_metadata_add([metadata2_rev])
@@ -1236,7 +1234,66 @@ class CommonTestStorage:
         self.storage.revision_metadata_add([metadata3_rev])
         self.storage.origin_intrinsic_metadata_add([metadata3_origin])
 
-        # then
+    def test_origin_intrinsic_metadata_search_by_producer(self):
+        self._fill_origin_intrinsic_metadata()
+        tool = self.tools['swh-metadata-detector']
+        endpoint = self.storage.origin_intrinsic_metadata_search_by_producer
+
+        # test pagination
+        self.assertCountEqual(
+            endpoint(ids_only=True),
+            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(start=0, ids_only=True),
+            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(start=0, limit=2, ids_only=True),
+            [self.origin_id_1, self.origin_id_2])
+        self.assertCountEqual(
+            endpoint(start=self.origin_id_1+1, ids_only=True),
+            [self.origin_id_2, self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(start=self.origin_id_1+1, end=self.origin_id_3-1,
+                     ids_only=True),
+            [self.origin_id_2])
+
+        # test mappings filtering
+        self.assertCountEqual(
+            endpoint(mappings=['npm'], ids_only=True),
+            [self.origin_id_1, self.origin_id_2])
+        self.assertCountEqual(
+            endpoint(mappings=['npm', 'gemspec'], ids_only=True),
+            [self.origin_id_1, self.origin_id_2])
+        self.assertCountEqual(
+            endpoint(mappings=['gemspec'], ids_only=True),
+            [self.origin_id_2])
+        self.assertCountEqual(
+            endpoint(mappings=['pkg-info'], ids_only=True),
+            [self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(mappings=['foobar'], ids_only=True),
+            [])
+
+        # test pagination + mappings
+        self.assertCountEqual(
+            endpoint(mappings=['npm'], limit=1, ids_only=True),
+            [self.origin_id_1])
+
+        # test ids_only=False
+        self.assertEqual(list(endpoint(mappings=['gemspec'])), [{
+            'origin_id': self.origin_id_2,
+            'metadata': {
+                '@context': 'foo',
+                'author': 'Jane Doe',
+            },
+            'mappings': ['npm', 'gemspec'],
+            'tool': tool,
+            'from_revision': self.revision_id_2,
+        }])
+
+    def test_origin_intrinsic_metadata_stats(self):
+        self._fill_origin_intrinsic_metadata()
+
         result = self.storage.origin_intrinsic_metadata_stats()
         self.assertEqual(result, {
             'per_mapping': {

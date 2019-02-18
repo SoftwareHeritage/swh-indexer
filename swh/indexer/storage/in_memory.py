@@ -680,6 +680,50 @@ class IndexerStorage:
             result['origin_id'] = result.pop('id')
             yield result
 
+    def origin_intrinsic_metadata_search_by_producer(
+            self, start=0, end=None, limit=100, ids_only=False,
+            mappings=None,
+            db=None, cur=None):
+        """Returns the list of origins whose metadata contain all the terms.
+
+        Args:
+            start (int): The minimum origin id to return
+            end (int): The maximum origin id to return
+            limit (int): The maximum number of results to return
+            ids_only (bool): Determines whether only origin ids are returned
+                or the content as well
+            mappings (List[str]): Returns origins whose intrinsic metadata
+                were generated using at least one of these mappings.
+
+        Yields:
+            list: list of origin ids (int) if `ids_only=True`, else
+                dictionaries with the following keys:
+
+                - **id** (int)
+                - **metadata** (str): associated metadata
+                - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
+
+        """
+        nb_results = 0
+        if mappings is not None:
+            mappings = frozenset(mappings)
+        for entry in self._origin_intrinsic_metadata.get_all():
+            if entry['id'] < start or (end and entry['id'] > end):
+                continue
+            if nb_results >= limit:
+                return
+            if mappings is not None and mappings.isdisjoint(entry['mappings']):
+                continue
+            if ids_only:
+                yield entry['id']
+            else:
+                entry = entry.copy()
+                entry['origin_id'] = entry.pop('id')
+                yield entry
+            nb_results += 1
+
     def origin_intrinsic_metadata_stats(self):
         """Returns statistics on stored intrinsic metadata.
 
