@@ -848,21 +848,8 @@ class CommonTestStorage:
         tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata = {
-            'developmentStatus': None,
             'version': None,
-            'operatingSystem': None,
-            'description': None,
-            'keywords': None,
-            'issueTracker': None,
             'name': None,
-            'author': None,
-            'relatedLink': None,
-            'url': None,
-            'license': None,
-            'maintainer': None,
-            'email': None,
-            'softwareRequirements': None,
-            'identifier': None,
         }
         metadata_rev = {
             'id': self.revision_id_2,
@@ -901,21 +888,8 @@ class CommonTestStorage:
         tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata_v1 = {
-            'developmentStatus': None,
             'version': None,
-            'operatingSystem': None,
-            'description': None,
-            'keywords': None,
-            'issueTracker': None,
             'name': None,
-            'author': None,
-            'relatedLink': None,
-            'url': None,
-            'license': None,
-            'maintainer': None,
-            'email': None,
-            'softwareRequirements': None,
-            'identifier': None
         }
         metadata_rev_v1 = {
             'id': self.revision_id_1,
@@ -975,21 +949,8 @@ class CommonTestStorage:
         tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata_v1 = {
-            'developmentStatus': None,
             'version': None,
-            'operatingSystem': None,
-            'description': None,
-            'keywords': None,
-            'issueTracker': None,
             'name': None,
-            'author': None,
-            'relatedLink': None,
-            'url': None,
-            'license': None,
-            'maintainer': None,
-            'email': None,
-            'softwareRequirements': None,
-            'identifier': None
         }
         metadata_rev_v1 = {
             'id': self.revision_id_2,
@@ -1059,20 +1020,7 @@ class CommonTestStorage:
 
         metadata = {
             'developmentStatus': None,
-            'version': None,
-            'operatingSystem': None,
-            'description': None,
-            'keywords': None,
-            'issueTracker': None,
             'name': None,
-            'author': None,
-            'relatedLink': None,
-            'url': None,
-            'license': None,
-            'maintainer': None,
-            'email': None,
-            'softwareRequirements': None,
-            'identifier': None,
         }
         metadata_rev = {
             'id': self.revision_id_2,
