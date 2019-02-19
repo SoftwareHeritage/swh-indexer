@@ -1,5 +1,0 @@
-swh-indexer (0.0.1-1) unstable; urgency=low
-
-  * Import initial source package.
-
- -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Tue, 27 Sep 2016 10:53:19 +0200
