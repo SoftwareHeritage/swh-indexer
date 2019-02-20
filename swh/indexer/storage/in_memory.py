@@ -682,7 +682,7 @@ class IndexerStorage:
 
     def origin_intrinsic_metadata_search_by_producer(
             self, start=0, end=None, limit=100, ids_only=False,
-            mappings=None,
+            mappings=None, tool_ids=None,
             db=None, cur=None):
         """Returns the list of origins whose metadata contain all the terms.
 
@@ -709,12 +709,16 @@ class IndexerStorage:
         nb_results = 0
         if mappings is not None:
             mappings = frozenset(mappings)
+        if tool_ids is not None:
+            tool_ids = frozenset(tool_ids)
         for entry in self._origin_intrinsic_metadata.get_all():
             if entry['id'] < start or (end and entry['id'] > end):
                 continue
             if nb_results >= limit:
                 return
             if mappings is not None and mappings.isdisjoint(entry['mappings']):
+                continue
+            if tool_ids is not None and entry['tool']['id'] not in tool_ids:
                 continue
             if ids_only:
                 yield entry['id']

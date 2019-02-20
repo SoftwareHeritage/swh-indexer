@@ -39,6 +39,12 @@ TOOLS = [
             "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
     },
     {
+        'tool_name': 'swh-metadata-detector2',
+        'tool_version': '0.0.1',
+        'tool_configuration': {
+            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
+    },
+    {
         'tool_name': 'file',
         'tool_version': '5.22',
         'tool_configuration': {"command_line": "file --mime <filepath>"},
@@ -1174,7 +1180,8 @@ class CommonTestStorage:
                 [self.origin_id_1])
 
     def _fill_origin_intrinsic_metadata(self):
-        tool_id = self.tools['swh-metadata-detector']['id']
+        tool1_id = self.tools['swh-metadata-detector']['id']
+        tool2_id = self.tools['swh-metadata-detector2']['id']
 
         metadata1 = {
             '@context': 'foo',
@@ -1184,13 +1191,13 @@ class CommonTestStorage:
             'id': self.revision_id_1,
             'translated_metadata': metadata1,
             'mappings': ['npm'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool1_id,
         }
         metadata1_origin = {
             'origin_id': self.origin_id_1,
             'metadata': metadata1,
             'mappings': ['npm'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool1_id,
             'from_revision': self.revision_id_1,
         }
         metadata2 = {
@@ -1201,13 +1208,13 @@ class CommonTestStorage:
             'id': self.revision_id_2,
             'translated_metadata': metadata2,
             'mappings': ['npm', 'gemspec'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool2_id,
         }
         metadata2_origin = {
             'origin_id': self.origin_id_2,
             'metadata': metadata2,
             'mappings': ['npm', 'gemspec'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool2_id,
             'from_revision': self.revision_id_2,
         }
         metadata3 = {
@@ -1217,13 +1224,13 @@ class CommonTestStorage:
             'id': self.revision_id_3,
             'translated_metadata': metadata3,
             'mappings': ['npm', 'gemspec'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool2_id,
         }
         metadata3_origin = {
             'origin_id': self.origin_id_3,
             'metadata': metadata3,
             'mappings': ['pkg-info'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool2_id,
             'from_revision': self.revision_id_3,
         }
 
@@ -1236,7 +1243,8 @@ class CommonTestStorage:
 
     def test_origin_intrinsic_metadata_search_by_producer(self):
         self._fill_origin_intrinsic_metadata()
-        tool = self.tools['swh-metadata-detector']
+        tool1 = self.tools['swh-metadata-detector']
+        tool2 = self.tools['swh-metadata-detector2']
         endpoint = self.storage.origin_intrinsic_metadata_search_by_producer
 
         # test pagination
@@ -1279,6 +1287,17 @@ class CommonTestStorage:
             endpoint(mappings=['npm'], limit=1, ids_only=True),
             [self.origin_id_1])
 
+        # test tool filtering
+        self.assertCountEqual(
+            endpoint(tool_ids=[tool1['id']], ids_only=True),
+            [self.origin_id_1])
+        self.assertCountEqual(
+            endpoint(tool_ids=[tool2['id']], ids_only=True),
+            [self.origin_id_2, self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(tool_ids=[tool1['id'], tool2['id']], ids_only=True),
+            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+
         # test ids_only=False
         self.assertEqual(list(endpoint(mappings=['gemspec'])), [{
             'origin_id': self.origin_id_2,
@@ -1287,7 +1306,7 @@ class CommonTestStorage:
                 'author': 'Jane Doe',
             },
             'mappings': ['npm', 'gemspec'],
-            'tool': tool,
+            'tool': tool2,
             'from_revision': self.revision_id_2,
         }])
 

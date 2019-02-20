@@ -743,7 +743,7 @@ class IndexerStorage:
     @db_transaction_generator()
     def origin_intrinsic_metadata_search_by_producer(
             self, start=0, end=None, limit=100, ids_only=False,
-            mappings=None,
+            mappings=None, tool_ids=None,
             db=None, cur=None):
         """Returns the list of origins whose metadata contain all the terms.
 
@@ -768,7 +768,7 @@ class IndexerStorage:
 
         """
         res = db.origin_intrinsic_metadata_search_by_producer(
-            start, end, limit, ids_only, mappings, cur)
+            start, end, limit, ids_only, mappings, tool_ids, cur)
         if ids_only:
             for (origin_id,) in res:
                 yield origin_id
