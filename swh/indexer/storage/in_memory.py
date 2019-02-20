@@ -755,5 +755,5 @@ class IndexerStorage:
         return self._tools.get(self._tool_key(tool))
 
     def _tool_key(self, tool):
-        return (tool['tool_name'], tool['tool_version'],
-                json.dumps(tool['tool_configuration'], sort_keys=True))
+        return hash((tool['tool_name'], tool['tool_version'],
+                     json.dumps(tool['tool_configuration'], sort_keys=True)))
