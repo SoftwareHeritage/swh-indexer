@@ -1,13 +1,13 @@
 Metadata-Version: 2.1
 Name: swh.indexer
-Version: 0.0.138
+Version: 0.0.139
 Summary: Software Heritage Content Indexer
 Home-page: https://forge.softwareheritage.org/diffusion/78/
 Author: Software Heritage developers
 Author-email: swh-devel@inria.fr
 License: UNKNOWN
-Project-URL: Source, https://forge.softwareheritage.org/source/swh-indexer
 Project-URL: Funding, https://www.softwareheritage.org/donate
+Project-URL: Source, https://forge.softwareheritage.org/source/swh-indexer
 Project-URL: Bug Reports, https://forge.softwareheritage.org/maniphest
 Description: swh-indexer
         ============
