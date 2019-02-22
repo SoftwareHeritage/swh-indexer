@@ -1,3 +1,9 @@
+swh-indexer (0.0.139-1~swh2~bpo9+1) stretch-swh; urgency=medium
+
+  * Rebuild for stretch-swh
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 22 Feb 2019 16:36:00 +0000
+
 swh-indexer (0.0.139-1~swh2) unstable-swh; urgency=low
 
   * New release fixing debian build
