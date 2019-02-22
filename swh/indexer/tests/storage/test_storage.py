@@ -39,6 +39,12 @@ TOOLS = [
             "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
     },
     {
+        'tool_name': 'swh-metadata-detector2',
+        'tool_version': '0.0.1',
+        'tool_configuration': {
+            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
+    },
+    {
         'tool_name': 'file',
         'tool_version': '5.22',
         'tool_configuration': {"command_line": "file --mime <filepath>"},
@@ -324,9 +330,9 @@ class CommonTestStorage:
             '7026b7c1a2af56521e9587659012345678904321')
         self.revision_id_3 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904320')
-        self.origin_id_1 = 54974445
+        self.origin_id_1 = 44434341
         self.origin_id_2 = 44434342
-        self.origin_id_3 = 44434341
+        self.origin_id_3 = 54974445
 
     def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
@@ -848,21 +854,8 @@ class CommonTestStorage:
         tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata = {
-            'developmentStatus': None,
             'version': None,
-            'operatingSystem': None,
-            'description': None,
-            'keywords': None,
-            'issueTracker': None,
             'name': None,
-            'author': None,
-            'relatedLink': None,
-            'url': None,
-            'license': None,
-            'maintainer': None,
-            'email': None,
-            'softwareRequirements': None,
-            'identifier': None,
         }
         metadata_rev = {
             'id': self.revision_id_2,
@@ -901,21 +894,8 @@ class CommonTestStorage:
         tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata_v1 = {
-            'developmentStatus': None,
             'version': None,
-            'operatingSystem': None,
-            'description': None,
-            'keywords': None,
-            'issueTracker': None,
             'name': None,
-            'author': None,
-            'relatedLink': None,
-            'url': None,
-            'license': None,
-            'maintainer': None,
-            'email': None,
-            'softwareRequirements': None,
-            'identifier': None
         }
         metadata_rev_v1 = {
             'id': self.revision_id_1,
@@ -975,21 +955,8 @@ class CommonTestStorage:
         tool_id = self.tools['swh-metadata-detector']['id']
 
         metadata_v1 = {
-            'developmentStatus': None,
             'version': None,
-            'operatingSystem': None,
-            'description': None,
-            'keywords': None,
-            'issueTracker': None,
             'name': None,
-            'author': None,
-            'relatedLink': None,
-            'url': None,
-            'license': None,
-            'maintainer': None,
-            'email': None,
-            'softwareRequirements': None,
-            'identifier': None
         }
         metadata_rev_v1 = {
             'id': self.revision_id_2,
@@ -1059,20 +1026,7 @@ class CommonTestStorage:
 
         metadata = {
             'developmentStatus': None,
-            'version': None,
-            'operatingSystem': None,
-            'description': None,
-            'keywords': None,
-            'issueTracker': None,
             'name': None,
-            'author': None,
-            'relatedLink': None,
-            'url': None,
-            'license': None,
-            'maintainer': None,
-            'email': None,
-            'softwareRequirements': None,
-            'identifier': None,
         }
         metadata_rev = {
             'id': self.revision_id_2,
@@ -1225,9 +1179,9 @@ class CommonTestStorage:
                 [res['origin_id'] for res in search(['John', 'Jane'])],
                 [self.origin_id_1])
 
-    def test_origin_intrinsic_metadata_stats(self):
-        # given
-        tool_id = self.tools['swh-metadata-detector']['id']
+    def _fill_origin_intrinsic_metadata(self):
+        tool1_id = self.tools['swh-metadata-detector']['id']
+        tool2_id = self.tools['swh-metadata-detector2']['id']
 
         metadata1 = {
             '@context': 'foo',
@@ -1237,13 +1191,13 @@ class CommonTestStorage:
             'id': self.revision_id_1,
             'translated_metadata': metadata1,
             'mappings': ['npm'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool1_id,
         }
         metadata1_origin = {
             'origin_id': self.origin_id_1,
             'metadata': metadata1,
             'mappings': ['npm'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool1_id,
             'from_revision': self.revision_id_1,
         }
         metadata2 = {
@@ -1254,13 +1208,13 @@ class CommonTestStorage:
             'id': self.revision_id_2,
             'translated_metadata': metadata2,
             'mappings': ['npm', 'gemspec'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool2_id,
         }
         metadata2_origin = {
             'origin_id': self.origin_id_2,
             'metadata': metadata2,
             'mappings': ['npm', 'gemspec'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool2_id,
             'from_revision': self.revision_id_2,
         }
         metadata3 = {
@@ -1270,17 +1224,16 @@ class CommonTestStorage:
             'id': self.revision_id_3,
             'translated_metadata': metadata3,
             'mappings': ['npm', 'gemspec'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool2_id,
         }
         metadata3_origin = {
             'origin_id': self.origin_id_3,
             'metadata': metadata3,
             'mappings': ['pkg-info'],
-            'indexer_configuration_id': tool_id,
+            'indexer_configuration_id': tool2_id,
             'from_revision': self.revision_id_3,
         }
 
-        # when
         self.storage.revision_metadata_add([metadata1_rev])
         self.storage.origin_intrinsic_metadata_add([metadata1_origin])
         self.storage.revision_metadata_add([metadata2_rev])
@@ -1288,7 +1241,78 @@ class CommonTestStorage:
         self.storage.revision_metadata_add([metadata3_rev])
         self.storage.origin_intrinsic_metadata_add([metadata3_origin])
 
-        # then
+    def test_origin_intrinsic_metadata_search_by_producer(self):
+        self._fill_origin_intrinsic_metadata()
+        tool1 = self.tools['swh-metadata-detector']
+        tool2 = self.tools['swh-metadata-detector2']
+        endpoint = self.storage.origin_intrinsic_metadata_search_by_producer
+
+        # test pagination
+        self.assertCountEqual(
+            endpoint(ids_only=True),
+            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(start=0, ids_only=True),
+            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(start=0, limit=2, ids_only=True),
+            [self.origin_id_1, self.origin_id_2])
+        self.assertCountEqual(
+            endpoint(start=self.origin_id_1+1, ids_only=True),
+            [self.origin_id_2, self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(start=self.origin_id_1+1, end=self.origin_id_3-1,
+                     ids_only=True),
+            [self.origin_id_2])
+
+        # test mappings filtering
+        self.assertCountEqual(
+            endpoint(mappings=['npm'], ids_only=True),
+            [self.origin_id_1, self.origin_id_2])
+        self.assertCountEqual(
+            endpoint(mappings=['npm', 'gemspec'], ids_only=True),
+            [self.origin_id_1, self.origin_id_2])
+        self.assertCountEqual(
+            endpoint(mappings=['gemspec'], ids_only=True),
+            [self.origin_id_2])
+        self.assertCountEqual(
+            endpoint(mappings=['pkg-info'], ids_only=True),
+            [self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(mappings=['foobar'], ids_only=True),
+            [])
+
+        # test pagination + mappings
+        self.assertCountEqual(
+            endpoint(mappings=['npm'], limit=1, ids_only=True),
+            [self.origin_id_1])
+
+        # test tool filtering
+        self.assertCountEqual(
+            endpoint(tool_ids=[tool1['id']], ids_only=True),
+            [self.origin_id_1])
+        self.assertCountEqual(
+            endpoint(tool_ids=[tool2['id']], ids_only=True),
+            [self.origin_id_2, self.origin_id_3])
+        self.assertCountEqual(
+            endpoint(tool_ids=[tool1['id'], tool2['id']], ids_only=True),
+            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+
+        # test ids_only=False
+        self.assertEqual(list(endpoint(mappings=['gemspec'])), [{
+            'origin_id': self.origin_id_2,
+            'metadata': {
+                '@context': 'foo',
+                'author': 'Jane Doe',
+            },
+            'mappings': ['npm', 'gemspec'],
+            'tool': tool2,
+            'from_revision': self.revision_id_2,
+        }])
+
+    def test_origin_intrinsic_metadata_stats(self):
+        self._fill_origin_intrinsic_metadata()
+
         result = self.storage.origin_intrinsic_metadata_stats()
         self.assertEqual(result, {
             'per_mapping': {

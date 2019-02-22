@@ -348,8 +348,7 @@ class Db(BaseDb):
             self.origin_intrinsic_metadata_cols, cur=cur,
             id_col='origin_id')
 
-    def origin_intrinsic_metadata_search_fulltext(self, terms, *, limit,
-                                                  cur=None):
+    def origin_intrinsic_metadata_search_fulltext(self, terms, *, limit, cur):
         regconfig = self.origin_intrinsic_metadata_regconfig
         tsquery_template = ' && '.join("plainto_tsquery('%s', %%s)" % regconfig
                                        for _ in terms)
@@ -366,6 +365,45 @@ class Db(BaseDb):
                           regconfig=regconfig,
                           tsquery_template=tsquery_template)
         cur.execute(query, tsquery_args + [limit])
+        yield from cur
+
+    def origin_intrinsic_metadata_search_by_producer(
+            self, start, end, limit, ids_only, mappings, tool_ids, cur):
+        if ids_only:
+            keys = 'oim.origin_id'
+        else:
+            keys = ', '.join(map(self._convert_key,
+                                 self.origin_intrinsic_metadata_cols))
+        query_parts = [
+            "SELECT %s" % keys,
+            "FROM origin_intrinsic_metadata AS oim",
+            "INNER JOIN indexer_configuration AS i",
+            "ON oim.indexer_configuration_id=i.id",
+        ]
+        args = []
+
+        where = []
+        if start:
+            where.append('oim.origin_id >= %s')
+            args.append(start)
+        if end:
+            where.append('oim.origin_id <= %s')
+            args.append(end)
+        if mappings is not None:
+            where.append('oim.mappings && %s')
+            args.append(mappings)
+        if tool_ids is not None:
+            where.append('oim.indexer_configuration_id = ANY(%s)')
+            args.append(tool_ids)
+        if where:
+            query_parts.append('WHERE')
+            query_parts.append(' AND '.join(where))
+
+        if limit:
+            query_parts.append('LIMIT %s')
+            args.append(limit)
+
+        cur.execute(' '.join(query_parts), args)
         yield from cur
 
     indexer_configuration_cols = ['id', 'tool_name', 'tool_version',

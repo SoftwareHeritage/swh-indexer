@@ -66,3 +66,4 @@ alter table origin_intrinsic_metadata add constraint origin_intrinsic_metadata_r
 alter table origin_intrinsic_metadata validate constraint origin_intrinsic_metadata_revision_metadata_fkey;
 
 create index origin_intrinsic_metadata_fulltext_idx on origin_intrinsic_metadata using gin (metadata_tsvector);
+create index origin_intrinsic_metadata_mappings_idx on origin_intrinsic_metadata using gin (mappings);

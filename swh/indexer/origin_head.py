@@ -18,15 +18,7 @@ class OriginHeadIndexer(OriginIndexer):
 
     In git, this is usually the commit pointed to by the 'master' branch."""
 
-    ADDITIONAL_CONFIG = {
-        'tools': ('dict', {
-            'name': 'origin-metadata',
-            'version': '0.0.1',
-            'configuration': {},
-        }),
-    }
-
-    CONFIG_BASE_FILENAME = 'indexer/origin_head'
+    USE_TOOLS = False
 
     def persist_index_computations(self, results, policy_update):
         """Do nothing. The indexer's results are not persistent, they

@@ -1,10 +1,10 @@
-# Copyright (C) 2015-2018  The Software Heritage developers
+# Copyright (C) 2015-2019  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import os
 import logging
-import click
 
 from swh.core import config
 from swh.core.api import (SWHServerAPIApp, error_handler,
@@ -12,17 +12,6 @@ from swh.core.api import (SWHServerAPIApp, error_handler,
 from swh.indexer.storage import (
     get_indexer_storage, INDEXER_CFG_KEY, IndexerStorage
 )
-
-
-DEFAULT_CONFIG_PATH = 'storage/indexer'
-DEFAULT_CONFIG = {
-    INDEXER_CFG_KEY: ('dict', {
-        'cls': 'local',
-        'args': {
-            'db': 'dbname=softwareheritage-indexer-dev',
-        },
-    })
-}
 
 
 def get_storage():
@@ -52,29 +41,66 @@ def index():
 api_cfg = None
 
 
-def run_from_webserver(environ, start_response,
-                       config_path=DEFAULT_CONFIG_PATH):
-    """Run the WSGI app from the webserver, loading the configuration."""
+def load_and_check_config(config_file, type='local'):
+    """Check the minimal configuration is set to run the api or raise an
+       error explanation.
+
+    Args:
+        config_file (str): Path to the configuration file to load
+        type (str): configuration type. For 'local' type, more
+                    checks are done.
+
+    Raises:
+        Error if the setup is not as expected
+
+    Returns:
+        configuration as a dict
+
+    """
+    if not config_file:
+        raise EnvironmentError('Configuration file must be defined')
+
+    if not os.path.exists(config_file):
+        raise FileNotFoundError('Configuration file %s does not exist' % (
+            config_file, ))
+
+    cfg = config.read(config_file)
+    if 'indexer_storage' not in cfg:
+        raise KeyError("Missing '%indexer_storage' configuration")
+
+    if type == 'local':
+        vcfg = cfg['indexer_storage']
+        cls = vcfg.get('cls')
+        if cls != 'local':
+            raise ValueError(
+                "The indexer_storage backend can only be started with a "
+                "'local' configuration")
+
+        args = vcfg['args']
+        if not args.get('db'):
+            raise ValueError(
+                "Invalid configuration; missing 'db' config entry")
+
+    return cfg
+
+
+def make_app_from_configfile():
+    """Run the WSGI app from the webserver, loading the configuration from
+       a configuration file.
+
+       SWH_CONFIG_FILENAME environment variable defines the
+       configuration path to load.
+
+    """
     global api_cfg
     if not api_cfg:
-        api_cfg = config.load_named_config(config_path, DEFAULT_CONFIG)
+        config_file = os.environ.get('SWH_CONFIG_FILENAME')
+        api_cfg = load_and_check_config(config_file)
         app.config.update(api_cfg)
     handler = logging.StreamHandler()
     app.logger.addHandler(handler)
-    return app(environ, start_response)
-
-
-@click.command()
-@click.argument('config-path', required=1)
-@click.option('--host', default='0.0.0.0', help="Host to run the server")
-@click.option('--port', default=5007, type=click.INT,
-              help="Binding port of the server")
-@click.option('--debug/--nodebug', default=True,
-              help="Indicates if the server should run in debug mode")
-def launch(config_path, host, port, debug):
-    app.config.update(config.read(config_path, DEFAULT_CONFIG))
-    app.run(host, port=int(port), debug=bool(debug))
+    return app
 
 
 if __name__ == '__main__':
-    launch()
+    print('Deprecated. Use swh-indexer')

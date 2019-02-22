@@ -3,8 +3,6 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import click
-import logging
 from copy import deepcopy
 
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
@@ -29,10 +27,6 @@ class ContentMetadataIndexer(ContentIndexer):
     - store result in content_metadata table
 
     """
-    # Note: This used when the content metadata indexer is used alone
-    # (not the case for example in the case of the RevisionMetadataIndexer)
-    CONFIG_BASE_FILENAME = 'indexer/content_metadata'
-
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
         """
@@ -104,8 +98,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
     - store the results for revision
 
     """
-    CONFIG_BASE_FILENAME = 'indexer/revision_metadata'
-
     ADDITIONAL_CONFIG = {
         'tools': ('dict', {
             'name': 'swh-metadata-detector',
@@ -259,18 +251,14 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
 
 class OriginMetadataIndexer(OriginIndexer):
-    CONFIG_BASE_FILENAME = 'indexer/origin_intrinsic_metadata'
-
-    ADDITIONAL_CONFIG = {
-        'tools': ('list', [])
-    }
+    ADDITIONAL_CONFIG = RevisionMetadataIndexer.ADDITIONAL_CONFIG
 
     USE_TOOLS = False
 
-    def __init__(self):
-        super().__init__()
-        self.origin_head_indexer = OriginHeadIndexer()
-        self.revision_metadata_indexer = RevisionMetadataIndexer()
+    def __init__(self, config, **kwargs):
+        super().__init__(config=config, **kwargs)
+        self.origin_head_indexer = OriginHeadIndexer(config=config)
+        self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
     def index_list(self, origins):
         head_rev_ids = []
@@ -320,17 +308,3 @@ class OriginMetadataIndexer(OriginIndexer):
 
         self.idx_storage.origin_intrinsic_metadata_add(
             orig_metadata, conflict_update=conflict_update)
-
-
-@click.command()
-@click.option('--revs', '-i',
-              help='Default sha1_git to lookup', multiple=True)
-def main(revs):
-    _git_sha1s = list(map(hashutil.hash_to_bytes, revs))
-    rev_metadata_indexer = RevisionMetadataIndexer()
-    rev_metadata_indexer.run(_git_sha1s, 'update-dups')
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    main()
