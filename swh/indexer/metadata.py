@@ -255,7 +255,7 @@ class OriginMetadataIndexer(OriginIndexer):
 
     USE_TOOLS = False
 
-    def __init__(self, config, **kwargs):
+    def __init__(self, config=None, **kwargs):
         super().__init__(config=config, **kwargs)
         self.origin_head_indexer = OriginHeadIndexer(config=config)
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)

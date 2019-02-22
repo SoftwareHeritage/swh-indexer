@@ -66,6 +66,7 @@ swh/indexer/storage/api/wsgi.py
 swh/indexer/tests/__init__.py
 swh/indexer/tests/conftest.py
 swh/indexer/tests/tasks.py
+swh/indexer/tests/test_cli.py
 swh/indexer/tests/test_ctags.py
 swh/indexer/tests/test_fossology_license.py
 swh/indexer/tests/test_language.py
