@@ -9,6 +9,8 @@ from swh.core import config
 from swh.scheduler import get_scheduler
 from swh.scheduler.utils import create_task_dict
 from swh.storage import get_storage
+
+from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.storage import get_indexer_storage
 from swh.indexer.storage.api.server import load_and_check_config, app
 
@@ -42,6 +44,20 @@ def _get_api(getter, config, config_key, url):
         raise click.ClickException(
             'Missing configuration for {}'.format(config_key))
     return getter(**config[config_key])
+
+
+@cli.group('mapping')
+def mapping():
+    pass
+
+
+@mapping.command('list')
+def mapping_list():
+    """Prints the list of known mappings."""
+    mapping_names = [mapping.name for mapping in MAPPINGS.values()]
+    mapping_names.sort()
+    for mapping_name in mapping_names:
+        click.echo(mapping_name)
 
 
 @cli.group('schedule')

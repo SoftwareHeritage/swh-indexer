@@ -97,6 +97,17 @@ def invoke(scheduler, catch_exceptions, args):
     return result
 
 
+def test_mapping_list(indexer_scheduler):
+    result = invoke(indexer_scheduler, False, [
+        'mapping', 'list',
+    ])
+    expected_output = '\n'.join([
+        'codemeta', 'gemspec', 'maven', 'npm', 'pkg-info', '',
+    ])
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output
+
+
 @patch('swh.indexer.cli.TASK_BATCH_SIZE', 3)
 def test_origin_metadata_reindex_empty_db(
         indexer_scheduler, idx_storage, storage):
