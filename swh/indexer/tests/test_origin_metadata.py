@@ -3,49 +3,18 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import pytest
-
-from unittest.mock import patch
-
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.metadata import OriginMetadataIndexer
 
-from .utils import BASE_TEST_CONFIG, YARN_PARSER_METADATA
+from .utils import YARN_PARSER_METADATA
 from .test_metadata import REVISION_METADATA_CONFIG
 
 
-ORIGIN_HEAD_CONFIG = {
-    **BASE_TEST_CONFIG,
-    'tools': {
-        'name': 'origin-metadata',
-        'version': '0.0.1',
-        'configuration': {},
-    },
-    'tasks': {
-        'revision_metadata': 'revision_metadata',
-        'origin_intrinsic_metadata': 'origin_intrinsic_metadata',
-    }
-}
-
-
-@pytest.fixture
-def origin_metadata_indexer():
-    prefix = 'swh.indexer.'
-    suffix = '.parse_config_file'
-    with patch(prefix + 'metadata.OriginMetadataIndexer' + suffix) as omi, \
-            patch(prefix + 'origin_head.OriginHeadIndexer' + suffix) as ohi, \
-            patch(prefix + 'metadata.RevisionMetadataIndexer' + suffix) as rmi:
-        omi.return_value = BASE_TEST_CONFIG
-        ohi.return_value = ORIGIN_HEAD_CONFIG
-        rmi.return_value = REVISION_METADATA_CONFIG
-        yield OriginMetadataIndexer()
-
-
 def test_origin_metadata_indexer(
-        idx_storage, storage, obj_storage, origin_metadata_indexer):
+        idx_storage, storage, obj_storage):
 
-    indexer = OriginMetadataIndexer()
+    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
     indexer.run(["git+https://github.com/librariesio/yarn-parser"])
 
     origin = storage.origin_get({
@@ -78,8 +47,8 @@ def test_origin_metadata_indexer(
 
 
 def test_origin_metadata_indexer_duplicate_origin(
-        idx_storage, storage, obj_storage, origin_metadata_indexer):
-    indexer = OriginMetadataIndexer()
+        idx_storage, storage, obj_storage):
+    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
     indexer.storage = storage
     indexer.idx_storage = idx_storage
     indexer.run(["git+https://github.com/librariesio/yarn-parser"])
@@ -100,14 +69,14 @@ def test_origin_metadata_indexer_duplicate_origin(
 
 
 def test_origin_metadata_indexer_missing_head(
-        idx_storage, storage, obj_storage, origin_metadata_indexer):
+        idx_storage, storage, obj_storage):
 
     storage.origin_add([{
         'type': 'git',
         'url': 'https://example.com'
     }])
 
-    indexer = OriginMetadataIndexer()
+    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
     indexer.run(["git+https://example.com"])
 
     origin = storage.origin_get({
@@ -120,14 +89,14 @@ def test_origin_metadata_indexer_missing_head(
 
 
 def test_origin_metadata_indexer_partial_missing_head(
-        idx_storage, storage, obj_storage, origin_metadata_indexer):
+        idx_storage, storage, obj_storage):
 
     storage.origin_add([{
         'type': 'git',
         'url': 'https://example.com'
     }])
 
-    indexer = OriginMetadataIndexer()
+    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
     indexer.run(["git+https://example.com",
                  "git+https://github.com/librariesio/yarn-parser"])
 
@@ -164,8 +133,8 @@ def test_origin_metadata_indexer_partial_missing_head(
 
 
 def test_origin_metadata_indexer_duplicate_revision(
-        idx_storage, storage, obj_storage, origin_metadata_indexer):
-    indexer = OriginMetadataIndexer()
+        idx_storage, storage, obj_storage):
+    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
     indexer.storage = storage
     indexer.idx_storage = idx_storage
     indexer.run(["git+https://github.com/librariesio/yarn-parser",

@@ -22,13 +22,16 @@ sql/upgrades/118.sql
 sql/upgrades/119.sql
 sql/upgrades/120.sql
 sql/upgrades/121.sql
+sql/upgrades/122.sql
 swh/__init__.py
 swh.indexer.egg-info/PKG-INFO
 swh.indexer.egg-info/SOURCES.txt
 swh.indexer.egg-info/dependency_links.txt
+swh.indexer.egg-info/entry_points.txt
 swh.indexer.egg-info/requires.txt
 swh.indexer.egg-info/top_level.txt
 swh/indexer/__init__.py
+swh/indexer/cli.py
 swh/indexer/codemeta.py
 swh/indexer/ctags.py
 swh/indexer/fossology_license.py
@@ -59,6 +62,7 @@ swh/indexer/storage/in_memory.py
 swh/indexer/storage/api/__init__.py
 swh/indexer/storage/api/client.py
 swh/indexer/storage/api/server.py
+swh/indexer/storage/api/wsgi.py
 swh/indexer/tests/__init__.py
 swh/indexer/tests/conftest.py
 swh/indexer/tests/tasks.py
@@ -75,4 +79,5 @@ swh/indexer/tests/storage/generate_data_test.py
 swh/indexer/tests/storage/test_api_client.py
 swh/indexer/tests/storage/test_converters.py
 swh/indexer/tests/storage/test_in_memory.py
+swh/indexer/tests/storage/test_server.py
 swh/indexer/tests/storage/test_storage.py

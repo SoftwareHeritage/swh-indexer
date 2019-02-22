@@ -6,7 +6,7 @@
 import json
 import unittest
 
-from hypothesis import given, strategies
+from hypothesis import given, strategies, settings, HealthCheck
 import xmltodict
 
 from swh.model.hashutil import hash_to_bytes
@@ -1058,23 +1058,27 @@ Gem::Specification.new { |s|
             'description': 'execute system commands with aliases',
         })
 
+    @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(json_document_strategy(
         keys=list(MAPPINGS['NpmMapping'].mapping)))
     def test_npm_adversarial(self, doc):
         raw = json.dumps(doc).encode()
         self.npm_mapping.translate(raw)
 
+    @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(json_document_strategy(keys=CODEMETA_KEYS))
     def test_codemeta_adversarial(self, doc):
         raw = json.dumps(doc).encode()
         self.codemeta_mapping.translate(raw)
 
+    @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(json_document_strategy(
         keys=list(MAPPINGS['MavenMapping'].mapping)))
     def test_maven_adversarial(self, doc):
         raw = xmltodict.unparse({'project': doc}, pretty=True)
         self.maven_mapping.translate(raw)
 
+    @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(strategies.dictionaries(
         # keys
         strategies.one_of(
