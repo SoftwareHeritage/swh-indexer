@@ -1,3 +1,12 @@
+swh-indexer (0.0.138-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.138     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-02-22 15:30:30 +0100)
+  * Upstream changes:     - Make the 'config' argument of
+    OriginMetadaIndexer optional again.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 22 Feb 2019 14:37:35 +0000
+
 swh-indexer (0.0.137-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.137     - (tagged by Antoine R. Dumont
