@@ -1,3 +1,9 @@
+swh-indexer (0.0.138-1~swh2) unstable-swh; urgency=low
+
+  * New release fixing debian build
+
+ -- Antoine Romain Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Fri, 22 Feb 2019 16:27:47 +0100
+
 swh-indexer (0.0.138-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.138     - (tagged by Valentin Lorentz
