@@ -14,6 +14,12 @@ from copy import deepcopy
 from contextlib import contextmanager
 
 from swh.scheduler import get_scheduler
+try:
+    from swh.scheduler import CONFIG as SWH_CONFIG
+except ImportError:
+    # for swh-scheduler < 0.0.47 bw compat
+    SWH_CONFIG = None
+
 from swh.storage import get_storage
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
@@ -134,6 +140,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         super().__init__()
         if config is not None:
             self.config = config
+        elif SWH_CONFIG:
+            self.config = SWH_CONFIG.copy()
         else:
             config_keys = ('base_filename', 'config_filename',
                            'additional_configs', 'global_config')

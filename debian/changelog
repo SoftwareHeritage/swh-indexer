@@ -1,8 +1,21 @@
-swh-indexer (0.0.136-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.137-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.137     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-02-22 10:59:53
+    +0100)
+  * Upstream changes:     - v0.0.137     - swh.indexer.storage.api.wsgi:
+    Open production wsgi entrypoint     - swh.indexer.cli: Move dev app
+    entrypoint in dedicated cli     - indexer.storage: Make server load
+    explicit configuration and check     - config: use already loaded
+    swh config, if any, when instantiating an Indexer     - api: Add
+    support for filtering by tool_id to
+    origin_intrinsic_metadata_search_by_producer.     - api: Add storage
+    endpoint to search metadata by mapping.     - runtime: Remove
+    implicit configuration from the metadata indexers.     - debian:
+    Remove debian packaging from master branch     - docs: Update
+    missing documentation
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 14 Feb 2019 16:24:11 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 22 Feb 2019 10:11:29 +0000
 
 swh-indexer (0.0.136-1~swh1) unstable-swh; urgency=medium
 

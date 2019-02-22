@@ -556,6 +556,8 @@ class IndexerStorage:
             - **id** (bytes)
             - **translated_metadata** (str): associated metadata
             - **tool** (dict): tool used to compute metadata
+            - **mappings** (List[str]): list of mappings used to translate
+              these metadata
 
         """
         yield from self._revision_metadata.get(ids)
@@ -569,6 +571,8 @@ class IndexerStorage:
               - **id**: sha1_git of revision
               - **translated_metadata**: arbitrary dict
               - **indexer_configuration_id**: tool used to compute metadata
+              - **mappings** (List[str]): list of mappings used to translate
+                these metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -590,6 +594,8 @@ class IndexerStorage:
                 - **origin_id** (int)
                 - **translated_metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
         """
         for item in self._origin_intrinsic_metadata.get(ids):
@@ -608,6 +614,8 @@ class IndexerStorage:
                   these metadata.
                 - **metadata**: arbitrary dict
                 - **indexer_configuration_id**: tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -635,6 +643,8 @@ class IndexerStorage:
                 - **id** (int)
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
 
         """
         # A very crude fulltext search implementation, but that's enough
@@ -669,6 +679,54 @@ class IndexerStorage:
             result = result.copy()
             result['origin_id'] = result.pop('id')
             yield result
+
+    def origin_intrinsic_metadata_search_by_producer(
+            self, start=0, end=None, limit=100, ids_only=False,
+            mappings=None, tool_ids=None,
+            db=None, cur=None):
+        """Returns the list of origins whose metadata contain all the terms.
+
+        Args:
+            start (int): The minimum origin id to return
+            end (int): The maximum origin id to return
+            limit (int): The maximum number of results to return
+            ids_only (bool): Determines whether only origin ids are returned
+                or the content as well
+            mappings (List[str]): Returns origins whose intrinsic metadata
+                were generated using at least one of these mappings.
+
+        Yields:
+            list: list of origin ids (int) if `ids_only=True`, else
+                dictionaries with the following keys:
+
+                - **id** (int)
+                - **metadata** (str): associated metadata
+                - **tool** (dict): tool used to compute metadata
+                - **mappings** (List[str]): list of mappings used to translate
+                  these metadata
+
+        """
+        nb_results = 0
+        if mappings is not None:
+            mappings = frozenset(mappings)
+        if tool_ids is not None:
+            tool_ids = frozenset(tool_ids)
+        for entry in self._origin_intrinsic_metadata.get_all():
+            if entry['id'] < start or (end and entry['id'] > end):
+                continue
+            if nb_results >= limit:
+                return
+            if mappings is not None and mappings.isdisjoint(entry['mappings']):
+                continue
+            if tool_ids is not None and entry['tool']['id'] not in tool_ids:
+                continue
+            if ids_only:
+                yield entry['id']
+            else:
+                entry = entry.copy()
+                entry['origin_id'] = entry.pop('id')
+                yield entry
+            nb_results += 1
 
     def origin_intrinsic_metadata_stats(self):
         """Returns statistics on stored intrinsic metadata.
@@ -745,5 +803,5 @@ class IndexerStorage:
         return self._tools.get(self._tool_key(tool))
 
     def _tool_key(self, tool):
-        return (tool['tool_name'], tool['tool_version'],
-                json.dumps(tool['tool_configuration'], sort_keys=True))
+        return hash((tool['tool_name'], tool['tool_version'],
+                     json.dumps(tool['tool_configuration'], sort_keys=True)))
