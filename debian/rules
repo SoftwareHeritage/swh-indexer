@@ -2,6 +2,7 @@
 
 export PYBUILD_NAME=swh.indexer
 export PYBUILD_TEST_ARGS=-m 'not db and not fs'
+export LC_ALL=C.UTF-8
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
