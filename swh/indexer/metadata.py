@@ -103,8 +103,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
             'name': 'swh-metadata-detector',
             'version': '0.0.2',
             'configuration': {
-                'type': 'local',
-                'context': list(MAPPINGS),
             },
         }),
     }
@@ -198,8 +196,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
                 'name': 'swh-metadata-translator',
                 'version': '0.0.2',
                 'configuration': {
-                    'type': 'local',
-                    'context': None
                 },
             }
         # TODO: iterate on each context, on each file
