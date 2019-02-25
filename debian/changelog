@@ -1,3 +1,12 @@
+swh-indexer (0.0.140-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.140     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-02-25 10:38:52 +0100)
+  * Upstream changes:     - Drop the 'context' and 'type' config of
+    metadata indexers.     - They are both ignored already.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 25 Feb 2019 10:40:10 +0000
+
 swh-indexer (0.0.139-1~swh2) unstable-swh; urgency=low
 
   * New release fixing debian build
