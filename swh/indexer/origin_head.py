@@ -30,6 +30,8 @@ class OriginHeadIndexer(OriginIndexer):
     def index(self, origin):
         origin_id = origin['id']
         latest_snapshot = self.storage.snapshot_get_latest(origin_id)
+        if latest_snapshot is None:
+            return None
         method = getattr(self, '_try_get_%s_head' % origin['type'], None)
         if method is None:
             method = self._try_get_head_generic
@@ -46,10 +48,9 @@ class OriginHeadIndexer(OriginIndexer):
 
     def _try_get_vcs_head(self, snapshot):
         try:
-            if isinstance(snapshot, dict):
-                branches = snapshot['branches']
-                if branches[b'HEAD']['target_type'] == 'revision':
-                    return branches[b'HEAD']['target']
+            branches = snapshot['branches']
+            if branches[b'HEAD']['target_type'] == 'revision':
+                return branches[b'HEAD']['target']
         except KeyError:
             return None
 
@@ -111,8 +112,7 @@ class OriginHeadIndexer(OriginIndexer):
     def _try_get_head_generic(self, snapshot):
         # Works on 'deposit', 'svn', and 'pypi'.
         try:
-            if isinstance(snapshot, dict):
-                branches = snapshot['branches']
+            branches = snapshot['branches']
         except KeyError:
             return None
         else:
