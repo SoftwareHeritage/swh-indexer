@@ -108,3 +108,14 @@ The following sources of intrinsic metadata are supported:
 .. _package.json: https://docs.npmjs.com/files/package.json
 .. _PKG-INFO: https://www.python.org/dev/peps/pep-0314/
 .. _.gemspec: https://guides.rubygems.org/specification-reference/
+
+
+Supported CodeMeta terms
+------------------------
+
+The following terms may be found in the output of the metadata translation
+(other than the `codemeta` mapping, which is the identity function, and
+therefore supports all terms):
+
+.. program-output:: python3 -m swh.indexer.cli mapping list-terms --exclude-mapping codemeta
+    :nostderr:
