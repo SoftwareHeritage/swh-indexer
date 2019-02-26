@@ -11,7 +11,7 @@ import xmltodict
 
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer.codemeta import CODEMETA_KEYS
+from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_dictionary import (
     CROSSWALK_TABLE, MAPPINGS, merge_values)
 from swh.indexer.metadata_detector import (
@@ -1066,7 +1066,7 @@ Gem::Specification.new { |s|
         self.npm_mapping.translate(raw)
 
     @settings(suppress_health_check=[HealthCheck.too_slow])
-    @given(json_document_strategy(keys=CODEMETA_KEYS))
+    @given(json_document_strategy(keys=CODEMETA_TERMS))
     def test_codemeta_adversarial(self, doc):
         raw = json.dumps(doc).encode()
         self.codemeta_mapping.translate(raw)
