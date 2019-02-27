@@ -59,6 +59,7 @@ class TestLanguageIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     def setUp(self):
         self.indexer = LanguageIndexer(config=CONFIG)
+        self.indexer.catch_exceptions = False
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 

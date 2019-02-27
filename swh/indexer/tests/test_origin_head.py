@@ -38,6 +38,7 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
 class OriginHead(unittest.TestCase):
     def setUp(self):
         self.indexer = OriginHeadTestIndexer()
+        self.indexer.catch_exceptions = False
         fill_storage(self.indexer.storage)
 
     def _get_origin_id(self, type_, url):
