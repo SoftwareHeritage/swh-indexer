@@ -124,8 +124,13 @@ class OriginHeadIndexer(OriginIndexer):
     def _try_resolve_target(self, branches, target_name):
         try:
             target = branches[target_name]
+            if target is None:
+                return None
             while target['target_type'] == 'alias':
                 target = branches[target['target']]
+                if target is None:
+                    return None
+
             if target['target_type'] == 'revision':
                 return target['target']
             elif target['target_type'] == 'content':

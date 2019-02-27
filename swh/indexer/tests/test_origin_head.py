@@ -65,6 +65,26 @@ class OriginHead(unittest.TestCase):
                 ['git+https://github.com/SoftwareHeritage/swh-indexer'])
         self.assertEqual(self.indexer.results, [])
 
+    def test_pypi_missing_branch(self):
+        origin_id = self.indexer.storage.origin_add_one({
+            'type': 'pypi',
+            'url': 'https://pypi.org/project/abcdef/',
+        })
+        visit = self.indexer.storage.origin_visit_add(
+            origin_id, '2019-02-27')
+        self.indexer.storage.snapshot_add(origin_id, visit['visit'], {
+            'id': 'foo',
+            'branches': {
+                b'foo': None,
+                b'HEAD': {
+                    'target_type': 'alias',
+                    'target': b'foo',
+                }
+            }
+        })
+        self.indexer.run(['pypi+https://pypi.org/project/abcdef/'])
+        self.assertEqual(self.indexer.results, [])
+
     def test_ftp(self):
         self.indexer.run(
                 ['ftp+rsync://ftp.gnu.org/gnu/3dldf'])
