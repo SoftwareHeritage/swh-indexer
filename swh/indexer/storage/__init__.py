@@ -660,6 +660,19 @@ class IndexerStorage:
                    cur)
         db.revision_metadata_add_from_temp(conflict_update, cur)
 
+    @remote_api_endpoint('revision_metadata/delete')
+    @db_transaction()
+    def revision_metadata_delete(self, entries, db=None, cur=None):
+        """Remove revision metadata from the storage.
+
+        Args:
+            entries (dict): dictionaries with the following keys:
+                - **id** (bytes): revision identifier
+                - **indexer_configuration_id** (int): tool used to compute
+                  metadata
+        """
+        db.revision_metadata_delete(entries, cur)
+
     @remote_api_endpoint('origin_intrinsic_metadata')
     @db_transaction_generator()
     def origin_intrinsic_metadata_get(self, ids, db=None, cur=None):
@@ -713,6 +726,20 @@ class IndexerStorage:
                     'from_revision', 'mappings'],
                    cur)
         db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)
+
+    @remote_api_endpoint('origin_intrinsic_metadata/delete')
+    @db_transaction()
+    def origin_intrinsic_metadata_delete(
+            self, entries, db=None, cur=None):
+        """Remove origin metadata from the storage.
+
+        Args:
+            entries (dict): dictionaries with the following keys:
+                - **id** (int): origin identifier
+                - **indexer_configuration_id** (int): tool used to compute
+                  metadata
+        """
+        db.origin_intrinsic_metadata_delete(entries, cur)
 
     @remote_api_endpoint('origin_intrinsic_metadata/search/fulltext')
     @db_transaction_generator()

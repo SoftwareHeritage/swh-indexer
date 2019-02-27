@@ -293,12 +293,52 @@ def gen_generic_endpoint_tests(endpoint_type, tool_name,
 
         self.assertEqual(actual_data, expected_data)
 
+    @rename
+    def delete(self):
+        # given
+        tool_id = self.tools[tool_name]['id']
+
+        query = [self.sha1_2, self.sha1_1]
+
+        data1 = {
+            'id': self.sha1_2,
+            **example_data1,
+            'indexer_configuration_id': tool_id,
+        }
+
+        # when
+        endpoint(self, 'add')([data1])
+        endpoint(self, 'delete')([
+            {
+                'id': self.sha1_2,
+                'indexer_configuration_id': tool_id,
+            }
+        ])
+
+        # then
+        actual_data = list(endpoint(self, 'get')(query))
+
+        # then
+        self.assertEqual(actual_data, [])
+
+    @rename
+    def delete_nonexisting(self):
+        tool_id = self.tools[tool_name]['id']
+        endpoint(self, 'delete')([
+            {
+                'id': self.sha1_2,
+                'indexer_configuration_id': tool_id,
+            }
+        ])
+
     return (
         missing,
         add__drop_duplicate,
         add__update_in_place_duplicate,
         add__duplicate_twice,
         get,
+        delete,
+        delete_nonexisting,
     )
 
 
@@ -345,6 +385,8 @@ class CommonTestStorage:
         test_content_mimetype_add__update_in_place_duplicate,
         test_content_mimetype_add__duplicate_twice,
         test_content_mimetype_get,
+        _,  # content_mimetype_detete,
+        _,  # content_mimetype_detete_nonexisting,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_mimetype',
         tool_name='file',
@@ -365,6 +407,8 @@ class CommonTestStorage:
         test_content_language_add__update_in_place_duplicate,
         test_content_language_add__duplicate_twice,
         test_content_language_get,
+        _,  # test_content_language_delete,
+        _,  # test_content_language_delete_nonexisting,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_language',
         tool_name='pygments',
@@ -384,6 +428,8 @@ class CommonTestStorage:
         _,  # test_content_ctags_add__update_in_place_duplicate,
         _,  # test_content_ctags_add__duplicate_twice,
         _,  # test_content_ctags_get,
+        _,  # test_content_ctags_delete,
+        _,  # test_content_ctags_delete_nonexisting,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_ctags',
         tool_name='universal-ctags',
@@ -724,6 +770,8 @@ class CommonTestStorage:
         _,  # test_content_fossology_license_add__update_in_place_duplicate,
         _,  # test_content_metadata_add__duplicate_twice,
         _,  # test_content_fossology_license_get,
+        _,  # test_content_fossology_license_delete,
+        _,  # test_content_fossology_license_delete_nonexisting,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_fossology_license',
         tool_name='nomos',
@@ -792,6 +840,8 @@ class CommonTestStorage:
         test_content_metadata_add__update_in_place_duplicate,
         test_content_metadata_add__duplicate_twice,
         test_content_metadata_get,
+        _,  # test_content_metadata_delete,
+        _,  # test_content_metadata_delete_nonexisting,
     ) = gen_generic_endpoint_tests(
         endpoint_type='content_metadata',
         tool_name='swh-metadata-detector',
@@ -823,6 +873,8 @@ class CommonTestStorage:
         test_revision_metadata_add__update_in_place_duplicate,
         test_revision_metadata_add__duplicate_twice,
         test_revision_metadata_get,
+        test_revision_metadata_delete,
+        test_revision_metadata_delete_nonexisting,
     ) = gen_generic_endpoint_tests(
         endpoint_type='revision_metadata',
         tool_name='swh-metadata-detector',
@@ -888,6 +940,53 @@ class CommonTestStorage:
         }]
 
         self.assertEqual(actual_metadata, expected_metadata)
+
+    def test_origin_intrinsic_metadata_delete(self):
+        # given
+        tool_id = self.tools['swh-metadata-detector']['id']
+
+        metadata = {
+            'version': None,
+            'name': None,
+        }
+        metadata_rev = {
+            'id': self.revision_id_2,
+            'translated_metadata': metadata,
+            'mappings': ['mapping1'],
+            'indexer_configuration_id': tool_id,
+        }
+        metadata_origin = {
+            'origin_id': self.origin_id_1,
+            'metadata': metadata,
+            'indexer_configuration_id': tool_id,
+            'mappings': ['mapping1'],
+            'from_revision': self.revision_id_2,
+            }
+
+        # when
+        self.storage.revision_metadata_add([metadata_rev])
+        self.storage.origin_intrinsic_metadata_add([metadata_origin])
+        self.storage.origin_intrinsic_metadata_delete([
+            {
+                'origin_id': self.origin_id_1,
+                'indexer_configuration_id': tool_id
+            }
+        ])
+
+        # then
+        actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
+            [self.origin_id_1, 42]))
+
+        self.assertEqual(actual_metadata, [])
+
+    def test_origin_intrinsic_metadata_delete_nonexisting(self):
+        tool_id = self.tools['swh-metadata-detector']['id']
+        self.storage.origin_intrinsic_metadata_delete([
+            {
+                'origin_id': self.origin_id_1,
+                'indexer_configuration_id': tool_id
+            }
+        ])
 
     def test_origin_intrinsic_metadata_add_drop_duplicate(self):
         # given

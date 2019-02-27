@@ -317,6 +317,16 @@ class Db(BaseDb):
         self._cursor(cur).execute("SELECT swh_revision_metadata_add(%s)",
                                   (conflict_update, ))
 
+    def revision_metadata_delete(
+            self, entries, cur=None):
+        cur = self._cursor(cur)
+        cur.execute(
+                "DELETE from revision_metadata "
+                "WHERE (id, indexer_configuration_id) IN "
+                "   (VALUES %s)" % (', '.join('%s' for _ in entries)),
+                tuple((e['id'], e['indexer_configuration_id'])
+                      for e in entries),)
+
     def revision_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
             'revision_metadata', ids, self.revision_metadata_cols, cur=cur)
@@ -341,6 +351,16 @@ class Db(BaseDb):
         cur.execute(
                 "SELECT swh_origin_intrinsic_metadata_add(%s)",
                 (conflict_update, ))
+
+    def origin_intrinsic_metadata_delete(
+            self, entries, cur=None):
+        cur = self._cursor(cur)
+        cur.execute(
+                "DELETE from origin_intrinsic_metadata "
+                "WHERE (origin_id, indexer_configuration_id) IN"
+                "   (VALUES %s)" % (', '.join('%s' for _ in entries)),
+                tuple((e['origin_id'], e['indexer_configuration_id'])
+                      for e in entries),)
 
     def origin_intrinsic_metadata_get_from_list(self, orig_ids, cur=None):
         yield from self._get_from_list(
