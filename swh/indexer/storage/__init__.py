@@ -450,7 +450,8 @@ class IndexerStorage:
             ids (iterable): sha1 checksums
 
         Yields:
-            `{id: facts}` where `facts` is a dict with the following keys:
+            dict: ``{id: facts}`` where ``facts`` is a dict with the
+            following keys:
 
                 - **licenses** ([str]): associated licenses for that content
                 - **tool** (dict): Tool used to compute the license
