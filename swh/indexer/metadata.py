@@ -293,14 +293,33 @@ class OriginMetadataIndexer(OriginIndexer):
         # Deduplicate revisions
         rev_metadata = []
         orig_metadata = []
+        revs_to_delete = []
+        origs_to_delete = []
         for (orig_item, rev_item) in results:
-            if rev_item not in rev_metadata:
-                rev_metadata.append(rev_item)
-            if orig_item not in orig_metadata:
-                orig_metadata.append(orig_item)
+            assert rev_item['mappings'] == orig_item['mappings']
+            if rev_item['mappings']:
+                # Only store translated metadata if we found a metadata file.
+                # Otherwise it's just an empty dict with a "@context" key.
+                if rev_item not in rev_metadata:
+                    rev_metadata.append(rev_item)
+                if orig_item not in orig_metadata:
+                    orig_metadata.append(orig_item)
+            else:
+                if rev_item not in revs_to_delete:
+                    revs_to_delete.append(rev_item)
+                if orig_item not in origs_to_delete:
+                    origs_to_delete.append(orig_item)
 
-        self.idx_storage.revision_metadata_add(
-            rev_metadata, conflict_update=conflict_update)
+        if rev_metadata:
+            self.idx_storage.revision_metadata_add(
+                rev_metadata, conflict_update=conflict_update)
+        if orig_metadata:
+            self.idx_storage.origin_intrinsic_metadata_add(
+                orig_metadata, conflict_update=conflict_update)
 
-        self.idx_storage.origin_intrinsic_metadata_add(
-            orig_metadata, conflict_update=conflict_update)
+        # revs_to_delete should always be empty unless we changed a mapping
+        # to detect less files.
+        # However, origs_to_delete may be empty whenever an upstream deletes
+        # a metadata file.
+        self.idx_storage.origin_intrinsic_metadata_delete(origs_to_delete)
+        self.idx_storage.revision_metadata_delete(revs_to_delete)
