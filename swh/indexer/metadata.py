@@ -321,5 +321,7 @@ class OriginMetadataIndexer(OriginIndexer):
         # to detect less files.
         # However, origs_to_delete may be empty whenever an upstream deletes
         # a metadata file.
-        self.idx_storage.origin_intrinsic_metadata_delete(origs_to_delete)
-        self.idx_storage.revision_metadata_delete(revs_to_delete)
+        if origs_to_delete:
+            self.idx_storage.origin_intrinsic_metadata_delete(origs_to_delete)
+        if revs_to_delete:
+            self.idx_storage.revision_metadata_delete(revs_to_delete)
