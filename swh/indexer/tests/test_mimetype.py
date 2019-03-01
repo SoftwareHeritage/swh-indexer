@@ -57,6 +57,7 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     def setUp(self):
         self.indexer = MimetypeIndexer(config=CONFIG)
+        self.indexer.catch_exceptions = False
         self.idx_storage = self.indexer.idx_storage
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
@@ -106,6 +107,7 @@ class TestMimetypeRangeIndexer(
     def setUp(self):
         super().setUp()
         self.indexer = MimetypeRangeIndexer(config=RANGE_CONFIG)
+        self.indexer.catch_exceptions = False
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 

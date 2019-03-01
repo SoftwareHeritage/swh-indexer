@@ -89,6 +89,7 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         fossology_license.compute_license = mock_compute_license
 
         self.indexer = FossologyLicenseIndexer(CONFIG)
+        self.indexer.catch_exceptions = False
         self.idx_storage = self.indexer.idx_storage
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
@@ -138,6 +139,7 @@ class TestFossologyLicenseRangeIndexer(
         fossology_license.compute_license = mock_compute_license
 
         self.indexer = FossologyLicenseRangeIndexer(config=RANGE_CONFIG)
+        self.indexer.catch_exceptions = False
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 

@@ -133,6 +133,10 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
     USE_TOOLS = True
 
+    catch_exceptions = True
+    """Prevents exceptions in `index()` from raising too high. Set to False
+    in tests to properly catch all exceptions."""
+
     def __init__(self, config=None, **kw):
         """Prepare and check that the indexer is ready to run.
 
@@ -374,6 +378,8 @@ class ContentIndexer(BaseIndexer):
             self.results = results
             return self.next_step(results, task=next_step)
         except Exception:
+            if not self.catch_exceptions:
+                raise
             self.log.exception(
                 'Problem when reading contents metadata.')
 
@@ -512,6 +518,8 @@ class ContentRangeIndexer(BaseIndexer):
                     results, policy_update='update-dups')
                 with_indexed_data = True
         except Exception:
+            if not self.catch_exceptions:
+                raise
             self.log.exception(
                 'Problem when computing metadata.')
         finally:
@@ -607,6 +615,8 @@ class OriginIndexer(BaseIndexer):
                 if res:  # If no results, skip it
                     results.append(res)
             except Exception:
+                if not self.catch_exceptions:
+                    raise
                 self.log.exception(
                     'Problem when processing origin %s',
                     origin['id'])
@@ -651,6 +661,8 @@ class RevisionIndexer(BaseIndexer):
                 if res:  # If no results, skip it
                     results.append(res)
             except Exception:
+                if not self.catch_exceptions:
+                    raise
                 self.log.exception(
                         'Problem when processing revision')
         self.persist_index_computations(results, policy_update)
