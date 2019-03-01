@@ -1,3 +1,12 @@
+swh-indexer (0.0.141-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.141     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-03-01 10:59:54 +0100)
+  * Upstream changes:     - Prevent origin metadata indexer from writing
+    empty records
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 01 Mar 2019 10:10:56 +0000
+
 swh-indexer (0.0.140-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.140     - (tagged by Valentin Lorentz
