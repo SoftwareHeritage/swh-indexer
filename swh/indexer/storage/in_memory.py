@@ -176,6 +176,15 @@ class SubStorage:
             if id_ not in self._sorted_ids:
                 bisect.insort(self._sorted_ids, id_)
 
+    def delete(self, entries):
+        for entry in entries:
+            (id_, tool_id) = (entry['id'], entry['indexer_configuration_id'])
+            key = (id_, tool_id)
+            if tool_id in self._tools_per_id[id_]:
+                self._tools_per_id[id_].remove(tool_id)
+            if key in self._data:
+                del self._data[key]
+
 
 class IndexerStorage:
     """In-memory SWH indexer storage."""
@@ -582,6 +591,16 @@ class IndexerStorage:
             raise TypeError('identifiers must be bytes.')
         self._revision_metadata.add(metadata, conflict_update)
 
+    def revision_metadata_delete(self, entries):
+        """Remove revision metadata from the storage.
+
+        Args:
+            entries (dict): dictionaries with the following keys:
+                - **revision** (int): origin identifier
+                - **id** (int): tool used to compute metadata
+        """
+        self._revision_metadata.delete(entries)
+
     def origin_intrinsic_metadata_get(self, ids):
         """Retrieve origin metadata per id.
 
@@ -628,6 +647,22 @@ class IndexerStorage:
             item['id'] = item.pop('origin_id')
             items.append(item)
         self._origin_intrinsic_metadata.add(items, conflict_update)
+
+    def origin_intrinsic_metadata_delete(self, entries):
+        """Remove origin metadata from the storage.
+
+        Args:
+            entries (dict): dictionaries with the following keys:
+                - **origin_id** (int): origin identifier
+                - **indexer_configuration_id** (int): tool used to compute
+                  metadata
+        """
+        items = []
+        for entry in entries:
+            item = entry.copy()
+            item['id'] = item.pop('origin_id')
+            items.append(item)
+        self._origin_intrinsic_metadata.delete(items)
 
     def origin_intrinsic_metadata_search_fulltext(
             self, conjunction, limit=100):

@@ -116,6 +116,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.indexer = CtagsIndexer(config=CONFIG)
+        self.indexer.catch_exceptions = False
         self.idx_storage = self.indexer.idx_storage
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)

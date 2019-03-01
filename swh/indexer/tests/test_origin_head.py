@@ -38,6 +38,7 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
 class OriginHead(unittest.TestCase):
     def setUp(self):
         self.indexer = OriginHeadTestIndexer()
+        self.indexer.catch_exceptions = False
         fill_storage(self.indexer.storage)
 
     def _get_origin_id(self, type_, url):
@@ -55,6 +56,35 @@ class OriginHead(unittest.TestCase):
                            b'\xd7}\xac\xefrm',
             'origin_id': origin_id}])
 
+    def test_vcs_missing_snapshot(self):
+        self.indexer.storage.origin_add([{
+            'type': 'git',
+            'url': 'https://github.com/SoftwareHeritage/swh-indexer',
+        }])
+        self.indexer.run(
+                ['git+https://github.com/SoftwareHeritage/swh-indexer'])
+        self.assertEqual(self.indexer.results, [])
+
+    def test_pypi_missing_branch(self):
+        origin_id = self.indexer.storage.origin_add_one({
+            'type': 'pypi',
+            'url': 'https://pypi.org/project/abcdef/',
+        })
+        visit = self.indexer.storage.origin_visit_add(
+            origin_id, '2019-02-27')
+        self.indexer.storage.snapshot_add(origin_id, visit['visit'], {
+            'id': 'foo',
+            'branches': {
+                b'foo': None,
+                b'HEAD': {
+                    'target_type': 'alias',
+                    'target': b'foo',
+                }
+            }
+        })
+        self.indexer.run(['pypi+https://pypi.org/project/abcdef/'])
+        self.assertEqual(self.indexer.results, [])
+
     def test_ftp(self):
         self.indexer.run(
                 ['ftp+rsync://ftp.gnu.org/gnu/3dldf'])
@@ -64,6 +94,15 @@ class OriginHead(unittest.TestCase):
             'revision_id': b'\x8e\xa9\x8e/\xea}\x9feF\xf4\x9f\xfd\xee'
                            b'\xcc\x1a\xb4`\x8c\x8by',
             'origin_id': origin_id}])
+
+    def test_ftp_missing_snapshot(self):
+        self.indexer.storage.origin_add([{
+            'type': 'ftp',
+            'url': 'rsync://ftp.gnu.org/gnu/foobar',
+        }])
+        self.indexer.run(
+                ['ftp+rsync://ftp.gnu.org/gnu/foobar'])
+        self.assertEqual(self.indexer.results, [])
 
     def test_deposit(self):
         self.indexer.run(
@@ -75,6 +114,15 @@ class OriginHead(unittest.TestCase):
             'revision_id': b'\xe7n\xa4\x9c\x9f\xfb\xb7\xf76\x11\x08{'
                            b'\xa6\xe9\x99\xb1\x9e]q\xeb',
             'origin_id': origin_id}])
+
+    def test_deposit_missing_snapshot(self):
+        self.indexer.storage.origin_add([{
+            'type': 'deposit',
+            'url': 'https://forge.softwareheritage.org/source/foobar',
+        }])
+        self.indexer.run(
+                ['deposit+https://forge.softwareheritage.org/source/foobar'])
+        self.assertEqual(self.indexer.results, [])
 
     def test_pypi(self):
         self.indexer.run(
