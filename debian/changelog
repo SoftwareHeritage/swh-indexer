@@ -1,8 +1,10 @@
-swh-indexer (0.0.141-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.142-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.142     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-03-01 14:19:05 +0100)
+  * Upstream changes:     - Skip useless requests.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 01 Mar 2019 10:12:44 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 01 Mar 2019 13:26:06 +0000
 
 swh-indexer (0.0.141-1~swh1) unstable-swh; urgency=medium
 
