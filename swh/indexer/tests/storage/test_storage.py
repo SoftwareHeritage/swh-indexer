@@ -931,7 +931,7 @@ class CommonTestStorage:
         endpoint_type='content_metadata',
         tool_name='swh-metadata-detector',
         example_data1={
-            'translated_metadata': {
+            'metadata': {
                 'other': {},
                 'codeRepository': {
                     'type': 'git',
@@ -943,7 +943,7 @@ class CommonTestStorage:
             },
         },
         example_data2={
-            'translated_metadata': {
+            'metadata': {
                 'other': {},
                 'name': 'test_metadata',
                 'version': '0.0.1'
@@ -951,21 +951,21 @@ class CommonTestStorage:
         },
     )
 
-    # revision_metadata tests
+    # revision_intrinsic_metadata tests
     (
-        test_revision_metadata_missing,
-        test_revision_metadata_add__drop_duplicate,
-        test_revision_metadata_add__update_in_place_duplicate,
-        test_revision_metadata_add__update_in_place_deadlock,
-        test_revision_metadata_add__duplicate_twice,
-        test_revision_metadata_get,
-        test_revision_metadata_delete,
-        test_revision_metadata_delete_nonexisting,
+        test_revision_intrinsic_metadata_missing,
+        test_revision_intrinsic_metadata_add__drop_duplicate,
+        test_revision_intrinsic_metadata_add__update_in_place_duplicate,
+        test_revision_intrinsic_metadata_add__update_in_place_deadlock,
+        test_revision_intrinsic_metadata_add__duplicate_twice,
+        test_revision_intrinsic_metadata_get,
+        test_revision_intrinsic_metadata_delete,
+        test_revision_intrinsic_metadata_delete_nonexisting,
     ) = gen_generic_endpoint_tests(
-        endpoint_type='revision_metadata',
+        endpoint_type='revision_intrinsic_metadata',
         tool_name='swh-metadata-detector',
         example_data1={
-            'translated_metadata': {
+            'metadata': {
                 'other': {},
                 'codeRepository': {
                     'type': 'git',
@@ -978,7 +978,7 @@ class CommonTestStorage:
             'mappings': ['mapping1'],
         },
         example_data2={
-            'translated_metadata': {
+            'metadata': {
                 'other': {},
                 'name': 'test_metadata',
                 'version': '0.0.1'
@@ -997,12 +997,12 @@ class CommonTestStorage:
         }
         metadata_rev = {
             'id': self.revision_id_2,
-            'translated_metadata': metadata,
+            'metadata': metadata,
             'mappings': ['mapping1'],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin = {
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
@@ -1010,7 +1010,7 @@ class CommonTestStorage:
             }
 
         # when
-        self.storage.revision_metadata_add([metadata_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata_rev])
         self.storage.origin_intrinsic_metadata_add([metadata_origin])
 
         # then
@@ -1018,7 +1018,7 @@ class CommonTestStorage:
             [self.origin_id_1, 42]))
 
         expected_metadata = [{
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
@@ -1037,28 +1037,28 @@ class CommonTestStorage:
         }
         metadata_rev = {
             'id': self.revision_id_2,
-            'translated_metadata': metadata,
+            'metadata': metadata,
             'mappings': ['mapping1'],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin = {
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
             'from_revision': self.revision_id_2,
             }
         metadata_origin2 = metadata_origin.copy()
-        metadata_origin2['origin_id'] = self.origin_id_2
+        metadata_origin2['id'] = self.origin_id_2
 
         # when
-        self.storage.revision_metadata_add([metadata_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata_rev])
         self.storage.origin_intrinsic_metadata_add([
             metadata_origin, metadata_origin2])
 
         self.storage.origin_intrinsic_metadata_delete([
             {
-                'origin_id': self.origin_id_1,
+                'id': self.origin_id_1,
                 'indexer_configuration_id': tool_id
             }
         ])
@@ -1074,7 +1074,7 @@ class CommonTestStorage:
         tool_id = self.tools['swh-metadata-detector']['id']
         self.storage.origin_intrinsic_metadata_delete([
             {
-                'origin_id': self.origin_id_1,
+                'id': self.origin_id_1,
                 'indexer_configuration_id': tool_id
             }
         ])
@@ -1089,12 +1089,12 @@ class CommonTestStorage:
         }
         metadata_rev_v1 = {
             'id': self.revision_id_1,
-            'translated_metadata': metadata_v1.copy(),
+            'metadata': metadata_v1.copy(),
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin_v1 = {
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata_v1.copy(),
             'indexer_configuration_id': tool_id,
             'mappings': [],
@@ -1102,7 +1102,7 @@ class CommonTestStorage:
         }
 
         # given
-        self.storage.revision_metadata_add([metadata_rev_v1])
+        self.storage.revision_intrinsic_metadata_add([metadata_rev_v1])
         self.storage.origin_intrinsic_metadata_add([metadata_origin_v1])
 
         # when
@@ -1110,7 +1110,7 @@ class CommonTestStorage:
             [self.origin_id_1, 42]))
 
         expected_metadata_v1 = [{
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata_v1,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_1,
@@ -1127,10 +1127,10 @@ class CommonTestStorage:
         })
         metadata_rev_v2 = metadata_rev_v1.copy()
         metadata_origin_v2 = metadata_origin_v1.copy()
-        metadata_rev_v2['translated_metadata'] = metadata_v2
-        metadata_origin_v2['translated_metadata'] = metadata_v2
+        metadata_rev_v2['metadata'] = metadata_v2
+        metadata_origin_v2['metadata'] = metadata_v2
 
-        self.storage.revision_metadata_add([metadata_rev_v2])
+        self.storage.revision_intrinsic_metadata_add([metadata_rev_v2])
         self.storage.origin_intrinsic_metadata_add([metadata_origin_v2])
 
         # then
@@ -1150,12 +1150,12 @@ class CommonTestStorage:
         }
         metadata_rev_v1 = {
             'id': self.revision_id_2,
-            'translated_metadata': metadata_v1,
+            'metadata': metadata_v1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin_v1 = {
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata_v1.copy(),
             'indexer_configuration_id': tool_id,
             'mappings': [],
@@ -1163,7 +1163,7 @@ class CommonTestStorage:
         }
 
         # given
-        self.storage.revision_metadata_add([metadata_rev_v1])
+        self.storage.revision_intrinsic_metadata_add([metadata_rev_v1])
         self.storage.origin_intrinsic_metadata_add([metadata_origin_v1])
 
         # when
@@ -1172,7 +1172,7 @@ class CommonTestStorage:
 
         # then
         expected_metadata_v1 = [{
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata_v1,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
@@ -1188,19 +1188,19 @@ class CommonTestStorage:
         })
         metadata_rev_v2 = metadata_rev_v1.copy()
         metadata_origin_v2 = metadata_origin_v1.copy()
-        metadata_rev_v2['translated_metadata'] = metadata_v2
+        metadata_rev_v2['metadata'] = metadata_v2
         metadata_origin_v2['metadata'] = metadata_v2
 
-        self.storage.revision_metadata_add([metadata_rev_v2],
-                                           conflict_update=True)
-        self.storage.origin_intrinsic_metadata_add([metadata_origin_v2],
-                                                   conflict_update=True)
+        self.storage.revision_intrinsic_metadata_add(
+                [metadata_rev_v2], conflict_update=True)
+        self.storage.origin_intrinsic_metadata_add(
+                [metadata_origin_v2], conflict_update=True)
 
         actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
             [self.origin_id_1]))
 
         expected_metadata_v2 = [{
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata_v2,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
@@ -1233,7 +1233,7 @@ class CommonTestStorage:
 
         metadata_rev_v1 = {
             'id': self.revision_id_2,
-            'translated_metadata': {
+            'metadata': {
                 'version': None,
                 'name': None,
             },
@@ -1243,7 +1243,7 @@ class CommonTestStorage:
 
         data_v1 = [
             {
-                'origin_id': id_,
+                'id': id_,
                 'from_revision': self.revision_id_2,
                 **example_data1,
                 'indexer_configuration_id': tool_id,
@@ -1252,7 +1252,7 @@ class CommonTestStorage:
         ]
         data_v2 = [
             {
-                'origin_id': id_,
+                'id': id_,
                 'from_revision': self.revision_id_2,
                 **example_data2,
                 'indexer_configuration_id': tool_id,
@@ -1266,7 +1266,7 @@ class CommonTestStorage:
         data_v2b = list(reversed(data_v2[0:-1]))
 
         # given
-        self.storage.revision_metadata_add([metadata_rev_v1])
+        self.storage.revision_intrinsic_metadata_add([metadata_rev_v1])
         self.storage.origin_intrinsic_metadata_add(data_v1)
 
         # when
@@ -1274,7 +1274,7 @@ class CommonTestStorage:
 
         expected_data_v1 = [
             {
-                'origin_id': id_,
+                'id': id_,
                 'from_revision': self.revision_id_2,
                 **example_data1,
                 'tool': self.tools['swh-metadata-detector'],
@@ -1306,7 +1306,7 @@ class CommonTestStorage:
 
         expected_data_v2 = [
             {
-                'origin_id': id_,
+                'id': id_,
                 'from_revision': self.revision_id_2,
                 **example_data2,
                 'tool': self.tools['swh-metadata-detector'],
@@ -1327,12 +1327,12 @@ class CommonTestStorage:
         }
         metadata_rev = {
             'id': self.revision_id_2,
-            'translated_metadata': metadata,
+            'metadata': metadata,
             'mappings': ['mapping1'],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin = {
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
@@ -1340,7 +1340,7 @@ class CommonTestStorage:
             }
 
         # when
-        self.storage.revision_metadata_add([metadata_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata_rev])
 
         with self.assertRaises(ValueError):
             self.storage.origin_intrinsic_metadata_add([
@@ -1355,12 +1355,12 @@ class CommonTestStorage:
         }
         metadata1_rev = {
             'id': self.revision_id_1,
-            'translated_metadata': metadata1,
+            'metadata': metadata1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata1_origin = {
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1371,12 +1371,12 @@ class CommonTestStorage:
         }
         metadata2_rev = {
             'id': self.revision_id_2,
-            'translated_metadata': metadata2,
+            'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata2_origin = {
-            'origin_id': self.origin_id_2,
+            'id': self.origin_id_2,
             'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1384,24 +1384,24 @@ class CommonTestStorage:
         }
 
         # when
-        self.storage.revision_metadata_add([metadata1_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata1_rev])
         self.storage.origin_intrinsic_metadata_add([metadata1_origin])
-        self.storage.revision_metadata_add([metadata2_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata2_rev])
         self.storage.origin_intrinsic_metadata_add([metadata2_origin])
 
         # then
         search = self.storage.origin_intrinsic_metadata_search_fulltext
         self.assertCountEqual(
-                [res['origin_id'] for res in search(['Doe'])],
+                [res['id'] for res in search(['Doe'])],
                 [self.origin_id_1, self.origin_id_2])
         self.assertEqual(
-                [res['origin_id'] for res in search(['John', 'Doe'])],
+                [res['id'] for res in search(['John', 'Doe'])],
                 [self.origin_id_1])
         self.assertEqual(
-                [res['origin_id'] for res in search(['John'])],
+                [res['id'] for res in search(['John'])],
                 [self.origin_id_1])
         self.assertEqual(
-                [res['origin_id'] for res in search(['John', 'Jane'])],
+                [res['id'] for res in search(['John', 'Jane'])],
                 [])
 
     def test_origin_intrinsic_metadata_search_fulltext_rank(self):
@@ -1421,12 +1421,12 @@ class CommonTestStorage:
         }
         metadata1_rev = {
             'id': self.revision_id_1,
-            'translated_metadata': metadata1,
+            'metadata': metadata1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata1_origin = {
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1440,12 +1440,12 @@ class CommonTestStorage:
         }
         metadata2_rev = {
             'id': self.revision_id_2,
-            'translated_metadata': metadata2,
+            'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata2_origin = {
-            'origin_id': self.origin_id_2,
+            'id': self.origin_id_2,
             'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1453,27 +1453,27 @@ class CommonTestStorage:
         }
 
         # when
-        self.storage.revision_metadata_add([metadata1_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata1_rev])
         self.storage.origin_intrinsic_metadata_add([metadata1_origin])
-        self.storage.revision_metadata_add([metadata2_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata2_rev])
         self.storage.origin_intrinsic_metadata_add([metadata2_origin])
 
         # then
         search = self.storage.origin_intrinsic_metadata_search_fulltext
         self.assertEqual(
-                [res['origin_id'] for res in search(['Doe'])],
+                [res['id'] for res in search(['Doe'])],
                 [self.origin_id_1, self.origin_id_2])
         self.assertEqual(
-                [res['origin_id'] for res in search(['Doe'], limit=1)],
+                [res['id'] for res in search(['Doe'], limit=1)],
                 [self.origin_id_1])
         self.assertEqual(
-                [res['origin_id'] for res in search(['John'])],
+                [res['id'] for res in search(['John'])],
                 [self.origin_id_1])
         self.assertEqual(
-                [res['origin_id'] for res in search(['Jane'])],
+                [res['id'] for res in search(['Jane'])],
                 [self.origin_id_2, self.origin_id_1])
         self.assertEqual(
-                [res['origin_id'] for res in search(['John', 'Jane'])],
+                [res['id'] for res in search(['John', 'Jane'])],
                 [self.origin_id_1])
 
     def _fill_origin_intrinsic_metadata(self):
@@ -1486,12 +1486,12 @@ class CommonTestStorage:
         }
         metadata1_rev = {
             'id': self.revision_id_1,
-            'translated_metadata': metadata1,
+            'metadata': metadata1,
             'mappings': ['npm'],
             'indexer_configuration_id': tool1_id,
         }
         metadata1_origin = {
-            'origin_id': self.origin_id_1,
+            'id': self.origin_id_1,
             'metadata': metadata1,
             'mappings': ['npm'],
             'indexer_configuration_id': tool1_id,
@@ -1503,12 +1503,12 @@ class CommonTestStorage:
         }
         metadata2_rev = {
             'id': self.revision_id_2,
-            'translated_metadata': metadata2,
+            'metadata': metadata2,
             'mappings': ['npm', 'gemspec'],
             'indexer_configuration_id': tool2_id,
         }
         metadata2_origin = {
-            'origin_id': self.origin_id_2,
+            'id': self.origin_id_2,
             'metadata': metadata2,
             'mappings': ['npm', 'gemspec'],
             'indexer_configuration_id': tool2_id,
@@ -1519,23 +1519,23 @@ class CommonTestStorage:
         }
         metadata3_rev = {
             'id': self.revision_id_3,
-            'translated_metadata': metadata3,
+            'metadata': metadata3,
             'mappings': ['npm', 'gemspec'],
             'indexer_configuration_id': tool2_id,
         }
         metadata3_origin = {
-            'origin_id': self.origin_id_3,
+            'id': self.origin_id_3,
             'metadata': metadata3,
             'mappings': ['pkg-info'],
             'indexer_configuration_id': tool2_id,
             'from_revision': self.revision_id_3,
         }
 
-        self.storage.revision_metadata_add([metadata1_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata1_rev])
         self.storage.origin_intrinsic_metadata_add([metadata1_origin])
-        self.storage.revision_metadata_add([metadata2_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata2_rev])
         self.storage.origin_intrinsic_metadata_add([metadata2_origin])
-        self.storage.revision_metadata_add([metadata3_rev])
+        self.storage.revision_intrinsic_metadata_add([metadata3_rev])
         self.storage.origin_intrinsic_metadata_add([metadata3_origin])
 
     def test_origin_intrinsic_metadata_search_by_producer(self):
@@ -1597,7 +1597,7 @@ class CommonTestStorage:
 
         # test ids_only=False
         self.assertEqual(list(endpoint(mappings=['gemspec'])), [{
-            'origin_id': self.origin_id_2,
+            'id': self.origin_id_2,
             'metadata': {
                 '@context': 'foo',
                 'author': 'Jane Doe',

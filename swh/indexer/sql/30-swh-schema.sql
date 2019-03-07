@@ -103,33 +103,33 @@ comment on column content_fossology_license.indexer_configuration_id is 'Tool us
 -- identified as potentially containning metadata with a translation tool (indexer_configuration_id)
 create table content_metadata(
   id                       sha1   not null,
-  translated_metadata      jsonb  not null,
+  metadata                 jsonb  not null,
   indexer_configuration_id bigint not null
 );
 
 comment on table content_metadata is 'metadata semantically translated from a content file';
 comment on column content_metadata.id is 'sha1 of content file';
-comment on column content_metadata.translated_metadata is 'result of translation with defined format';
+comment on column content_metadata.metadata is 'result of translation with defined format';
 comment on column content_metadata.indexer_configuration_id is 'tool used for translation';
 
--- The table revision_metadata provides a minimal set of intrinsic metadata
--- detected with the detection  tool (indexer_configuration_id) and aggregated
--- from the content_metadata translation.
-create table revision_metadata(
+-- The table revision_intrinsic_metadata provides a minimal set of intrinsic
+-- metadata detected with the detection  tool (indexer_configuration_id) and
+-- aggregated from the content_metadata translation.
+create table revision_intrinsic_metadata(
   id                       sha1_git   not null,
-  translated_metadata      jsonb      not null,
+  metadata                 jsonb      not null,
   indexer_configuration_id bigint     not null,
   mappings                 text array not null
 );
 
-comment on table revision_metadata is 'metadata semantically detected and translated in a revision';
-comment on column revision_metadata.id is 'sha1_git of revision';
-comment on column revision_metadata.translated_metadata is 'result of detection and translation with defined format';
-comment on column revision_metadata.indexer_configuration_id is 'tool used for detection';
-comment on column revision_metadata.mappings is 'type of metadata files used to obtain this metadata (eg. pkg-info, npm)';
+comment on table revision_intrinsic_metadata is 'metadata semantically detected and translated in a revision';
+comment on column revision_intrinsic_metadata.id is 'sha1_git of revision';
+comment on column revision_intrinsic_metadata.metadata is 'result of detection and translation with defined format';
+comment on column revision_intrinsic_metadata.indexer_configuration_id is 'tool used for detection';
+comment on column revision_intrinsic_metadata.mappings is 'type of metadata files used to obtain this metadata (eg. pkg-info, npm)';
 
 create table origin_intrinsic_metadata(
-  origin_id                 bigserial  not null,
+  id                        bigserial  not null,
   metadata                  jsonb,
   indexer_configuration_id  bigint     not null,
   from_revision             sha1_git   not null,
@@ -138,7 +138,7 @@ create table origin_intrinsic_metadata(
 );
 
 comment on table origin_intrinsic_metadata is 'keeps intrinsic metadata for an origin';
-comment on column origin_intrinsic_metadata.origin_id is 'the entry id in origin';
+comment on column origin_intrinsic_metadata.id is 'the entry id in origin';
 comment on column origin_intrinsic_metadata.metadata is 'metadata extracted from a revision';
 comment on column origin_intrinsic_metadata.indexer_configuration_id is 'tool used to generate this metadata';
 comment on column origin_intrinsic_metadata.from_revision is 'sha1 of the revision this metadata was copied from.';
