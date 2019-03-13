@@ -10,7 +10,7 @@ from swh.scheduler import get_scheduler
 from swh.scheduler.utils import create_task_dict
 from swh.storage import get_storage
 
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer import metadata_dictionary
 from swh.indexer.storage import get_indexer_storage
 from swh.indexer.storage.api.server import load_and_check_config, app
 
@@ -54,10 +54,32 @@ def mapping():
 @mapping.command('list')
 def mapping_list():
     """Prints the list of known mappings."""
-    mapping_names = [mapping.name for mapping in MAPPINGS.values()]
+    mapping_names = [mapping.name
+                     for mapping in metadata_dictionary.MAPPINGS.values()]
     mapping_names.sort()
     for mapping_name in mapping_names:
         click.echo(mapping_name)
+
+
+@mapping.command('list-terms')
+@click.option('--exclude-mapping', multiple=True,
+              help='Exclude the given mapping from the output')
+@click.option('--concise', is_flag=True,
+              default=False,
+              help='Don\'t print the list of mappings supporting each term.')
+def mapping_list_terms(concise, exclude_mapping):
+    """Prints the list of known CodeMeta terms, and which mappings
+    support them."""
+    properties = metadata_dictionary.list_terms()
+    for (property_name, supported_mappings) in sorted(properties.items()):
+        supported_mappings = {m.name for m in supported_mappings}
+        supported_mappings -= set(exclude_mapping)
+        if supported_mappings:
+            if concise:
+                click.echo(property_name)
+            else:
+                click.echo('{}:'.format(property_name))
+                click.echo('\t' + ', '.join(sorted(supported_mappings)))
 
 
 @cli.group('schedule')
