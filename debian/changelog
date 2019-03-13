@@ -1,3 +1,15 @@
+swh-indexer (0.0.143-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.143     - (tagged by Thibault Allançon
+    <tallancon@gmail.com> on 2019-03-12 10:18:37 +0100)
+  * Upstream changes:     - Use hashutil.MultiHash in
+    swh.indexer.tests.test_utils.fill_storage     - Summary: Closes
+    T1448     - Reviewers: #reviewers     - Subscribers: swh-public-ci
+    - Maniphest Tasks: T1448     - Differential Revision:
+    https://forge.softwareheritage.org/D1235
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 13 Mar 2019 10:24:37 +0000
+
 swh-indexer (0.0.142-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.142     - (tagged by Valentin Lorentz
