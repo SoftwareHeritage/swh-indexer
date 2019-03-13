@@ -5,7 +5,6 @@
 
 import abc
 import datetime
-import hashlib
 import random
 
 from hypothesis import strategies
@@ -481,20 +480,15 @@ def fill_storage(storage):
         'entries': DIRECTORY,
     }])
     for (obj_id, content) in OBJ_STORAGE_DATA.items():
-        # TODO: use MultiHash
-        if hasattr(hashlib, 'blake2s'):
-            blake2s256 = hashlib.blake2s(content, digest_size=32).digest()
-        else:
-            # fallback for Python <3.6
-            blake2s256 = bytes([random.randint(0, 255) for _ in range(32)])
+        content_hashes = hashutil.MultiHash.from_data(content).digest()
         storage.content_add([{
             'data': content,
             'length': len(content),
             'status': 'visible',
             'sha1': hash_to_bytes(obj_id),
             'sha1_git': hash_to_bytes(obj_id),
-            'sha256': hashlib.sha256(content).digest(),
-            'blake2s256': blake2s256
+            'sha256': content_hashes['sha256'],
+            'blake2s256': content_hashes['blake2s256']
         }])
 
 

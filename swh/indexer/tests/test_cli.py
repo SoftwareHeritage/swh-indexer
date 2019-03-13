@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 from functools import reduce
+import re
 import tempfile
 from unittest.mock import patch
 
@@ -106,6 +107,31 @@ def test_mapping_list(indexer_scheduler):
     ])
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
+
+
+def test_mapping_list_terms(indexer_scheduler):
+    result = invoke(indexer_scheduler, False, [
+        'mapping', 'list-terms',
+    ])
+    assert result.exit_code == 0, result.output
+    assert re.search(r'http://schema.org/url:\n.*npm', result.output)
+    assert re.search(r'http://schema.org/url:\n.*codemeta', result.output)
+    assert re.search(
+        r'https://codemeta.github.io/terms/developmentStatus:\n\tcodemeta',
+        result.output)
+
+
+def test_mapping_list_terms_exclude(indexer_scheduler):
+    result = invoke(indexer_scheduler, False, [
+        'mapping', 'list-terms',
+        '--exclude-mapping', 'codemeta'
+    ])
+    assert result.exit_code == 0, result.output
+    assert re.search(r'http://schema.org/url:\n.*npm', result.output)
+    assert not re.search(r'http://schema.org/url:\n.*codemeta', result.output)
+    assert not re.search(
+        r'https://codemeta.github.io/terms/developmentStatus:\n\tcodemeta',
+        result.output)
 
 
 @patch('swh.indexer.cli.TASK_BATCH_SIZE', 3)

@@ -72,6 +72,7 @@ def _read_crosstable(fd):
     assert 'codemeta-V1' in data_sources
 
     codemeta_translation = {data_source: {} for data_source in data_sources}
+    terms = set()
 
     for line in reader:  # For each canonical name
         local_name = dict(zip(header, line))['Property']
@@ -80,6 +81,7 @@ def _read_crosstable(fd):
         canonical_name = make_absolute_uri(local_name)
         if canonical_name in PROPERTY_BLACKLIST:
             continue
+        terms.add(canonical_name)
         for (col, value) in zip(header, line):  # For each cell in the row
             if col in data_sources:
                 # If that's not the parentType/property/type/description
@@ -90,11 +92,11 @@ def _read_crosstable(fd):
                         codemeta_translation[col][local_name.strip()] = \
                                 canonical_name
 
-    return (header, codemeta_translation)
+    return (terms, codemeta_translation)
 
 
 with open(CROSSWALK_TABLE_PATH) as fd:
-    (CODEMETA_KEYS, CROSSWALK_TABLE) = _read_crosstable(fd)
+    (CODEMETA_TERMS, CROSSWALK_TABLE) = _read_crosstable(fd)
 
 
 def _document_loader(url):
