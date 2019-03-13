@@ -247,6 +247,7 @@ class IndexerStorage:
 
         """
         _check_duplicates(mimetypes, 'id')
+        mimetypes.sort(key=lambda m: m['id'])
         db.mktemp_content_mimetype(cur)
         db.copy_to(mimetypes, 'tmp_content_mimetype',
                    ['id', 'mimetype', 'encoding', 'indexer_configuration_id'],
@@ -332,6 +333,7 @@ class IndexerStorage:
 
         """
         _check_duplicates(languages, 'id')
+        languages.sort(key=lambda m: m['id'])
         db.mktemp_content_language(cur)
         # empty language is mapped to 'unknown'
         db.copy_to(
@@ -402,6 +404,7 @@ class IndexerStorage:
 
         """
         _check_duplicates(ctags, 'id')
+        ctags.sort(key=lambda m: m['id'])
 
         def _convert_ctags(__ctags):
             """Convert ctags dict to list of ctags.
@@ -447,7 +450,8 @@ class IndexerStorage:
             ids (iterable): sha1 checksums
 
         Yields:
-            `{id: facts}` where `facts` is a dict with the following keys:
+            dict: ``{id: facts}`` where ``facts`` is a dict with the
+            following keys:
 
                 - **licenses** ([str]): associated licenses for that content
                 - **tool** (dict): Tool used to compute the license
@@ -484,6 +488,7 @@ class IndexerStorage:
 
         """
         _check_duplicates(licenses, 'id')
+        licenses.sort(key=lambda m: m['id'])
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
             ({
@@ -582,6 +587,7 @@ class IndexerStorage:
 
         """
         _check_duplicates(metadata, 'id')
+        metadata.sort(key=lambda m: m['id'])
 
         db.mktemp_content_metadata(cur)
 
@@ -651,6 +657,7 @@ class IndexerStorage:
 
         """
         _check_duplicates(metadata, 'id')
+        metadata.sort(key=lambda m: m['id'])
 
         db.mktemp_revision_metadata(cur)
 
@@ -718,6 +725,7 @@ class IndexerStorage:
 
         """
         _check_duplicates(metadata, 'origin_id')
+        metadata.sort(key=lambda m: m['origin_id'])
 
         db.mktemp_origin_intrinsic_metadata(cur)
 

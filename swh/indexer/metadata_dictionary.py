@@ -10,14 +10,15 @@ import ast
 import json
 import logging
 import itertools
+import collections
 import email.parser
-import xml.parsers.expat
 import email.policy
+import xml.parsers.expat
 
 import click
 import xmltodict
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI, CODEMETA_TERMS
 from swh.indexer.codemeta import compact, expand
 
 
@@ -27,6 +28,16 @@ MAPPINGS = {}
 def register_mapping(cls):
     MAPPINGS[cls.__name__] = cls
     return cls
+
+
+def list_terms():
+    """Returns a dictionary with all supported CodeMeta terms as keys,
+    and the mappings that support each of them as values."""
+    d = collections.defaultdict(set)
+    for mapping in MAPPINGS.values():
+        for term in mapping.supported_terms():
+            d[term].add(mapping)
+    return d
 
 
 def merge_values(v1, v2):
@@ -137,6 +148,18 @@ class DictMapping(BaseMapping):
         """A translation dict to map dict keys into a canonical name."""
         pass
 
+    @staticmethod
+    def _normalize_method_name(name):
+        return name.replace('-', '_')
+
+    @classmethod
+    def supported_terms(cls):
+        return {
+            term for (key, term) in cls.mapping.items()
+            if key in cls.string_fields
+            or hasattr(cls, 'translate_' + cls._normalize_method_name(key))
+            or hasattr(cls, 'normalize_' + cls._normalize_method_name(key))}
+
     def _translate_dict(self, content_dict, *, normalize=True):
         """
         Translates content  by parsing content from a dict object
@@ -155,7 +178,7 @@ class DictMapping(BaseMapping):
             # First, check if there is a specific translation
             # method for this key
             translation_method = getattr(
-                self, 'translate_' + k.replace('-', '_'), None)
+                self, 'translate_' + self._normalize_method_name(k), None)
             if translation_method:
                 translation_method(translated_metadata, v)
             elif k in self.mapping:
@@ -165,7 +188,7 @@ class DictMapping(BaseMapping):
 
                 # if there is a normalization method, use it on the value
                 normalization_method = getattr(
-                    self, 'normalize_' + k.replace('-', '_'), None)
+                    self, 'normalize_' + self._normalize_method_name(k), None)
                 if normalization_method:
                     v = normalization_method(v)
                 elif k in self.string_fields and isinstance(v, str):
@@ -374,7 +397,11 @@ class CodemetaMapping(SingleFileMapping):
     """
     name = 'codemeta'
     filename = b'codemeta.json'
-    string_fields = ['name', 'version', 'url', 'description', 'email']
+    string_fields = None
+
+    @classmethod
+    def supported_terms(cls):
+        return [term for term in CODEMETA_TERMS if not term.startswith('@')]
 
     def translate(self, content):
         try:
