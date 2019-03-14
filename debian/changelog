@@ -1,3 +1,12 @@
+swh-indexer (0.0.144-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.144     - (tagged by Thibault Allançon
+    <tallancon@gmail.com> on 2019-03-07 08:16:49 +0100)
+  * Upstream changes:     - Fix heterogeneity of names in metadata
+    tables
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 14 Mar 2019 13:30:44 +0000
+
 swh-indexer (0.0.143-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.143     - (tagged by Thibault Allançon
