@@ -25,12 +25,12 @@ alter table content_metadata add primary key using index content_metadata_pkey;
 alter table content_metadata add constraint content_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
 alter table content_metadata validate constraint content_metadata_indexer_configuration_id_fkey;
 
--- revision_metadata
-create unique index revision_metadata_pkey on revision_metadata(id, indexer_configuration_id);
-alter table revision_metadata add primary key using index revision_metadata_pkey;
+-- revision_intrinsic_metadata
+create unique index revision_intrinsic_metadata_pkey on revision_intrinsic_metadata(id, indexer_configuration_id);
+alter table revision_intrinsic_metadata add primary key using index revision_intrinsic_metadata_pkey;
 
-alter table revision_metadata add constraint revision_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
-alter table revision_metadata validate constraint revision_metadata_indexer_configuration_id_fkey;
+alter table revision_intrinsic_metadata add constraint revision_intrinsic_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
+alter table revision_intrinsic_metadata validate constraint revision_intrinsic_metadata_indexer_configuration_id_fkey;
 
 -- content_mimetype
 create unique index content_mimetype_pkey on content_mimetype(id, indexer_configuration_id);
@@ -57,12 +57,12 @@ alter table content_fossology_license add constraint content_fossology_license_i
 alter table content_fossology_license validate constraint content_fossology_license_indexer_configuration_id_fkey;
 
 -- origin_intrinsic_metadata
-create unique index origin_intrinsic_metadata_pkey on origin_intrinsic_metadata(origin_id, indexer_configuration_id);
+create unique index origin_intrinsic_metadata_pkey on origin_intrinsic_metadata(id, indexer_configuration_id);
 alter table origin_intrinsic_metadata add primary key using index origin_intrinsic_metadata_pkey;
 
 alter table origin_intrinsic_metadata add constraint origin_intrinsic_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
 alter table origin_intrinsic_metadata validate constraint origin_intrinsic_metadata_indexer_configuration_id_fkey;
-alter table origin_intrinsic_metadata add constraint origin_intrinsic_metadata_revision_metadata_fkey foreign key (from_revision, indexer_configuration_id) references revision_metadata(id, indexer_configuration_id) not valid;
+alter table origin_intrinsic_metadata add constraint origin_intrinsic_metadata_revision_metadata_fkey foreign key (from_revision, indexer_configuration_id) references revision_intrinsic_metadata(id, indexer_configuration_id) not valid;
 alter table origin_intrinsic_metadata validate constraint origin_intrinsic_metadata_revision_metadata_fkey;
 
 create index origin_intrinsic_metadata_fulltext_idx on origin_intrinsic_metadata using gin (metadata_tsvector);

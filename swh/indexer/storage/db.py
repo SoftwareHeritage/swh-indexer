@@ -281,7 +281,7 @@ class Db(BaseDb):
             cur=cur)
 
     content_metadata_cols = [
-        'id', 'translated_metadata',
+        'id', 'metadata',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     @stored_procedure('swh_mktemp_content_metadata')
@@ -295,44 +295,48 @@ class Db(BaseDb):
         yield from self._get_from_list(
             'content_metadata', ids, self.content_metadata_cols, cur=cur)
 
-    revision_metadata_hash_keys = [
+    revision_intrinsic_metadata_hash_keys = [
         'id', 'indexer_configuration_id']
 
-    def revision_metadata_missing_from_list(self, metadata, cur=None):
+    def revision_intrinsic_metadata_missing_from_list(
+            self, metadata, cur=None):
         """List missing metadata.
 
         """
         yield from self._missing_from_list(
-            'revision_metadata', metadata, self.revision_metadata_hash_keys,
-            cur=cur)
+            'revision_intrinsic_metadata', metadata,
+            self.revision_intrinsic_metadata_hash_keys, cur=cur)
 
-    revision_metadata_cols = [
-        'id', 'translated_metadata', 'mappings',
+    revision_intrinsic_metadata_cols = [
+        'id', 'metadata', 'mappings',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
-    @stored_procedure('swh_mktemp_revision_metadata')
-    def mktemp_revision_metadata(self, cur=None): pass
+    @stored_procedure('swh_mktemp_revision_intrinsic_metadata')
+    def mktemp_revision_intrinsic_metadata(self, cur=None): pass
 
-    def revision_metadata_add_from_temp(self, conflict_update, cur=None):
-        self._cursor(cur).execute("SELECT swh_revision_metadata_add(%s)",
-                                  (conflict_update, ))
+    def revision_intrinsic_metadata_add_from_temp(
+            self, conflict_update, cur=None):
+        self._cursor(cur).execute(
+                "SELECT swh_revision_intrinsic_metadata_add(%s)",
+                (conflict_update, ))
 
-    def revision_metadata_delete(
+    def revision_intrinsic_metadata_delete(
             self, entries, cur=None):
         cur = self._cursor(cur)
         cur.execute(
-                "DELETE from revision_metadata "
+                "DELETE from revision_intrinsic_metadata "
                 "WHERE (id, indexer_configuration_id) IN "
                 "   (VALUES %s)" % (', '.join('%s' for _ in entries)),
                 tuple((e['id'], e['indexer_configuration_id'])
                       for e in entries),)
 
-    def revision_metadata_get_from_list(self, ids, cur=None):
+    def revision_intrinsic_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            'revision_metadata', ids, self.revision_metadata_cols, cur=cur)
+            'revision_intrinsic_metadata', ids,
+            self.revision_intrinsic_metadata_cols, cur=cur)
 
     origin_intrinsic_metadata_cols = [
-        'origin_id', 'metadata', 'from_revision', 'mappings',
+        'id', 'metadata', 'from_revision', 'mappings',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     origin_intrinsic_metadata_regconfig = 'pg_catalog.simple'
@@ -357,23 +361,25 @@ class Db(BaseDb):
         cur = self._cursor(cur)
         cur.execute(
                 "DELETE from origin_intrinsic_metadata "
-                "WHERE (origin_id, indexer_configuration_id) IN"
+                "WHERE (id, indexer_configuration_id) IN"
                 "   (VALUES %s)" % (', '.join('%s' for _ in entries)),
-                tuple((e['origin_id'], e['indexer_configuration_id'])
+                tuple((e['id'], e['indexer_configuration_id'])
                       for e in entries),)
 
     def origin_intrinsic_metadata_get_from_list(self, orig_ids, cur=None):
         yield from self._get_from_list(
             'origin_intrinsic_metadata', orig_ids,
             self.origin_intrinsic_metadata_cols, cur=cur,
-            id_col='origin_id')
+            id_col='id')
 
     def origin_intrinsic_metadata_search_fulltext(self, terms, *, limit, cur):
         regconfig = self.origin_intrinsic_metadata_regconfig
         tsquery_template = ' && '.join("plainto_tsquery('%s', %%s)" % regconfig
                                        for _ in terms)
         tsquery_args = [(term,) for term in terms]
-        keys = map(self._convert_key, self.origin_intrinsic_metadata_cols)
+        keys = (self._convert_key(col, 'oim') for col in
+                self.origin_intrinsic_metadata_cols)
+
         query = ("SELECT {keys} FROM origin_intrinsic_metadata AS oim "
                  "INNER JOIN indexer_configuration AS i "
                  "ON oim.indexer_configuration_id=i.id "
@@ -390,10 +396,10 @@ class Db(BaseDb):
     def origin_intrinsic_metadata_search_by_producer(
             self, start, end, limit, ids_only, mappings, tool_ids, cur):
         if ids_only:
-            keys = 'oim.origin_id'
+            keys = 'oim.id'
         else:
-            keys = ', '.join(map(self._convert_key,
-                                 self.origin_intrinsic_metadata_cols))
+            keys = ', '.join((self._convert_key(col, 'oim') for col in
+                              self.origin_intrinsic_metadata_cols))
         query_parts = [
             "SELECT %s" % keys,
             "FROM origin_intrinsic_metadata AS oim",
@@ -404,10 +410,10 @@ class Db(BaseDb):
 
         where = []
         if start:
-            where.append('oim.origin_id >= %s')
+            where.append('oim.id >= %s')
             args.append(start)
         if end:
-            where.append('oim.origin_id <= %s')
+            where.append('oim.id <= %s')
             args.append(end)
         if mappings is not None:
             where.append('oim.mappings && %s')

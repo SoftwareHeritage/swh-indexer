@@ -18,7 +18,7 @@ ORIGIN_HEAD_CONFIG = {
         'configuration': {},
     },
     'tasks': {
-        'revision_metadata': None,
+        'revision_intrinsic_metadata': None,
         'origin_intrinsic_metadata': None,
     }
 }

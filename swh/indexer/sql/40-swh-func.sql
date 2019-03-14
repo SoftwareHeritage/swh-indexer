@@ -267,15 +267,15 @@ create or replace function swh_content_metadata_add(conflict_update boolean)
 as $$
 begin
     if conflict_update then
-      insert into content_metadata (id, translated_metadata, indexer_configuration_id)
-      select id, translated_metadata, indexer_configuration_id
+      insert into content_metadata (id, metadata, indexer_configuration_id)
+      select id, metadata, indexer_configuration_id
     	from tmp_content_metadata tcm
             on conflict(id, indexer_configuration_id)
-                do update set translated_metadata = excluded.translated_metadata;
+                do update set metadata = excluded.metadata;
 
     else
-        insert into content_metadata (id, translated_metadata, indexer_configuration_id)
-        select id, translated_metadata, indexer_configuration_id
+        insert into content_metadata (id, metadata, indexer_configuration_id)
+        select id, metadata, indexer_configuration_id
     	from tmp_content_metadata tcm
             on conflict(id, indexer_configuration_id)
             do nothing;
@@ -300,33 +300,34 @@ comment on function swh_mktemp_content_metadata() is 'Helper table to add conten
 
 -- end content_metadata functions
 
--- add tmp_revision_metadata entries to revision_metadata, overwriting
--- duplicates if conflict_update is true, skipping duplicates otherwise.
+-- add tmp_revision_intrinsic_metadata entries to revision_intrinsic_metadata,
+-- overwriting duplicates if conflict_update is true, skipping duplicates
+-- otherwise.
 --
 -- If filtering duplicates is in order, the call to
--- swh_revision_metadata_missing must take place before calling this
+-- swh_revision_intrinsic_metadata_missing must take place before calling this
 -- function.
 --
 -- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
--- tmp_revision_metadata, 2. call this function
-create or replace function swh_revision_metadata_add(conflict_update boolean)
+-- tmp_revision_intrinsic_metadata, 2. call this function
+create or replace function swh_revision_intrinsic_metadata_add(conflict_update boolean)
     returns void
     language plpgsql
 as $$
 begin
     if conflict_update then
-      insert into revision_metadata (id, translated_metadata, mappings, indexer_configuration_id)
-      select id, translated_metadata, mappings, indexer_configuration_id
-    	from tmp_revision_metadata tcm
+      insert into revision_intrinsic_metadata (id, metadata, mappings, indexer_configuration_id)
+      select id, metadata, mappings, indexer_configuration_id
+    	from tmp_revision_intrinsic_metadata tcm
             on conflict(id, indexer_configuration_id)
                 do update set
-                    translated_metadata = excluded.translated_metadata,
+                    metadata = excluded.metadata,
                     mappings = excluded.mappings;
 
     else
-        insert into revision_metadata (id, translated_metadata, mappings, indexer_configuration_id)
-        select id, translated_metadata, mappings, indexer_configuration_id
-    	from tmp_revision_metadata tcm
+        insert into revision_intrinsic_metadata (id, metadata, mappings, indexer_configuration_id)
+        select id, metadata, mappings, indexer_configuration_id
+    	from tmp_revision_intrinsic_metadata tcm
             on conflict(id, indexer_configuration_id)
             do nothing;
     end if;
@@ -334,19 +335,19 @@ begin
 end
 $$;
 
-comment on function swh_revision_metadata_add(boolean) IS 'Add new revision metadata';
+comment on function swh_revision_intrinsic_metadata_add(boolean) IS 'Add new revision intrinsic metadata';
 
--- create a temporary table for retrieving revision_metadata
-create or replace function swh_mktemp_revision_metadata()
+-- create a temporary table for retrieving revision_intrinsic_metadata
+create or replace function swh_mktemp_revision_intrinsic_metadata()
     returns void
     language sql
 as $$
-  create temporary table tmp_revision_metadata (
-    like revision_metadata including defaults
+  create temporary table tmp_revision_intrinsic_metadata (
+    like revision_intrinsic_metadata including defaults
   ) on commit drop;
 $$;
 
-comment on function swh_mktemp_revision_metadata() is 'Helper table to add revision metadata';
+comment on function swh_mktemp_revision_intrinsic_metadata() is 'Helper table to add revision intrinsic metadata';
 
 -- create a temporary table for retrieving origin_intrinsic_metadata
 create or replace function swh_mktemp_origin_intrinsic_metadata()
@@ -412,21 +413,21 @@ as $$
 begin
     perform swh_origin_intrinsic_metadata_compute_tsvector();
     if conflict_update then
-      insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
-      select origin_id, metadata, indexer_configuration_id, from_revision,
+      insert into origin_intrinsic_metadata (id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
+      select id, metadata, indexer_configuration_id, from_revision,
              metadata_tsvector, mappings
     	from tmp_origin_intrinsic_metadata
-            on conflict(origin_id, indexer_configuration_id)
+            on conflict(id, indexer_configuration_id)
                 do update set
                     metadata = excluded.metadata,
                     mappings = excluded.mappings;
 
     else
-        insert into origin_intrinsic_metadata (origin_id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
-        select origin_id, metadata, indexer_configuration_id, from_revision,
+        insert into origin_intrinsic_metadata (id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
+        select id, metadata, indexer_configuration_id, from_revision,
                metadata_tsvector, mappings
     	from tmp_origin_intrinsic_metadata
-            on conflict(origin_id, indexer_configuration_id)
+            on conflict(id, indexer_configuration_id)
             do nothing;
     end if;
     return;

@@ -251,7 +251,7 @@ class Metadata(unittest.TestCase):
             sha1s))
 
         expected_results = [{
-            'translated_metadata': {
+            'metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
                 'codeRepository':
@@ -262,7 +262,7 @@ class Metadata(unittest.TestCase):
             },
             'id': hash_to_bytes('26a9f72a7c87cc9205725cfd879f514ff4f3d8d5'),
             }, {
-            'translated_metadata': {
+            'metadata': {
                 '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
                 'type': 'SoftwareSourceCode',
                 'issueTracker':
@@ -1111,7 +1111,7 @@ Gem::Specification.new { |s|
         metadata_indexer.idx_storage.content_metadata_add([{
             'indexer_configuration_id': tool['id'],
             'id': b'cde',
-            'translated_metadata': YARN_PARSER_METADATA,
+            'metadata': YARN_PARSER_METADATA,
         }])
 
         sha1_gits = [
@@ -1119,13 +1119,14 @@ Gem::Specification.new { |s|
         ]
         metadata_indexer.run(sha1_gits, 'update-dups')
 
-        results = list(metadata_indexer.idx_storage.revision_metadata_get(
-            sha1_gits))
+        results = list(
+            metadata_indexer.idx_storage.
+            revision_intrinsic_metadata_get(sha1_gits))
 
         expected_results = [{
             'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
             'tool': TRANSLATOR_TOOL,
-            'translated_metadata': YARN_PARSER_METADATA,
+            'metadata': YARN_PARSER_METADATA,
             'mappings': ['npm'],
         }]
 

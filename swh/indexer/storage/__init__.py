@@ -51,32 +51,30 @@ def get_indexer_storage(cls, args):
     return IndexerStorage(**args)
 
 
-def _check_duplicates(data, key):
+def _check_id_duplicates(data):
     """
-    If any two dictionaries in `data` have the same value for the
-    key, raises a `ValueError`.
+    If any two dictionaries in `data` have the same id, raises
+    a `ValueError`.
 
     Values associated to the key must be hashable.
 
     Args:
         data (List[dict]): List of dictionaries to be inserted
-        key (str): Name of the key that acts as id.
 
-    >>> _check_duplicates([
+    >>> _check_id_duplicates([
     ...     {'id': 'foo', 'data': 'spam'},
     ...     {'id': 'bar', 'data': 'egg'},
-    ... ], 'id')
-    >>> _check_duplicates([
+    ... ])
+    >>> _check_id_duplicates([
     ...     {'id': 'foo', 'data': 'spam'},
     ...     {'id': 'foo', 'data': 'egg'},
-    ... ], 'id')
+    ... ])
     Traceback (most recent call last):
       ...
     ValueError: The same id is present more than once.
     """
-    if len({item[key] for item in data}) < len(data):
-        raise ValueError(
-            'The same {} is present more than once.'.format(key))
+    if len({item['id'] for item in data}) < len(data):
+        raise ValueError('The same id is present more than once.')
 
 
 class IndexerStorage:
@@ -246,7 +244,7 @@ class IndexerStorage:
                 default)
 
         """
-        _check_duplicates(mimetypes, 'id')
+        _check_id_duplicates(mimetypes)
         mimetypes.sort(key=lambda m: m['id'])
         db.mktemp_content_mimetype(cur)
         db.copy_to(mimetypes, 'tmp_content_mimetype',
@@ -332,7 +330,7 @@ class IndexerStorage:
                 default)
 
         """
-        _check_duplicates(languages, 'id')
+        _check_id_duplicates(languages)
         languages.sort(key=lambda m: m['id'])
         db.mktemp_content_language(cur)
         # empty language is mapped to 'unknown'
@@ -403,7 +401,7 @@ class IndexerStorage:
                   line, lang
 
         """
-        _check_duplicates(ctags, 'id')
+        _check_id_duplicates(ctags)
         ctags.sort(key=lambda m: m['id'])
 
         def _convert_ctags(__ctags):
@@ -487,7 +485,7 @@ class IndexerStorage:
             list: content_license entries which failed due to unknown licenses
 
         """
-        _check_duplicates(licenses, 'id')
+        _check_id_duplicates(licenses)
         licenses.sort(key=lambda m: m['id'])
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
@@ -562,7 +560,7 @@ class IndexerStorage:
             dictionaries with the following keys:
 
                 id (bytes)
-                translated_metadata (str): associated metadata
+                metadata (str): associated metadata
                 tool (dict): tool used to compute metadata
 
         """
@@ -580,25 +578,25 @@ class IndexerStorage:
             metadata (iterable): dictionaries with keys:
 
                 - **id**: sha1
-                - **translated_metadata**: arbitrary dict
+                - **metadata**: arbitrary dict
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)
 
         """
-        _check_duplicates(metadata, 'id')
+        _check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
         db.mktemp_content_metadata(cur)
 
         db.copy_to(metadata, 'tmp_content_metadata',
-                   ['id', 'translated_metadata', 'indexer_configuration_id'],
+                   ['id', 'metadata', 'indexer_configuration_id'],
                    cur)
         db.content_metadata_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('revision_metadata/missing')
+    @remote_api_endpoint('revision_intrinsic_metadata/missing')
     @db_transaction_generator()
-    def revision_metadata_missing(self, metadata, db=None, cur=None):
+    def revision_intrinsic_metadata_missing(self, metadata, db=None, cur=None):
         """List metadata missing from storage.
 
         Args:
@@ -612,12 +610,13 @@ class IndexerStorage:
             missing ids
 
         """
-        for obj in db.revision_metadata_missing_from_list(metadata, cur):
+        for obj in db.revision_intrinsic_metadata_missing_from_list(
+                metadata, cur):
             yield obj[0]
 
-    @remote_api_endpoint('revision_metadata')
+    @remote_api_endpoint('revision_intrinsic_metadata')
     @db_transaction_generator()
-    def revision_metadata_get(self, ids, db=None, cur=None):
+    def revision_intrinsic_metadata_get(self, ids, db=None, cur=None):
         """Retrieve revision metadata per id.
 
         Args:
@@ -627,27 +626,27 @@ class IndexerStorage:
             dictionaries with the following keys:
 
                 - **id** (bytes)
-                - **translated_metadata** (str): associated metadata
+                - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
                   these metadata
 
         """
-        for c in db.revision_metadata_get_from_list(ids, cur):
+        for c in db.revision_intrinsic_metadata_get_from_list(ids, cur):
             yield converters.db_to_metadata(
-                dict(zip(db.revision_metadata_cols, c)))
+                dict(zip(db.revision_intrinsic_metadata_cols, c)))
 
-    @remote_api_endpoint('revision_metadata/add')
+    @remote_api_endpoint('revision_intrinsic_metadata/add')
     @db_transaction()
-    def revision_metadata_add(self, metadata, conflict_update=False, db=None,
-                              cur=None):
+    def revision_intrinsic_metadata_add(self, metadata, conflict_update=False,
+                                        db=None, cur=None):
         """Add metadata not present in storage.
 
         Args:
             metadata (iterable): dictionaries with keys:
 
                 - **id**: sha1_git of revision
-                - **translated_metadata**: arbitrary dict
+                - **metadata**: arbitrary dict
                 - **indexer_configuration_id**: tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
                   these metadata
@@ -656,20 +655,20 @@ class IndexerStorage:
               or skip duplicates (false, the default)
 
         """
-        _check_duplicates(metadata, 'id')
+        _check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
-        db.mktemp_revision_metadata(cur)
+        db.mktemp_revision_intrinsic_metadata(cur)
 
-        db.copy_to(metadata, 'tmp_revision_metadata',
-                   ['id', 'translated_metadata', 'mappings',
+        db.copy_to(metadata, 'tmp_revision_intrinsic_metadata',
+                   ['id', 'metadata', 'mappings',
                     'indexer_configuration_id'],
                    cur)
-        db.revision_metadata_add_from_temp(conflict_update, cur)
+        db.revision_intrinsic_metadata_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('revision_metadata/delete')
+    @remote_api_endpoint('revision_intrinsic_metadata/delete')
     @db_transaction()
-    def revision_metadata_delete(self, entries, db=None, cur=None):
+    def revision_intrinsic_metadata_delete(self, entries, db=None, cur=None):
         """Remove revision metadata from the storage.
 
         Args:
@@ -678,7 +677,7 @@ class IndexerStorage:
                 - **indexer_configuration_id** (int): tool used to compute
                   metadata
         """
-        db.revision_metadata_delete(entries, cur)
+        db.revision_intrinsic_metadata_delete(entries, cur)
 
     @remote_api_endpoint('origin_intrinsic_metadata')
     @db_transaction_generator()
@@ -691,7 +690,7 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                - **origin_id** (int)
+                - **id** (int)
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
@@ -712,7 +711,7 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - **origin_id**: origin identifier
+                - **id**: origin identifier
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata**: arbitrary dict
@@ -724,13 +723,13 @@ class IndexerStorage:
               or skip duplicates (false, the default)
 
         """
-        _check_duplicates(metadata, 'origin_id')
-        metadata.sort(key=lambda m: m['origin_id'])
+        _check_id_duplicates(metadata)
+        metadata.sort(key=lambda m: m['id'])
 
         db.mktemp_origin_intrinsic_metadata(cur)
 
         db.copy_to(metadata, 'tmp_origin_intrinsic_metadata',
-                   ['origin_id', 'metadata', 'indexer_configuration_id',
+                   ['id', 'metadata', 'indexer_configuration_id',
                     'from_revision', 'mappings'],
                    cur)
         db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)

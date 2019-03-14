@@ -26,17 +26,18 @@ def test_origin_metadata_indexer(
 
     rev_metadata = {
         'id': rev_id,
-        'translated_metadata': YARN_PARSER_METADATA,
+        'metadata': YARN_PARSER_METADATA,
         'mappings': ['npm'],
     }
     origin_metadata = {
-        'origin_id': origin['id'],
+        'id': origin['id'],
         'from_revision': rev_id,
         'metadata': YARN_PARSER_METADATA,
         'mappings': ['npm'],
     }
 
-    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    results = list(
+        indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
     for result in results:
         del result['tool']
     assert results == [rev_metadata]
@@ -62,7 +63,8 @@ def test_origin_metadata_indexer_duplicate_origin(
         'url': 'https://github.com/librariesio/yarn-parser'})
     rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
 
-    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    results = list(
+        indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
     assert len(results) == 1
 
     results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
@@ -112,17 +114,18 @@ def test_origin_metadata_indexer_partial_missing_head(
 
     rev_metadata = {
         'id': rev_id,
-        'translated_metadata': YARN_PARSER_METADATA,
+        'metadata': YARN_PARSER_METADATA,
         'mappings': ['npm'],
     }
     origin_metadata = {
-        'origin_id': origin2['id'],
+        'id': origin2['id'],
         'from_revision': rev_id,
         'metadata': YARN_PARSER_METADATA,
         'mappings': ['npm'],
     }
 
-    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    results = list(
+        indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
     for result in results:
         del result['tool']
     assert results == [rev_metadata]
@@ -151,7 +154,8 @@ def test_origin_metadata_indexer_duplicate_revision(
     assert origin1['id'] != origin2['id']
     rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
 
-    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    results = list(
+        indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
     assert len(results) == 1
 
     results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
@@ -172,7 +176,8 @@ def test_origin_metadata_indexer_no_metadata(
         'url': 'https://github.com/librariesio/yarn-parser'})
     rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
 
-    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    results = list(
+        indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
     assert results == []
 
     results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
@@ -191,7 +196,8 @@ def test_origin_metadata_indexer_delete_metadata(
         'url': 'https://github.com/librariesio/yarn-parser'})
     rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
 
-    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    results = list(
+        indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
     assert results != []
 
     results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
@@ -202,7 +208,8 @@ def test_origin_metadata_indexer_delete_metadata(
                b'foo.json'):
         indexer.run(["git+https://github.com/librariesio/yarn-parser"])
 
-    results = list(indexer.idx_storage.revision_metadata_get([rev_id]))
+    results = list(
+        indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
     assert results == []
 
     results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
