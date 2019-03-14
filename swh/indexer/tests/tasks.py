@@ -41,7 +41,7 @@ class OriginMetadataTestIndexer(OriginMetadataIndexer):
 
 
 @app.task
-def revision_metadata(*args, **kwargs):
+def revision_intrinsic_metadata(*args, **kwargs):
     indexer = RevisionMetadataTestIndexer()
     indexer.run(*args, **kwargs)
     print('REV RESULT=', indexer.results)

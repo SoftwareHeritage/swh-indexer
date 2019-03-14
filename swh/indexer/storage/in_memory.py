@@ -196,7 +196,7 @@ class IndexerStorage:
         self._content_ctags = SubStorage(self._tools)
         self._licenses = SubStorage(self._tools)
         self._content_metadata = SubStorage(self._tools)
-        self._revision_metadata = SubStorage(self._tools)
+        self._revision_intrinsic_metadata = SubStorage(self._tools)
         self._origin_intrinsic_metadata = SubStorage(self._tools)
 
     def content_mimetype_missing(self, mimetypes):
@@ -513,7 +513,7 @@ class IndexerStorage:
             dictionaries with the following keys:
 
               - **id** (bytes)
-              - **translated_metadata** (str): associated metadata
+              - **metadata** (str): associated metadata
               - **tool** (dict): tool used to compute metadata
 
         """
@@ -526,7 +526,7 @@ class IndexerStorage:
             metadata (iterable): dictionaries with keys:
 
               - **id**: sha1
-              - **translated_metadata**: arbitrary dict
+              - **metadata**: arbitrary dict
               - **indexer_configuration_id**: tool used to compute the
                 results
 
@@ -538,7 +538,7 @@ class IndexerStorage:
             raise TypeError('identifiers must be bytes.')
         self._content_metadata.add(metadata, conflict_update)
 
-    def revision_metadata_missing(self, metadata):
+    def revision_intrinsic_metadata_missing(self, metadata):
         """List metadata missing from storage.
 
         Args:
@@ -552,9 +552,9 @@ class IndexerStorage:
             missing ids
 
         """
-        yield from self._revision_metadata.missing(metadata)
+        yield from self._revision_intrinsic_metadata.missing(metadata)
 
-    def revision_metadata_get(self, ids):
+    def revision_intrinsic_metadata_get(self, ids):
         """Retrieve revision metadata per id.
 
         Args:
@@ -564,22 +564,22 @@ class IndexerStorage:
             dictionaries with the following keys:
 
             - **id** (bytes)
-            - **translated_metadata** (str): associated metadata
+            - **metadata** (str): associated metadata
             - **tool** (dict): tool used to compute metadata
             - **mappings** (List[str]): list of mappings used to translate
               these metadata
 
         """
-        yield from self._revision_metadata.get(ids)
+        yield from self._revision_intrinsic_metadata.get(ids)
 
-    def revision_metadata_add(self, metadata, conflict_update=False):
+    def revision_intrinsic_metadata_add(self, metadata, conflict_update=False):
         """Add metadata not present in storage.
 
         Args:
             metadata (iterable): dictionaries with keys:
 
               - **id**: sha1_git of revision
-              - **translated_metadata**: arbitrary dict
+              - **metadata**: arbitrary dict
               - **indexer_configuration_id**: tool used to compute metadata
               - **mappings** (List[str]): list of mappings used to translate
                 these metadata
@@ -590,9 +590,9 @@ class IndexerStorage:
         """
         if not all(isinstance(x['id'], bytes) for x in metadata):
             raise TypeError('identifiers must be bytes.')
-        self._revision_metadata.add(metadata, conflict_update)
+        self._revision_intrinsic_metadata.add(metadata, conflict_update)
 
-    def revision_metadata_delete(self, entries):
+    def revision_intrinsic_metadata_delete(self, entries):
         """Remove revision metadata from the storage.
 
         Args:
@@ -600,7 +600,7 @@ class IndexerStorage:
                 - **revision** (int): origin identifier
                 - **id** (int): tool used to compute metadata
         """
-        self._revision_metadata.delete(entries)
+        self._revision_intrinsic_metadata.delete(entries)
 
     def origin_intrinsic_metadata_get(self, ids):
         """Retrieve origin metadata per id.
@@ -611,16 +611,14 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                - **origin_id** (int)
-                - **translated_metadata** (str): associated metadata
+                - **id** (int)
+                - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
                   these metadata
 
         """
-        for item in self._origin_intrinsic_metadata.get(ids):
-            item['origin_id'] = item.pop('id')
-            yield item
+        yield from self._origin_intrinsic_metadata.get(ids)
 
     def origin_intrinsic_metadata_add(self, metadata,
                                       conflict_update=False):
@@ -629,7 +627,7 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - **origin_id**: origin identifier
+                - **id**: origin identifier
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata**: arbitrary dict
@@ -641,29 +639,18 @@ class IndexerStorage:
               or skip duplicates (false, the default)
 
         """
-
-        items = []
-        for item in metadata:
-            item = item.copy()
-            item['id'] = item.pop('origin_id')
-            items.append(item)
-        self._origin_intrinsic_metadata.add(items, conflict_update)
+        self._origin_intrinsic_metadata.add(metadata, conflict_update)
 
     def origin_intrinsic_metadata_delete(self, entries):
         """Remove origin metadata from the storage.
 
         Args:
             entries (dict): dictionaries with the following keys:
-                - **origin_id** (int): origin identifier
+                - **id** (int): origin identifier
                 - **indexer_configuration_id** (int): tool used to compute
                   metadata
         """
-        items = []
-        for entry in entries:
-            item = entry.copy()
-            item['id'] = item.pop('origin_id')
-            items.append(item)
-        self._origin_intrinsic_metadata.delete(items)
+        self._origin_intrinsic_metadata.delete(entries)
 
     def origin_intrinsic_metadata_search_fulltext(
             self, conjunction, limit=100):
@@ -712,8 +699,6 @@ class IndexerStorage:
         results.sort(key=operator.itemgetter(0),  # Don't try to order 'data'
                      reverse=True)
         for (rank_, result) in results[:limit]:
-            result = result.copy()
-            result['origin_id'] = result.pop('id')
             yield result
 
     def origin_intrinsic_metadata_search_by_producer(
@@ -759,8 +744,6 @@ class IndexerStorage:
             if ids_only:
                 yield entry['id']
             else:
-                entry = entry.copy()
-                entry['origin_id'] = entry.pop('id')
                 yield entry
             nb_results += 1
 

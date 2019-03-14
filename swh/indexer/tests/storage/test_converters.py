@@ -169,12 +169,12 @@ class TestConverters(unittest.TestCase):
             'tool_name': 'some-toolname',
             'tool_version': 'some-toolversion',
             'tool_configuration': {},
-            'translated_metadata': b'translated_metadata',
+            'metadata': b'metadata',
         }
 
         expected_metadata = {
             'id': b'some-id',
-            'translated_metadata': b'translated_metadata',
+            'metadata': b'metadata',
             'tool': {
                 'id': 20,
                 'name': 'some-toolname',
