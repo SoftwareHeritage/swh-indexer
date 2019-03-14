@@ -12,7 +12,7 @@ from swh.indexer.storage.in_memory import IndexerStorage
 from .utils import fill_storage, fill_obj_storage
 
 
-TASK_NAMES = ['revision_metadata', 'origin_intrinsic_metadata']
+TASK_NAMES = ['revision_intrinsic_metadata', 'origin_intrinsic_metadata']
 
 
 @pytest.fixture

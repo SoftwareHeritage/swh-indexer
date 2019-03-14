@@ -41,7 +41,7 @@ def fill_idx_storage(idx_storage, nb_rows):
 
     origin_metadata = [
         {
-            'origin_id': origin_id,
+            'id': origin_id,
             'from_revision': hash_to_bytes('abcd{:0>4}'.format(origin_id)),
             'indexer_configuration_id': tools[origin_id % 2]['id'],
             'metadata': {'name': 'origin %d' % origin_id},
@@ -59,7 +59,7 @@ def fill_idx_storage(idx_storage, nb_rows):
         for origin_id in range(nb_rows)
     ]
 
-    idx_storage.revision_metadata_add(revision_metadata)
+    idx_storage.revision_intrinsic_metadata_add(revision_metadata)
     idx_storage.origin_intrinsic_metadata_add(origin_metadata)
 
     return [tool['id'] for tool in tools]
