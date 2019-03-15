@@ -1,8 +1,10 @@
-swh-indexer (0.0.144-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.145-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.145     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-03-15 11:18:25 +0100)
+  * Upstream changes:     - Add support for keywords in PKG-INFO.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 14 Mar 2019 13:32:28 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 15 Mar 2019 11:34:53 +0000
 
 swh-indexer (0.0.144-1~swh1) unstable-swh; urgency=medium
 

@@ -603,6 +603,10 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
     def normalize_home_page(self, urls):
         return [{'@id': url} for url in urls]
 
+    def normalize_keywords(self, keywords):
+        return list(itertools.chain.from_iterable(
+            s.split(' ') for s in keywords))
+
     def normalize_license(self, licenses):
         return [{'@id': license} for license in licenses]
 
