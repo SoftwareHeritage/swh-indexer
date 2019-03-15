@@ -953,6 +953,20 @@ Description: foo
             'description': 'foo\nHydrology N°83',
         })
 
+    def test_compute_metadata_pkginfo_keywords(self):
+        raw_content = (b"""\
+Metadata-Version: 2.1
+Name: foo
+Keywords: foo bar baz
+""") # noqa
+        result = self.pkginfo_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'foo',
+            'keywords': ['foo', 'bar', 'baz'],
+        })
+
     def test_compute_metadata_pkginfo_license(self):
         raw_content = (b"""\
 Metadata-Version: 2.1
