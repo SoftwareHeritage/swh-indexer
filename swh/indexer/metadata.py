@@ -147,7 +147,12 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         try:
             root_dir = rev['directory']
-            dir_ls = self.storage.directory_ls(root_dir, recursive=False)
+            dir_ls = list(self.storage.directory_ls(root_dir, recursive=False))
+            if [entry['type'] for entry in dir_ls] == ['dir']:
+                # If the root is just a single directory, recurse into it
+                # eg. PyPI packages, GNU tarballs
+                subdir = dir_ls[0]['target']
+                dir_ls = self.storage.directory_ls(subdir, recursive=False)
             files = [entry for entry in dir_ls if entry['type'] == 'file']
             detected_files = detect_metadata(files)
             (mappings, metadata) = self.translate_revision_intrinsic_metadata(
