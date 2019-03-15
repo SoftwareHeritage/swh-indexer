@@ -953,6 +953,20 @@ Description: foo
             'description': 'foo\nHydrology N°83',
         })
 
+    def test_compute_metadata_pkginfo_keywords(self):
+        raw_content = (b"""\
+Metadata-Version: 2.1
+Name: foo
+Keywords: foo bar baz
+""") # noqa
+        result = self.pkginfo_mapping.translate(raw_content)
+        self.assertEqual(result, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'type': 'SoftwareSourceCode',
+            'name': 'foo',
+            'keywords': ['foo', 'bar', 'baz'],
+        })
+
     def test_compute_metadata_pkginfo_license(self):
         raw_content = (b"""\
 Metadata-Version: 2.1
@@ -1103,6 +1117,64 @@ Gem::Specification.new { |s|
             config=REVISION_METADATA_CONFIG)
         fill_obj_storage(metadata_indexer.objstorage)
         fill_storage(metadata_indexer.storage)
+
+        tool = metadata_indexer.idx_storage.indexer_configuration_get(
+            {'tool_'+k: v for (k, v) in TRANSLATOR_TOOL.items()})
+        assert tool is not None
+
+        metadata_indexer.idx_storage.content_metadata_add([{
+            'indexer_configuration_id': tool['id'],
+            'id': b'cde',
+            'metadata': YARN_PARSER_METADATA,
+        }])
+
+        sha1_gits = [
+            hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
+        ]
+        metadata_indexer.run(sha1_gits, 'update-dups')
+
+        results = list(
+            metadata_indexer.idx_storage.
+            revision_intrinsic_metadata_get(sha1_gits))
+
+        expected_results = [{
+            'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
+            'tool': TRANSLATOR_TOOL,
+            'metadata': YARN_PARSER_METADATA,
+            'mappings': ['npm'],
+        }]
+
+        for result in results:
+            del result['tool']['id']
+
+        # then
+        self.assertEqual(expected_results, results)
+
+    def test_revision_metadata_indexer_single_root_dir(self):
+        metadata_indexer = RevisionMetadataIndexer(
+            config=REVISION_METADATA_CONFIG)
+        fill_obj_storage(metadata_indexer.objstorage)
+        fill_storage(metadata_indexer.storage)
+
+        # Add a parent directory, that is the only directory at the root
+        # of the revision
+        rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
+        subdir_id = metadata_indexer.storage._revisions[rev_id]['directory']
+        metadata_indexer.storage._revisions[rev_id]['directory'] = b'123456'
+        metadata_indexer.storage.directory_add([{
+            'id': b'123456',
+            'entries': [{
+                'target': subdir_id,
+                'type': 'dir',
+                'length': None,
+                'name': b'foobar-1.0.0',
+                'sha1': None,
+                'perms': 16384,
+                'sha1_git': None,
+                'status': None,
+                'sha256': None
+            }],
+        }])
 
         tool = metadata_indexer.idx_storage.indexer_configuration_get(
             {'tool_'+k: v for (k, v) in TRANSLATOR_TOOL.items()})
