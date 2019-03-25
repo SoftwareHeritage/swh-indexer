@@ -368,8 +368,6 @@ class NpmMapping(JsonMapping):
         """
         if isinstance(s, str):
             return {"@id": "https://spdx.org/licenses/" + s}
-        else:
-            return None
 
     def normalize_homepage(self, s):
         """https://docs.npmjs.com/files/package.json#homepage
