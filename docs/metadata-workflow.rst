@@ -119,3 +119,83 @@ therefore supports all terms):
 
 .. program-output:: python3 -m swh.indexer.cli mapping list-terms --exclude-mapping codemeta
     :nostderr:
+
+
+Writing your own mapping
+------------------------
+
+
+First, follow the :ref:`developer-setup` to download our source code.
+
+You should start by picking one of the `crosswalks made available by CodeMeta`_.
+Create a new file in `swh-indexer/swh/indexer/metadata_dictionary/`, that
+will contain your code, and create a new class that inherits from helper
+classes, with some documentation about your indexer:
+
+.. code-block:: python
+
+	from .base import DictMapping, SingleFileMapping
+	from swh.indexer.codemeta import CROSSWALK_TABLE
+
+	class MyMapping(DictMapping, SingleFileMapping):
+		"""Dedicated class for ..."""
+		name = 'my-mapping'
+		filename = b'the-filename'
+		mapping = CROSSWALK_TABLE['Name of the CodeMeta crosswalk']
+
+.. _crosswalks made available by CodeMeta: https://github.com/codemeta/codemeta/tree/master/crosswalks
+
+Then, add a `string_fields` attribute, that is the list of all keys whose
+values are simple text values. For instance, for the Python PKG-INFO mapping,
+it's:
+
+.. code-block:: python
+
+	string_fields = ['name', 'version', 'description', 'summary',
+                     'author', 'author-email']
+
+Last step to get your mapping working: add a `translate` method that will
+take a single byte string as argument, turn it into a Python dictionary,
+whose keys are the ones of the input document, and pass it to
+`_translate_dict`.
+
+For instance, if the input document is in JSON, it can be as simple as:
+
+.. code-block:: python
+
+    def translate(self, raw_content):
+        raw_content = raw_content.decode()  # bytes to str
+        content_dict = json.loads(raw_content)  # str to dict
+        return self._translate_dict(content_dict)  # convert to CodeMeta
+
+`_translate_dict` will do the heavy work of reading the crosswalk table for
+each of `string_fields`, read the corresponding value in the `content_dict`,
+and build a CodeMeta dictionary with the corresponding names from the
+crosswalk table.
+
+One last thing to run your mapping: add it to the list in
+`swh-indexer/swh/indexer/metadata_dictionary/__init__.py`, so the rest of the
+code is aware of it.
+
+Now, you can run it:
+
+.. code-block:: shell
+
+    python3 -m swh.indexer.metadata_dictionary MyMapping path/to/input/file
+
+and it will (hopefully) returns a CodeMeta object.
+
+If it works, well done!
+
+You can now improve your mapping further, by adding methods that will do
+more advanced conversion. For example, if there is a field named `license`
+containing an SPDX identifier, you must convert it to an URI, like this:
+
+.. code-block:: python
+
+    def normalize_license(self, s):
+        if isinstance(s, str):
+            return {"@id": "https://spdx.org/licenses/" + s}
+
+This method will automatically get called by `_translate_dict` when it
+sees the `license` field in the `content_dict`.
