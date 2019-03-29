@@ -121,14 +121,14 @@ therefore supports all terms):
     :nostderr:
 
 
-Writing your own mapping
-------------------------
+Adding support for additional ecosystem-specific metadata
+---------------------------------------------------------
 
+This section will guide you through adding code to the metadata indexer to
+detect and translate new metadata formats.
 
-First, follow the :ref:`developer-setup` to download our source code.
-
-You should start by picking one of the `crosswalks made available by CodeMeta`_.
-Create a new file in `swh-indexer/swh/indexer/metadata_dictionary/`, that
+First, you should start by picking one of the `CodeMeta crosswalks`_.
+Then create a new file in `swh-indexer/swh/indexer/metadata_dictionary/`, that
 will contain your code, and create a new class that inherits from helper
 classes, with some documentation about your indexer:
 
@@ -143,18 +143,20 @@ classes, with some documentation about your indexer:
 		filename = b'the-filename'
 		mapping = CROSSWALK_TABLE['Name of the CodeMeta crosswalk']
 
-.. _crosswalks made available by CodeMeta: https://github.com/codemeta/codemeta/tree/master/crosswalks
+.. _CodeMeta crosswalks: https://github.com/codemeta/codemeta/tree/master/crosswalks
 
 Then, add a `string_fields` attribute, that is the list of all keys whose
-values are simple text values. For instance, for the Python PKG-INFO mapping,
-it's:
+values are simple text values. For instance, to
+`translate Python PKG-INFO`_, it's:
 
 .. code-block:: python
 
 	string_fields = ['name', 'version', 'description', 'summary',
                      'author', 'author-email']
 
-Last step to get your mapping working: add a `translate` method that will
+.. _translate Python PKG-INFO: https://forge.softwareheritage.org/source/swh-indexer/browse/master/swh/indexer/metadata_dictionary/python.py
+
+Last step to get your code working: add a `translate` method that will
 take a single byte string as argument, turn it into a Python dictionary,
 whose keys are the ones of the input document, and pass it to
 `_translate_dict`.
@@ -173,7 +175,7 @@ each of `string_fields`, read the corresponding value in the `content_dict`,
 and build a CodeMeta dictionary with the corresponding names from the
 crosswalk table.
 
-One last thing to run your mapping: add it to the list in
+One last thing to run your code: add it to the list in
 `swh-indexer/swh/indexer/metadata_dictionary/__init__.py`, so the rest of the
 code is aware of it.
 
@@ -187,9 +189,10 @@ and it will (hopefully) returns a CodeMeta object.
 
 If it works, well done!
 
-You can now improve your mapping further, by adding methods that will do
-more advanced conversion. For example, if there is a field named `license`
-containing an SPDX identifier, you must convert it to an URI, like this:
+You can now improve your translation code further, by adding methods that
+will do more advanced conversion. For example, if there is a field named
+`license` containing an SPDX identifier, you must convert it to an URI,
+like this:
 
 .. code-block:: python
 
@@ -198,4 +201,4 @@ containing an SPDX identifier, you must convert it to an URI, like this:
             return {"@id": "https://spdx.org/licenses/" + s}
 
 This method will automatically get called by `_translate_dict` when it
-sees the `license` field in the `content_dict`.
+finds a `license` field in `content_dict`.
