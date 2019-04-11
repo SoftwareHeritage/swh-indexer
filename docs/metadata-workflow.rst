@@ -151,8 +151,12 @@ values are simple text values. For instance, to
 
 .. code-block:: python
 
-	string_fields = ['name', 'version', 'description', 'summary',
+    string_fields = ['name', 'version', 'description', 'summary',
                      'author', 'author-email']
+
+
+These values will be automatically added to the above list of
+supported terms.
 
 .. _translate Python PKG-INFO: https://forge.softwareheritage.org/source/swh-indexer/browse/master/swh/indexer/metadata_dictionary/python.py
 
