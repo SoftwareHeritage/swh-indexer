@@ -2,6 +2,6 @@ vcversioner
 pygments
 click
 chardet
-file_magic
+file-magic
 pyld
 xmltodict

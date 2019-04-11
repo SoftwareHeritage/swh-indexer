@@ -14,7 +14,4 @@ class RemoteStorage(SWHRemoteAPI):
     """Proxy to a remote storage API"""
 
     backend_class = IndexerStorage
-
-    def __init__(self, url, timeout=None):
-        super().__init__(
-            api_exception=StorageAPIError, url=url, timeout=timeout)
+    api_exception = StorageAPIError
