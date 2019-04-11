@@ -2,7 +2,7 @@ vcversioner
 pygments
 click
 chardet
-file_magic
+file-magic
 pyld
 xmltodict
 swh.core>=0.0.53

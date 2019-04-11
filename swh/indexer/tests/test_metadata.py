@@ -11,9 +11,9 @@ import xmltodict
 
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer.codemeta import CODEMETA_TERMS
-from swh.indexer.metadata_dictionary import (
-    CROSSWALK_TABLE, MAPPINGS, merge_values)
+from swh.indexer.codemeta import CODEMETA_TERMS, CROSSWALK_TABLE
+from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary.base import merge_values
 from swh.indexer.metadata_detector import (
     detect_metadata, extract_minimal_metadata_dict
 )
@@ -633,7 +633,7 @@ class Metadata(unittest.TestCase):
 
     def test_compute_metadata_maven_invalid_xml(self):
         expected_warning = (
-            'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
+            'WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:'
             'Error parsing XML from foo')
 
         raw_content = b"""
@@ -654,7 +654,7 @@ class Metadata(unittest.TestCase):
 
     def test_compute_metadata_maven_unknown_encoding(self):
         expected_warning = (
-            'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
+            'WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:'
             'Error detecting XML encoding from foo')
 
         raw_content = b"""<?xml version="1.0" encoding="foo"?>
@@ -677,7 +677,7 @@ class Metadata(unittest.TestCase):
 
     def test_compute_metadata_maven_invalid_encoding(self):
         expected_warning = (
-            'WARNING:swh.indexer.metadata_dictionary.MavenMapping:'
+            'WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:'
             'Error unidecoding XML from foo')
 
         raw_content = b"""<?xml version="1.0" encoding="UTF-8"?>

@@ -167,7 +167,7 @@ def test_origin_metadata_indexer_no_metadata(
         idx_storage, storage, obj_storage):
 
     indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
-    with patch('swh.indexer.metadata_dictionary.NpmMapping.filename',
+    with patch('swh.indexer.metadata_dictionary.npm.NpmMapping.filename',
                b'foo.json'):
         indexer.run(["git+https://github.com/librariesio/yarn-parser"])
 
@@ -204,7 +204,7 @@ def test_origin_metadata_indexer_delete_metadata(
         origin['id']]))
     assert results != []
 
-    with patch('swh.indexer.metadata_dictionary.NpmMapping.filename',
+    with patch('swh.indexer.metadata_dictionary.npm.NpmMapping.filename',
                b'foo.json'):
         indexer.run(["git+https://github.com/librariesio/yarn-parser"])
 

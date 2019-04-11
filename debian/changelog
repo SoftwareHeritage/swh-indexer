@@ -1,8 +1,10 @@
-swh-indexer (0.0.145-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.146-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * New upstream release 0.0.146     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-04-11 11:08:29 +0200)
+  * Upstream changes:     - Better explain what the 'string fields' are.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 15 Mar 2019 11:37:00 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 11 Apr 2019 09:47:24 +0000
 
 swh-indexer (0.0.145-1~swh1) unstable-swh; urgency=medium
 
