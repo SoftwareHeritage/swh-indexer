@@ -104,23 +104,25 @@ class IndexerStorage:
             return self._db
         return Db.from_pool(self._pool)
 
+    def put_db(self, db):
+        if db is not self._db:
+            db.put_conn()
+
     @remote_api_endpoint('check_config')
-    def check_config(self, *, check_write):
+    @db_transaction()
+    def check_config(self, *, check_write, db=None, cur=None):
         """Check that the storage is configured and ready to go."""
         # Check permissions on one of the tables
-        with self.get_db().transaction() as cur:
-            if check_write:
-                check = 'INSERT'
-            else:
-                check = 'SELECT'
+        if check_write:
+            check = 'INSERT'
+        else:
+            check = 'SELECT'
 
-            cur.execute(
-                "select has_table_privilege(current_user, 'content_mimetype', %s)",  # noqa
-                (check,)
-            )
-            return cur.fetchone()[0]
-
-        return True
+        cur.execute(
+            "select has_table_privilege(current_user, 'content_mimetype', %s)",  # noqa
+            (check,)
+        )
+        return cur.fetchone()[0]
 
     @remote_api_endpoint('content_mimetype/missing')
     @db_transaction_generator()

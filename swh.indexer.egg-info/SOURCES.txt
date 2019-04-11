@@ -41,7 +41,6 @@ swh/indexer/journal_client.py
 swh/indexer/language.py
 swh/indexer/metadata.py
 swh/indexer/metadata_detector.py
-swh/indexer/metadata_dictionary.py
 swh/indexer/mimetype.py
 swh/indexer/origin_head.py
 swh/indexer/rehash.py
@@ -50,6 +49,13 @@ swh/indexer/data/codemeta/CITATION
 swh/indexer/data/codemeta/LICENSE
 swh/indexer/data/codemeta/codemeta.jsonld
 swh/indexer/data/codemeta/crosswalk.csv
+swh/indexer/metadata_dictionary/__init__.py
+swh/indexer/metadata_dictionary/base.py
+swh/indexer/metadata_dictionary/codemeta.py
+swh/indexer/metadata_dictionary/maven.py
+swh/indexer/metadata_dictionary/npm.py
+swh/indexer/metadata_dictionary/python.py
+swh/indexer/metadata_dictionary/ruby.py
 swh/indexer/sql/10-swh-init.sql
 swh/indexer/sql/20-swh-enums.sql
 swh/indexer/sql/30-swh-schema.sql

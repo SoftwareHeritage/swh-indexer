@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from swh.objstorage.objstorage_in_memory import InMemoryObjStorage
+from swh.objstorage import get_objstorage
 from swh.scheduler.tests.conftest import *  # noqa
 from swh.storage.in_memory import Storage
 
@@ -56,7 +56,7 @@ def storage():
 def obj_storage():
     """An instance of swh.objstorage.objstorage_in_memory.InMemoryObjStorage
     that gets injected into all indexers classes."""
-    objstorage = InMemoryObjStorage()
+    objstorage = get_objstorage('memory', {})
     fill_obj_storage(objstorage)
     with patch.dict('swh.objstorage._STORAGE_CLASSES',
                     {'memory': lambda: objstorage}):
