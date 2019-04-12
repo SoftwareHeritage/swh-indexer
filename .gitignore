@@ -1,7 +1,8 @@
 *.pyc
 *.sw?
 *~
-.coverage
+/.coverage
+/.coverage.*
 .eggs/
 __pycache__
 *.egg-info/
