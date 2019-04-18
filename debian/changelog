@@ -1,8 +1,8 @@
-swh-indexer (0.0.146-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.146-1~swh2) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * Remove hypothesis directory
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 11 Apr 2019 09:49:12 +0000
+ -- Nicolas Dandrimont <olasd@debian.org>  Thu, 18 Apr 2019 18:29:09 +0200
 
 swh-indexer (0.0.146-1~swh1) unstable-swh; urgency=medium
 

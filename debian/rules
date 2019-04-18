@@ -9,6 +9,7 @@ export LC_ALL=C.UTF-8
 
 override_dh_install:
 	dh_install
+	rm -rfv $(CURDIR)/debian/python3-*/usr/lib/python*/dist-packages/.hypothesis
 	rm -v $(CURDIR)/debian/python3-*/usr/lib/python*/dist-packages/swh/__init__.py
 	for pyvers in $(shell py3versions -vr); do \
 		mkdir -p $(CURDIR)/debian/python3-swh.indexer.storage/usr/lib/python$$pyvers/dist-packages/swh/indexer/storage/ ; \
