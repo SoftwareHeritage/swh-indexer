@@ -1,3 +1,9 @@
+swh-indexer (0.0.146-1~swh2) unstable-swh; urgency=medium
+
+  * Remove hypothesis directory
+
+ -- Nicolas Dandrimont <olasd@debian.org>  Thu, 18 Apr 2019 18:29:09 +0200
+
 swh-indexer (0.0.146-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.146     - (tagged by Valentin Lorentz
