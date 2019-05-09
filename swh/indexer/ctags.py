@@ -8,7 +8,6 @@ import json
 
 from swh.model import hashutil
 
-from .language import compute_language
 from .indexer import ContentIndexer, write_to_temp
 
 
@@ -21,6 +20,12 @@ __FLAGS = [
     '--links=no',     # do not follow symlinks
     '--output-format=json',  # outputs in json
 ]
+
+
+def compute_language(content):
+    raise NotImplementedError(
+        'Language detection was unreliable, so it is currently disabled. '
+        'See https://forge.softwareheritage.org/D1455')
 
 
 def run_ctags(path, lang=None, ctags_command='ctags'):
