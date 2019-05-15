@@ -22,7 +22,7 @@ from swh.indexer.storage.api.server import load_and_check_config, app
               help="Configuration file.")
 @click.pass_context
 def cli(ctx, config_file):
-    """Software Heritage Indexer CLI interface
+    """Software Heritage Indexer CLI tools.
     """
     ctx.ensure_object(dict)
 
