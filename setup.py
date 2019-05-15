@@ -53,6 +53,8 @@ setup(
     entry_points='''
         [console_scripts]
         swh-indexer=swh.indexer.cli:main
+        [swh.cli.subcommands]
+        indexer=swh.indexer.cli:cli
     ''',
     classifiers=[
         "Programming Language :: Python :: 3",
