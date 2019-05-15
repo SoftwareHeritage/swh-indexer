@@ -18,7 +18,7 @@ from swh.indexer.storage.api.server import load_and_check_config, app
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
-@click.group(context_settings=CONTEXT_SETTINGS)
+@click.group(name='indexer', context_settings=CONTEXT_SETTINGS)
 @click.option('--config-file', '-C', default=None,
               type=click.Path(exists=True, dir_okay=False,),
               help="Configuration file.")
