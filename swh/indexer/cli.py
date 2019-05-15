@@ -6,6 +6,7 @@
 import click
 
 from swh.core import config
+from swh.core.cli import CONTEXT_SETTINGS
 from swh.scheduler import get_scheduler
 from swh.scheduler.cli_utils import schedule_origin_batches
 from swh.storage import get_storage
@@ -13,9 +14,6 @@ from swh.storage import get_storage
 from swh.indexer import metadata_dictionary
 from swh.indexer.storage import get_indexer_storage
 from swh.indexer.storage.api.server import load_and_check_config, app
-
-
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
 @click.group(name='indexer', context_settings=CONTEXT_SETTINGS)
