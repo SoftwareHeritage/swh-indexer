@@ -6,7 +6,7 @@
 import click
 
 from swh.core import config
-from swh.core.cli import CONTEXT_SETTINGS
+from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup
 from swh.scheduler import get_scheduler
 from swh.scheduler.cli_utils import schedule_origin_batches
 from swh.storage import get_storage
@@ -16,13 +16,18 @@ from swh.indexer.storage import get_indexer_storage
 from swh.indexer.storage.api.server import load_and_check_config, app
 
 
-@click.group(name='indexer', context_settings=CONTEXT_SETTINGS)
+@click.group(name='indexer', context_settings=CONTEXT_SETTINGS,
+             cls=AliasedGroup)
 @click.option('--config-file', '-C', default=None,
               type=click.Path(exists=True, dir_okay=False,),
               help="Configuration file.")
 @click.pass_context
 def cli(ctx, config_file):
-    """Software Heritage Indexer CLI tools.
+    """Software Heritage Indexer tools.
+
+    The Indexer is used to mine the content of the archive and extract derived
+    information from archive source code artifacts.
+
     """
     ctx.ensure_object(dict)
 
@@ -44,6 +49,7 @@ def _get_api(getter, config, config_key, url):
 
 @cli.group('mapping')
 def mapping():
+    '''Manage Software Heritage Indexer mappings.'''
     pass
 
 
@@ -91,7 +97,9 @@ def mapping_list_terms(concise, exclude_mapping):
 @click.pass_context
 def schedule(ctx, scheduler_url, storage_url, indexer_storage_url,
              dry_run):
-    """Manipulate indexer tasks via SWH Scheduler's API."""
+    """Manipulate Software Heritage Indexer tasks.
+
+    Via SWH Scheduler's API."""
     ctx.obj['indexer_storage'] = _get_api(
         get_indexer_storage,
         ctx.obj['config'],
@@ -154,17 +162,22 @@ def schedule_origin_metadata_reindex(
         scheduler, task_type, origins, origin_batch_size, kwargs)
 
 
-@cli.command('api-server')
+@cli.command('rpc-serve')
 @click.argument('config-path', required=1)
 @click.option('--host', default='0.0.0.0', help="Host to run the server")
 @click.option('--port', default=5007, type=click.INT,
               help="Binding port of the server")
 @click.option('--debug/--nodebug', default=True,
               help="Indicates if the server should run in debug mode")
-def api_server(config_path, host, port, debug):
+def rpc_server(config_path, host, port, debug):
+    """Starts a Software Heritage Indexer RPC HTTP server."""
     api_cfg = load_and_check_config(config_path, type='any')
     app.config.update(api_cfg)
     app.run(host, port=int(port), debug=bool(debug))
+
+
+cli.add_alias(rpc_server, 'api-server')
+cli.add_alias(rpc_server, 'serve')
 
 
 def main():
