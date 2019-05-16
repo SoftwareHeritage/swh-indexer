@@ -67,7 +67,7 @@ def fill_idx_storage(idx_storage, nb_rows):
 
 def _origins_in_task_args(tasks):
     """Returns the set of origins contained in the arguments of the
-    provided tasks (assumed to be of type indexer_origin_metadata)."""
+    provided tasks (assumed to be of type index-origin-metadata)."""
     return reduce(
         set.union,
         (set(task['arguments']['args'][0]) for task in tasks),
@@ -77,7 +77,7 @@ def _origins_in_task_args(tasks):
 
 def _assert_tasks_for_origins(tasks, origins):
     expected_kwargs = {"policy_update": "update-dups", "parse_ids": False}
-    assert {task['type'] for task in tasks} == {'indexer_origin_metadata'}
+    assert {task['type'] for task in tasks} == {'index-origin-metadata'}
     assert all(len(task['arguments']['args']) == 1 for task in tasks)
     assert all(task['arguments']['kwargs'] == expected_kwargs
                for task in tasks)

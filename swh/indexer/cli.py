@@ -146,7 +146,7 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids):
               help="Mapping(s) that should be re-scheduled (eg. 'npm', "
                    "'gemspec', 'maven')")
 @click.option('--task-type',
-              default='indexer_origin_metadata', show_default=True,
+              default='index-origin-metadata', show_default=True,
               help="Name of the task type to schedule.")
 @click.pass_context
 def schedule_origin_metadata_reindex(
