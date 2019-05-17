@@ -5,7 +5,7 @@
 
 import unittest
 
-from swh.core.tests.server_testing import ServerTestFixture
+from swh.core.api.tests.server_testing import ServerTestFixture
 from swh.indexer.storage import INDEXER_CFG_KEY
 from swh.indexer.storage.api.client import RemoteStorage
 from swh.indexer.storage.api.server import app
