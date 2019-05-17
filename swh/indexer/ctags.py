@@ -22,7 +22,7 @@ __FLAGS = [
 ]
 
 
-def compute_language(content):
+def compute_language(content, log=None):
     raise NotImplementedError(
         'Language detection was unreliable, so it is currently disabled. '
         'See https://forge.softwareheritage.org/D1455')
