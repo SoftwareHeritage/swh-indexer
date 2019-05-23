@@ -62,8 +62,6 @@ alter table origin_intrinsic_metadata add primary key using index origin_intrins
 
 alter table origin_intrinsic_metadata add constraint origin_intrinsic_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
 alter table origin_intrinsic_metadata validate constraint origin_intrinsic_metadata_indexer_configuration_id_fkey;
-alter table origin_intrinsic_metadata add constraint origin_intrinsic_metadata_revision_metadata_fkey foreign key (from_revision, indexer_configuration_id) references revision_intrinsic_metadata(id, indexer_configuration_id) not valid;
-alter table origin_intrinsic_metadata validate constraint origin_intrinsic_metadata_revision_metadata_fkey;
 
 create index origin_intrinsic_metadata_fulltext_idx on origin_intrinsic_metadata using gin (metadata_tsvector);
 create index origin_intrinsic_metadata_mappings_idx on origin_intrinsic_metadata using gin (mappings);

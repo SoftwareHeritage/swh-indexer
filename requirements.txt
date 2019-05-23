@@ -1,7 +1,5 @@
 vcversioner
-pygments
 click
-chardet
 file-magic
 pyld
 xmltodict
