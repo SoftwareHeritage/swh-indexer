@@ -1,3 +1,9 @@
+swh-indexer (0.0.147-1~swh1~bpo9+1) stretch-swh; urgency=medium
+
+  * Rebuild for stretch-swh
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 23 May 2019 09:12:57 +0000
+
 swh-indexer (0.0.147-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.147     - (tagged by Antoine Lambert
