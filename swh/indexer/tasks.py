@@ -7,7 +7,6 @@
 from celery import current_app as app
 
 from .mimetype import MimetypeIndexer, MimetypeRangeIndexer
-from .language import LanguageIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import (
     FossologyLicenseIndexer, FossologyLicenseRangeIndexer
@@ -19,12 +18,6 @@ from .metadata import OriginMetadataIndexer
 @app.task(name=__name__ + '.OriginMetadata')
 def origin_metadata(*args, **kwargs):
     results = OriginMetadataIndexer().run(*args, **kwargs)
-    return getattr(results, 'results', results)
-
-
-@app.task(name=__name__ + '.ContentLanguage')
-def content_language(*args, **kwargs):
-    results = LanguageIndexer().run(*args, **kwargs)
     return getattr(results, 'results', results)
 
 

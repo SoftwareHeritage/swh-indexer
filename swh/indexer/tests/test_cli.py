@@ -67,7 +67,7 @@ def fill_idx_storage(idx_storage, nb_rows):
 
 def _origins_in_task_args(tasks):
     """Returns the set of origins contained in the arguments of the
-    provided tasks (assumed to be of type indexer_origin_metadata)."""
+    provided tasks (assumed to be of type index-origin-metadata)."""
     return reduce(
         set.union,
         (set(task['arguments']['args'][0]) for task in tasks),
@@ -77,7 +77,7 @@ def _origins_in_task_args(tasks):
 
 def _assert_tasks_for_origins(tasks, origins):
     expected_kwargs = {"policy_update": "update-dups", "parse_ids": False}
-    assert {task['type'] for task in tasks} == {'indexer_origin_metadata'}
+    assert {task['type'] for task in tasks} == {'index-origin-metadata'}
     assert all(len(task['arguments']['args']) == 1 for task in tasks)
     assert all(task['arguments']['kwargs'] == expected_kwargs
                for task in tasks)
@@ -134,6 +134,7 @@ def test_mapping_list_terms_exclude(indexer_scheduler):
         result.output)
 
 
+@patch('swh.scheduler.cli.utils.TASK_BATCH_SIZE', 3)
 @patch('swh.scheduler.cli_utils.TASK_BATCH_SIZE', 3)
 def test_origin_metadata_reindex_empty_db(
         indexer_scheduler, idx_storage, storage):
@@ -149,6 +150,7 @@ def test_origin_metadata_reindex_empty_db(
     assert len(tasks) == 0
 
 
+@patch('swh.scheduler.cli.utils.TASK_BATCH_SIZE', 3)
 @patch('swh.scheduler.cli_utils.TASK_BATCH_SIZE', 3)
 def test_origin_metadata_reindex_divisor(
         indexer_scheduler, idx_storage, storage):
@@ -176,6 +178,7 @@ def test_origin_metadata_reindex_divisor(
     _assert_tasks_for_origins(tasks, range(90))
 
 
+@patch('swh.scheduler.cli.utils.TASK_BATCH_SIZE', 3)
 @patch('swh.scheduler.cli_utils.TASK_BATCH_SIZE', 3)
 def test_origin_metadata_reindex_dry_run(
         indexer_scheduler, idx_storage, storage):
@@ -202,6 +205,7 @@ def test_origin_metadata_reindex_dry_run(
     assert len(tasks) == 0
 
 
+@patch('swh.scheduler.cli.utils.TASK_BATCH_SIZE', 3)
 @patch('swh.scheduler.cli_utils.TASK_BATCH_SIZE', 3)
 def test_origin_metadata_reindex_nondivisor(
         indexer_scheduler, idx_storage, storage):
@@ -229,6 +233,7 @@ def test_origin_metadata_reindex_nondivisor(
     _assert_tasks_for_origins(tasks, range(70))
 
 
+@patch('swh.scheduler.cli.utils.TASK_BATCH_SIZE', 3)
 @patch('swh.scheduler.cli_utils.TASK_BATCH_SIZE', 3)
 def test_origin_metadata_reindex_filter_one_mapping(
         indexer_scheduler, idx_storage, storage):
@@ -257,6 +262,7 @@ def test_origin_metadata_reindex_filter_one_mapping(
         [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101])
 
 
+@patch('swh.scheduler.cli.utils.TASK_BATCH_SIZE', 3)
 @patch('swh.scheduler.cli_utils.TASK_BATCH_SIZE', 3)
 def test_origin_metadata_reindex_filter_two_mappings(
         indexer_scheduler, idx_storage, storage):
@@ -286,6 +292,7 @@ def test_origin_metadata_reindex_filter_two_mappings(
          2, 12, 22, 32, 42, 52, 62, 72, 82, 92, 102])
 
 
+@patch('swh.scheduler.cli.utils.TASK_BATCH_SIZE', 3)
 @patch('swh.scheduler.cli_utils.TASK_BATCH_SIZE', 3)
 def test_origin_metadata_reindex_filter_one_tool(
         indexer_scheduler, idx_storage, storage):
