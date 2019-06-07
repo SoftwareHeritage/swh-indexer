@@ -43,6 +43,7 @@ def fill_idx_storage(idx_storage, nb_rows):
     origin_metadata = [
         {
             'id': origin_id,
+            'origin_url': 'file:///dev/zero',
             'from_revision': hash_to_bytes('abcd{:0>4}'.format(origin_id)),
             'indexer_configuration_id': tools[origin_id % 2]['id'],
             'metadata': {'name': 'origin %d' % origin_id},

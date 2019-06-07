@@ -692,7 +692,10 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                - **id** (int)
+                - **id** (int): (legacy) origin identifier
+                - **origin_url** (str)
+                - **from_revision** (bytes): which revision this metadata
+                  was extracted from
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
@@ -713,7 +716,8 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - **id**: origin identifier
+                - **id**: legacy origin identifier
+                - **origin_url**
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata**: arbitrary dict
@@ -731,7 +735,8 @@ class IndexerStorage:
         db.mktemp_origin_intrinsic_metadata(cur)
 
         db.copy_to(metadata, 'tmp_origin_intrinsic_metadata',
-                   ['id', 'metadata', 'indexer_configuration_id',
+                   ['id', 'origin_url', 'metadata',
+                    'indexer_configuration_id',
                     'from_revision', 'mappings'],
                    cur)
         db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)
@@ -763,7 +768,10 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                - **id** (int)
+                - **id** (int): legacy origin identifier
+                - **origin_url** (str)
+                - **from_revision**: sha1 id of the revision used to generate
+                  these metadata.
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
@@ -796,7 +804,10 @@ class IndexerStorage:
             list: list of origin ids (int) if `ids_only=True`, else
                 dictionaries with the following keys:
 
-                - **id** (int)
+                - **id** (int): legacy origin identifier
+                - **origin_url** (str)
+                - **from_revision**: sha1 id of the revision used to generate
+                  these metadata.
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
