@@ -3,15 +3,19 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import functools
+
 import click
 
 from swh.core import config
 from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup
+from swh.journal.cli import get_journal_client
 from swh.scheduler import get_scheduler
 from swh.scheduler.cli_utils import schedule_origin_batches
 from swh.storage import get_storage
 
 from swh.indexer import metadata_dictionary
+from swh.indexer.journal_client import process_journal_objects
 from swh.indexer.storage import get_indexer_storage
 from swh.indexer.storage.api.server import load_and_check_config, app
 
@@ -157,9 +161,58 @@ def schedule_origin_metadata_reindex(
 
     origins = list_origins_by_producer(idx_storage, mappings, tool_ids)
 
-    kwargs = {"policy_update": "update-dups", "parse_ids": False}
+    kwargs = {"policy_update": "update-dups"}
     schedule_origin_batches(
         scheduler, task_type, origins, origin_batch_size, kwargs)
+
+
+@cli.command('journal-client')
+@click.option('--scheduler-url', '-s', default=None,
+              help="URL of the scheduler API")
+@click.option('--origin-metadata-task-type',
+              default='index-origin-metadata',
+              help='Name of the task running the origin metadata indexer.')
+@click.option('--broker', 'brokers', type=str, multiple=True,
+              help='Kafka broker to connect to.')
+@click.option('--prefix', type=str, default=None,
+              help='Prefix of Kafka topic names to read from.')
+@click.option('--group-id', '--consumer-id', type=str,
+              help='Name of the consumer/group id for reading from Kafka.')
+@click.option('--max-messages', '-m', default=None, type=int,
+              help='Maximum number of objects to replay. Default is to '
+                   'run forever.')
+@click.pass_context
+def journal_client(ctx, scheduler_url, origin_metadata_task_type,
+                   brokers, prefix, group_id, max_messages):
+    """Listens for new objects from the SWH Journal, and schedules tasks
+    to run relevant indexers (currently, only origin-intrinsic-metadata)
+    on these new objects."""
+    scheduler = _get_api(
+        get_scheduler,
+        ctx.obj['config'],
+        'scheduler',
+        scheduler_url
+    )
+
+    client = get_journal_client(
+        ctx, brokers, prefix, group_id, object_types=['origin_visit'])
+
+    worker_fn = functools.partial(
+        process_journal_objects,
+        scheduler=scheduler,
+        task_names={
+            'origin_metadata': origin_metadata_task_type,
+        }
+    )
+    nb_messages = 0
+    try:
+        while not max_messages or nb_messages < max_messages:
+            nb_messages += client.process(worker_fn)
+            print('Processed %d messages.' % nb_messages)
+    except KeyboardInterrupt:
+        ctx.exit(0)
+    else:
+        print('Done.')
 
 
 @cli.command('rpc-serve')
