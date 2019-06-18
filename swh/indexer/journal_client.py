@@ -5,30 +5,33 @@
 
 import logging
 
+from swh.core.utils import grouper
 from swh.scheduler.utils import create_task_dict
+
+
+MAX_ORIGINS_PER_TASK = 100
 
 
 def process_journal_objects(messages, *, scheduler, task_names):
     """Worker function for `JournalClient.process(worker_fn)`, after
     currification of `scheduler` and `task_names`."""
     assert set(messages) == {'origin_visit'}, set(messages)
-    for origin_visit in messages['origin_visit']:
-        process_origin_visit(origin_visit, scheduler, task_names)
+    process_origin_visits(messages['origin_visit'], scheduler, task_names)
 
 
-def process_origin_visit(origin_visit,  scheduler, task_names):
+def process_origin_visits(visits, scheduler, task_names):
     task_dicts = []
-    logging.debug('processing origin visit %r', origin_visit)
-    if origin_visit[b'status'] == b'full':
-        if task_names.get('origin_metadata'):
+    logging.debug('processing origin visits %r', visits)
+    if task_names.get('origin_metadata'):
+        visits = [visit for visit in visits if visit[b'status'] == b'full']
+        visit_batches = grouper(visits, MAX_ORIGINS_PER_TASK)
+        for visit_batch in visit_batches:
             task_dicts.append(create_task_dict(
                 task_names['origin_metadata'],
                 'oneshot',
-                [origin_visit[b'origin'][b'url']],
+                [visit[b'origin'][b'url'] for visit in visit_batch],
                 policy_update='update-dups',
             ))
-    else:
-        logging.debug('status is not "full", ignoring.')
 
     if task_dicts:
         scheduler.create_tasks(task_dicts)
