@@ -6,8 +6,8 @@
 insert into dbversion(version, release, description)
 values(125, now(), 'Work In Progress');
 
-alter origin_intrinsic_metadata
-    add column origin_url type text;
+alter table origin_intrinsic_metadata
+    add column origin_url text;
 
 create or replace function swh_origin_intrinsic_metadata_add(
         conflict_update boolean)
