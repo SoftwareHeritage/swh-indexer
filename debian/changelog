@@ -1,3 +1,9 @@
+swh-indexer (0.0.148-1~swh2) unstable-swh; urgency=medium
+
+  * Upstream release 0.0.148
+
+ -- Antoine Romain Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 01 Jul 2019 01:50:29 +0100
+
 swh-indexer (0.0.148-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.148     - (tagged by Antoine R. Dumont
