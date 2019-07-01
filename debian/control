@@ -20,6 +20,7 @@ Build-Depends: debhelper (>= 9),
                python3-swh.objstorage (>= 0.0.28~),
                python3-swh.scheduler (>= 0.0.35~),
                python3-swh.storage (>= 0.0.123~),
+               python3-swh.journal (>= 0.0.11~),
                python3-vcversioner,
                python3-xmltodict,
 Standards-Version: 3.9.6
