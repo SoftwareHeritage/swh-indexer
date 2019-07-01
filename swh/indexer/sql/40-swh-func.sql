@@ -434,6 +434,8 @@ begin
 end
 $$;
 
+comment on function swh_origin_intrinsic_metadata_add(boolean) IS 'Add new origin intrinsic metadata';
+
 
 -- Compute the metadata_tsvector column in tmp_origin_intrinsic_metadata.
 --
@@ -449,4 +451,3 @@ begin
 end
 $$;
 
-comment on function swh_origin_intrinsic_metadata_add(boolean) IS 'Add new origin intrinsic metadata';
