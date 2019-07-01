@@ -612,6 +612,9 @@ class IndexerStorage:
             list: dictionaries with the following keys:
 
                 - **id** (int)
+                - **origin_url** (str)
+                - **from_revision** (bytes): which revision this metadata
+                  was extracted from
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
@@ -628,6 +631,7 @@ class IndexerStorage:
             metadata (iterable): dictionaries with keys:
 
                 - **id**: origin identifier
+                - **origin_url**
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata**: arbitrary dict
@@ -664,6 +668,9 @@ class IndexerStorage:
             list: dictionaries with the following keys:
 
                 - **id** (int)
+                - **origin_url** (str)
+                - **from_revision** (bytes): which revision this metadata
+                  was extracted from
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate
@@ -721,6 +728,9 @@ class IndexerStorage:
                 dictionaries with the following keys:
 
                 - **id** (int)
+                - **origin_url** (str)
+                - **from_revision**: sha1 id of the revision used to generate
+                  these metadata.
                 - **metadata** (str): associated metadata
                 - **tool** (dict): tool used to compute metadata
                 - **mappings** (List[str]): list of mappings used to translate

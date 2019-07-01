@@ -27,22 +27,25 @@ class OriginHeadIndexer(OriginIndexer):
 
     # Dispatch
 
-    def index(self, origin):
-        origin_id = origin['id']
-        latest_snapshot = self.storage.snapshot_get_latest(origin_id)
-        if latest_snapshot is None:
+    def index(self, origin_url):
+        latest_visit = self.storage.origin_visit_get_latest(
+            origin_url, allowed_statuses=['full'], require_snapshot=True)
+        if latest_visit is None:
             return None
-        method = getattr(self, '_try_get_%s_head' % origin['type'], None)
-        if method is None:
-            method = self._try_get_head_generic
+        latest_snapshot = self.storage.snapshot_get(latest_visit['snapshot'])
+        method = getattr(
+            self, '_try_get_%s_head' % latest_visit['type'],
+            self._try_get_head_generic)
+
         rev_id = method(latest_snapshot)
-        if rev_id is None:
-            return None
-        result = {
-                'origin_id': origin_id,
+        if rev_id is not None:
+            return {
+                'origin_url': origin_url,
                 'revision_id': rev_id,
                 }
-        return result
+
+        # could not find a head revision
+        return None
 
     # VCSs
 

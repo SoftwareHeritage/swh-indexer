@@ -264,12 +264,15 @@ class OriginMetadataIndexer(OriginIndexer):
         self.origin_head_indexer = OriginHeadIndexer(config=config)
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
-    def index_list(self, origins):
+    def index_list(self, origin_urls):
         head_rev_ids = []
         origins_with_head = []
+        origins = self.storage.origin_get(
+            [{'url': url} for url in origin_urls])
         for origin in origins:
-            head_result = self.origin_head_indexer.index(origin)
+            head_result = self.origin_head_indexer.index(origin['url'])
             if head_result:
+                head_result['origin_id'] = origin['id']
                 origins_with_head.append(origin)
                 head_rev_ids.append(head_result['revision_id'])
 
@@ -280,13 +283,14 @@ class OriginMetadataIndexer(OriginIndexer):
         for (origin, rev) in zip(origins_with_head, head_revs):
             if not rev:
                 self.log.warning('Missing head revision of origin %r',
-                                 origin)
+                                 origin['url'])
                 continue
 
             rev_metadata = self.revision_metadata_indexer.index(rev)
             orig_metadata = {
                 'from_revision': rev_metadata['id'],
                 'id': origin['id'],
+                'origin_url': origin['url'],
                 'metadata': rev_metadata['metadata'],
                 'mappings': rev_metadata['mappings'],
                 'indexer_configuration_id':
