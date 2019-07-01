@@ -1,3 +1,14 @@
+swh-indexer (0.0.148-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.148     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-07-01 12:21:32
+    +0200)
+  * Upstream changes:     - v0.0.148     - Manipulate origin URLs
+    instead of origin ids     - journal: create tasks for multiple
+    origins     - Tests: Improvments
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 01 Jul 2019 10:34:26 +0000
+
 swh-indexer (0.0.147-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.147     - (tagged by Antoine Lambert
