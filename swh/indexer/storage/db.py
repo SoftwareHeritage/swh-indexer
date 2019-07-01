@@ -336,7 +336,7 @@ class Db(BaseDb):
             self.revision_intrinsic_metadata_cols, cur=cur)
 
     origin_intrinsic_metadata_cols = [
-        'id', 'metadata', 'from_revision', 'mappings',
+        'id', 'origin_url', 'metadata', 'from_revision', 'mappings',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     origin_intrinsic_metadata_regconfig = 'pg_catalog.simple'

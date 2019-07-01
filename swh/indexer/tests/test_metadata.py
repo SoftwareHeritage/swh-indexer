@@ -7,7 +7,6 @@ import json
 import unittest
 
 from hypothesis import given, strategies, settings, HealthCheck
-import xmltodict
 
 from swh.model.hashutil import hash_to_bytes
 
@@ -23,7 +22,8 @@ from swh.indexer.metadata import (
 
 from .utils import (
     BASE_TEST_CONFIG, fill_obj_storage, fill_storage,
-    YARN_PARSER_METADATA, json_document_strategy
+    YARN_PARSER_METADATA, json_document_strategy,
+    xml_document_strategy,
 )
 
 
@@ -1086,11 +1086,12 @@ Gem::Specification.new { |s|
         self.codemeta_mapping.translate(raw)
 
     @settings(suppress_health_check=[HealthCheck.too_slow])
-    @given(json_document_strategy(
-        keys=list(MAPPINGS['MavenMapping'].mapping)))
+    @given(xml_document_strategy(
+        keys=list(MAPPINGS['MavenMapping'].mapping),
+        root='project',
+        xmlns='http://maven.apache.org/POM/4.0.0'))
     def test_maven_adversarial(self, doc):
-        raw = xmltodict.unparse({'project': doc}, pretty=True)
-        self.maven_mapping.translate(raw)
+        self.maven_mapping.translate(doc)
 
     @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(strategies.dictionaries(

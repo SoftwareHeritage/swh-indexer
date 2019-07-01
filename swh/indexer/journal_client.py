@@ -5,84 +5,33 @@
 
 import logging
 
-from swh.journal.client import JournalClient
-from swh.scheduler import get_scheduler
+from swh.core.utils import grouper
 from swh.scheduler.utils import create_task_dict
 
 
-class IndexerJournalClient(JournalClient):
-    """Client in charge of listing new received origins and origin_visits
-       in the swh journal.
-
-    """
-    CONFIG_BASE_FILENAME = 'indexer/journal_client'
-
-    ADDITIONAL_CONFIG = {
-        'scheduler': ('dict', {
-            'cls': 'remote',
-            'args': {
-                'url': 'http://localhost:5008/',
-            }
-        }),
-        'origin_visit_tasks': ('List[dict]', [
-            {
-                'type': 'index-origin-metadata',
-                'kwargs': {
-                    'policy_update': 'update-dups',
-                    'parse_ids': False,
-                }
-            }
-        ]),
-    }
-
-    def __init__(self):
-        super().__init__(extra_configuration={
-            'object_types': ['origin_visit'],
-        })
-        self.scheduler = get_scheduler(**self.config['scheduler'])
-        logging.info(
-            'Starting indexer journal client with config %r',
-            self.config)
-
-    def process_objects(self, messages):
-        assert set(messages) == {'origin_visit'}, set(messages)
-        for origin_visit in messages['origin_visit']:
-            self.process_origin_visit(origin_visit)
-
-    def process_origin_visit(self, origin_visit):
-        task_dicts = []
-        logging.debug('processing origin visit %r', origin_visit)
-        if origin_visit[b'status'] == b'full':
-            for task_config in self.config['origin_visit_tasks']:
-                logging.info(
-                    'Scheduling %s for visit of origin %d',
-                    task_config['type'], origin_visit[b'origin'])
-                task_dicts.append(create_task_dict(
-                    task_config['type'],
-                    'oneshot',
-                    [origin_visit[b'origin']],
-                    **task_config['kwargs'],
-                ))
-        else:
-            logging.debug('status is not "full", ignoring.')
-
-        if task_dicts:
-            self.scheduler.create_tasks(task_dicts)
+MAX_ORIGINS_PER_TASK = 100
 
 
-if __name__ == '__main__':
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s %(process)d %(levelname)s %(message)s'
-    )
+def process_journal_objects(messages, *, scheduler, task_names):
+    """Worker function for `JournalClient.process(worker_fn)`, after
+    currification of `scheduler` and `task_names`."""
+    assert set(messages) == {'origin_visit'}, set(messages)
+    process_origin_visits(messages['origin_visit'], scheduler, task_names)
 
-    import click
 
-    @click.command()
-    def main():
-        """Log the new received origin and origin_visits.
+def process_origin_visits(visits, scheduler, task_names):
+    task_dicts = []
+    logging.debug('processing origin visits %r', visits)
+    if task_names.get('origin_metadata'):
+        visits = [visit for visit in visits if visit[b'status'] == b'full']
+        visit_batches = grouper(visits, MAX_ORIGINS_PER_TASK)
+        for visit_batch in visit_batches:
+            task_dicts.append(create_task_dict(
+                task_names['origin_metadata'],
+                'oneshot',
+                [visit[b'origin'][b'url'] for visit in visit_batch],
+                policy_update='update-dups',
+            ))
 
-        """
-        IndexerJournalClient().process()
-
-    main()
+    if task_dicts:
+        scheduler.create_tasks(task_dicts)

@@ -1,8 +1,19 @@
-swh-indexer (0.0.147-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.148-1~swh2) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * Upstream release 0.0.148
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 23 May 2019 09:12:57 +0000
+ -- Antoine Romain Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Mon, 01 Jul 2019 01:50:29 +0100
+
+swh-indexer (0.0.148-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.148     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-07-01 12:21:32
+    +0200)
+  * Upstream changes:     - v0.0.148     - Manipulate origin URLs
+    instead of origin ids     - journal: create tasks for multiple
+    origins     - Tests: Improvments
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 01 Jul 2019 10:34:26 +0000
 
 swh-indexer (0.0.147-1~swh1) unstable-swh; urgency=medium
 

@@ -14,7 +14,7 @@ create table dbversion
 );
 
 insert into dbversion(version, release, description)
-      values(124, now(), 'Work In Progress');
+      values(125, now(), 'Work In Progress');
 -- Computing metadata on sha1's contents
 
 -- a SHA1 checksum (not necessarily originating from Git)
@@ -130,6 +130,7 @@ comment on column revision_intrinsic_metadata.mappings is 'type of metadata file
 
 create table origin_intrinsic_metadata(
   id                        bigserial  not null,
+  origin_url                text,
   metadata                  jsonb,
   indexer_configuration_id  bigint     not null,
   from_revision             sha1_git   not null,
