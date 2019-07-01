@@ -1003,6 +1003,7 @@ class CommonTestStorage:
         }
         metadata_origin = {
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
@@ -1019,6 +1020,7 @@ class CommonTestStorage:
 
         expected_metadata = [{
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
@@ -1043,6 +1045,7 @@ class CommonTestStorage:
         }
         metadata_origin = {
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
@@ -1089,12 +1092,14 @@ class CommonTestStorage:
         }
         metadata_rev_v1 = {
             'id': self.revision_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata_v1.copy(),
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin_v1 = {
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata_v1.copy(),
             'indexer_configuration_id': tool_id,
             'mappings': [],
@@ -1111,6 +1116,7 @@ class CommonTestStorage:
 
         expected_metadata_v1 = [{
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata_v1,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_1,
@@ -1156,6 +1162,7 @@ class CommonTestStorage:
         }
         metadata_origin_v1 = {
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata_v1.copy(),
             'indexer_configuration_id': tool_id,
             'mappings': [],
@@ -1173,6 +1180,7 @@ class CommonTestStorage:
         # then
         expected_metadata_v1 = [{
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata_v1,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
@@ -1201,6 +1209,7 @@ class CommonTestStorage:
 
         expected_metadata_v2 = [{
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata_v2,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
@@ -1214,7 +1223,7 @@ class CommonTestStorage:
         # given
         tool_id = self.tools['swh-metadata-detector']['id']
 
-        ids = list(range(1000))
+        ids = list(range(10))
 
         example_data1 = {
             'metadata': {
@@ -1244,6 +1253,7 @@ class CommonTestStorage:
         data_v1 = [
             {
                 'id': id_,
+                'origin_url': 'file:///tmp/origin%d' % id_,
                 'from_revision': self.revision_id_2,
                 **example_data1,
                 'indexer_configuration_id': tool_id,
@@ -1253,6 +1263,7 @@ class CommonTestStorage:
         data_v2 = [
             {
                 'id': id_,
+                'origin_url': 'file:///tmp/origin%d' % id_,
                 'from_revision': self.revision_id_2,
                 **example_data2,
                 'indexer_configuration_id': tool_id,
@@ -1275,6 +1286,7 @@ class CommonTestStorage:
         expected_data_v1 = [
             {
                 'id': id_,
+                'origin_url': 'file:///tmp/origin%d' % id_,
                 'from_revision': self.revision_id_2,
                 **example_data1,
                 'tool': self.tools['swh-metadata-detector'],
@@ -1307,6 +1319,7 @@ class CommonTestStorage:
         expected_data_v2 = [
             {
                 'id': id_,
+                'origin_url': 'file:///tmp/origin%d' % id_,
                 'from_revision': self.revision_id_2,
                 **example_data2,
                 'tool': self.tools['swh-metadata-detector'],
@@ -1333,6 +1346,7 @@ class CommonTestStorage:
         }
         metadata_origin = {
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
@@ -1361,6 +1375,7 @@ class CommonTestStorage:
         }
         metadata1_origin = {
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1371,12 +1386,14 @@ class CommonTestStorage:
         }
         metadata2_rev = {
             'id': self.revision_id_2,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata2_origin = {
             'id': self.origin_id_2,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1427,6 +1444,7 @@ class CommonTestStorage:
         }
         metadata1_origin = {
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1446,6 +1464,7 @@ class CommonTestStorage:
         }
         metadata2_origin = {
             'id': self.origin_id_2,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1492,6 +1511,7 @@ class CommonTestStorage:
         }
         metadata1_origin = {
             'id': self.origin_id_1,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata1,
             'mappings': ['npm'],
             'indexer_configuration_id': tool1_id,
@@ -1509,6 +1529,7 @@ class CommonTestStorage:
         }
         metadata2_origin = {
             'id': self.origin_id_2,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata2,
             'mappings': ['npm', 'gemspec'],
             'indexer_configuration_id': tool2_id,
@@ -1525,6 +1546,7 @@ class CommonTestStorage:
         }
         metadata3_origin = {
             'id': self.origin_id_3,
+            'origin_url': 'file:///dev/zero',
             'metadata': metadata3,
             'mappings': ['pkg-info'],
             'indexer_configuration_id': tool2_id,
@@ -1598,6 +1620,7 @@ class CommonTestStorage:
         # test ids_only=False
         self.assertEqual(list(endpoint(mappings=['gemspec'])), [{
             'id': self.origin_id_2,
+            'origin_url': 'file:///dev/zero',
             'metadata': {
                 '@context': 'foo',
                 'author': 'Jane Doe',
