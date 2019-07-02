@@ -195,7 +195,8 @@ def journal_client(ctx, scheduler_url, origin_metadata_task_type,
     )
 
     client = get_journal_client(
-        ctx, brokers, prefix, group_id, object_types=['origin_visit'])
+        ctx, brokers=brokers, prefix=prefix, group_id=group_id,
+        object_types=['origin_visit'])
 
     worker_fn = functools.partial(
         process_journal_objects,
