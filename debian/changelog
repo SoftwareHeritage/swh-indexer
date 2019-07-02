@@ -1,3 +1,14 @@
+swh-indexer (0.0.149-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.149     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-07-02 18:11:12
+    +0200)
+  * Upstream changes:     - v0.0.149     - swh.indexer.cli: Fix
+    get_journal_client api call     - sql/upgrades/125: Fix migration
+    script
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 02 Jul 2019 16:26:50 +0000
+
 swh-indexer (0.0.148-1~swh3) unstable-swh; urgency=medium
 
   * Upstream release 0.0.148: Update version dependency
