@@ -1,3 +1,9 @@
+swh-indexer (0.0.149-1~swh2) unstable-swh; urgency=medium
+
+  * No-change: Bump dependency version
+
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 03 Jul 2019 10:44:12 +0200
+
 swh-indexer (0.0.149-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.149     - (tagged by Antoine R. Dumont
