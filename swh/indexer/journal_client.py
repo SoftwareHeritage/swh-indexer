@@ -23,13 +23,13 @@ def process_origin_visits(visits, scheduler, task_names):
     task_dicts = []
     logging.debug('processing origin visits %r', visits)
     if task_names.get('origin_metadata'):
-        visits = [visit for visit in visits if visit[b'status'] == b'full']
+        visits = [visit for visit in visits if visit['status'] == 'full']
         visit_batches = grouper(visits, MAX_ORIGINS_PER_TASK)
         for visit_batch in visit_batches:
             task_dicts.append(create_task_dict(
                 task_names['origin_metadata'],
                 'oneshot',
-                [visit[b'origin'][b'url'] for visit in visit_batch],
+                [visit['origin']['url'] for visit in visit_batch],
                 policy_update='update-dups',
             ))
 
