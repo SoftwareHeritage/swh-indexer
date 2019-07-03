@@ -1,8 +1,8 @@
-swh-indexer (0.0.149-1~swh1~bpo9+1) stretch-swh; urgency=medium
+swh-indexer (0.0.149-1~swh2) unstable-swh; urgency=medium
 
-  * Rebuild for stretch-swh
+  * No-change: Bump dependency version
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 02 Jul 2019 16:29:05 +0000
+ -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 03 Jul 2019 10:44:12 +0200
 
 swh-indexer (0.0.149-1~swh1) unstable-swh; urgency=medium
 
