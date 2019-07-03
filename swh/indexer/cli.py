@@ -176,8 +176,8 @@ def schedule_origin_metadata_reindex(
               help='Kafka broker to connect to.')
 @click.option('--prefix', type=str, default=None,
               help='Prefix of Kafka topic names to read from.')
-@click.option('--group-id', '--consumer-id', type=str,
-              help='Name of the consumer/group id for reading from Kafka.')
+@click.option('--group-id', type=str,
+              help='Consumer/group id for reading from Kafka.')
 @click.option('--max-messages', '-m', default=None, type=int,
               help='Maximum number of objects to replay. Default is to '
                    'run forever.')
