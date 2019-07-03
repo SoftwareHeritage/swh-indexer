@@ -333,9 +333,9 @@ def test_journal_client(storage, indexer_scheduler):
         topic='swh.journal.objects.origin_visit')
     message = namedtuple('_message', ['value'])(
         value={
-            b'status': b'full',
-            b'origin': {
-                b'url': 'file:///dev/zero',
+            'status': 'full',
+            'origin': {
+                'url': 'file:///dev/zero',
             }
         }
     )

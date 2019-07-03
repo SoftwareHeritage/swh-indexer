@@ -15,9 +15,9 @@ class JournalClientTest(unittest.TestCase):
         messages = {
             'origin_visit': [
                 {
-                    b'status': b'full',
-                    b'origin': {
-                        b'url': 'file:///dev/zero',
+                    'status': 'full',
+                    'origin': {
+                        'url': 'file:///dev/zero',
                     }
                 },
             ]
@@ -46,15 +46,15 @@ class JournalClientTest(unittest.TestCase):
         messages = {
             'origin_visit': [
                 {
-                    b'status': b'full',
-                    b'origin': {
-                        b'url': 'file:///dev/zero',
+                    'status': 'full',
+                    'origin': {
+                        'url': 'file:///dev/zero',
                     }
                 },
                 {
-                    b'status': b'full',
-                    b'origin': {
-                        b'url': 'file:///tmp/foobar',
+                    'status': 'full',
+                    'origin': {
+                        'url': 'file:///tmp/foobar',
                     }
                 },
             ]
@@ -84,21 +84,21 @@ class JournalClientTest(unittest.TestCase):
         messages = {
             'origin_visit': [
                 {
-                    b'status': b'full',
-                    b'origin': {
-                        b'url': 'file:///dev/zero',
+                    'status': 'full',
+                    'origin': {
+                        'url': 'file:///dev/zero',
                     }
                 },
                 {
-                    b'status': b'full',
-                    b'origin': {
-                        b'url': 'file:///tmp/foobar',
+                    'status': 'full',
+                    'origin': {
+                        'url': 'file:///tmp/foobar',
                     }
                 },
                 {
-                    b'status': b'full',
-                    b'origin': {
-                        b'url': 'file:///tmp/spamegg',
+                    'status': 'full',
+                    'origin': {
+                        'url': 'file:///tmp/spamegg',
                     }
                 },
             ]
