@@ -1,3 +1,13 @@
+swh-indexer (0.0.150-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.150     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-07-03 12:09:43
+    +0200)
+  * Upstream changes:     - v0.0.150     - indexer.cli: Drop unused
+    extra alias `--consumer-id` flag
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 03 Jul 2019 10:20:46 +0000
+
 swh-indexer (0.0.149-1~swh2) unstable-swh; urgency=medium
 
   * No-change: Bump dependency version
