@@ -5,6 +5,8 @@
 
 from copy import deepcopy
 
+from swh.core.utils import grouper
+
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.metadata_dictionary import MAPPINGS
@@ -13,6 +15,9 @@ from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.storage import INDEXER_CFG_KEY
 
 from swh.model import hashutil
+
+
+REVISION_GET_BATCH_SIZE = 10
 
 
 class ContentMetadataIndexer(ContentIndexer):
@@ -276,7 +281,10 @@ class OriginMetadataIndexer(OriginIndexer):
                 origins_with_head.append(origin)
                 head_rev_ids.append(head_result['revision_id'])
 
-        head_revs = list(self.storage.revision_get(head_rev_ids))
+        head_revs = []
+        groups = grouper(head_rev_ids, REVISION_GET_BATCH_SIZE)
+        for group in groups:
+            head_revs.extend(self.storage.revision_get(group))
         assert len(head_revs) == len(head_rev_ids)
 
         results = []
