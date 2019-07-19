@@ -18,6 +18,15 @@ from swh.model import hashutil
 
 
 REVISION_GET_BATCH_SIZE = 10
+ORIGIN_GET_BATCH_SIZE = 10
+
+
+def call_with_batches(f, args, batch_size):
+    """Calls a function with batches of args, and concatenates the results.
+    """
+    groups = grouper(args, batch_size)
+    for group in groups:
+        yield from f(list(group))
 
 
 class ContentMetadataIndexer(ContentIndexer):
@@ -272,8 +281,9 @@ class OriginMetadataIndexer(OriginIndexer):
     def index_list(self, origin_urls):
         head_rev_ids = []
         origins_with_head = []
-        origins = self.storage.origin_get(
-            [{'url': url} for url in origin_urls])
+        origins = list(call_with_batches(
+            self.storage.origin_get,
+            [{'url': url} for url in origin_urls], ORIGIN_GET_BATCH_SIZE))
         for origin in origins:
             head_result = self.origin_head_indexer.index(origin['url'])
             if head_result:
@@ -281,10 +291,9 @@ class OriginMetadataIndexer(OriginIndexer):
                 origins_with_head.append(origin)
                 head_rev_ids.append(head_result['revision_id'])
 
-        head_revs = []
-        groups = grouper(head_rev_ids, REVISION_GET_BATCH_SIZE)
-        for group in groups:
-            head_revs.extend(self.storage.revision_get(group))
+        head_revs = list(call_with_batches(
+            self.storage.revision_get,
+            head_rev_ids, REVISION_GET_BATCH_SIZE))
         assert len(head_revs) == len(head_rev_ids)
 
         results = []
