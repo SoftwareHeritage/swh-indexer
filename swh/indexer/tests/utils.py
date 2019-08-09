@@ -407,6 +407,7 @@ YARN_PARSER_METADATA = {
         'https://github.com/librariesio/yarn-parser/issues',
     'name': 'yarn-parser',
     'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+    'type': 'SoftwareSourceCode',
 }
 
 

@@ -11,10 +11,11 @@ from hypothesis import given, strategies, settings, HealthCheck
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.codemeta import CODEMETA_TERMS, CROSSWALK_TABLE
+from swh.indexer.codemeta import merge_documents
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_dictionary.base import merge_values
 from swh.indexer.metadata_detector import (
-    detect_metadata, extract_minimal_metadata_dict
+    detect_metadata
 )
 from swh.indexer.metadata import (
     ContentMetadataIndexer, RevisionMetadataIndexer
@@ -184,7 +185,7 @@ class Metadata(unittest.TestCase):
         # then
         self.assertEqual(declared_metadata, result)
 
-    def test_extract_minimal_metadata_dict(self):
+    def test_merge_documents(self):
         """
         Test the creation of a coherent minimal metadata set
         """
@@ -211,7 +212,7 @@ class Metadata(unittest.TestCase):
         }]
 
         # when
-        results = extract_minimal_metadata_dict(metadata_list)
+        results = merge_documents(metadata_list)
 
         # then
         expected_results = {

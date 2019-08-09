@@ -7,11 +7,11 @@ from copy import deepcopy
 
 from swh.core.utils import grouper
 
+from swh.indexer.codemeta import merge_documents
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.storage import INDEXER_CFG_KEY
 
 from swh.model import hashutil
@@ -263,9 +263,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
                     self.log.exception(
                         "Exception while indexing metadata on contents")
 
-        # transform metadata into min set with swh-metadata-detector
-        min_metadata = extract_minimal_metadata_dict(metadata)
-        return (used_mappings, min_metadata)
+        metadata = merge_documents(metadata)
+        return (used_mappings, metadata)
 
 
 class OriginMetadataIndexer(OriginIndexer):
