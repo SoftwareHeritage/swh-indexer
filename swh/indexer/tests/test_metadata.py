@@ -1161,20 +1161,16 @@ Gem::Specification.new { |s|
         # Add a parent directory, that is the only directory at the root
         # of the revision
         rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
-        subdir_id = metadata_indexer.storage._revisions[rev_id]['directory']
-        metadata_indexer.storage._revisions[rev_id]['directory'] = b'123456'
+        rev = metadata_indexer.storage._revisions[rev_id]
+        subdir_id = rev.directory
+        rev.directory = b'123456'
         metadata_indexer.storage.directory_add([{
             'id': b'123456',
             'entries': [{
-                'target': subdir_id,
-                'type': 'dir',
-                'length': None,
                 'name': b'foobar-1.0.0',
-                'sha1': None,
+                'type': 'dir',
+                'target': subdir_id,
                 'perms': 16384,
-                'sha1_git': None,
-                'status': None,
-                'sha256': None
             }],
         }])
 
