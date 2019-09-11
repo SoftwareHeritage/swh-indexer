@@ -115,6 +115,8 @@ class NpmMapping(JsonMapping):
             url = d.get('url', None)
         elif isinstance(d, str):
             match = self._parse_author.match(d)
+            if not match:
+                return None
             name = match.group('name')
             email = match.group('email')
             url = match.group('url')

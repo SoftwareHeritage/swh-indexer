@@ -7,7 +7,7 @@ import os
 import logging
 
 from swh.core import config
-from swh.core.api import (SWHServerAPIApp, error_handler,
+from swh.core.api import (RPCServerApp, error_handler,
                           encode_data_server as encode_data)
 from swh.indexer.storage import (
     get_indexer_storage, INDEXER_CFG_KEY, IndexerStorage
@@ -22,9 +22,9 @@ def get_storage():
     return storage
 
 
-app = SWHServerAPIApp(__name__,
-                      backend_class=IndexerStorage,
-                      backend_factory=get_storage)
+app = RPCServerApp(__name__,
+                   backend_class=IndexerStorage,
+                   backend_factory=get_storage)
 storage = None
 
 

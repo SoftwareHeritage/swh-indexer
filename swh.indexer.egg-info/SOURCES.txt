@@ -26,6 +26,7 @@ sql/upgrades/122.sql
 sql/upgrades/123.sql
 sql/upgrades/124.sql
 sql/upgrades/125.sql
+sql/upgrades/126.sql
 swh/__init__.py
 swh.indexer.egg-info/PKG-INFO
 swh.indexer.egg-info/SOURCES.txt
