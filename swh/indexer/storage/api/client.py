@@ -3,14 +3,14 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from swh.core.api import SWHRemoteAPI
+from swh.core.api import RPCClient
 
 from swh.storage.exc import StorageAPIError
 
 from .. import IndexerStorage
 
 
-class RemoteStorage(SWHRemoteAPI):
+class RemoteStorage(RPCClient):
     """Proxy to a remote storage API"""
 
     backend_class = IndexerStorage

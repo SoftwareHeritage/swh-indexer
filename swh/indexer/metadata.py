@@ -7,17 +7,26 @@ from copy import deepcopy
 
 from swh.core.utils import grouper
 
+from swh.indexer.codemeta import merge_documents
 from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_detector import extract_minimal_metadata_dict
 from swh.indexer.storage import INDEXER_CFG_KEY
 
 from swh.model import hashutil
 
 
 REVISION_GET_BATCH_SIZE = 10
+ORIGIN_GET_BATCH_SIZE = 10
+
+
+def call_with_batches(f, args, batch_size):
+    """Calls a function with batches of args, and concatenates the results.
+    """
+    groups = grouper(args, batch_size)
+    for group in groups:
+        yield from f(list(group))
 
 
 class ContentMetadataIndexer(ContentIndexer):
@@ -254,9 +263,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
                     self.log.exception(
                         "Exception while indexing metadata on contents")
 
-        # transform metadata into min set with swh-metadata-detector
-        min_metadata = extract_minimal_metadata_dict(metadata)
-        return (used_mappings, min_metadata)
+        metadata = merge_documents(metadata)
+        return (used_mappings, metadata)
 
 
 class OriginMetadataIndexer(OriginIndexer):
@@ -272,8 +280,9 @@ class OriginMetadataIndexer(OriginIndexer):
     def index_list(self, origin_urls):
         head_rev_ids = []
         origins_with_head = []
-        origins = self.storage.origin_get(
-            [{'url': url} for url in origin_urls])
+        origins = list(call_with_batches(
+            self.storage.origin_get,
+            [{'url': url} for url in origin_urls], ORIGIN_GET_BATCH_SIZE))
         for origin in origins:
             head_result = self.origin_head_indexer.index(origin['url'])
             if head_result:
@@ -281,10 +290,9 @@ class OriginMetadataIndexer(OriginIndexer):
                 origins_with_head.append(origin)
                 head_rev_ids.append(head_result['revision_id'])
 
-        head_revs = []
-        groups = grouper(head_rev_ids, REVISION_GET_BATCH_SIZE)
-        for group in groups:
-            head_revs.extend(self.storage.revision_get(group))
+        head_revs = list(call_with_batches(
+            self.storage.revision_get,
+            head_rev_ids, REVISION_GET_BATCH_SIZE))
         assert len(head_revs) == len(head_rev_ids)
 
         results = []
