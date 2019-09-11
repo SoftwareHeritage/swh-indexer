@@ -1,8 +1,18 @@
-swh-indexer (0.0.152-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.0.153-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.0.153     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-09-11 11:46:41
+    +0200)
+  * Upstream changes:     - v0.0.153     - indexer-storage: Send smaller
+    batches to origin_get     - Update
+    origin_url/from_revision/metadata_tsvector when conflict_update=True
+    - Remove concept of 'minimal set' of metadata     - npm: Fix crash
+    on invalid 'author' field     - api/client: use RPCClient instead of
+    deprecated SWHRemoteAPI     - api/server: use RPCServerApp instead
+    of deprecated SWHServerAPIApp     - tests/utils: Fix various test
+    data model issues failing validation
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 19 Jul 2019 09:22:21 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 11 Sep 2019 09:50:58 +0000
 
 swh-indexer (0.0.152-1~swh1) unstable-swh; urgency=medium
 

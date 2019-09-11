@@ -3,7 +3,9 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import collections
 import csv
+import itertools
 import json
 import os.path
 import re
@@ -127,3 +129,19 @@ def expand(doc):
     """Same as `pyld.jsonld.expand`, but in the context of CodeMeta."""
     return jsonld.expand(doc,
                          options={'documentLoader': _document_loader})
+
+
+def merge_documents(documents):
+    """Takes a list of metadata dicts, each generated from a different
+    metadata file, and merges them.
+
+    Removes duplicates, if any."""
+    documents = list(itertools.chain.from_iterable(map(expand, documents)))
+    merged_document = collections.defaultdict(list)
+    for document in documents:
+        for (key, values) in document.items():
+            for value in values:
+                if value not in merged_document[key]:
+                    merged_document[key].append(value)
+
+    return compact(merged_document)

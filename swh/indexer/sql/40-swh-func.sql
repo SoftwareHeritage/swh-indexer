@@ -420,7 +420,10 @@ begin
             on conflict(id, indexer_configuration_id)
                 do update set
                     metadata = excluded.metadata,
-                    mappings = excluded.mappings;
+                    metadata_tsvector = excluded.metadata_tsvector,
+                    mappings = excluded.mappings,
+                    origin_url = excluded.origin_url,
+                    from_revision = excluded.from_revision;
 
     else
         insert into origin_intrinsic_metadata (id, origin_url, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
