@@ -11,10 +11,11 @@ from hypothesis import given, strategies, settings, HealthCheck
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.codemeta import CODEMETA_TERMS, CROSSWALK_TABLE
+from swh.indexer.codemeta import merge_documents
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_dictionary.base import merge_values
 from swh.indexer.metadata_detector import (
-    detect_metadata, extract_minimal_metadata_dict
+    detect_metadata
 )
 from swh.indexer.metadata import (
     ContentMetadataIndexer, RevisionMetadataIndexer
@@ -184,7 +185,7 @@ class Metadata(unittest.TestCase):
         # then
         self.assertEqual(declared_metadata, result)
 
-    def test_extract_minimal_metadata_dict(self):
+    def test_merge_documents(self):
         """
         Test the creation of a coherent minimal metadata set
         """
@@ -211,7 +212,7 @@ class Metadata(unittest.TestCase):
         }]
 
         # when
-        results = extract_minimal_metadata_dict(metadata_list)
+        results = merge_documents(metadata_list)
 
         # then
         expected_results = {
@@ -1160,20 +1161,16 @@ Gem::Specification.new { |s|
         # Add a parent directory, that is the only directory at the root
         # of the revision
         rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
-        subdir_id = metadata_indexer.storage._revisions[rev_id]['directory']
-        metadata_indexer.storage._revisions[rev_id]['directory'] = b'123456'
+        rev = metadata_indexer.storage._revisions[rev_id]
+        subdir_id = rev.directory
+        rev.directory = b'123456'
         metadata_indexer.storage.directory_add([{
             'id': b'123456',
             'entries': [{
-                'target': subdir_id,
-                'type': 'dir',
-                'length': None,
                 'name': b'foobar-1.0.0',
-                'sha1': None,
+                'type': 'dir',
+                'target': subdir_id,
                 'perms': 16384,
-                'sha1_git': None,
-                'status': None,
-                'sha256': None
             }],
         }])
 

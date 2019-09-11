@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2018  The Software Heritage developers
+# Copyright (C) 2017-2019  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -36,38 +36,24 @@ BASE_TEST_CONFIG = {
 
 ORIGINS = [
         {
-            'lister': None,
-            'project': None,
             'type': 'git',
             'url': 'https://github.com/SoftwareHeritage/swh-storage'},
         {
-            'lister': None,
-            'project': None,
             'type': 'ftp',
             'url': 'rsync://ftp.gnu.org/gnu/3dldf'},
         {
-            'lister': None,
-            'project': None,
             'type': 'deposit',
             'url': 'https://forge.softwareheritage.org/source/jesuisgpl/'},
         {
-            'lister': None,
-            'project': None,
             'type': 'pypi',
             'url': 'https://pypi.org/project/limnoria/'},
         {
-            'lister': None,
-            'project': None,
             'type': 'svn',
             'url': 'http://0-512-md.googlecode.com/svn/'},
         {
-            'lister': None,
-            'project': None,
             'type': 'git',
             'url': 'https://github.com/librariesio/yarn-parser'},
         {
-            'lister': None,
-            'project': None,
             'type': 'git',
             'url': 'https://github.com/librariesio/yarn-parser.git'},
         ]
@@ -111,7 +97,7 @@ SNAPSHOTS = [
             b'3DLDF-2.0.tar.gz': {
                 'target': b'F6*\xff(?\x19a\xef\xb6\xc2\x1fv$S\xe3G'
                           b'\xd3\xd1m',
-                b'target_type': 'revision'}
+                'target_type': 'revision'}
             }},
     {
         'origin': 'https://forge.softwareheritage.org/source/jesuisgpl/',
@@ -167,18 +153,26 @@ SNAPSHOTS = [
 
 REVISIONS = [{
     'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
+    'message': 'Improve search functionality',
     'author': {
-        'id': 26,
         'name': b'Andrew Nesbitt',
         'fullname': b'Andrew Nesbitt <andrewnez@gmail.com>',
         'email': b'andrewnez@gmail.com'
     },
     'committer': {
-        'id': 26,
         'name': b'Andrew Nesbitt',
         'fullname': b'Andrew Nesbitt <andrewnez@gmail.com>',
         'email': b'andrewnez@gmail.com'
     },
+    'committer_date': {
+        'negative_utc': None,
+        'offset': 120,
+        'timestamp': {
+            'microseconds': 0,
+            'seconds': 1380883849
+        }
+    },
+    'type': 'git',
     'synthetic': False,
     'date': {
         'negative_utc': False,
@@ -193,36 +187,23 @@ REVISIONS = [{
 
 DIRECTORY_ID = b'10'
 
-DIRECTORY = [{
-    'sha1_git': b'abc',
+DIRECTORY_ENTRIES = [{
     'name': b'index.js',
+    'type': 'file',
     'target': b'abc',
-    'length': 897,
-    'status': 'visible',
-    'type': 'file',
     'perms': 33188,
-    'sha1': b'bcd'
     },
     {
-    'sha1_git': b'aab',
     'name': b'package.json',
-    'target': b'aab',
-    'length': 712,
-    'status': 'visible',
     'type': 'file',
+    'target': b'cde',
     'perms': 33188,
-    'sha1': b'cde'
     },
     {
-    'target': b'11',
-    'type': 'dir',
-    'length': None,
     'name': b'.github',
-    'sha1': None,
+    'type': 'dir',
+    'target': b'11',
     'perms': 16384,
-    'sha1_git': None,
-    'status': None,
-    'sha256': None
     }
 ]
 
@@ -344,7 +325,10 @@ OBJ_STORAGE_DATA = {
     'a7ab314d8a11d2c93e3dcf528ca294e7b431c449': b"""
     """,
     'da39a3ee5e6b4b0d3255bfef95601890afd80709': b'',
-    '636465': b"""
+    # 626364
+    hash_to_hex(b'bcd'): b'unimportant content for bcd',
+    # 636465
+    hash_to_hex(b'cde'): b"""
     {
       "name": "yarn-parser",
       "version": "1.0.0",
@@ -385,9 +369,9 @@ OBJ_STORAGE_DATA = {
         "test": "^0.6.0"
       }
     }
+
 """
 }
-
 
 YARN_PARSER_METADATA = {
     '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
@@ -407,6 +391,7 @@ YARN_PARSER_METADATA = {
         'https://github.com/librariesio/yarn-parser/issues',
     'name': 'yarn-parser',
     'keywords': ['yarn', 'parse', 'lock', 'dependencies'],
+    'type': 'SoftwareSourceCode',
 }
 
 
@@ -564,13 +549,11 @@ def fill_storage(storage):
         storage.origin_visit_update(
             origin_url, visit['visit'], status='full', snapshot=snap_id)
     storage.revision_add(REVISIONS)
-    storage.directory_add([{
-        'id': DIRECTORY_ID,
-        'entries': DIRECTORY,
-    }])
+
+    contents = []
     for (obj_id, content) in OBJ_STORAGE_DATA.items():
         content_hashes = hashutil.MultiHash.from_data(content).digest()
-        storage.content_add([{
+        contents.append({
             'data': content,
             'length': len(content),
             'status': 'visible',
@@ -578,7 +561,12 @@ def fill_storage(storage):
             'sha1_git': hash_to_bytes(obj_id),
             'sha256': content_hashes['sha256'],
             'blake2s256': content_hashes['blake2s256']
-        }])
+        })
+    storage.content_add(contents)
+    storage.directory_add([{
+        'id': DIRECTORY_ID,
+        'entries': DIRECTORY_ENTRIES,
+    }])
 
 
 class CommonContentIndexerTest(metaclass=abc.ABCMeta):

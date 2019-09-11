@@ -1197,7 +1197,14 @@ class CommonTestStorage:
         metadata_rev_v2 = metadata_rev_v1.copy()
         metadata_origin_v2 = metadata_origin_v1.copy()
         metadata_rev_v2['metadata'] = metadata_v2
-        metadata_origin_v2['metadata'] = metadata_v2
+        metadata_origin_v2 = {
+            'id': self.origin_id_1,
+            'origin_url': 'file:///dev/null',
+            'metadata': metadata_v2.copy(),
+            'indexer_configuration_id': tool_id,
+            'mappings': ['npm'],
+            'from_revision': self.revision_id_1,
+        }
 
         self.storage.revision_intrinsic_metadata_add(
                 [metadata_rev_v2], conflict_update=True)
@@ -1209,11 +1216,11 @@ class CommonTestStorage:
 
         expected_metadata_v2 = [{
             'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'origin_url': 'file:///dev/null',
             'metadata': metadata_v2,
             'tool': self.tools['swh-metadata-detector'],
-            'from_revision': self.revision_id_2,
-            'mappings': [],
+            'from_revision': self.revision_id_1,
+            'mappings': ['npm'],
         }]
 
         # metadata did change as the v2 was used to overwrite v1
