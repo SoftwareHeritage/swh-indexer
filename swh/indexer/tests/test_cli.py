@@ -3,14 +3,14 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from collections import namedtuple
 from functools import reduce
 import re
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from click.testing import CliRunner
 
+from swh.journal.tests.utils import FakeKafkaMessage, MockedKafkaConsumer
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.cli import cli
@@ -327,22 +327,17 @@ def test_origin_metadata_reindex_filter_one_tool(
 def test_journal_client(storage, indexer_scheduler):
     """Tests the re-indexing when origin_batch_size*task_batch_size is a
     divisor of nb_origins."""
-    mock_consumer = MagicMock()
-
-    partition = namedtuple('_partition', ['topic'])(
-        topic='swh.journal.objects.origin_visit')
-    message = namedtuple('_message', ['value'])(
-        value={
-            'status': 'full',
-            'origin': {
-                'url': 'file:///dev/zero',
-            }
+    message = FakeKafkaMessage('swh.journal.objects.origin_visit', 'bogus', {
+        'status': 'full',
+        'origin': {
+            'url': 'file:///dev/zero',
         }
-    )
-    mock_consumer.poll.return_value = {partition: [message]}
+    })
 
-    with patch('swh.journal.client.KafkaConsumer',
-               return_value=mock_consumer):
+    consumer = MockedKafkaConsumer([message])
+
+    with patch('swh.journal.client.Consumer',
+               return_value=consumer):
         result = invoke(indexer_scheduler, False, [
             'journal-client',
             '--max-messages', '1',
@@ -350,11 +345,6 @@ def test_journal_client(storage, indexer_scheduler):
             '--prefix', 'swh.journal.objects',
             '--group-id', 'test-consumer',
         ])
-
-    mock_consumer.subscribe.assert_called_once_with(
-        topics=['swh.journal.objects.origin_visit'])
-    mock_consumer.poll.assert_called_once_with()
-    mock_consumer.commit.assert_called_once_with()
 
     # Check the output
     expected_output = (
