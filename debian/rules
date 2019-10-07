@@ -1,8 +1,11 @@
 #!/usr/bin/make -f
 
-export PYBUILD_NAME=swh.indexer
-export PYBUILD_TEST_ARGS=-m 'not db and not fs'
 export LC_ALL=C.UTF-8
+
+export PG_CTL := $(lastword $(sort $(wildcard /usr/lib/postgresql/*/bin/pg_ctl)))
+
+export PYBUILD_NAME=swh.indexer
+export PYBUILD_TEST_ARGS=--postgresql-exec $(PG_CTL) -m 'not db and not fs'
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
