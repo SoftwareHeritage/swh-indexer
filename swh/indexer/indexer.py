@@ -13,11 +13,7 @@ from copy import deepcopy
 from contextlib import contextmanager
 
 from swh.scheduler import get_scheduler
-try:
-    from swh.scheduler import CONFIG as SWH_CONFIG
-except ImportError:
-    # for swh-scheduler < 0.0.47 bw compat
-    SWH_CONFIG = None
+from swh.scheduler import CONFIG as SWH_CONFIG
 
 from swh.storage import get_storage
 from swh.core.config import SWHConfig
