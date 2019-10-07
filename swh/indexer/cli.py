@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import functools
+import time
 
 import click
 
@@ -206,10 +207,13 @@ def journal_client(ctx, scheduler_url, origin_metadata_task_type,
         }
     )
     nb_messages = 0
+    last_log_time = 0
     try:
         while not max_messages or nb_messages < max_messages:
             nb_messages += client.process(worker_fn)
-            print('Processed %d messages.' % nb_messages)
+            if time.monotonic() - last_log_time >= 60:
+                print('Processed %d messages.' % nb_messages)
+                last_log_time = time.monotonic()
     except KeyboardInterrupt:
         ctx.exit(0)
     else:
