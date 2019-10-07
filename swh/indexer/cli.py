@@ -230,10 +230,6 @@ def rpc_server(config_path, host, port, debug):
     app.run(host, port=int(port), debug=bool(debug))
 
 
-cli.add_alias(rpc_server, 'api-server')
-cli.add_alias(rpc_server, 'serve')
-
-
 def main():
     return cli(auto_envvar_prefix='SWH_INDEXER')
 
