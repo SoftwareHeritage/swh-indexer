@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import functools
+import json
 import time
 
 import click
@@ -87,6 +88,22 @@ def mapping_list_terms(concise, exclude_mapping):
             else:
                 click.echo('{}:'.format(property_name))
                 click.echo('\t' + ', '.join(sorted(supported_mappings)))
+
+
+@mapping.command('translate')
+@click.argument('mapping-name')
+@click.argument('file', type=click.File('rb'))
+def mapping_translate(mapping_name, file):
+    """Prints the list of known mappings."""
+    mapping_cls = [cls for cls in metadata_dictionary.MAPPINGS.values()
+                   if cls.name == mapping_name]
+    if not mapping_cls:
+        raise click.ClickException('Unknown mapping {}'.format(mapping_name))
+    assert len(mapping_cls) == 1
+    mapping_cls = mapping_cls[0]
+    mapping = mapping_cls()
+    codemeta_doc = mapping.translate(file.read())
+    click.echo(json.dumps(codemeta_doc, indent=4))
 
 
 @cli.group('schedule')
