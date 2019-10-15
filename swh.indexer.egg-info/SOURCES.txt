@@ -71,7 +71,6 @@ swh/indexer/storage/in_memory.py
 swh/indexer/storage/api/__init__.py
 swh/indexer/storage/api/client.py
 swh/indexer/storage/api/server.py
-swh/indexer/storage/api/wsgi.py
 swh/indexer/tests/__init__.py
 swh/indexer/tests/conftest.py
 swh/indexer/tests/tasks.py
