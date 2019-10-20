@@ -397,10 +397,16 @@ YARN_PARSER_METADATA = {
 
 json_dict_keys = strategies.one_of(
     strategies.characters(),
-    *map(strategies.just, ['type', 'url', 'name', 'email', '@id',
-                           '@context', 'repository', 'license',
-                           'repositories', 'licenses'
-                           ]),
+    strategies.just('type'),
+    strategies.just('url'),
+    strategies.just('name'),
+    strategies.just('email'),
+    strategies.just('@id'),
+    strategies.just('@context'),
+    strategies.just('repository'),
+    strategies.just('license'),
+    strategies.just('repositories'),
+    strategies.just('licenses'),
 )
 """Hypothesis strategy that generates strings, with an emphasis on those
 that are often used as dictionary keys in metadata files."""

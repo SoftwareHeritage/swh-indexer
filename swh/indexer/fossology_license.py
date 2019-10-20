@@ -5,8 +5,9 @@
 
 import subprocess
 
-from swh.model import hashutil
+from typing import Optional
 
+from swh.model import hashutil
 from .indexer import ContentIndexer, ContentRangeIndexer, write_to_temp
 
 
@@ -66,7 +67,7 @@ class MixinFossologyLicenseIndexer:
         'write_batch_size': ('int', 1000),
     }
 
-    CONFIG_BASE_FILENAME = 'indexer/fossology_license'
+    CONFIG_BASE_FILENAME = 'indexer/fossology_license'  # type: Optional[str]
 
     def prepare(self):
         super().prepare()

@@ -7,6 +7,7 @@ import json
 import unittest
 
 from hypothesis import given, strategies, settings, HealthCheck
+from typing import cast
 
 from swh.model.hashutil import hash_to_bytes
 
@@ -14,6 +15,9 @@ from swh.indexer.codemeta import CODEMETA_TERMS, CROSSWALK_TABLE
 from swh.indexer.codemeta import merge_documents
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_dictionary.base import merge_values
+from swh.indexer.metadata_dictionary.maven import MavenMapping
+from swh.indexer.metadata_dictionary.npm import NpmMapping
+from swh.indexer.metadata_dictionary.ruby import GemspecMapping
 from swh.indexer.metadata_detector import (
     detect_metadata
 )
@@ -1075,7 +1079,7 @@ Gem::Specification.new { |s|
 
     @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(json_document_strategy(
-        keys=list(MAPPINGS['NpmMapping'].mapping)))
+        keys=list(cast(NpmMapping, MAPPINGS['NpmMapping']).mapping)))
     def test_npm_adversarial(self, doc):
         raw = json.dumps(doc).encode()
         self.npm_mapping.translate(raw)
@@ -1088,7 +1092,7 @@ Gem::Specification.new { |s|
 
     @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(xml_document_strategy(
-        keys=list(MAPPINGS['MavenMapping'].mapping),
+        keys=list(cast(MavenMapping, MAPPINGS['MavenMapping']).mapping),
         root='project',
         xmlns='http://maven.apache.org/POM/4.0.0'))
     def test_maven_adversarial(self, doc):
@@ -1099,7 +1103,8 @@ Gem::Specification.new { |s|
         # keys
         strategies.one_of(
             strategies.text(),
-            *map(strategies.just, MAPPINGS['GemspecMapping'].mapping)
+            *map(strategies.just,
+                 cast(GemspecMapping, MAPPINGS['GemspecMapping']).mapping)
         ),
         # values
         strategies.recursive(

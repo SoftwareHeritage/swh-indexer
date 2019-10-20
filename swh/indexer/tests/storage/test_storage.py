@@ -426,7 +426,7 @@ class CommonTestStorage:
     """Base class for Indexer Storage testing.
 
     """
-    def setUp(self):
+    def setUp(self, *args, **kwargs):
         super().setUp()
         self.storage = get_indexer_storage(**self.storage_config)
         tools = self.storage.indexer_configuration_add(TOOLS)

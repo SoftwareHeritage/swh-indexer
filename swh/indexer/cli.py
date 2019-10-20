@@ -238,7 +238,7 @@ def journal_client(ctx, scheduler_url, origin_metadata_task_type,
 
 
 @cli.command('rpc-serve')
-@click.argument('config-path', required=1)
+@click.argument('config-path', required=True)
 @click.option('--host', default='0.0.0.0', help="Host to run the server")
 @click.option('--port', default=5007, type=click.INT,
               help="Binding port of the server")

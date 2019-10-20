@@ -13,3 +13,4 @@ version.txt
 /sql/filldb-stamp
 .tox/
 .hypothesis/
+.mypy_cache/

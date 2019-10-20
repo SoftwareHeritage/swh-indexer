@@ -9,8 +9,10 @@ import logging
 import shutil
 import tempfile
 import datetime
+
 from copy import deepcopy
 from contextlib import contextmanager
+from typing import Any, Dict, Tuple
 
 from swh.scheduler import get_scheduler
 from swh.scheduler import CONFIG as SWH_CONFIG
@@ -124,7 +126,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         })
     }
 
-    ADDITIONAL_CONFIG = {}
+    ADDITIONAL_CONFIG = {}  # type: Dict[str, Tuple[str, Any]]
 
     USE_TOOLS = True
 
