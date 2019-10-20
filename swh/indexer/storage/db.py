@@ -388,7 +388,6 @@ class Db(BaseDb):
                  "ORDER BY ts_rank(oim.metadata_tsvector, tsq, 1) DESC "
                  "LIMIT %s;"
                  ).format(keys=', '.join(keys),
-                          regconfig=regconfig,
                           tsquery_template=tsquery_template)
         cur.execute(query, tsquery_args + [limit])
         yield from cur
