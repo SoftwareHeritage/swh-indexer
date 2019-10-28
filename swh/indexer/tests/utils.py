@@ -34,7 +34,7 @@ BASE_TEST_CONFIG = {
     },
 }
 
-ORIGINS = [
+ORIGIN_VISITS = [
         {
             'type': 'git',
             'url': 'https://github.com/SoftwareHeritage/swh-storage'},
@@ -541,11 +541,16 @@ def fill_obj_storage(obj_storage):
 
 
 def fill_storage(storage):
-    for origin in ORIGINS:
-        storage.origin_add_one(origin)
+    visit_types = {}
+    for visit in ORIGIN_VISITS:
+        storage.origin_add_one({'url': visit['url']})
+        visit_types[visit['url']] = visit['type']
     for snap in SNAPSHOTS:
         origin_url = snap['origin']
-        visit = storage.origin_visit_add(origin_url, datetime.datetime.now())
+        visit = storage.origin_visit_add(
+            origin=origin_url,
+            date=datetime.datetime.now(),
+            type=visit_types[origin_url])
         snap_id = snap.get('id') or \
             bytes([random.randint(0, 255) for _ in range(32)])
         storage.snapshot_add([{

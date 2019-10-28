@@ -53,11 +53,11 @@ class OriginHead(unittest.TestCase):
         """Checks partial snapshots are ignored."""
         origin_url = 'https://github.com/SoftwareHeritage/swh-core'
         self.indexer.storage.origin_add_one({
-            'type': 'git',
             'url': origin_url,
         })
         visit = self.indexer.storage.origin_visit_add(
-            origin_url, '2019-02-27')
+            origin_url, '2019-02-27', type='git',
+        )
         self.indexer.storage.snapshot_add([{
             'id': b'foo',
             'branches': {
@@ -85,11 +85,10 @@ class OriginHead(unittest.TestCase):
     def test_pypi_missing_branch(self):
         origin_url = 'https://pypi.org/project/abcdef/'
         self.indexer.storage.origin_add_one({
-            'type': 'pypi',
             'url': origin_url,
         })
         visit = self.indexer.storage.origin_visit_add(
-            origin_url, '2019-02-27')
+            origin_url, '2019-02-27', type='pypi')
         self.indexer.storage.snapshot_add([{
             'id': b'foo',
             'branches': {
