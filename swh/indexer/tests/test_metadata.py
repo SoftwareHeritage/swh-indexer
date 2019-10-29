@@ -7,7 +7,6 @@ import json
 import unittest
 
 from hypothesis import given, strategies, settings, HealthCheck
-from typing import cast
 
 from swh.model.hashutil import hash_to_bytes
 
@@ -1078,8 +1077,7 @@ Gem::Specification.new { |s|
         })
 
     @settings(suppress_health_check=[HealthCheck.too_slow])
-    @given(json_document_strategy(
-        keys=list(cast(NpmMapping, MAPPINGS['NpmMapping']).mapping)))
+    @given(json_document_strategy(keys=list(NpmMapping.mapping)))
     def test_npm_adversarial(self, doc):
         raw = json.dumps(doc).encode()
         self.npm_mapping.translate(raw)
@@ -1092,7 +1090,7 @@ Gem::Specification.new { |s|
 
     @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(xml_document_strategy(
-        keys=list(cast(MavenMapping, MAPPINGS['MavenMapping']).mapping),
+        keys=list(MavenMapping.mapping),
         root='project',
         xmlns='http://maven.apache.org/POM/4.0.0'))
     def test_maven_adversarial(self, doc):
@@ -1103,8 +1101,7 @@ Gem::Specification.new { |s|
         # keys
         strategies.one_of(
             strategies.text(),
-            *map(strategies.just,
-                 cast(GemspecMapping, MAPPINGS['GemspecMapping']).mapping)
+            *map(strategies.just, GemspecMapping.mapping)
         ),
         # values
         strategies.recursive(
