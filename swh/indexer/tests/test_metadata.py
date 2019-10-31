@@ -6,6 +6,8 @@
 import json
 import unittest
 
+import attr
+
 from hypothesis import given, strategies, settings, HealthCheck
 
 from swh.model.hashutil import hash_to_bytes
@@ -1165,7 +1167,7 @@ Gem::Specification.new { |s|
         rev_id = hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f')
         rev = metadata_indexer.storage._revisions[rev_id]
         subdir_id = rev.directory
-        rev.directory = b'123456'
+        rev = attr.evolve(rev, directory=b'123456')
         metadata_indexer.storage.directory_add([{
             'id': b'123456',
             'entries': [{
