@@ -450,9 +450,9 @@ class CommonTestStorage:
             '7026b7c1a2af56521e9587659012345678904321')
         self.revision_id_3 = hash_to_bytes(
             '7026b7c1a2af56521e9587659012345678904320')
-        self.origin_id_1 = 44434341
-        self.origin_id_2 = 44434342
-        self.origin_id_3 = 54974445
+        self.origin_url_1 = 'file:///dev/0/zero'  # 44434341
+        self.origin_url_2 = 'file:///dev/1/one'   # 44434342
+        self.origin_url_3 = 'file:///dev/2/two'   # 54974445
 
     def test_check_config(self):
         self.assertTrue(self.storage.check_config(check_write=True))
@@ -1002,8 +1002,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool_id,
         }
         metadata_origin = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
@@ -1016,11 +1015,10 @@ class CommonTestStorage:
 
         # then
         actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
-            [self.origin_id_1, 42]))
+            [self.origin_url_1, 'no://where']))
 
         expected_metadata = [{
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
@@ -1044,15 +1042,14 @@ class CommonTestStorage:
             'indexer_configuration_id': tool_id,
         }
         metadata_origin = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
             'from_revision': self.revision_id_2,
             }
         metadata_origin2 = metadata_origin.copy()
-        metadata_origin2['id'] = self.origin_id_2
+        metadata_origin2['id'] = self.origin_url_2
 
         # when
         self.storage.revision_intrinsic_metadata_add([metadata_rev])
@@ -1061,14 +1058,14 @@ class CommonTestStorage:
 
         self.storage.origin_intrinsic_metadata_delete([
             {
-                'id': self.origin_id_1,
+                'id': self.origin_url_1,
                 'indexer_configuration_id': tool_id
             }
         ])
 
         # then
         actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
-            [self.origin_id_1, self.origin_id_2, 42]))
+            [self.origin_url_1, self.origin_url_2, 'no://where']))
         for item in actual_metadata:
             item['indexer_configuration_id'] = item.pop('tool')['id']
         self.assertEqual(actual_metadata, [metadata_origin2])
@@ -1077,7 +1074,7 @@ class CommonTestStorage:
         tool_id = self.tools['swh-metadata-detector']['id']
         self.storage.origin_intrinsic_metadata_delete([
             {
-                'id': self.origin_id_1,
+                'id': self.origin_url_1,
                 'indexer_configuration_id': tool_id
             }
         ])
@@ -1092,14 +1089,12 @@ class CommonTestStorage:
         }
         metadata_rev_v1 = {
             'id': self.revision_id_1,
-            'origin_url': 'file:///dev/zero',
             'metadata': metadata_v1.copy(),
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata_origin_v1 = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata_v1.copy(),
             'indexer_configuration_id': tool_id,
             'mappings': [],
@@ -1112,11 +1107,10 @@ class CommonTestStorage:
 
         # when
         actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
-            [self.origin_id_1, 42]))
+            [self.origin_url_1, 'no://where']))
 
         expected_metadata_v1 = [{
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata_v1,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_1,
@@ -1141,7 +1135,7 @@ class CommonTestStorage:
 
         # then
         actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
-            [self.origin_id_1]))
+            [self.origin_url_1]))
 
         # metadata did not change as the v2 was dropped.
         self.assertEqual(actual_metadata, expected_metadata_v1)
@@ -1161,8 +1155,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool_id,
         }
         metadata_origin_v1 = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata_v1.copy(),
             'indexer_configuration_id': tool_id,
             'mappings': [],
@@ -1175,12 +1168,11 @@ class CommonTestStorage:
 
         # when
         actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
-            [self.origin_id_1]))
+            [self.origin_url_1]))
 
         # then
         expected_metadata_v1 = [{
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata_v1,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_2,
@@ -1198,8 +1190,7 @@ class CommonTestStorage:
         metadata_origin_v2 = metadata_origin_v1.copy()
         metadata_rev_v2['metadata'] = metadata_v2
         metadata_origin_v2 = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/null',
+            'id': self.origin_url_1,
             'metadata': metadata_v2.copy(),
             'indexer_configuration_id': tool_id,
             'mappings': ['npm'],
@@ -1212,11 +1203,10 @@ class CommonTestStorage:
                 [metadata_origin_v2], conflict_update=True)
 
         actual_metadata = list(self.storage.origin_intrinsic_metadata_get(
-            [self.origin_id_1]))
+            [self.origin_url_1]))
 
         expected_metadata_v2 = [{
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/null',
+            'id': self.origin_url_1,
             'metadata': metadata_v2,
             'tool': self.tools['swh-metadata-detector'],
             'from_revision': self.revision_id_1,
@@ -1259,8 +1249,7 @@ class CommonTestStorage:
 
         data_v1 = [
             {
-                'id': id_,
-                'origin_url': 'file:///tmp/origin%d' % id_,
+                'id': 'file:///tmp/origin%d' % id_,
                 'from_revision': self.revision_id_2,
                 **example_data1,
                 'indexer_configuration_id': tool_id,
@@ -1269,8 +1258,7 @@ class CommonTestStorage:
         ]
         data_v2 = [
             {
-                'id': id_,
-                'origin_url': 'file:///tmp/origin%d' % id_,
+                'id': 'file:///tmp/origin%d' % id_,
                 'from_revision': self.revision_id_2,
                 **example_data2,
                 'indexer_configuration_id': tool_id,
@@ -1288,12 +1276,12 @@ class CommonTestStorage:
         self.storage.origin_intrinsic_metadata_add(data_v1)
 
         # when
-        actual_data = list(self.storage.origin_intrinsic_metadata_get(ids))
+        origins = ['file:///tmp/origin%d' % i for i in ids]
+        actual_data = list(self.storage.origin_intrinsic_metadata_get(origins))
 
         expected_data_v1 = [
             {
-                'id': id_,
-                'origin_url': 'file:///tmp/origin%d' % id_,
+                'id': 'file:///tmp/origin%d' % id_,
                 'from_revision': self.revision_id_2,
                 **example_data1,
                 'tool': self.tools['swh-metadata-detector'],
@@ -1321,12 +1309,11 @@ class CommonTestStorage:
         t1.join()
         t2.join()
 
-        actual_data = list(self.storage.origin_intrinsic_metadata_get(ids))
+        actual_data = list(self.storage.origin_intrinsic_metadata_get(origins))
 
         expected_data_v2 = [
             {
-                'id': id_,
-                'origin_url': 'file:///tmp/origin%d' % id_,
+                'id': 'file:///tmp/origin%d' % id_,
                 'from_revision': self.revision_id_2,
                 **example_data2,
                 'tool': self.tools['swh-metadata-detector'],
@@ -1352,8 +1339,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool_id,
         }
         metadata_origin = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata,
             'indexer_configuration_id': tool_id,
             'mappings': ['mapping1'],
@@ -1381,8 +1367,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool_id,
         }
         metadata1_origin = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1393,14 +1378,13 @@ class CommonTestStorage:
         }
         metadata2_rev = {
             'id': self.revision_id_2,
-            'origin_url': 'file:///dev/zero',
+            'origin': self.origin_url_1,
             'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
         }
         metadata2_origin = {
-            'id': self.origin_id_2,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_2,
             'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1417,13 +1401,13 @@ class CommonTestStorage:
         search = self.storage.origin_intrinsic_metadata_search_fulltext
         self.assertCountEqual(
                 [res['id'] for res in search(['Doe'])],
-                [self.origin_id_1, self.origin_id_2])
+                [self.origin_url_1, self.origin_url_2])
         self.assertEqual(
                 [res['id'] for res in search(['John', 'Doe'])],
-                [self.origin_id_1])
+                [self.origin_url_1])
         self.assertEqual(
                 [res['id'] for res in search(['John'])],
-                [self.origin_id_1])
+                [self.origin_url_1])
         self.assertEqual(
                 [res['id'] for res in search(['John', 'Jane'])],
                 [])
@@ -1450,8 +1434,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool_id,
         }
         metadata1_origin = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata1,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1470,8 +1453,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool_id,
         }
         metadata2_origin = {
-            'id': self.origin_id_2,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_2,
             'metadata': metadata2,
             'mappings': [],
             'indexer_configuration_id': tool_id,
@@ -1488,19 +1470,19 @@ class CommonTestStorage:
         search = self.storage.origin_intrinsic_metadata_search_fulltext
         self.assertEqual(
                 [res['id'] for res in search(['Doe'])],
-                [self.origin_id_1, self.origin_id_2])
+                [self.origin_url_1, self.origin_url_2])
         self.assertEqual(
                 [res['id'] for res in search(['Doe'], limit=1)],
-                [self.origin_id_1])
+                [self.origin_url_1])
         self.assertEqual(
                 [res['id'] for res in search(['John'])],
-                [self.origin_id_1])
+                [self.origin_url_1])
         self.assertEqual(
                 [res['id'] for res in search(['Jane'])],
-                [self.origin_id_2, self.origin_id_1])
+                [self.origin_url_2, self.origin_url_1])
         self.assertEqual(
                 [res['id'] for res in search(['John', 'Jane'])],
-                [self.origin_id_1])
+                [self.origin_url_1])
 
     def _fill_origin_intrinsic_metadata(self):
         tool1_id = self.tools['swh-metadata-detector']['id']
@@ -1517,8 +1499,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool1_id,
         }
         metadata1_origin = {
-            'id': self.origin_id_1,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_1,
             'metadata': metadata1,
             'mappings': ['npm'],
             'indexer_configuration_id': tool1_id,
@@ -1535,8 +1516,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool2_id,
         }
         metadata2_origin = {
-            'id': self.origin_id_2,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_2,
             'metadata': metadata2,
             'mappings': ['npm', 'gemspec'],
             'indexer_configuration_id': tool2_id,
@@ -1552,8 +1532,7 @@ class CommonTestStorage:
             'indexer_configuration_id': tool2_id,
         }
         metadata3_origin = {
-            'id': self.origin_id_3,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_3,
             'metadata': metadata3,
             'mappings': ['pkg-info'],
             'indexer_configuration_id': tool2_id,
@@ -1576,34 +1555,34 @@ class CommonTestStorage:
         # test pagination
         self.assertCountEqual(
             endpoint(ids_only=True),
-            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+            [self.origin_url_1, self.origin_url_2, self.origin_url_3])
         self.assertCountEqual(
-            endpoint(start=0, ids_only=True),
-            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+            endpoint(start=self.origin_url_1, ids_only=True),
+            [self.origin_url_1, self.origin_url_2, self.origin_url_3])
         self.assertCountEqual(
-            endpoint(start=0, limit=2, ids_only=True),
-            [self.origin_id_1, self.origin_id_2])
+            endpoint(start=self.origin_url_1, limit=2, ids_only=True),
+            [self.origin_url_1, self.origin_url_2])
         self.assertCountEqual(
-            endpoint(start=self.origin_id_1+1, ids_only=True),
-            [self.origin_id_2, self.origin_id_3])
+            endpoint(start=self.origin_url_1+'2', ids_only=True),
+            [self.origin_url_2, self.origin_url_3])
         self.assertCountEqual(
-            endpoint(start=self.origin_id_1+1, end=self.origin_id_3-1,
+            endpoint(start=self.origin_url_1+'2', end=self.origin_url_3[:-1],
                      ids_only=True),
-            [self.origin_id_2])
+            [self.origin_url_2])
 
         # test mappings filtering
         self.assertCountEqual(
             endpoint(mappings=['npm'], ids_only=True),
-            [self.origin_id_1, self.origin_id_2])
+            [self.origin_url_1, self.origin_url_2])
         self.assertCountEqual(
             endpoint(mappings=['npm', 'gemspec'], ids_only=True),
-            [self.origin_id_1, self.origin_id_2])
+            [self.origin_url_1, self.origin_url_2])
         self.assertCountEqual(
             endpoint(mappings=['gemspec'], ids_only=True),
-            [self.origin_id_2])
+            [self.origin_url_2])
         self.assertCountEqual(
             endpoint(mappings=['pkg-info'], ids_only=True),
-            [self.origin_id_3])
+            [self.origin_url_3])
         self.assertCountEqual(
             endpoint(mappings=['foobar'], ids_only=True),
             [])
@@ -1611,23 +1590,22 @@ class CommonTestStorage:
         # test pagination + mappings
         self.assertCountEqual(
             endpoint(mappings=['npm'], limit=1, ids_only=True),
-            [self.origin_id_1])
+            [self.origin_url_1])
 
         # test tool filtering
         self.assertCountEqual(
             endpoint(tool_ids=[tool1['id']], ids_only=True),
-            [self.origin_id_1])
+            [self.origin_url_1])
         self.assertCountEqual(
             endpoint(tool_ids=[tool2['id']], ids_only=True),
-            [self.origin_id_2, self.origin_id_3])
+            [self.origin_url_2, self.origin_url_3])
         self.assertCountEqual(
             endpoint(tool_ids=[tool1['id'], tool2['id']], ids_only=True),
-            [self.origin_id_1, self.origin_id_2, self.origin_id_3])
+            [self.origin_url_1, self.origin_url_2, self.origin_url_3])
 
         # test ids_only=False
         self.assertEqual(list(endpoint(mappings=['gemspec'])), [{
-            'id': self.origin_id_2,
-            'origin_url': 'file:///dev/zero',
+            'id': self.origin_url_2,
             'metadata': {
                 '@context': 'foo',
                 'author': 'Jane Doe',

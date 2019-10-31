@@ -692,8 +692,7 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                - **id** (int): (legacy) origin identifier
-                - **origin_url** (str)
+                - **id** (str): origin url
                 - **from_revision** (bytes): which revision this metadata
                   was extracted from
                 - **metadata** (str): associated metadata
@@ -716,8 +715,7 @@ class IndexerStorage:
         Args:
             metadata (iterable): dictionaries with keys:
 
-                - **id**: legacy origin identifier
-                - **origin_url**
+                - **id**: origin urls
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata**: arbitrary dict
@@ -735,7 +733,7 @@ class IndexerStorage:
         db.mktemp_origin_intrinsic_metadata(cur)
 
         db.copy_to(metadata, 'tmp_origin_intrinsic_metadata',
-                   ['id', 'origin_url', 'metadata',
+                   ['id', 'metadata',
                     'indexer_configuration_id',
                     'from_revision', 'mappings'],
                    cur)
@@ -749,7 +747,7 @@ class IndexerStorage:
 
         Args:
             entries (dict): dictionaries with the following keys:
-                - **id** (int): origin identifier
+                - **id** (str): origin urls
                 - **indexer_configuration_id** (int): tool used to compute
                   metadata
         """
@@ -768,8 +766,7 @@ class IndexerStorage:
         Yields:
             list: dictionaries with the following keys:
 
-                - **id** (int): legacy origin identifier
-                - **origin_url** (str)
+                - **id** (str): origin urls
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata** (str): associated metadata
@@ -786,17 +783,17 @@ class IndexerStorage:
     @remote_api_endpoint('origin_intrinsic_metadata/search/by_producer')
     @db_transaction_generator()
     def origin_intrinsic_metadata_search_by_producer(
-            self, start=0, end=None, limit=100, ids_only=False,
+            self, start='', end=None, limit=100, ids_only=False,
             mappings=None, tool_ids=None,
             db=None, cur=None):
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
-            start (int): The minimum origin id to return
-            end (int): The maximum origin id to return
+            start (str): The minimum origin url to return
+            end (str): The maximum origin url to return
             limit (int): The maximum number of results to return
-            ids_only (bool): Determines whether only origin ids are returned
-                or the content as well
+            ids_only (bool): Determines whether only origin urls are
+                returned or the content as well
             mappings (List[str]): Returns origins whose intrinsic metadata
                 were generated using at least one of these mappings.
 
@@ -804,8 +801,7 @@ class IndexerStorage:
             list: list of origin ids (int) if `ids_only=True`, else
                 dictionaries with the following keys:
 
-                - **id** (int): legacy origin identifier
-                - **origin_url** (str)
+                - **id** (str): origin urls
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata** (str): associated metadata
@@ -817,8 +813,8 @@ class IndexerStorage:
         res = db.origin_intrinsic_metadata_search_by_producer(
             start, end, limit, ids_only, mappings, tool_ids, cur)
         if ids_only:
-            for (origin_id,) in res:
-                yield origin_id
+            for (origin,) in res:
+                yield origin
         else:
             for c in res:
                 yield converters.db_to_metadata(

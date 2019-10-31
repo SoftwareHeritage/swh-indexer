@@ -14,7 +14,7 @@ create table dbversion
 );
 
 insert into dbversion(version, release, description)
-      values(126, now(), 'Work In Progress');
+      values(127, now(), 'Work In Progress');
 -- Computing metadata on sha1's contents
 
 -- a SHA1 checksum (not necessarily originating from Git)
@@ -129,8 +129,7 @@ comment on column revision_intrinsic_metadata.indexer_configuration_id is 'tool 
 comment on column revision_intrinsic_metadata.mappings is 'type of metadata files used to obtain this metadata (eg. pkg-info, npm)';
 
 create table origin_intrinsic_metadata(
-  id                        bigserial  not null,
-  origin_url                text,
+  id                        text       not null,  -- origin url
   metadata                  jsonb,
   indexer_configuration_id  bigint     not null,
   from_revision             sha1_git   not null,
@@ -139,7 +138,7 @@ create table origin_intrinsic_metadata(
 );
 
 comment on table origin_intrinsic_metadata is 'keeps intrinsic metadata for an origin';
-comment on column origin_intrinsic_metadata.id is 'the entry id in origin';
+comment on column origin_intrinsic_metadata.id is 'url of the origin';
 comment on column origin_intrinsic_metadata.metadata is 'metadata extracted from a revision';
 comment on column origin_intrinsic_metadata.indexer_configuration_id is 'tool used to generate this metadata';
 comment on column origin_intrinsic_metadata.from_revision is 'sha1 of the revision this metadata was copied from.';

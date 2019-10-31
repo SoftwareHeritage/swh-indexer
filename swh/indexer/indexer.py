@@ -535,15 +535,14 @@ class OriginIndexer(BaseIndexer):
     """
     def run(self, origin_urls, policy_update='update-dups',
             next_step=None, **kwargs):
-        """Given a list of origin ids:
+        """Given a list of origin urls:
 
         - retrieve origins from storage
         - execute the indexing computations
         - store the results (according to policy_update)
 
         Args:
-            ids ([Union[int, Tuple[str, bytes]]]): list of origin ids or
-              (type, url) tuples.
+            origin_urls ([str]): list of origin urls.
             policy_update (str): either 'update-dups' or 'ignore-dups' to
               respectively update duplicates (default) or ignore them
             next_step (dict): a dict in the form expected by

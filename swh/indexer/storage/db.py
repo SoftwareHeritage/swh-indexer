@@ -336,7 +336,7 @@ class Db(BaseDb):
             self.revision_intrinsic_metadata_cols, cur=cur)
 
     origin_intrinsic_metadata_cols = [
-        'id', 'origin_url', 'metadata', 'from_revision', 'mappings',
+        'id', 'metadata', 'from_revision', 'mappings',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     origin_intrinsic_metadata_regconfig = 'pg_catalog.simple'
@@ -366,9 +366,9 @@ class Db(BaseDb):
                 tuple((e['id'], e['indexer_configuration_id'])
                       for e in entries),)
 
-    def origin_intrinsic_metadata_get_from_list(self, orig_ids, cur=None):
+    def origin_intrinsic_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            'origin_intrinsic_metadata', orig_ids,
+            'origin_intrinsic_metadata', ids,
             self.origin_intrinsic_metadata_cols, cur=cur,
             id_col='id')
 

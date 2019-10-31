@@ -145,7 +145,7 @@ def schedule(ctx, scheduler_url, storage_url, indexer_storage_url,
 
 
 def list_origins_by_producer(idx_storage, mappings, tool_ids):
-    start = 0
+    start = ''
     limit = 10000
     while True:
         origins = list(
@@ -154,7 +154,7 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids):
                 mappings=mappings or None, tool_ids=tool_ids or None))
         if not origins:
             break
-        start = origins[-1]+1
+        start = origins[-1] + '\x00'  # first possible string after this
         yield from origins
 
 
