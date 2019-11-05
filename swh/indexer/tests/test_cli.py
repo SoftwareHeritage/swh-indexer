@@ -42,8 +42,7 @@ def fill_idx_storage(idx_storage, nb_rows):
 
     origin_metadata = [
         {
-            'id': origin_id,
-            'origin_url': 'file:///dev/zero',
+            'id': 'file://dev/%04d' % origin_id,
             'from_revision': hash_to_bytes('abcd{:0>4}'.format(origin_id)),
             'indexer_configuration_id': tools[origin_id % 2]['id'],
             'metadata': {'name': 'origin %d' % origin_id},
@@ -83,7 +82,8 @@ def _assert_tasks_for_origins(tasks, origins):
     assert all(len(task['arguments']['args']) == 1 for task in tasks)
     for task in tasks:
         assert task['arguments']['kwargs'] == expected_kwargs, task
-    assert _origins_in_task_args(tasks) == set(origins)
+    assert _origins_in_task_args(tasks) == set([
+        'file://dev/%04d' % i for i in origins])
 
 
 def invoke(scheduler, catch_exceptions, args):
@@ -325,12 +325,11 @@ def test_origin_metadata_reindex_filter_one_tool(
 
 
 def test_journal_client(storage, indexer_scheduler):
-    """Tests the re-indexing when origin_batch_size*task_batch_size is a
-    divisor of nb_origins."""
+    """Test the 'swh indexer journal-client' cli tool."""
     message = FakeKafkaMessage('swh.journal.objects.origin_visit', 'bogus', {
         'status': 'full',
         'origin': {
-            'url': 'file:///dev/zero',
+            'url': 'file://dev/0000',
         }
     })
 
@@ -359,4 +358,4 @@ def test_journal_client(storage, indexer_scheduler):
     assert len(tasks) == 1
     _assert_tasks_for_origins(
         tasks,
-        ['file:///dev/zero'])
+        [0])
