@@ -145,17 +145,14 @@ def schedule(ctx, scheduler_url, storage_url, indexer_storage_url,
 
 
 def list_origins_by_producer(idx_storage, mappings, tool_ids):
-    start = ''
+    next_page_token = ''
     limit = 10000
-    while True:
-        origins = list(
-            idx_storage.origin_intrinsic_metadata_search_by_producer(
-                start=start, limit=limit, ids_only=True,
-                mappings=mappings or None, tool_ids=tool_ids or None))
-        if not origins:
-            break
-        start = origins[-1] + '\x00'  # first possible string after this
-        yield from origins
+    while next_page_token is not None:
+        result = idx_storage.origin_intrinsic_metadata_search_by_producer(
+            page_token=next_page_token, limit=limit, ids_only=True,
+            mappings=mappings or None, tool_ids=tool_ids or None)
+        next_page_token = result.get('next_page_token')
+        yield from result['origins']
 
 
 @schedule.command('reindex_origin_metadata')

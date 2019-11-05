@@ -1553,58 +1553,109 @@ class CommonTestStorage:
         endpoint = self.storage.origin_intrinsic_metadata_search_by_producer
 
         # test pagination
+        # no 'page_token' param, return all origins
+        result = endpoint(ids_only=True)
         self.assertCountEqual(
-            endpoint(ids_only=True),
+            result['origins'],
             [self.origin_url_1, self.origin_url_2, self.origin_url_3])
+        assert 'next_page_token' not in result
+
+        # 'page_token' is < than origin_1, return everything
+        result = endpoint(
+            page_token=self.origin_url_1[:-1], ids_only=True)
         self.assertCountEqual(
-            endpoint(start=self.origin_url_1, ids_only=True),
+            result['origins'],
             [self.origin_url_1, self.origin_url_2, self.origin_url_3])
+        assert 'next_page_token' not in result
+
+        # 'page_token' is origin_3, return nothing
+        result = endpoint(page_token=self.origin_url_3, ids_only=True)
         self.assertCountEqual(
-            endpoint(start=self.origin_url_1, limit=2, ids_only=True),
+            endpoint(page_token=self.origin_url_3, ids_only=True)['origins'],
+            [])
+        assert 'next_page_token' not in result
+
+        # test limit argument
+        result = endpoint(page_token=self.origin_url_1[:-1],
+                          limit=2, ids_only=True)
+        self.assertCountEqual(
+            result['origins'],
             [self.origin_url_1, self.origin_url_2])
+        assert result['next_page_token'] == result['origins'][-1]
+
+        result = endpoint(page_token=self.origin_url_1,
+                          limit=2, ids_only=True)
         self.assertCountEqual(
-            endpoint(start=self.origin_url_1+'2', ids_only=True),
+            result['origins'],
             [self.origin_url_2, self.origin_url_3])
+        assert 'next_page_token' not in result
+
+        result = endpoint(page_token=self.origin_url_2,
+                          limit=2, ids_only=True)
         self.assertCountEqual(
-            endpoint(start=self.origin_url_1+'2', end=self.origin_url_3[:-1],
-                     ids_only=True),
-            [self.origin_url_2])
+            result['origins'],
+            [self.origin_url_3])
+        assert 'next_page_token' not in result
 
         # test mappings filtering
+        result = endpoint(mappings=['npm'], ids_only=True)
         self.assertCountEqual(
-            endpoint(mappings=['npm'], ids_only=True),
+            result['origins'],
             [self.origin_url_1, self.origin_url_2])
+        assert 'next_page_token' not in result
+
+        result = endpoint(mappings=['npm', 'gemspec'], ids_only=True)
         self.assertCountEqual(
-            endpoint(mappings=['npm', 'gemspec'], ids_only=True),
+            result['origins'],
             [self.origin_url_1, self.origin_url_2])
+        assert 'next_page_token' not in result
+
+        result = endpoint(mappings=['gemspec'], ids_only=True)
         self.assertCountEqual(
-            endpoint(mappings=['gemspec'], ids_only=True),
+            result['origins'],
             [self.origin_url_2])
+        assert 'next_page_token' not in result
+
+        result = endpoint(mappings=['pkg-info'], ids_only=True)
         self.assertCountEqual(
-            endpoint(mappings=['pkg-info'], ids_only=True),
+            result['origins'],
             [self.origin_url_3])
+        assert 'next_page_token' not in result
+
+        result = endpoint(mappings=['foobar'], ids_only=True)
         self.assertCountEqual(
-            endpoint(mappings=['foobar'], ids_only=True),
+            result['origins'],
             [])
+        assert 'next_page_token' not in result
 
         # test pagination + mappings
+        result = endpoint(mappings=['npm'], limit=1, ids_only=True)
         self.assertCountEqual(
-            endpoint(mappings=['npm'], limit=1, ids_only=True),
+            result['origins'],
             [self.origin_url_1])
+        assert result['next_page_token'] == result['origins'][-1]
 
         # test tool filtering
+        result = endpoint(tool_ids=[tool1['id']], ids_only=True)
         self.assertCountEqual(
-            endpoint(tool_ids=[tool1['id']], ids_only=True),
+            result['origins'],
             [self.origin_url_1])
+        assert 'next_page_token' not in result
+
+        result = endpoint(tool_ids=[tool2['id']], ids_only=True)
         self.assertCountEqual(
-            endpoint(tool_ids=[tool2['id']], ids_only=True),
+            result['origins'],
             [self.origin_url_2, self.origin_url_3])
+        assert 'next_page_token' not in result
+
+        result = endpoint(tool_ids=[tool1['id'], tool2['id']], ids_only=True)
         self.assertCountEqual(
-            endpoint(tool_ids=[tool1['id'], tool2['id']], ids_only=True),
+            result['origins'],
             [self.origin_url_1, self.origin_url_2, self.origin_url_3])
+        assert 'next_page_token' not in result
 
         # test ids_only=False
-        self.assertEqual(list(endpoint(mappings=['gemspec'])), [{
+        self.assertEqual(endpoint(mappings=['gemspec'])['origins'], [{
             'id': self.origin_url_2,
             'metadata': {
                 '@context': 'foo',
