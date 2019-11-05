@@ -6,3 +6,4 @@ include version.txt
 recursive-include sql *
 recursive-include swh/indexer/sql *.sql
 recursive-include swh/indexer/data *
+recursive-include swh py.typed

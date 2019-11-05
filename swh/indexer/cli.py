@@ -145,7 +145,7 @@ def schedule(ctx, scheduler_url, storage_url, indexer_storage_url,
 
 
 def list_origins_by_producer(idx_storage, mappings, tool_ids):
-    start = 0
+    start = ''
     limit = 10000
     while True:
         origins = list(
@@ -154,7 +154,7 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids):
                 mappings=mappings or None, tool_ids=tool_ids or None))
         if not origins:
             break
-        start = origins[-1]+1
+        start = origins[-1] + '\x00'  # first possible string after this
         yield from origins
 
 
@@ -214,7 +214,9 @@ def journal_client(ctx, scheduler_url, origin_metadata_task_type,
 
     client = get_journal_client(
         ctx, brokers=brokers, prefix=prefix, group_id=group_id,
-        object_types=['origin_visit'])
+        object_types=['origin_visit'],
+        max_messages=max_messages,
+    )
 
     worker_fn = functools.partial(
         process_journal_objects,
@@ -238,7 +240,7 @@ def journal_client(ctx, scheduler_url, origin_metadata_task_type,
 
 
 @cli.command('rpc-serve')
-@click.argument('config-path', required=1)
+@click.argument('config-path', required=True)
 @click.option('--host', default='0.0.0.0', help="Host to run the server")
 @click.option('--port', default=5007, type=click.INT,
               help="Binding port of the server")

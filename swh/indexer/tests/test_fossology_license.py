@@ -4,9 +4,10 @@
 # See top-level LICENSE file for more information
 
 import unittest
-from unittest.mock import patch
-
 import pytest
+
+from unittest.mock import patch
+from typing import Any, Dict
 
 from swh.indexer import fossology_license
 from swh.indexer.fossology_license import (
@@ -66,7 +67,7 @@ CONFIG = {
             'command_line': 'nomossa <filepath>',
         },
     },
-}
+}  # type: Dict[str, Any]
 
 RANGE_CONFIG = dict(list(CONFIG.items()) + [('write_batch_size', 100)])
 
