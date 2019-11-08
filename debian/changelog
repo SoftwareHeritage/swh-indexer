@@ -1,8 +1,26 @@
-swh-indexer (0.0.155-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.0.157-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.0.157     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-11-08 16:33:36 +0100)
+  * Upstream changes:     - v0.0.157     - * migrate storage tests to
+    pytest     - * proper pagination for
+    IndexerStorage.origin_intrinsic_metadata_search_by_producer
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 15 Oct 2019 12:57:17 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 08 Nov 2019 15:36:48 +0000
+
+swh-indexer (0.0.156-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.156     - (tagged by Stefano Zacchiroli
+    <zack@upsilon.cc> on 2019-11-05 17:36:11 +0100)
+  * Upstream changes:     - v0.0.156     - * update indexer for storage
+    0.0.156     - * cli: fix max-message handling in the journal-client
+    command     - * tests: fix test_metadata.py for frozen entities in
+    swh.model.model     - * tests: update tests for storage>=0.0.155
+    - * test_metadata typing: use type-specific mappings instead of cast
+    - * storage/db.py: drop unused format arg regconfig from query     -
+    * typing: minimal changes to make a no-op mypy run pass
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 05 Nov 2019 16:45:10 +0000
 
 swh-indexer (0.0.155-1~swh1) unstable-swh; urgency=medium
 

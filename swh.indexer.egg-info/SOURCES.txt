@@ -27,6 +27,7 @@ sql/upgrades/123.sql
 sql/upgrades/124.sql
 sql/upgrades/125.sql
 sql/upgrades/126.sql
+sql/upgrades/127.sql
 swh/__init__.py
 swh.indexer.egg-info/PKG-INFO
 swh.indexer.egg-info/SOURCES.txt
@@ -45,6 +46,7 @@ swh/indexer/metadata.py
 swh/indexer/metadata_detector.py
 swh/indexer/mimetype.py
 swh/indexer/origin_head.py
+swh/indexer/py.typed
 swh/indexer/rehash.py
 swh/indexer/tasks.py
 swh/indexer/data/codemeta/CITATION
@@ -84,6 +86,7 @@ swh/indexer/tests/test_origin_head.py
 swh/indexer/tests/test_origin_metadata.py
 swh/indexer/tests/utils.py
 swh/indexer/tests/storage/__init__.py
+swh/indexer/tests/storage/conftest.py
 swh/indexer/tests/storage/generate_data_test.py
 swh/indexer/tests/storage/test_api_client.py
 swh/indexer/tests/storage/test_converters.py

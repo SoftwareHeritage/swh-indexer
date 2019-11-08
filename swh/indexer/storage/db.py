@@ -336,7 +336,7 @@ class Db(BaseDb):
             self.revision_intrinsic_metadata_cols, cur=cur)
 
     origin_intrinsic_metadata_cols = [
-        'id', 'origin_url', 'metadata', 'from_revision', 'mappings',
+        'id', 'metadata', 'from_revision', 'mappings',
         'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
 
     origin_intrinsic_metadata_regconfig = 'pg_catalog.simple'
@@ -366,9 +366,9 @@ class Db(BaseDb):
                 tuple((e['id'], e['indexer_configuration_id'])
                       for e in entries),)
 
-    def origin_intrinsic_metadata_get_from_list(self, orig_ids, cur=None):
+    def origin_intrinsic_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            'origin_intrinsic_metadata', orig_ids,
+            'origin_intrinsic_metadata', ids,
             self.origin_intrinsic_metadata_cols, cur=cur,
             id_col='id')
 
@@ -388,13 +388,12 @@ class Db(BaseDb):
                  "ORDER BY ts_rank(oim.metadata_tsvector, tsq, 1) DESC "
                  "LIMIT %s;"
                  ).format(keys=', '.join(keys),
-                          regconfig=regconfig,
                           tsquery_template=tsquery_template)
         cur.execute(query, tsquery_args + [limit])
         yield from cur
 
     def origin_intrinsic_metadata_search_by_producer(
-            self, start, end, limit, ids_only, mappings, tool_ids, cur):
+            self, last, limit, ids_only, mappings, tool_ids, cur):
         if ids_only:
             keys = 'oim.id'
         else:
@@ -409,12 +408,9 @@ class Db(BaseDb):
         args = []
 
         where = []
-        if start:
-            where.append('oim.id >= %s')
-            args.append(start)
-        if end:
-            where.append('oim.id <= %s')
-            args.append(end)
+        if last:
+            where.append('oim.id > %s')
+            args.append(last)
         if mappings is not None:
             where.append('oim.mappings && %s')
             args.append(mappings)

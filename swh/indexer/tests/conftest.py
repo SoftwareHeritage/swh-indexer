@@ -63,7 +63,7 @@ def obj_storage():
         yield objstorage
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='session')  # type: ignore  # expected redefinition
 def celery_includes():
     return [
         'swh.indexer.tests.tasks',

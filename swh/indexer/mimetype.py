@@ -5,6 +5,8 @@
 
 import magic
 
+from typing import Optional
+
 from .indexer import ContentIndexer, ContentRangeIndexer
 
 if not hasattr(magic.Magic, 'from_buffer'):
@@ -51,7 +53,7 @@ class MixinMimetypeIndexer:
         'write_batch_size': ('int', 1000),
     }
 
-    CONFIG_BASE_FILENAME = 'indexer/mimetype'
+    CONFIG_BASE_FILENAME = 'indexer/mimetype'  # type: Optional[str]
 
     def index(self, id, data):
         """Index sha1s' content and store result.

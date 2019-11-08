@@ -6,6 +6,8 @@
 import pytest
 import unittest
 
+from typing import Any, Dict
+
 from swh.indexer.mimetype import (
     MimetypeIndexer, MimetypeRangeIndexer, compute_mimetype_encoding
 )
@@ -40,7 +42,7 @@ CONFIG = {
             "debian-package": "python3-magic"
         },
     },
-}
+}  # type: Dict[str, Any]
 
 
 class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):

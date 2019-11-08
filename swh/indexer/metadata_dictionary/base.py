@@ -7,6 +7,8 @@ import abc
 import json
 import logging
 
+from typing import List
+
 from swh.indexer.codemeta import SCHEMA_URI
 from swh.indexer.codemeta import compact
 
@@ -109,7 +111,7 @@ class DictMapping(BaseMapping):
     """Base class for mappings that take as input a file that is mostly
     a key-value store (eg. a shallow JSON dict)."""
 
-    string_fields = []
+    string_fields = []  # type: List[str]
     '''List of fields that are simple strings, and don't need any
     normalization.'''
 

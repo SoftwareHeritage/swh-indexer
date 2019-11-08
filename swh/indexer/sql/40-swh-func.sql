@@ -413,8 +413,8 @@ as $$
 begin
     perform swh_origin_intrinsic_metadata_compute_tsvector();
     if conflict_update then
-      insert into origin_intrinsic_metadata (id, origin_url, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
-      select id, origin_url, metadata, indexer_configuration_id, from_revision,
+      insert into origin_intrinsic_metadata (id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
+      select id, metadata, indexer_configuration_id, from_revision,
              metadata_tsvector, mappings
     	from tmp_origin_intrinsic_metadata
             on conflict(id, indexer_configuration_id)
@@ -422,12 +422,11 @@ begin
                     metadata = excluded.metadata,
                     metadata_tsvector = excluded.metadata_tsvector,
                     mappings = excluded.mappings,
-                    origin_url = excluded.origin_url,
                     from_revision = excluded.from_revision;
 
     else
-        insert into origin_intrinsic_metadata (id, origin_url, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
-        select id, origin_url, metadata, indexer_configuration_id, from_revision,
+        insert into origin_intrinsic_metadata (id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
+        select id, metadata, indexer_configuration_id, from_revision,
                metadata_tsvector, mappings
     	from tmp_origin_intrinsic_metadata
             on conflict(id, indexer_configuration_id)
@@ -453,4 +452,3 @@ begin
         set metadata_tsvector = to_tsvector('pg_catalog.simple', metadata);
 end
 $$;
-

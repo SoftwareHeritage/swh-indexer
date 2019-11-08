@@ -286,7 +286,6 @@ class OriginMetadataIndexer(OriginIndexer):
         for origin in origins:
             head_result = self.origin_head_indexer.index(origin['url'])
             if head_result:
-                head_result['origin_id'] = origin['id']
                 origins_with_head.append(origin)
                 head_rev_ids.append(head_result['revision_id'])
 
@@ -305,8 +304,7 @@ class OriginMetadataIndexer(OriginIndexer):
             rev_metadata = self.revision_metadata_indexer.index(rev)
             orig_metadata = {
                 'from_revision': rev_metadata['id'],
-                'id': origin['id'],
-                'origin_url': origin['url'],
+                'id': origin['url'],
                 'metadata': rev_metadata['metadata'],
                 'mappings': rev_metadata['mappings'],
                 'indexer_configuration_id':
