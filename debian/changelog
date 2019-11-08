@@ -1,3 +1,13 @@
+swh-indexer (0.0.157-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.157     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2019-11-08 16:33:36 +0100)
+  * Upstream changes:     - v0.0.157     - * migrate storage tests to
+    pytest     - * proper pagination for
+    IndexerStorage.origin_intrinsic_metadata_search_by_producer
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 08 Nov 2019 15:36:48 +0000
+
 swh-indexer (0.0.156-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.156     - (tagged by Stefano Zacchiroli
