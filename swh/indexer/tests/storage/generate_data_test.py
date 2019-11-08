@@ -3,6 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from uuid import uuid1
+
 from swh.model.hashutil import MultiHash
 from hypothesis.strategies import (composite, sets, one_of, uuids,
                                    tuples, sampled_from)
@@ -84,7 +86,16 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
     return content_mimetypes
 
 
-FOSSOLOGY_LICENSES = [
+MIMETYPE_OBJECTS = [
+    {'id': MultiHash.from_data(uuid1().bytes, {'sha1'}).digest()['sha1'],
+     'indexer_configuration_id': 1,
+     'mimetype': mt,
+     'encoding': enc,
+     }
+    for mt in MIMETYPES
+    for enc in ENCODINGS]
+
+LICENSES = [
     b'3DFX',
     b'BSD',
     b'GPL',
@@ -92,9 +103,17 @@ FOSSOLOGY_LICENSES = [
     b'MIT',
 ]
 
+FOSSOLOGY_LICENSES = [
+    {'id': MultiHash.from_data(uuid1().bytes, {'sha1'}).digest()['sha1'],
+     'indexer_configuration_id': 1,
+     'licenses': [LICENSES[i % len(LICENSES)], ],
+     }
+    for i in range(10)
+    ]
+
 
 def gen_license():
-    return one_of(sampled_from(FOSSOLOGY_LICENSES))
+    return one_of(sampled_from(LICENSES))
 
 
 @composite
@@ -130,6 +149,5 @@ def gen_content_fossology_licenses(draw, *, min_size=0, max_size=100):
         content_licenses.append({
             **_init_content(uuid),
             'licenses': [license],
-            'indexer_configuration_id': 1,
         })
     return content_licenses
