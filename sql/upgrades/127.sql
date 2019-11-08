@@ -15,7 +15,7 @@ alter table origin_intrinsic_metadata
 alter table origin_intrinsic_metadata
       drop column id;
 alter table origin_intrinsic_metadata
-      rename column origin_url id;
+      rename column origin_url to id;
 comment on column origin_intrinsic_metadata.id is 'url of the origin';
 
 -- replace functions that operate on this table
