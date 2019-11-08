@@ -86,6 +86,7 @@ swh/indexer/tests/test_origin_head.py
 swh/indexer/tests/test_origin_metadata.py
 swh/indexer/tests/utils.py
 swh/indexer/tests/storage/__init__.py
+swh/indexer/tests/storage/conftest.py
 swh/indexer/tests/storage/generate_data_test.py
 swh/indexer/tests/storage/test_api_client.py
 swh/indexer/tests/storage/test_converters.py

@@ -393,7 +393,7 @@ class Db(BaseDb):
         yield from cur
 
     def origin_intrinsic_metadata_search_by_producer(
-            self, start, end, limit, ids_only, mappings, tool_ids, cur):
+            self, last, limit, ids_only, mappings, tool_ids, cur):
         if ids_only:
             keys = 'oim.id'
         else:
@@ -408,12 +408,9 @@ class Db(BaseDb):
         args = []
 
         where = []
-        if start:
-            where.append('oim.id >= %s')
-            args.append(start)
-        if end:
-            where.append('oim.id <= %s')
-            args.append(end)
+        if last:
+            where.append('oim.id > %s')
+            args.append(last)
         if mappings is not None:
             where.append('oim.mappings && %s')
             args.append(mappings)

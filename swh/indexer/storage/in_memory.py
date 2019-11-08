@@ -706,25 +706,27 @@ class IndexerStorage:
             yield result
 
     def origin_intrinsic_metadata_search_by_producer(
-            self, start='', end=None, limit=100, ids_only=False,
+            self, page_token='', limit=100, ids_only=False,
             mappings=None, tool_ids=None,
             db=None, cur=None):
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
-            start (str): The minimum origin url to return
-            end (str): The maximum origin url to return
+            page_token (str): Opaque token used for pagination.
             limit (int): The maximum number of results to return
             ids_only (bool): Determines whether only origin ids are returned
                 or the content as well
             mappings (List[str]): Returns origins whose intrinsic metadata
                 were generated using at least one of these mappings.
 
-        Yields:
-            list: list of origin ids (int) if `ids_only=True`, else
-                dictionaries with the following keys:
+        Returns:
+            dict: dict with the following keys:
+              - **next_page_token** (str, optional): opaque token to be used as
+                `page_token` for retrieveing the next page.
+              - **origins** (list): list of origin url (str) if `ids_only=True`
+                else dictionaries with the following keys:
 
-                - **id** (str): origin url
+                - **id** (str): origin urls
                 - **from_revision**: sha1 id of the revision used to generate
                   these metadata.
                 - **metadata** (str): associated metadata
@@ -733,25 +735,36 @@ class IndexerStorage:
                   these metadata
 
         """
+        assert isinstance(page_token, str)
         nb_results = 0
         if mappings is not None:
             mappings = frozenset(mappings)
         if tool_ids is not None:
             tool_ids = frozenset(tool_ids)
+        origins = []
+
+        # we go to limit+1 to check wether we should add next_page_token in
+        # the response
         for entry in self._origin_intrinsic_metadata.get_all():
-            if entry['id'] < start or (end and entry['id'] > end):
+            if entry['id'] <= page_token:
                 continue
-            if nb_results >= limit:
-                return
+            if nb_results >= (limit + 1):
+                break
             if mappings is not None and mappings.isdisjoint(entry['mappings']):
                 continue
             if tool_ids is not None and entry['tool']['id'] not in tool_ids:
                 continue
-            if ids_only:
-                yield entry['id']
-            else:
-                yield entry
+            origins.append(entry)
             nb_results += 1
+
+        result = {}
+        if len(origins) > limit:
+            origins = origins[:limit]
+            result['next_page_token'] = origins[-1]['id']
+        if ids_only:
+            origins = [origin['id'] for origin in origins]
+        result['origins'] = origins
+        return result
 
     def origin_intrinsic_metadata_stats(self):
         """Returns statistics on stored intrinsic metadata.
