@@ -1,38 +1,42 @@
-# Copyright (C) 2015-2018  The Software Heritage developers
+# Copyright (C) 2015-2019  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import unittest
+import pytest
 
-from swh.core.api.tests.server_testing import ServerTestFixture
-from swh.indexer.storage import INDEXER_CFG_KEY
 from swh.indexer.storage.api.client import RemoteStorage
-from swh.indexer.storage.api.server import app
+import swh.indexer.storage.api.server as server
 
-from .test_storage import CommonTestStorage, BasePgTestStorage
+from swh.indexer.storage import get_indexer_storage
+
+from .test_storage import *  # noqa
 
 
-class TestRemoteStorage(CommonTestStorage, ServerTestFixture,
-                        BasePgTestStorage, unittest.TestCase):
-    """Test the indexer's remote storage API.
+@pytest.fixture
+def app(swh_indexer_storage_postgresql):
+    storage_config = {
+        'cls': 'local',
+        'args': {
+            'db': swh_indexer_storage_postgresql.dsn,
+        },
+    }
+    server.storage = get_indexer_storage(**storage_config)
+    return server.app
 
-    This class doesn't define any tests as we want identical
-    functionality between local and remote storage. All the tests are
-    therefore defined in
-    `class`:swh.indexer.storage.test_storage.CommonTestStorage.
 
-    """
+@pytest.fixture
+def swh_rpc_client_class():
+    # these are needed for the swh_indexer_storage_with_data fixture
+    assert hasattr(RemoteStorage, 'indexer_configuration_add')
+    assert hasattr(RemoteStorage, 'content_mimetype_add')
+    return RemoteStorage
 
-    def setUp(self):
-        self.config = {
-            INDEXER_CFG_KEY: {
-                'cls': 'local',
-                'args': {
-                    'db': 'dbname=%s' % self.TEST_DB_NAME,
-                }
-            }
-        }
-        self.app = app
-        super().setUp()
-        self.storage = RemoteStorage(self.url())
+
+@pytest.fixture
+def swh_indexer_storage(swh_rpc_client, app):
+    # This version of the swh_storage fixture uses the swh_rpc_client fixture
+    # to instantiate a RemoteStorage (see swh_rpc_client_class above) that
+    # proxies, via the swh.core RPC mechanism, the local (in memory) storage
+    # configured in the app fixture above.
+    return swh_rpc_client

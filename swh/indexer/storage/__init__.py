@@ -781,25 +781,28 @@ class IndexerStorage:
                 dict(zip(db.origin_intrinsic_metadata_cols, c)))
 
     @remote_api_endpoint('origin_intrinsic_metadata/search/by_producer')
-    @db_transaction_generator()
+    @db_transaction()
     def origin_intrinsic_metadata_search_by_producer(
-            self, start='', end=None, limit=100, ids_only=False,
+            self, page_token='', limit=100, ids_only=False,
             mappings=None, tool_ids=None,
             db=None, cur=None):
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
-            start (str): The minimum origin url to return
-            end (str): The maximum origin url to return
+            page_token (str): Opaque token used for pagination.
             limit (int): The maximum number of results to return
             ids_only (bool): Determines whether only origin urls are
                 returned or the content as well
             mappings (List[str]): Returns origins whose intrinsic metadata
                 were generated using at least one of these mappings.
 
-        Yields:
-            list: list of origin ids (int) if `ids_only=True`, else
-                dictionaries with the following keys:
+        Returns:
+            dict: dict with the following keys:
+              - **next_page_token** (str, optional): opaque token to be used as
+                `page_token` for retrieveing the next page. If absent, there is
+                no more pages to gather.
+              - **origins** (list): list of origin url (str) if `ids_only=True`
+                else dictionaries with the following keys:
 
                 - **id** (str): origin urls
                 - **from_revision**: sha1 id of the revision used to generate
@@ -810,15 +813,24 @@ class IndexerStorage:
                   these metadata
 
         """
+        assert isinstance(page_token, str)
+        # we go to limit+1 to check wether we should add next_page_token in
+        # the response
         res = db.origin_intrinsic_metadata_search_by_producer(
-            start, end, limit, ids_only, mappings, tool_ids, cur)
+            page_token, limit + 1, ids_only, mappings, tool_ids, cur)
+        result = {}
         if ids_only:
-            for (origin,) in res:
-                yield origin
+            result['origins'] = [origin for (origin,) in res]
+            if len(result['origins']) > limit:
+                result['origins'] = result['origins'][:limit]
+                result['next_page_token'] = result['origins'][-1]
         else:
-            for c in res:
-                yield converters.db_to_metadata(
-                    dict(zip(db.origin_intrinsic_metadata_cols, c)))
+            result['origins'] = [converters.db_to_metadata(
+                dict(zip(db.origin_intrinsic_metadata_cols, c)))for c in res]
+            if len(result['origins']) > limit:
+                result['origins'] = result['origins'][:limit]
+                result['next_page_token'] = result['origins'][-1]['id']
+        return result
 
     @remote_api_endpoint('origin_intrinsic_metadata/stats')
     @db_transaction()
