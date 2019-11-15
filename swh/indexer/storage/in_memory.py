@@ -199,6 +199,9 @@ class IndexerStorage:
         self._revision_intrinsic_metadata = SubStorage(self._tools)
         self._origin_intrinsic_metadata = SubStorage(self._tools)
 
+    def check_config(self, *, check_write):
+        return True
+
     def content_mimetype_missing(self, mimetypes):
         """Generate mimetypes missing from storage.
 

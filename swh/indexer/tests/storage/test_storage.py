@@ -349,6 +349,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         """mimetype_get_range paginates results if limit exceeded"""
         storage, data = swh_indexer_storage_with_data
 
+        indexer_configuration_id = data.tools['file']['id']
+
         # input the list of sha1s we want from storage
         content_ids = sorted(
             [c['id'] for c in data.mimetypes])
@@ -360,7 +362,7 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         # retrieve mimetypes limited to 10 results
         actual_result = storage.content_mimetype_get_range(
             start, end,
-            indexer_configuration_id=1,
+            indexer_configuration_id=indexer_configuration_id,
             limit=10)
 
         assert actual_result
@@ -377,7 +379,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
 
         # retrieve next part
         actual_result = storage.content_mimetype_get_range(
-            start=end, end=end, indexer_configuration_id=1)
+            start=end, end=end,
+            indexer_configuration_id=indexer_configuration_id)
         assert set(actual_result.keys()) == {'ids', 'next'}
         actual_ids = actual_result['ids']
         actual_next = actual_result['next']
