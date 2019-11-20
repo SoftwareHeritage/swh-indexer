@@ -16,6 +16,35 @@ class JournalClientTest(unittest.TestCase):
             'origin_visit': [
                 {
                     'status': 'full',
+                    'origin': 'file:///dev/zero',
+                },
+            ]
+        }
+        process_journal_objects(
+            messages, scheduler=mock_scheduler,
+            task_names={'origin_metadata': 'task-name'})
+        self.assertTrue(mock_scheduler.create_tasks.called)
+        call_args = mock_scheduler.create_tasks.call_args
+        (args, kwargs) = call_args
+        self.assertEqual(kwargs, {})
+        del args[0][0]['next_run']
+        self.assertEqual(args, ([
+            {
+                'arguments': {
+                    'kwargs': {'policy_update': 'update-dups'},
+                    'args': (['file:///dev/zero'],)
+                },
+                'policy': 'oneshot',
+                'type': 'task-name'
+            },
+        ],))
+
+    def testOriginVisitLegacy(self):
+        mock_scheduler = Mock()
+        messages = {
+            'origin_visit': [
+                {
+                    'status': 'full',
                     'origin': {
                         'url': 'file:///dev/zero',
                     }
@@ -47,15 +76,11 @@ class JournalClientTest(unittest.TestCase):
             'origin_visit': [
                 {
                     'status': 'full',
-                    'origin': {
-                        'url': 'file:///dev/zero',
-                    }
+                    'origin': 'file:///dev/zero',
                 },
                 {
                     'status': 'full',
-                    'origin': {
-                        'url': 'file:///tmp/foobar',
-                    }
+                    'origin': 'file:///tmp/foobar',
                 },
             ]
         }
@@ -85,21 +110,15 @@ class JournalClientTest(unittest.TestCase):
             'origin_visit': [
                 {
                     'status': 'full',
-                    'origin': {
-                        'url': 'file:///dev/zero',
-                    }
+                    'origin': 'file:///dev/zero',
                 },
                 {
                     'status': 'full',
-                    'origin': {
-                        'url': 'file:///tmp/foobar',
-                    }
+                    'origin': 'file:///tmp/foobar',
                 },
                 {
                     'status': 'full',
-                    'origin': {
-                        'url': 'file:///tmp/spamegg',
-                    }
+                    'origin': 'file:///tmp/spamegg',
                 },
             ]
         }

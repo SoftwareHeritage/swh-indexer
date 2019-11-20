@@ -10,62 +10,12 @@ from . import SQL_DIR
 from swh.storage.tests.conftest import postgresql_fact
 from swh.indexer.storage import get_indexer_storage
 from swh.model.hashutil import hash_to_bytes
-from .generate_data_test import MIMETYPE_OBJECTS, FOSSOLOGY_LICENSES
+from .generate_data_test import (
+    MIMETYPE_OBJECTS, FOSSOLOGY_LICENSES, TOOLS
+)
 
 
 DUMP_FILES = join(SQL_DIR, '*.sql')
-
-TOOLS = [
-    {
-        'tool_name': 'universal-ctags',
-        'tool_version': '~git7859817b',
-        'tool_configuration': {
-            "command_line": "ctags --fields=+lnz --sort=no --links=no "
-                            "--output-format=json <filepath>"}
-    },
-    {
-        'tool_name': 'swh-metadata-translator',
-        'tool_version': '0.0.1',
-        'tool_configuration': {"type": "local", "context": "NpmMapping"},
-    },
-    {
-        'tool_name': 'swh-metadata-detector',
-        'tool_version': '0.0.1',
-        'tool_configuration': {
-            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
-    },
-    {
-        'tool_name': 'swh-metadata-detector2',
-        'tool_version': '0.0.1',
-        'tool_configuration': {
-            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
-    },
-    {
-        'tool_name': 'file',
-        'tool_version': '5.22',
-        'tool_configuration': {"command_line": "file --mime <filepath>"},
-    },
-    {
-        'tool_name': 'pygments',
-        'tool_version': '2.0.1+dfsg-1.1+deb8u1',
-        'tool_configuration': {
-            "type": "library", "debian-package": "python3-pygments"},
-    },
-    {
-        'tool_name': 'pygments2',
-        'tool_version': '2.0.1+dfsg-1.1+deb8u1',
-        'tool_configuration': {
-            "type": "library",
-            "debian-package": "python3-pygments",
-            "max_content_size": 10240
-        },
-    },
-    {
-        'tool_name': 'nomos',
-        'tool_version': '3.1.0rc2-31-ga2cbb8c',
-        'tool_configuration': {"command_line": "nomossa <filepath>"},
-    }
-]
 
 
 class DataObj(dict):
@@ -101,10 +51,15 @@ def swh_indexer_storage_with_data(swh_indexer_storage):
     data.origin_url_1 = 'file:///dev/0/zero'  # 44434341
     data.origin_url_2 = 'file:///dev/1/one'   # 44434342
     data.origin_url_3 = 'file:///dev/2/two'   # 54974445
-    data.mimetypes = MIMETYPE_OBJECTS[:]
-    swh_indexer_storage.content_mimetype_add(
-        MIMETYPE_OBJECTS)
-    data.fossology_licenses = FOSSOLOGY_LICENSES[:]
+    data.mimetypes = [
+        {**mimetype_obj, 'indexer_configuration_id': tools['file']['id']}
+        for mimetype_obj in MIMETYPE_OBJECTS
+    ]
+    swh_indexer_storage.content_mimetype_add(data.mimetypes)
+    data.fossology_licenses = [
+        {**fossology_obj, 'indexer_configuration_id': tools['nomos']['id']}
+        for fossology_obj in FOSSOLOGY_LICENSES
+    ]
     swh_indexer_storage._test_data = data
 
     return (swh_indexer_storage, data)

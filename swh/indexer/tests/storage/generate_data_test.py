@@ -86,11 +86,64 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
     return content_mimetypes
 
 
+TOOLS = [
+    {
+        'tool_name': 'universal-ctags',
+        'tool_version': '~git7859817b',
+        'tool_configuration': {
+            "command_line": "ctags --fields=+lnz --sort=no --links=no "
+                            "--output-format=json <filepath>"}
+    },
+    {
+        'tool_name': 'swh-metadata-translator',
+        'tool_version': '0.0.1',
+        'tool_configuration': {"type": "local", "context": "NpmMapping"},
+    },
+    {
+        'tool_name': 'swh-metadata-detector',
+        'tool_version': '0.0.1',
+        'tool_configuration': {
+            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
+    },
+    {
+        'tool_name': 'swh-metadata-detector2',
+        'tool_version': '0.0.1',
+        'tool_configuration': {
+            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
+    },
+    {
+        'tool_name': 'file',
+        'tool_version': '5.22',
+        'tool_configuration': {"command_line": "file --mime <filepath>"},
+    },
+    {
+        'tool_name': 'pygments',
+        'tool_version': '2.0.1+dfsg-1.1+deb8u1',
+        'tool_configuration': {
+            "type": "library", "debian-package": "python3-pygments"},
+    },
+    {
+        'tool_name': 'pygments2',
+        'tool_version': '2.0.1+dfsg-1.1+deb8u1',
+        'tool_configuration': {
+            "type": "library",
+            "debian-package": "python3-pygments",
+            "max_content_size": 10240
+        },
+    },
+    {
+        'tool_name': 'nomos',
+        'tool_version': '3.1.0rc2-31-ga2cbb8c',
+        'tool_configuration': {"command_line": "nomossa <filepath>"},
+    },
+]
+
+
 MIMETYPE_OBJECTS = [
     {'id': MultiHash.from_data(uuid1().bytes, {'sha1'}).digest()['sha1'],
-     'indexer_configuration_id': 1,
      'mimetype': mt,
      'encoding': enc,
+     # 'indexer_configuration_id' will be added after TOOLS get registered
      }
     for mt in MIMETYPES
     for enc in ENCODINGS]
@@ -105,8 +158,8 @@ LICENSES = [
 
 FOSSOLOGY_LICENSES = [
     {'id': MultiHash.from_data(uuid1().bytes, {'sha1'}).digest()['sha1'],
-     'indexer_configuration_id': 1,
      'licenses': [LICENSES[i % len(LICENSES)], ],
+     # 'indexer_configuration_id' will be added after TOOLS get registered
      }
     for i in range(10)
     ]

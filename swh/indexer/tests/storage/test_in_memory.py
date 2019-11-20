@@ -11,11 +11,10 @@ from .test_storage import *  # noqa
 
 
 @pytest.fixture
-def swh_indexer_storage(swh_indexer_storage_postgresql):
+def swh_indexer_storage():
     storage_config = {
-        'cls': 'local',
+        'cls': 'memory',
         'args': {
-            'db': swh_indexer_storage_postgresql.dsn,
         },
     }
     return get_indexer_storage(**storage_config)

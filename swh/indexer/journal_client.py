@@ -26,10 +26,16 @@ def process_origin_visits(visits, scheduler, task_names):
         visits = [visit for visit in visits if visit['status'] == 'full']
         visit_batches = grouper(visits, MAX_ORIGINS_PER_TASK)
         for visit_batch in visit_batches:
+            visit_urls = []
+            for visit in visit_batch:
+                if isinstance(visit['origin'], str):
+                    visit_urls.append(visit['origin'])
+                else:
+                    visit_urls.append(visit['origin']['url'])
             task_dicts.append(create_task_dict(
                 task_names['origin_metadata'],
                 'oneshot',
-                [visit['origin']['url'] for visit in visit_batch],
+                visit_urls,
                 policy_update='update-dups',
             ))
 
