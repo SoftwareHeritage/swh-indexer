@@ -799,7 +799,7 @@ class IndexerStorage:
         Returns:
             dict: dict with the following keys:
               - **next_page_token** (str, optional): opaque token to be used as
-                `page_token` for retrieveing the next page. If absent, there is
+                `page_token` for retrieving the next page. If absent, there is
                 no more pages to gather.
               - **origins** (list): list of origin url (str) if `ids_only=True`
                 else dictionaries with the following keys:
@@ -822,13 +822,13 @@ class IndexerStorage:
         if ids_only:
             result['origins'] = [origin for (origin,) in res]
             if len(result['origins']) > limit:
-                result['origins'] = result['origins'][:limit]
+                result['origins'][limit:] = []
                 result['next_page_token'] = result['origins'][-1]
         else:
             result['origins'] = [converters.db_to_metadata(
                 dict(zip(db.origin_intrinsic_metadata_cols, c)))for c in res]
             if len(result['origins']) > limit:
-                result['origins'] = result['origins'][:limit]
+                result['origins'][limit:] = []
                 result['next_page_token'] = result['origins'][-1]['id']
         return result
 
