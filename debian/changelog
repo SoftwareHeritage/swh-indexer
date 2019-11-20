@@ -1,3 +1,15 @@
+swh-indexer (0.0.158-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.158     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2019-11-20 10:26:59
+    +0100)
+  * Upstream changes:     - v0.0.158     - Re-enable tests for the in-
+    memory storage.     - Truncate result list instead of doing a copy.
+    - journal client: add support for new origin_visit schema.     - Fix
+    alter table rename column syntax on 126->127 upgrade script
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 20 Nov 2019 09:30:37 +0000
+
 swh-indexer (0.0.157-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.157     - (tagged by Valentin Lorentz
