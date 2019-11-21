@@ -386,7 +386,7 @@ YARN_PARSER_METADATA = {
     'license': 'https://spdx.org/licenses/AGPL-3.0',
     'version': '1.0.0',
     'description':
-        'Tiny web service for parsing yarn.lock files.',
+        "Tiny web service for parsing yarn.lock files",
     'issueTracker':
         'https://github.com/librariesio/yarn-parser/issues',
     'name': 'yarn-parser',
