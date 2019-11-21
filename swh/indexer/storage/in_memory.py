@@ -746,7 +746,7 @@ class IndexerStorage:
             tool_ids = frozenset(tool_ids)
         origins = []
 
-        # we go to limit+1 to check wether we should add next_page_token in
+        # we go to limit+1 to check whether we should add next_page_token in
         # the response
         for entry in self._origin_intrinsic_metadata.get_all():
             if entry['id'] <= page_token:

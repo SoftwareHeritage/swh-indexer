@@ -19,7 +19,7 @@
       "name": "Software Heritage",
       "url": "https://www.softwareheritage.org",
       "email": "swh-devel@inria.fr"
-    },
+    }
   ],
   "developmentStatus": "active",
   "keywords": [
@@ -35,5 +35,5 @@
   ],
   "dateCreated":"2017-06-12",
   "datePublished":"2017-06-12",
-  "programmingLanguage": "Python",
+  "programmingLanguage": "Python"
 }

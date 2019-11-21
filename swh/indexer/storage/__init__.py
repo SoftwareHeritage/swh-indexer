@@ -814,7 +814,7 @@ class IndexerStorage:
 
         """
         assert isinstance(page_token, str)
-        # we go to limit+1 to check wether we should add next_page_token in
+        # we go to limit+1 to check whether we should add next_page_token in
         # the response
         res = db.origin_intrinsic_metadata_search_by_producer(
             page_token, limit + 1, ids_only, mappings, tool_ids, cur)

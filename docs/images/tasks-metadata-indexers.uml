@@ -79,6 +79,6 @@
   IDX_ORIG_META->>IDX_STORAGE: origin_metadata_add(id=42, {author: "Jane Doe", ...})
   IDX_STORAGE->>IDX_ORIG_META: ok
   deactivate IDX_ORIG_META
-  
+
 
 @enduml
