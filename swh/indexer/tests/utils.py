@@ -66,10 +66,13 @@ SNAPSHOTS = [
                 'target': b'L[\xce\x1c\x88\x8eF\t\xf1"\x19\x1e\xfb\xc0'
                           b's\xe7/\xe9l\x1e',
                 'target_type': 'revision'},
-            b'HEAD': {
+            b'refs/head/master': {
                 'target': b'8K\x12\x00d\x03\xcc\xe4]bS\xe3\x8f{\xd7}'
                           b'\xac\xefrm',
                 'target_type': 'revision'},
+            b'HEAD': {
+                'target': b'refs/head/master',
+                'target_type': 'alias'},
             b'refs/tags/v0.0.103': {
                 'target': b'\xb6"Im{\xfdLb\xb0\x94N\xea\x96m\x13x\x88+'
                           b'\x0f\xdd',
