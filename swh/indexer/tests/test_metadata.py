@@ -237,6 +237,58 @@ class Metadata(unittest.TestCase):
         }
         self.assertEqual(expected_results, results)
 
+    def test_merge_documents_ids(self):
+        # given
+        metadata_list = [{
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'name': 'test_1',
+        }, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test2',
+            'name': 'test_2',
+        }]
+
+        # when
+        results = merge_documents(metadata_list)
+
+        # then
+        expected_results = {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'schema:sameAs': 'http://example.org/test2',
+            "name": ['test_1', 'test_2']
+        }
+        self.assertEqual(expected_results, results)
+
+    def test_merge_documents_duplicate_ids(self):
+        # given
+        metadata_list = [{
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'name': 'test_1',
+        }, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'name': 'test_1b',
+        }, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test2',
+            'name': 'test_2',
+        }]
+
+        # when
+        results = merge_documents(metadata_list)
+
+        # then
+        expected_results = {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'schema:sameAs': 'http://example.org/test2',
+            "name": ['test_1', 'test_1b', 'test_2']
+        }
+        self.assertEqual(expected_results, results)
+
     def test_index_content_metadata_npm(self):
         """
         testing NPM with package.json
