@@ -651,6 +651,7 @@ class IndexerStorage:
 
         Args:
             entries (dict): dictionaries with the following keys:
+
                 - **id** (str): origin url
                 - **indexer_configuration_id** (int): tool used to compute
                   metadata

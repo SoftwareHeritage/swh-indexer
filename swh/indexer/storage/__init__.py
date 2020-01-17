@@ -625,7 +625,7 @@ class IndexerStorage:
             ids (iterable): sha1 checksums
 
         Yields:
-            dictionaries with the following keys:
+            : dictionaries with the following keys:
 
                 - **id** (bytes)
                 - **metadata** (str): associated metadata
@@ -675,6 +675,7 @@ class IndexerStorage:
 
         Args:
             entries (dict): dictionaries with the following keys:
+
                 - **id** (bytes): revision identifier
                 - **indexer_configuration_id** (int): tool used to compute
                   metadata
@@ -747,6 +748,7 @@ class IndexerStorage:
 
         Args:
             entries (dict): dictionaries with the following keys:
+
                 - **id** (str): origin urls
                 - **indexer_configuration_id** (int): tool used to compute
                   metadata
