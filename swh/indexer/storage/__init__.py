@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2018  The Software Heritage developers
+# Copyright (C) 2015-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -9,7 +9,6 @@ import psycopg2
 
 from collections import defaultdict
 
-from swh.core.api import remote_api_endpoint
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
 from .db import Db
@@ -108,10 +107,8 @@ class IndexerStorage:
         if db is not self._db:
             db.put_conn()
 
-    @remote_api_endpoint('check_config')
     @db_transaction()
     def check_config(self, *, check_write, db=None, cur=None):
-        """Check that the storage is configured and ready to go."""
         # Check permissions on one of the tables
         if check_write:
             check = 'INSERT'
@@ -124,22 +121,8 @@ class IndexerStorage:
         )
         return cur.fetchone()[0]
 
-    @remote_api_endpoint('content_mimetype/missing')
     @db_transaction_generator()
     def content_mimetype_missing(self, mimetypes, db=None, cur=None):
-        """Generate mimetypes missing from storage.
-
-        Args:
-            mimetypes (iterable): iterable of dict with keys:
-
-              - **id** (bytes): sha1 identifier
-              - **indexer_configuration_id** (int): tool used to compute the
-                results
-
-        Yields:
-            tuple (id, indexer_configuration_id): missing id
-
-        """
         for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
             yield obj[0]
 
@@ -147,34 +130,6 @@ class IndexerStorage:
                            indexer_configuration_id, limit=1000,
                            with_textual_data=False,
                            db=None, cur=None):
-        """Retrieve ids of type content_type within range [start, end] bound
-           by limit.
-
-        Args:
-            **content_type** (str): content's type (mimetype, language, etc...)
-            **start** (bytes): Starting identifier range (expected smaller
-                           than end)
-            **end** (bytes): Ending identifier range (expected larger
-                             than start)
-            **indexer_configuration_id** (int): The tool used to index data
-            **limit** (int): Limit result (default to 1000)
-            **with_textual_data** (bool): Deal with only textual
-                                          content (True) or all
-                                          content (all contents by
-                                          defaults, False)
-
-        Raises:
-            ValueError for;
-            - limit to None
-            - wrong content_type provided
-
-        Returns:
-            a dict with keys:
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
-
-        """
         if limit is None:
             raise ValueError('Development error: limit should not be None')
         if content_type not in db.content_indexer_names:
@@ -199,53 +154,16 @@ class IndexerStorage:
             'next': next_id
         }
 
-    @remote_api_endpoint('content_mimetype/range')
     @db_transaction()
     def content_mimetype_get_range(self, start, end, indexer_configuration_id,
                                    limit=1000, db=None, cur=None):
-        """Retrieve mimetypes within range [start, end] bound by limit.
-
-        Args:
-            **start** (bytes): Starting identifier range (expected smaller
-                           than end)
-            **end** (bytes): Ending identifier range (expected larger
-                             than start)
-            **indexer_configuration_id** (int): The tool used to index data
-            **limit** (int): Limit result (default to 1000)
-
-        Raises:
-            ValueError for limit to None
-
-        Returns:
-            a dict with keys:
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
-
-        """
         return self._content_get_range('mimetype', start, end,
                                        indexer_configuration_id, limit=limit,
                                        db=db, cur=cur)
 
-    @remote_api_endpoint('content_mimetype/add')
     @db_transaction()
     def content_mimetype_add(self, mimetypes, conflict_update=False, db=None,
                              cur=None):
-        """Add mimetypes not present in storage.
-
-        Args:
-            mimetypes (iterable): dictionaries with keys:
-
-              - **id** (bytes): sha1 identifier
-              - **mimetype** (bytes): raw content's mimetype
-              - **encoding** (bytes): raw content's encoding
-              - **indexer_configuration_id** (int): tool's id used to
-                compute the results
-              - **conflict_update** (bool): Flag to determine if we want to
-                overwrite (``True``) or skip duplicates (``False``, the
-                default)
-
-        """
         _check_id_duplicates(mimetypes)
         mimetypes.sort(key=lambda m: m['id'])
         db.mktemp_content_mimetype(cur)
@@ -254,84 +172,26 @@ class IndexerStorage:
                    cur)
         db.content_mimetype_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('content_mimetype')
     @db_transaction_generator()
     def content_mimetype_get(self, ids, db=None, cur=None):
-        """Retrieve full content mimetype per ids.
-
-        Args:
-            ids (iterable): sha1 identifier
-
-        Yields:
-            mimetypes (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **mimetype** (bytes): raw content's mimetype
-                - **encoding** (bytes): raw content's encoding
-                - **tool** (dict): Tool used to compute the language
-
-        """
         for c in db.content_mimetype_get_from_list(ids, cur):
             yield converters.db_to_mimetype(
                 dict(zip(db.content_mimetype_cols, c)))
 
-    @remote_api_endpoint('content_language/missing')
     @db_transaction_generator()
     def content_language_missing(self, languages, db=None, cur=None):
-        """List languages missing from storage.
-
-        Args:
-            languages (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  the results
-
-        Yields:
-            an iterable of missing id for the tuple (id,
-            indexer_configuration_id)
-
-        """
         for obj in db.content_language_missing_from_list(languages, cur):
             yield obj[0]
 
-    @remote_api_endpoint('content_language')
     @db_transaction_generator()
     def content_language_get(self, ids, db=None, cur=None):
-        """Retrieve full content language per ids.
-
-        Args:
-            ids (iterable): sha1 identifier
-
-        Yields:
-            languages (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **lang** (bytes): raw content's language
-                - **tool** (dict): Tool used to compute the language
-
-        """
         for c in db.content_language_get_from_list(ids, cur):
             yield converters.db_to_language(
                 dict(zip(db.content_language_cols, c)))
 
-    @remote_api_endpoint('content_language/add')
     @db_transaction()
     def content_language_add(self, languages, conflict_update=False, db=None,
                              cur=None):
-        """Add languages not present in storage.
-
-        Args:
-            languages (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1
-                - **lang** (bytes): language detected
-
-            conflict_update (bool): Flag to determine if we want to
-                overwrite (true) or skip duplicates (false, the
-                default)
-
-        """
         _check_id_duplicates(languages)
         languages.sort(key=lambda m: m['id'])
         db.mktemp_content_language(cur)
@@ -347,62 +207,19 @@ class IndexerStorage:
 
         db.content_language_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('content/ctags/missing')
     @db_transaction_generator()
     def content_ctags_missing(self, ctags, db=None, cur=None):
-        """List ctags missing from storage.
-
-        Args:
-            ctags (iterable): dicts with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  the results
-
-        Yields:
-            an iterable of missing id for the tuple (id,
-            indexer_configuration_id)
-
-        """
         for obj in db.content_ctags_missing_from_list(ctags, cur):
             yield obj[0]
 
-    @remote_api_endpoint('content/ctags')
     @db_transaction_generator()
     def content_ctags_get(self, ids, db=None, cur=None):
-        """Retrieve ctags per id.
-
-        Args:
-            ids (iterable): sha1 checksums
-
-        Yields:
-            Dictionaries with keys:
-
-                - **id** (bytes): content's identifier
-                - **name** (str): symbol's name
-                - **kind** (str): symbol's kind
-                - **lang** (str): language for that content
-                - **tool** (dict): tool used to compute the ctags' info
-
-
-        """
         for c in db.content_ctags_get_from_list(ids, cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
 
-    @remote_api_endpoint('content/ctags/add')
     @db_transaction()
     def content_ctags_add(self, ctags, conflict_update=False, db=None,
                           cur=None):
-        """Add ctags not present in storage
-
-        Args:
-            ctags (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1
-                - **ctags** ([list): List of dictionary with keys: name, kind,
-                  line, lang
-
-        """
         _check_id_duplicates(ctags)
         ctags.sort(key=lambda m: m['id'])
 
@@ -422,41 +239,15 @@ class IndexerStorage:
 
         db.content_ctags_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('content/ctags/search')
     @db_transaction_generator()
     def content_ctags_search(self, expression,
                              limit=10, last_sha1=None, db=None, cur=None):
-        """Search through content's raw ctags symbols.
-
-        Args:
-            expression (str): Expression to search for
-            limit (int): Number of rows to return (default to 10).
-            last_sha1 (str): Offset from which retrieving data (default to '').
-
-        Yields:
-            rows of ctags including id, name, lang, kind, line, etc...
-
-        """
         for obj in db.content_ctags_search(expression, last_sha1, limit,
                                            cur=cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
 
-    @remote_api_endpoint('content/fossology_license')
     @db_transaction_generator()
     def content_fossology_license_get(self, ids, db=None, cur=None):
-        """Retrieve licenses per id.
-
-        Args:
-            ids (iterable): sha1 checksums
-
-        Yields:
-            dict: ``{id: facts}`` where ``facts`` is a dict with the
-            following keys:
-
-                - **licenses** ([str]): associated licenses for that content
-                - **tool** (dict): Tool used to compute the license
-
-        """
         d = defaultdict(list)
         for c in db.content_fossology_license_get_from_list(ids, cur):
             license = dict(zip(db.content_fossology_license_cols, c))
@@ -467,26 +258,9 @@ class IndexerStorage:
         for id_, facts in d.items():
             yield {id_: facts}
 
-    @remote_api_endpoint('content/fossology_license/add')
     @db_transaction()
     def content_fossology_license_add(self, licenses, conflict_update=False,
                                       db=None, cur=None):
-        """Add licenses not present in storage.
-
-        Args:
-            licenses (iterable): dictionaries with keys:
-
-                - **id**: sha1
-                - **licenses** ([bytes]): List of licenses associated to sha1
-                - **tool** (str): nomossa
-
-            conflict_update: Flag to determine if we want to overwrite (true)
-                or skip duplicates (false, the default)
-
-        Returns:
-            list: content_license entries which failed due to unknown licenses
-
-        """
         _check_id_duplicates(licenses)
         licenses.sort(key=lambda m: m['id'])
         db.mktemp_content_fossology_license(cur)
@@ -502,90 +276,28 @@ class IndexerStorage:
             cur=cur)
         db.content_fossology_license_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('content/fossology_license/range')
     @db_transaction()
     def content_fossology_license_get_range(
             self, start, end, indexer_configuration_id,
             limit=1000, db=None, cur=None):
-        """Retrieve licenses within range [start, end] bound by limit.
-
-        Args:
-            **start** (bytes): Starting identifier range (expected smaller
-                           than end)
-            **end** (bytes): Ending identifier range (expected larger
-                             than start)
-            **indexer_configuration_id** (int): The tool used to index data
-            **limit** (int): Limit result (default to 1000)
-
-        Raises:
-            ValueError for limit to None
-
-        Returns:
-            a dict with keys:
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
-
-        """
         return self._content_get_range('fossology_license', start, end,
                                        indexer_configuration_id, limit=limit,
                                        with_textual_data=True, db=db, cur=cur)
 
-    @remote_api_endpoint('content_metadata/missing')
     @db_transaction_generator()
     def content_metadata_missing(self, metadata, db=None, cur=None):
-        """List metadata missing from storage.
-
-        Args:
-            metadata (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  the results
-
-        Yields:
-            missing sha1s
-
-        """
         for obj in db.content_metadata_missing_from_list(metadata, cur):
             yield obj[0]
 
-    @remote_api_endpoint('content_metadata')
     @db_transaction_generator()
     def content_metadata_get(self, ids, db=None, cur=None):
-        """Retrieve metadata per id.
-
-        Args:
-            ids (iterable): sha1 checksums
-
-        Yields:
-            dictionaries with the following keys:
-
-                id (bytes)
-                metadata (str): associated metadata
-                tool (dict): tool used to compute metadata
-
-        """
         for c in db.content_metadata_get_from_list(ids, cur):
             yield converters.db_to_metadata(
                 dict(zip(db.content_metadata_cols, c)))
 
-    @remote_api_endpoint('content_metadata/add')
     @db_transaction()
     def content_metadata_add(self, metadata, conflict_update=False, db=None,
                              cur=None):
-        """Add metadata not present in storage.
-
-        Args:
-            metadata (iterable): dictionaries with keys:
-
-                - **id**: sha1
-                - **metadata**: arbitrary dict
-
-            conflict_update: Flag to determine if we want to overwrite (true)
-                or skip duplicates (false, the default)
-
-        """
         _check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
@@ -596,67 +308,21 @@ class IndexerStorage:
                    cur)
         db.content_metadata_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('revision_intrinsic_metadata/missing')
     @db_transaction_generator()
     def revision_intrinsic_metadata_missing(self, metadata, db=None, cur=None):
-        """List metadata missing from storage.
-
-        Args:
-            metadata (iterable): dictionaries with keys:
-
-               - **id** (bytes): sha1_git revision identifier
-               - **indexer_configuration_id** (int): tool used to compute
-                 the results
-
-        Yields:
-            missing ids
-
-        """
         for obj in db.revision_intrinsic_metadata_missing_from_list(
                 metadata, cur):
             yield obj[0]
 
-    @remote_api_endpoint('revision_intrinsic_metadata')
     @db_transaction_generator()
     def revision_intrinsic_metadata_get(self, ids, db=None, cur=None):
-        """Retrieve revision metadata per id.
-
-        Args:
-            ids (iterable): sha1 checksums
-
-        Yields:
-            : dictionaries with the following keys:
-
-                - **id** (bytes)
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
-
-        """
         for c in db.revision_intrinsic_metadata_get_from_list(ids, cur):
             yield converters.db_to_metadata(
                 dict(zip(db.revision_intrinsic_metadata_cols, c)))
 
-    @remote_api_endpoint('revision_intrinsic_metadata/add')
     @db_transaction()
     def revision_intrinsic_metadata_add(self, metadata, conflict_update=False,
                                         db=None, cur=None):
-        """Add metadata not present in storage.
-
-        Args:
-            metadata (iterable): dictionaries with keys:
-
-                - **id**: sha1_git of revision
-                - **metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
-
-            conflict_update: Flag to determine if we want to overwrite (true)
-              or skip duplicates (false, the default)
-
-        """
         _check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
@@ -668,66 +334,20 @@ class IndexerStorage:
                    cur)
         db.revision_intrinsic_metadata_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('revision_intrinsic_metadata/delete')
     @db_transaction()
     def revision_intrinsic_metadata_delete(self, entries, db=None, cur=None):
-        """Remove revision metadata from the storage.
-
-        Args:
-            entries (dict): dictionaries with the following keys:
-
-                - **id** (bytes): revision identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  metadata
-        """
         db.revision_intrinsic_metadata_delete(entries, cur)
 
-    @remote_api_endpoint('origin_intrinsic_metadata')
     @db_transaction_generator()
     def origin_intrinsic_metadata_get(self, ids, db=None, cur=None):
-        """Retrieve origin metadata per id.
-
-        Args:
-            ids (iterable): origin identifiers
-
-        Yields:
-            list: dictionaries with the following keys:
-
-                - **id** (str): origin url
-                - **from_revision** (bytes): which revision this metadata
-                  was extracted from
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
-
-        """
         for c in db.origin_intrinsic_metadata_get_from_list(ids, cur):
             yield converters.db_to_metadata(
                 dict(zip(db.origin_intrinsic_metadata_cols, c)))
 
-    @remote_api_endpoint('origin_intrinsic_metadata/add')
     @db_transaction()
     def origin_intrinsic_metadata_add(self, metadata,
                                       conflict_update=False, db=None,
                                       cur=None):
-        """Add origin metadata not present in storage.
-
-        Args:
-            metadata (iterable): dictionaries with keys:
-
-                - **id**: origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
-
-            conflict_update: Flag to determine if we want to overwrite (true)
-              or skip duplicates (false, the default)
-
-        """
         _check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
@@ -740,81 +360,24 @@ class IndexerStorage:
                    cur)
         db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)
 
-    @remote_api_endpoint('origin_intrinsic_metadata/delete')
     @db_transaction()
     def origin_intrinsic_metadata_delete(
             self, entries, db=None, cur=None):
-        """Remove origin metadata from the storage.
-
-        Args:
-            entries (dict): dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **indexer_configuration_id** (int): tool used to compute
-                  metadata
-        """
         db.origin_intrinsic_metadata_delete(entries, cur)
 
-    @remote_api_endpoint('origin_intrinsic_metadata/search/fulltext')
     @db_transaction_generator()
     def origin_intrinsic_metadata_search_fulltext(
             self, conjunction, limit=100, db=None, cur=None):
-        """Returns the list of origins whose metadata contain all the terms.
-
-        Args:
-            conjunction (List[str]): List of terms to be searched for.
-            limit (int): The maximum number of results to return
-
-        Yields:
-            list: dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
-
-        """
         for c in db.origin_intrinsic_metadata_search_fulltext(
                 conjunction, limit=limit, cur=cur):
             yield converters.db_to_metadata(
                 dict(zip(db.origin_intrinsic_metadata_cols, c)))
 
-    @remote_api_endpoint('origin_intrinsic_metadata/search/by_producer')
     @db_transaction()
     def origin_intrinsic_metadata_search_by_producer(
             self, page_token='', limit=100, ids_only=False,
             mappings=None, tool_ids=None,
             db=None, cur=None):
-        """Returns the list of origins whose metadata contain all the terms.
-
-        Args:
-            page_token (str): Opaque token used for pagination.
-            limit (int): The maximum number of results to return
-            ids_only (bool): Determines whether only origin urls are
-                returned or the content as well
-            mappings (List[str]): Returns origins whose intrinsic metadata
-                were generated using at least one of these mappings.
-
-        Returns:
-            dict: dict with the following keys:
-              - **next_page_token** (str, optional): opaque token to be used as
-                `page_token` for retrieving the next page. If absent, there is
-                no more pages to gather.
-              - **origins** (list): list of origin url (str) if `ids_only=True`
-                else dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
-
-        """
         assert isinstance(page_token, str)
         # we go to limit+1 to check whether we should add next_page_token in
         # the response
@@ -834,25 +397,9 @@ class IndexerStorage:
                 result['next_page_token'] = result['origins'][-1]['id']
         return result
 
-    @remote_api_endpoint('origin_intrinsic_metadata/stats')
     @db_transaction()
     def origin_intrinsic_metadata_stats(
             self, db=None, cur=None):
-        """Returns counts of indexed metadata per origins, broken down
-        into metadata types.
-
-        Returns:
-            dict: dictionary with keys:
-
-                - total (int): total number of origins that were indexed
-                  (possibly yielding an empty metadata dictionary)
-                - non_empty (int): total number of origins that we extracted
-                  a non-empty metadata dictionary from
-                - per_mapping (dict): a dictionary with mapping names as
-                  keys and number of origins whose indexing used this
-                  mapping. Note that indexing a given origin may use
-                  0, 1, or many mappings.
-        """
         mapping_names = [m for m in MAPPING_NAMES]
         select_parts = []
 
@@ -880,26 +427,8 @@ class IndexerStorage:
             'per_mapping': results,
         }
 
-    @remote_api_endpoint('indexer_configuration/add')
     @db_transaction_generator()
     def indexer_configuration_add(self, tools, db=None, cur=None):
-        """Add new tools to the storage.
-
-        Args:
-            tools ([dict]): List of dictionary representing tool to
-                insert in the db. Dictionary with the following keys:
-
-                - **tool_name** (str): tool's name
-                - **tool_version** (str): tool's version
-                - **tool_configuration** (dict): tool's configuration
-                  (free form dict)
-
-        Returns:
-            List of dict inserted in the db (holding the id key as
-            well).  The order of the list is not guaranteed to match
-            the order of the initial list.
-
-        """
         db.mktemp_indexer_configuration(cur)
         db.copy_to(tools, 'tmp_indexer_configuration',
                    ['tool_name', 'tool_version', 'tool_configuration'],
@@ -909,24 +438,8 @@ class IndexerStorage:
         for line in tools:
             yield dict(zip(db.indexer_configuration_cols, line))
 
-    @remote_api_endpoint('indexer_configuration/data')
     @db_transaction()
     def indexer_configuration_get(self, tool, db=None, cur=None):
-        """Retrieve tool information.
-
-        Args:
-            tool (dict): Dictionary representing a tool with the
-                following keys:
-
-                - **tool_name** (str): tool's name
-                - **tool_version** (str): tool's version
-                - **tool_configuration** (dict): tool's configuration
-                  (free form dict)
-
-        Returns:
-            The same dictionary with an `id` key, None otherwise.
-
-        """
         tool_conf = tool['tool_configuration']
         if isinstance(tool_conf, dict):
             tool_conf = json.dumps(tool_conf)
