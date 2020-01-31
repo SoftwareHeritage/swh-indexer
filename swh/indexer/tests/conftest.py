@@ -41,7 +41,7 @@ def idx_storage():
 
     """
     idx_storage = get_indexer_storage('memory', {})
-    with patch('swh.indexer.storage.get_indexer_storage') \
+    with patch('swh.indexer.storage.in_memory.IndexerStorage') \
             as idx_storage_mock:
         idx_storage_mock.return_value = idx_storage
         yield idx_storage
@@ -55,7 +55,7 @@ def storage():
     """
     storage = get_storage('memory')
     fill_storage(storage)
-    with patch('swh.storage.get_storage') as storage_mock:
+    with patch('swh.storage.in_memory.InMemoryStorage') as storage_mock:
         storage_mock.return_value = storage
         yield storage
 
@@ -68,8 +68,8 @@ def obj_storage():
     """
     objstorage = get_objstorage('memory', {})
     fill_obj_storage(objstorage)
-    with patch('swh.objstorage.get_objstorage') as objstorage_mock:
-        objstorage_mock.return_value = objstorage
+    with patch.dict('swh.objstorage._STORAGE_CLASSES',
+                    {'memory': lambda: objstorage}):
         yield objstorage
 
 
