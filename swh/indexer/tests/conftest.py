@@ -1,3 +1,8 @@
+# Copyright (C) 2019-2020  The Software Heritage developers
+# See the AUTHORS file at the top-level directory of this distribution
+# License: GNU General Public License version 3, or any later version
+# See top-level LICENSE file for more information
+
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -5,9 +10,8 @@ import pytest
 
 from swh.objstorage import get_objstorage
 from swh.scheduler.tests.conftest import *  # noqa
-from swh.storage.in_memory import Storage
-
-from swh.indexer.storage.in_memory import IndexerStorage
+from swh.storage import get_storage
+from swh.indexer.storage import get_indexer_storage
 
 from .utils import fill_storage, fill_obj_storage
 
@@ -32,10 +36,12 @@ def indexer_scheduler(swh_scheduler):
 
 @pytest.fixture
 def idx_storage():
-    """An instance of swh.indexer.storage.in_memory.IndexerStorage that
-    gets injected into all indexers classes."""
-    idx_storage = IndexerStorage()
-    with patch('swh.indexer.storage.in_memory.IndexerStorage') \
+    """An instance of in-memory indexer storage that gets injected into all
+    indexers classes.
+
+    """
+    idx_storage = get_indexer_storage('memory', {})
+    with patch('swh.indexer.storage.get_indexer_storage') \
             as idx_storage_mock:
         idx_storage_mock.return_value = idx_storage
         yield idx_storage
@@ -43,23 +49,27 @@ def idx_storage():
 
 @pytest.fixture
 def storage():
-    """An instance of swh.storage.in_memory.Storage that gets injected
-    into all indexers classes."""
-    storage = Storage()
+    """An instance of in-memory storage that gets injected into all indexers
+       classes.
+
+    """
+    storage = get_storage('memory')
     fill_storage(storage)
-    with patch('swh.storage.in_memory.Storage') as storage_mock:
+    with patch('swh.storage.get_storage') as storage_mock:
         storage_mock.return_value = storage
         yield storage
 
 
 @pytest.fixture
 def obj_storage():
-    """An instance of swh.objstorage.objstorage_in_memory.InMemoryObjStorage
-    that gets injected into all indexers classes."""
+    """An instance of in-memory objstorage that gets injected into all indexers
+    classes.
+
+    """
     objstorage = get_objstorage('memory', {})
     fill_obj_storage(objstorage)
-    with patch.dict('swh.objstorage._STORAGE_CLASSES',
-                    {'memory': lambda: objstorage}):
+    with patch('swh.objstorage.get_objstorage') as objstorage_mock:
+        objstorage_mock.return_value = objstorage
         yield objstorage
 
 
