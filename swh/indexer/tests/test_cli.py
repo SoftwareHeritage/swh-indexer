@@ -22,7 +22,6 @@ scheduler:
     args: {}
 storage:
     cls: memory
-    args: {}
 indexer_storage:
     cls: memory
     args: {}

@@ -7,6 +7,7 @@ import abc
 import datetime
 import functools
 import random
+from typing import Dict, Any
 import unittest
 
 from hypothesis import strategies
@@ -16,11 +17,9 @@ from swh.model.hashutil import hash_to_bytes, hash_to_hex
 
 from swh.indexer.storage import INDEXER_CFG_KEY
 
-BASE_TEST_CONFIG = {
+BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
     'storage': {
         'cls': 'memory',
-        'args': {
-        },
     },
     'objstorage': {
         'cls': 'memory',
