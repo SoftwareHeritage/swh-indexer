@@ -10,8 +10,9 @@ from swh.core import config
 from swh.core.api import (RPCServerApp, error_handler,
                           encode_data_server as encode_data)
 from swh.indexer.storage import (
-    get_indexer_storage, INDEXER_CFG_KEY, IndexerStorage
+    get_indexer_storage, INDEXER_CFG_KEY
 )
+from swh.indexer.storage.interface import IndexerStorageInterface
 
 
 def get_storage():
@@ -23,7 +24,7 @@ def get_storage():
 
 
 app = RPCServerApp(__name__,
-                   backend_class=IndexerStorage,
+                   backend_class=IndexerStorageInterface,
                    backend_factory=get_storage)
 storage = None
 

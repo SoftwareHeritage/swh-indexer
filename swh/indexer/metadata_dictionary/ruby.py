@@ -7,8 +7,15 @@ import ast
 import itertools
 import re
 
-from swh.indexer.codemeta import CROSSWALK_TABLE
+from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 from .base import DictMapping
+
+
+def name_to_person(name):
+    return {
+        '@type': SCHEMA_URI + 'Person',
+        SCHEMA_URI + 'name': name,
+    }
 
 
 class GemspecMapping(DictMapping):
@@ -109,9 +116,9 @@ class GemspecMapping(DictMapping):
 
     def normalize_author(self, author):
         if isinstance(author, str):
-            return {"@list": [author]}
+            return {"@list": [name_to_person(author)]}
 
     def normalize_authors(self, authors):
         if isinstance(authors, list):
-            return {"@list": [author for author in authors
+            return {"@list": [name_to_person(author) for author in authors
                               if isinstance(author, str)]}

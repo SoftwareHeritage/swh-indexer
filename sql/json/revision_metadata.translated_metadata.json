@@ -51,6 +51,6 @@
           },
           "codeRepository": {
               "type": "list"
-          },
+          }
     }
 }

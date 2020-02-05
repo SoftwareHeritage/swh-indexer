@@ -94,7 +94,7 @@ class Db(BaseDb):
         """Fetches entries from the `table` such that their `id` field
         (or whatever is given to `id_col`) is in `ids`.
         Returns the columns `cols`.
-        The `cur`sor is used to connect to the database.
+        The `cur` parameter is used to connect to the database.
         """
         cur = self._cursor(cur)
         keys = map(self._convert_key, cols)

@@ -213,7 +213,10 @@ class Metadata(unittest.TestCase):
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'name': 'test_metadata',
             'version': '0.0.2',
-            'author': 'moranegg',
+            'author': {
+                'type': 'Person',
+                'name': 'moranegg',
+            },
         }]
 
         # when
@@ -225,9 +228,64 @@ class Metadata(unittest.TestCase):
             "version": '0.0.2',
             "description": 'Simple package.json test for indexer',
             "name": ['test_1', 'test_0_1', 'test_metadata'],
-            "author": ['moranegg'],
+            "author": [{
+                'type': 'Person',
+                'name': 'moranegg'
+            }],
             "codeRepository":
                 'git+https://github.com/moranegg/metadata_test',
+        }
+        self.assertEqual(expected_results, results)
+
+    def test_merge_documents_ids(self):
+        # given
+        metadata_list = [{
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'name': 'test_1',
+        }, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test2',
+            'name': 'test_2',
+        }]
+
+        # when
+        results = merge_documents(metadata_list)
+
+        # then
+        expected_results = {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'schema:sameAs': 'http://example.org/test2',
+            "name": ['test_1', 'test_2']
+        }
+        self.assertEqual(expected_results, results)
+
+    def test_merge_documents_duplicate_ids(self):
+        # given
+        metadata_list = [{
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'name': 'test_1',
+        }, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'name': 'test_1b',
+        }, {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test2',
+            'name': 'test_2',
+        }]
+
+        # when
+        results = merge_documents(metadata_list)
+
+        # then
+        expected_results = {
+            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+            'id': 'http://example.org/test1',
+            'schema:sameAs': 'http://example.org/test2',
+            "name": ['test_1', 'test_1b', 'test_2']
         }
         self.assertEqual(expected_results, results)
 
@@ -1009,7 +1067,12 @@ end"""
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
-            'author': ['Ruby Coder'],
+            'author': [
+                {
+                    'type': 'Person',
+                    'name': 'Ruby Coder'
+                }
+            ],
             'name': 'example',
             'license': 'https://spdx.org/licenses/MIT',
             'codeRepository': 'https://rubygems.org/gems/example',
@@ -1025,7 +1088,15 @@ Gem::Specification.new do |s|
 end"""
         result = self.gemspec_mapping.translate(raw_content)
         self.assertCountEqual(result.pop('author'), [
-            'Ruby Coder1', 'Ruby Coder2'])
+            {
+                'type': 'Person',
+                'name': 'Ruby Coder1'
+            },
+            {
+                'type': 'Person',
+                'name': 'Ruby Coder2'
+            },
+        ])
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
@@ -1058,7 +1129,12 @@ end"""
         self.assertEqual(result, {
             '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
             'type': 'SoftwareSourceCode',
-            'author': ['Ruby Coder1'],
+            'author': [
+                {
+                    'type': 'Person',
+                    'name': 'Ruby Coder1'
+                }
+            ],
         })
 
     def test_gemspec_alternative_header(self):
