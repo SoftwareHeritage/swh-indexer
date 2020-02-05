@@ -7,11 +7,11 @@ from swh.core.api import RPCClient
 
 from swh.storage.exc import StorageAPIError
 
-from .. import IndexerStorage
+from ..interface import IndexerStorageInterface
 
 
 class RemoteStorage(RPCClient):
     """Proxy to a remote storage API"""
 
-    backend_class = IndexerStorage
+    backend_class = IndexerStorageInterface
     api_exception = StorageAPIError

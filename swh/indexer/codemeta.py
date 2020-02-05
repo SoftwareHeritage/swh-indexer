@@ -140,8 +140,19 @@ def merge_documents(documents):
     merged_document = collections.defaultdict(list)
     for document in documents:
         for (key, values) in document.items():
-            for value in values:
-                if value not in merged_document[key]:
-                    merged_document[key].append(value)
+            if key == '@id':
+                # @id does not get expanded to a list
+                value = values
+
+                # Only one @id is allowed, move it to sameAs
+                if '@id' not in merged_document:
+                    merged_document['@id'] = value
+                elif value != merged_document['@id']:
+                    if value not in merged_document[SCHEMA_URI + 'sameAs']:
+                        merged_document[SCHEMA_URI + 'sameAs'].append(value)
+            else:
+                for value in values:
+                    if value not in merged_document[key]:
+                        merged_document[key].append(value)
 
     return compact(merged_document)

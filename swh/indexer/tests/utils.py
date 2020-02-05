@@ -7,6 +7,7 @@ import abc
 import datetime
 import functools
 import random
+from typing import Dict, Any
 import unittest
 
 from hypothesis import strategies
@@ -16,11 +17,9 @@ from swh.model.hashutil import hash_to_bytes, hash_to_hex
 
 from swh.indexer.storage import INDEXER_CFG_KEY
 
-BASE_TEST_CONFIG = {
+BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
     'storage': {
         'cls': 'memory',
-        'args': {
-        },
     },
     'objstorage': {
         'cls': 'memory',
@@ -66,10 +65,13 @@ SNAPSHOTS = [
                 'target': b'L[\xce\x1c\x88\x8eF\t\xf1"\x19\x1e\xfb\xc0'
                           b's\xe7/\xe9l\x1e',
                 'target_type': 'revision'},
-            b'HEAD': {
+            b'refs/head/master': {
                 'target': b'8K\x12\x00d\x03\xcc\xe4]bS\xe3\x8f{\xd7}'
                           b'\xac\xefrm',
                 'target_type': 'revision'},
+            b'HEAD': {
+                'target': b'refs/head/master',
+                'target_type': 'alias'},
             b'refs/tags/v0.0.103': {
                 'target': b'\xb6"Im{\xfdLb\xb0\x94N\xea\x96m\x13x\x88+'
                           b'\x0f\xdd',
@@ -386,7 +388,7 @@ YARN_PARSER_METADATA = {
     'license': 'https://spdx.org/licenses/AGPL-3.0',
     'version': '1.0.0',
     'description':
-        'Tiny web service for parsing yarn.lock files',
+        "Tiny web service for parsing yarn.lock files",
     'issueTracker':
         'https://github.com/librariesio/yarn-parser/issues',
     'name': 'yarn-parser',

@@ -2,6 +2,7 @@ MANIFEST.in
 Makefile
 README.md
 requirements-swh.txt
+requirements-test.txt
 requirements.txt
 setup.py
 version.txt
@@ -70,6 +71,7 @@ swh/indexer/storage/__init__.py
 swh/indexer/storage/converters.py
 swh/indexer/storage/db.py
 swh/indexer/storage/in_memory.py
+swh/indexer/storage/interface.py
 swh/indexer/storage/api/__init__.py
 swh/indexer/storage/api/client.py
 swh/indexer/storage/api/server.py

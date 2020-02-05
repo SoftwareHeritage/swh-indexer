@@ -12,7 +12,7 @@ comment on function hash_sha1(text) is 'Compute sha1 hash as text';
 -- TBLNAME
 --
 -- Args:
---     tblname: name of the table to mimick
+--     tblname: name of the table to mimic
 create or replace function swh_mktemp(tblname regclass)
     returns void
     language plpgsql

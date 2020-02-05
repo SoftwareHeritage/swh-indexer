@@ -22,7 +22,7 @@ from swh.indexer.tests.utils import (
 
 
 class BasicTest(unittest.TestCase):
-    @patch('swh.indexer.fossology_license.subprocess')
+    @patch("swh.indexer.fossology_license.subprocess")
     def test_compute_license(self, mock_subprocess):
         """Computing licenses from a raw content should return results
 
