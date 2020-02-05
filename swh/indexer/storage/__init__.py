@@ -6,6 +6,7 @@
 
 import json
 import psycopg2
+import psycopg2.pool
 
 from collections import defaultdict
 
