@@ -1,0 +1,3 @@
+pytest
+pytest-postgresql
+hypothesis>=3.11.0

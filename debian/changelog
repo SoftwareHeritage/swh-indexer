@@ -1,8 +1,24 @@
-swh-indexer (0.0.158-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.0.159-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.0.159     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2020-02-05 16:01:03
+    +0100)
+  * Upstream changes:     - v0.0.159     - Monkey-patch backend classes
+    instead of 'get_storage' functions.     - Fix DeprecationWarning
+    about get_storage args.     - Move IndexerStorage documentation and
+    endpoint paths to a new IndexerStorageInterface class.     -
+    conftest: Use module's `get_<storage-backend>` to instantiate
+    backend     - docs: Fix sphinx warnings     - Fix merge_documents to
+    work with input document with an @id.     - Fix support of VCSs
+    whose HEAD branch is an alias.     - Fix type of 'author' in gemspec
+    mapping output.     - Fix test_origin_metadata mistakenly broken by
+    e50660efca     - Fix several typos reported by pre-commit hooks     -
+    Add a pre-commit config file     - Remove unused property-based test
+    environment     - Migrate tox.ini to extras = xxx instead of deps =
+    .[testing]     - Merge tox test environments     - Drop version
+    constraint on pytest     - Include all requirements in MANIFEST.in
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 20 Nov 2019 09:32:51 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 05 Feb 2020 15:09:42 +0000
 
 swh-indexer (0.0.158-1~swh1) unstable-swh; urgency=medium
 

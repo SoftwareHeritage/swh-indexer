@@ -23,7 +23,7 @@ from swh.indexer.tests.utils import (
 
 
 class BasicTest(unittest.TestCase):
-    @patch('swh.indexer.ctags.subprocess')
+    @patch("swh.indexer.ctags.subprocess")
     def test_run_ctags(self, mock_subprocess):
         """Computing licenses from a raw content should return results
 

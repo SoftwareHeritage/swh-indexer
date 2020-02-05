@@ -47,18 +47,6 @@ class OriginHeadIndexer(OriginIndexer):
         # could not find a head revision
         return None
 
-    # VCSs
-
-    def _try_get_vcs_head(self, snapshot):
-        try:
-            branches = snapshot['branches']
-            if branches[b'HEAD']['target_type'] == 'revision':
-                return branches[b'HEAD']['target']
-        except KeyError:
-            return None
-
-    _try_get_hg_head = _try_get_git_head = _try_get_vcs_head
-
     # Tarballs
 
     _archive_filename_re = re.compile(
@@ -113,7 +101,7 @@ class OriginHeadIndexer(OriginIndexer):
     # Generic
 
     def _try_get_head_generic(self, snapshot):
-        # Works on 'deposit', 'svn', and 'pypi'.
+        # Works on 'deposit', 'pypi', and VCSs.
         try:
             branches = snapshot['branches']
         except KeyError:
