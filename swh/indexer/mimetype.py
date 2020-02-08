@@ -1,11 +1,10 @@
-# Copyright (C) 2016-2018  The Software Heritage developers
+# Copyright (C) 2016-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from typing import Optional, Dict, Any, List
 import magic
-
-from typing import Optional
 
 from .indexer import ContentIndexer, ContentRangeIndexer
 
@@ -15,15 +14,14 @@ if not hasattr(magic.Magic, 'from_buffer'):
         'was imported instead.')
 
 
-def compute_mimetype_encoding(raw_content):
+def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
     """Determine mimetype and encoding from the raw content.
 
     Args:
-        raw_content (bytes): content's raw data
+        raw_content: content's raw data
 
     Returns:
-        dict: mimetype and encoding key and corresponding values
-        (as bytes).
+        dict: mimetype and encoding key and corresponding values.
 
     """
     m = magic.Magic(mime=True, mime_encoding=True)
@@ -41,6 +39,8 @@ class MixinMimetypeIndexer:
     See :class:`MimetypeIndexer` and :class:`MimetypeRangeIndexer`
 
     """
+    tool: Dict[str, Any]
+    idx_storage: Any
     ADDITIONAL_CONFIG = {
         'tools': ('dict', {
             'name': 'file',
@@ -55,36 +55,38 @@ class MixinMimetypeIndexer:
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'  # type: Optional[str]
 
-    def index(self, id, data):
+    def index(self, id: bytes, data: bytes) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
         Args:
-            id (bytes): content's identifier
-            data (bytes): raw content in bytes
+            id: content's identifier
+            data: raw content in bytes
 
         Returns:
             dict: content's mimetype; dict keys being
 
-            - **id** (bytes): content's identifier (sha1)
-            - **mimetype** (bytes): mimetype in bytes
-            - **encoding** (bytes): encoding in bytes
+            - id: content's identifier (sha1)
+            - mimetype: mimetype in bytes
+            - encoding: encoding in bytes
 
         """
         properties = compute_mimetype_encoding(data)
         properties.update({
             'id': id,
             'indexer_configuration_id': self.tool['id'],
-            })
+        })
         return properties
 
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(
+        self, results: List[Dict], policy_update: List[str]
+    ) -> None:
         """Persist the results in storage.
 
         Args:
-            results ([dict]): list of content's mimetype dicts
+            results: list of content's mimetype dicts
               (see :meth:`.index`)
 
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update: either 'update-dups' or 'ignore-dups' to
                respectively update duplicates or ignore them
 
         """
@@ -128,18 +130,21 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
     - stores result in storage
 
     """
-    def indexed_contents_in_range(self, start, end):
+
+    def indexed_contents_in_range(
+        self, start: bytes, end: bytes
+    ) -> Dict[str, Optional[bytes]]:
         """Retrieve indexed content id within range [start, end].
 
         Args:
-            start (bytes): Starting bound from range identifier
-            end (bytes): End range identifier
+            start: Starting bound from range identifier
+            end: End range identifier
 
         Returns:
             dict: a dict with keys:
 
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
+            - ids: iterable of content ids within the range.
+            - next: The next range of sha1 starts at
               this sha1 if any
 
         """

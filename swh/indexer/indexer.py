@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2018  The Software Heritage developers
+# Copyright (C) 2016-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -12,7 +12,8 @@ import datetime
 
 from copy import deepcopy
 from contextlib import contextmanager
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Generator, Union, List, Optional
+from typing import Set
 
 from swh.scheduler import get_scheduler
 from swh.scheduler import CONFIG as SWH_CONFIG
@@ -27,13 +28,17 @@ from swh.core import utils
 
 
 @contextmanager
-def write_to_temp(filename, data, working_directory):
+def write_to_temp(
+    filename: str, data: bytes, working_directory: str
+) -> Generator[str, None, None]:
     """Write the sha1's content in a temporary file.
 
     Args:
-        filename (str): one of sha1's many filenames
-        data (bytes): the sha1's content to write in temporary
+        filename: one of sha1's many filenames
+        data: the sha1's content to write in temporary
           file
+        working_directory: the directory into which the
+          file is written
 
     Returns:
         The path to the temporary file created. That file is
@@ -103,6 +108,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
       filtering.
 
     """
+    results: List[Dict]
+
     CONFIG = 'indexer/base'
 
     DEFAULT_CONFIG = {
@@ -134,7 +141,9 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
     """Prevents exceptions in `index()` from raising too high. Set to False
     in tests to properly catch all exceptions."""
 
-    def __init__(self, config=None, **kw):
+    scheduler: Any
+
+    def __init__(self, config=None, **kw) -> None:
         """Prepare and check that the indexer is ready to run.
 
         """
@@ -155,7 +164,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         self.check()
         self.log.debug('%s: config=%s', self, self.config)
 
-    def prepare(self):
+    def prepare(self) -> None:
         """Prepare the indexer's needed runtime configuration.
            Without this step, the indexer cannot possibly run.
 
@@ -181,10 +190,10 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         self.results = []
 
     @property
-    def tool(self):
+    def tool(self) -> Dict:
         return self.tools[0]
 
-    def check(self):
+    def check(self) -> None:
         """Check the indexer's configuration is ok before proceeding.
            If ok, does nothing. If not raise error.
 
@@ -193,13 +202,15 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             raise ValueError('Tools %s is unknown, cannot continue' %
                              self.tools)
 
-    def _prepare_tool(self, tool):
+    def _prepare_tool(self, tool: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare the tool dict to be compliant with the storage api.
 
         """
         return {'tool_%s' % key: value for key, value in tool.items()}
 
-    def register_tools(self, tools):
+    def register_tools(
+        self, tools: Union[Dict[str, Any], List[Dict[str, Any]]]
+    ) -> List[Dict[str, Any]]:
         """Permit to register tools to the storage.
 
            Add a sensible default which can be overridden if not
@@ -209,7 +220,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
            one or more tools.
 
         Args:
-            tools (dict/[dict]): Either a dict or a list of dict.
+            tools: Either a dict or a list of dict.
 
         Returns:
             list: List of dicts with additional id key.
@@ -230,12 +241,14 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         else:
             return []
 
-    def index(self, id, data):
+    def index(
+        self, id: bytes, data: bytes
+    ) -> Dict[str, Any]:
         """Index computation for the id and associated raw data.
 
         Args:
-            id (bytes): identifier
-            data (bytes): id's data from storage or objstorage depending on
+            id: identifier
+            data: id's data from storage or objstorage depending on
               object type
 
         Returns:
@@ -245,11 +258,11 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError()
 
-    def filter(self, ids):
+    def filter(self, ids: List[bytes]) -> Generator[bytes, None, None]:
         """Filter missing ids for that particular indexer.
 
         Args:
-            ids ([bytes]): list of ids
+            ids: list of ids
 
         Yields:
             iterator of missing ids
@@ -274,16 +287,18 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         """
         pass
 
-    def next_step(self, results, task):
+    def next_step(
+        self, results: List[Dict], task: Optional[Dict[str, Any]]
+    ) -> None:
         """Do something else with computations results (e.g. send to another
         queue, ...).
 
         (This is not an abstractmethod since it is optional).
 
         Args:
-            results ([result]): List of results (dict) as returned
+            results: List of results (dict) as returned
               by index function.
-            task (dict): a dict in the form expected by
+            task: a dict in the form expected by
               `scheduler.backend.SchedulerBackend.create_tasks`
               without `next_run`, plus an optional `result_name` key.
 
@@ -394,12 +409,14 @@ class ContentRangeIndexer(BaseIndexer):
 
     """
     @abc.abstractmethod
-    def indexed_contents_in_range(self, start, end):
+    def indexed_contents_in_range(
+        self, start: bytes, end: bytes
+    ) -> Any:
         """Retrieve indexed contents within range [start, end].
 
         Args:
-            start (bytes): Starting bound from range identifier
-            end (bytes): End range identifier
+            start: Starting bound from range identifier
+            end: End range identifier
 
         Yields:
             bytes: Content identifier present in the range ``[start, end]``
@@ -407,14 +424,16 @@ class ContentRangeIndexer(BaseIndexer):
         """
         pass
 
-    def _list_contents_to_index(self, start, end, indexed):
+    def _list_contents_to_index(
+        self, start: bytes, end: bytes, indexed: Set[bytes]
+    ) -> Generator[bytes, None, None]:
         """Compute from storage the new contents to index in the range [start,
            end]. The already indexed contents are skipped.
 
         Args:
-            start (bytes): Starting bound from range identifier
-            end (bytes): End range identifier
-            indexed (Set[bytes]): Set of content already indexed.
+            start: Starting bound from range identifier
+            end: End range identifier
+            indexed: Set of content already indexed.
 
         Yields:
             bytes: Identifier of contents to index.
@@ -433,13 +452,15 @@ class ContentRangeIndexer(BaseIndexer):
                 yield _id
             start = result['next']
 
-    def _index_contents(self, start, end, indexed, **kwargs):
+    def _index_contents(
+        self, start: bytes, end: bytes, indexed: Set[bytes], **kwargs: Any
+    ) -> Generator[Dict, None, None]:
         """Index the contents from within range [start, end]
 
         Args:
-            start (bytes): Starting bound from range identifier
-            end (bytes): End range identifier
-            indexed (Set[bytes]): Set of content already indexed.
+            start: Starting bound from range identifier
+            end: End range identifier
+            indexed: Set of content already indexed.
 
         Yields:
             dict: Data indexed to persist using the indexer storage
@@ -452,7 +473,7 @@ class ContentRangeIndexer(BaseIndexer):
                 self.log.warning('Content %s not found in objstorage' %
                                  hashutil.hash_to_hex(sha1))
                 continue
-            res = self.index(sha1, raw_content, **kwargs)
+            res = self.index(sha1, raw_content, **kwargs)  # type: ignore
             if res:
                 if not isinstance(res['id'], bytes):
                     raise TypeError(
@@ -460,15 +481,17 @@ class ContentRangeIndexer(BaseIndexer):
                         (self.__class__.__name__, res['id']))
                 yield res
 
-    def _index_with_skipping_already_done(self, start, end):
+    def _index_with_skipping_already_done(
+        self, start: bytes, end: bytes
+    ) -> Generator[Dict, None, None]:
         """Index not already indexed contents in range [start, end].
 
         Args:
-            start** (Union[bytes, str]): Starting range identifier
-            end (Union[bytes, str]): Ending range identifier
+            start: Starting range identifier
+            end: Ending range identifier
 
         Yields:
-            bytes: Content identifier present in the range
+            dict: Content identifier present in the range
             ``[start, end]`` which are not already indexed.
 
         """
@@ -558,7 +581,7 @@ class OriginIndexer(BaseIndexer):
         self.results = results
         return self.next_step(results, task=next_step)
 
-    def index_list(self, origins, **kwargs):
+    def index_list(self, origins: List[Any], **kwargs: Any) -> List[Dict]:
         results = []
         for origin in origins:
             try:
