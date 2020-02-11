@@ -19,7 +19,11 @@ from swh.indexer.storage import INDEXER_CFG_KEY
 
 BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
     'storage': {
-        'cls': 'memory',
+        'cls': 'pipeline',
+        'steps': [
+            {'cls': 'validate'},
+            {'cls': 'memory'},
+        ]
     },
     'objstorage': {
         'cls': 'memory',
