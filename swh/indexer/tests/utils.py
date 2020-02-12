@@ -418,7 +418,7 @@ generic_json_document = strategies.recursive(
     strategies.none() | strategies.booleans() | strategies.floats() |
     strategies.characters(),
     lambda children: (
-        strategies.lists(children, 1) |
+        strategies.lists(children, min_size=1) |
         strategies.dictionaries(json_dict_keys, children, min_size=1)
     )
 )
