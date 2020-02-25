@@ -134,19 +134,24 @@ class Db(BaseDb):
         table = self.content_indexer_names[content_type]
         if with_textual_data:
             extra = """inner join content_mimetype cm
-                         on (t.id=cm.id and cm.mimetype like 'text/%%')"""
+                         on (t.id=cm.id and cm.mimetype like 'text/%%' and
+                             %(start)s <= cm.id and cm.id <= %(end)s)
+                    """
         else:
             extra = ""
-        query = """select t.id
-                   from %s t
-                   inner join indexer_configuration ic
-                   on t.indexer_configuration_id=ic.id
-                   %s
-                   where ic.id=%%s and
-                         %%s <= t.id and t.id <= %%s
-                   order by t.indexer_configuration_id, t.id
-                   limit %%s""" % (table, extra)
-        cur.execute(query, (indexer_configuration_id, start, end, limit))
+        query = f"""select t.id
+                    from {table} t
+                    {extra}
+                    where t.indexer_configuration_id=%(tool_id)s
+                          and %(start)s <= t.id and t.id <= %(end)s
+                    order by t.indexer_configuration_id, t.id
+                    limit %(limit)s"""
+        cur.execute(query, {
+            'start': start,
+            'end': end,
+            'tool_id': indexer_configuration_id,
+            'limit': limit,
+        })
         yield from cur
 
     def content_mimetype_get_from_list(self, ids, cur=None):

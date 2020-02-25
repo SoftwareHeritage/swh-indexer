@@ -8,13 +8,14 @@ import json
 import psycopg2
 import psycopg2.pool
 
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
-from .db import Db
 
 from . import converters
+from .db import Db
+from .exc import IndexerStorageArgumentException, DuplicateId
 
 
 INDEXER_CFG_KEY = 'indexer_storage'
@@ -51,7 +52,7 @@ def get_indexer_storage(cls, args):
     return IndexerStorage(**args)
 
 
-def _check_id_duplicates(data):
+def check_id_duplicates(data):
     """
     If any two dictionaries in `data` have the same id, raises
     a `ValueError`.
@@ -61,20 +62,22 @@ def _check_id_duplicates(data):
     Args:
         data (List[dict]): List of dictionaries to be inserted
 
-    >>> _check_id_duplicates([
+    >>> check_id_duplicates([
     ...     {'id': 'foo', 'data': 'spam'},
     ...     {'id': 'bar', 'data': 'egg'},
     ... ])
-    >>> _check_id_duplicates([
+    >>> check_id_duplicates([
     ...     {'id': 'foo', 'data': 'spam'},
     ...     {'id': 'foo', 'data': 'egg'},
     ... ])
     Traceback (most recent call last):
       ...
-    ValueError: The same id is present more than once.
+    swh.indexer.storage.exc.DuplicateId: ['foo']
     """
-    if len({item['id'] for item in data}) < len(data):
-        raise ValueError('The same id is present more than once.')
+    counter = Counter(item['id'] for item in data)
+    duplicates = [id_ for (id_, count) in counter.items() if count >= 2]
+    if duplicates:
+        raise DuplicateId(duplicates)
 
 
 class IndexerStorage:
@@ -132,11 +135,11 @@ class IndexerStorage:
                            with_textual_data=False,
                            db=None, cur=None):
         if limit is None:
-            raise ValueError('Development error: limit should not be None')
+            raise IndexerStorageArgumentException('limit should not be None')
         if content_type not in db.content_indexer_names:
-            err = 'Development error: Wrong type. Should be one of [%s]' % (
+            err = 'Wrong type. Should be one of [%s]' % (
                 ','.join(db.content_indexer_names))
-            raise ValueError(err)
+            raise IndexerStorageArgumentException(err)
 
         ids = []
         next_id = None
@@ -165,7 +168,7 @@ class IndexerStorage:
     @db_transaction()
     def content_mimetype_add(self, mimetypes, conflict_update=False, db=None,
                              cur=None):
-        _check_id_duplicates(mimetypes)
+        check_id_duplicates(mimetypes)
         mimetypes.sort(key=lambda m: m['id'])
         db.mktemp_content_mimetype(cur)
         db.copy_to(mimetypes, 'tmp_content_mimetype',
@@ -193,7 +196,7 @@ class IndexerStorage:
     @db_transaction()
     def content_language_add(self, languages, conflict_update=False, db=None,
                              cur=None):
-        _check_id_duplicates(languages)
+        check_id_duplicates(languages)
         languages.sort(key=lambda m: m['id'])
         db.mktemp_content_language(cur)
         # empty language is mapped to 'unknown'
@@ -221,7 +224,7 @@ class IndexerStorage:
     @db_transaction()
     def content_ctags_add(self, ctags, conflict_update=False, db=None,
                           cur=None):
-        _check_id_duplicates(ctags)
+        check_id_duplicates(ctags)
         ctags.sort(key=lambda m: m['id'])
 
         def _convert_ctags(__ctags):
@@ -262,7 +265,7 @@ class IndexerStorage:
     @db_transaction()
     def content_fossology_license_add(self, licenses, conflict_update=False,
                                       db=None, cur=None):
-        _check_id_duplicates(licenses)
+        check_id_duplicates(licenses)
         licenses.sort(key=lambda m: m['id'])
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
@@ -299,7 +302,7 @@ class IndexerStorage:
     @db_transaction()
     def content_metadata_add(self, metadata, conflict_update=False, db=None,
                              cur=None):
-        _check_id_duplicates(metadata)
+        check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
         db.mktemp_content_metadata(cur)
@@ -324,7 +327,7 @@ class IndexerStorage:
     @db_transaction()
     def revision_intrinsic_metadata_add(self, metadata, conflict_update=False,
                                         db=None, cur=None):
-        _check_id_duplicates(metadata)
+        check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
         db.mktemp_revision_intrinsic_metadata(cur)
@@ -349,7 +352,7 @@ class IndexerStorage:
     def origin_intrinsic_metadata_add(self, metadata,
                                       conflict_update=False, db=None,
                                       cur=None):
-        _check_id_duplicates(metadata)
+        check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
         db.mktemp_origin_intrinsic_metadata(cur)

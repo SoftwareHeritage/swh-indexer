@@ -10,6 +10,9 @@ import pytest
 
 from swh.model.hashutil import hash_to_bytes
 
+from swh.indexer.storage.exc import (
+    IndexerStorageArgumentException, DuplicateId,
+)
 from swh.indexer.storage.interface import IndexerStorageInterface
 
 
@@ -253,7 +256,7 @@ class StorageETypeTester:
         # when
         endpoint(storage, etype, 'add')([data_rev1])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(DuplicateId):
             endpoint(storage, etype, 'add')(
                 [data_rev2, data_rev2],
                 conflict_update=True)
@@ -317,13 +320,12 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
             self, swh_indexer_storage):
         """mimetype_get_range call with wrong limit input should fail"""
         storage = swh_indexer_storage
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(IndexerStorageArgumentException) as e:
             storage.content_mimetype_get_range(
                 start=None, end=None, indexer_configuration_id=None,
                 limit=None)
 
-        assert e.value.args == (
-            'Development error: limit should not be None',)
+        assert e.value.args == ('limit should not be None',)
 
     def test_generate_content_mimetype_get_range_no_limit(
             self, swh_indexer_storage_with_data):
@@ -925,13 +927,12 @@ class TestIndexerStorageContentFossologyLicence:
             self, swh_indexer_storage_with_data):
         storage, data = swh_indexer_storage_with_data
         """license_get_range call with wrong limit input should fail"""
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(IndexerStorageArgumentException) as e:
             storage.content_fossology_license_get_range(
                 start=None, end=None, indexer_configuration_id=None,
                 limit=None)
 
-        assert e.value.args == (
-            'Development error: limit should not be None',)
+        assert e.value.args == ('limit should not be None',)
 
     def test_generate_content_fossology_license_get_range_no_limit(
             self, swh_indexer_storage_with_data):
@@ -1424,7 +1425,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # when
         storage.revision_intrinsic_metadata_add([metadata_rev])
 
-        with pytest.raises(ValueError):
+        with pytest.raises(DuplicateId):
             storage.origin_intrinsic_metadata_add([
                 metadata_origin, metadata_origin])
 

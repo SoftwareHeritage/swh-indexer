@@ -1,8 +1,16 @@
-swh-indexer (0.0.160-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.0.161-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.0.161     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2020-02-25 12:07:39
+    +0100)
+  * Upstream changes:     - v0.0.161     - sql/128: Add content_mimetype
+    index     - storage.db: Improve content range queries to actually
+    finish     - Add a new IndexerStorageArgumentException class, for
+    exceptions caused by the client.     - Use swh-storage validation
+    proxy.     - Fix type errors with hypothesis 5.5     - Add type
+    annotations to indexer classes
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 05 Feb 2020 17:30:41 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 25 Feb 2020 11:20:51 +0000
 
 swh-indexer (0.0.160-1~swh1) unstable-swh; urgency=medium
 

@@ -12,6 +12,7 @@ from swh.core.api import (RPCServerApp, error_handler,
 from swh.indexer.storage import (
     get_indexer_storage, INDEXER_CFG_KEY
 )
+from swh.indexer.storage.exc import IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
 
 
@@ -32,6 +33,11 @@ storage = None
 @app.errorhandler(Exception)
 def my_error_handler(exception):
     return error_handler(exception, encode_data)
+
+
+@app.errorhandler(IndexerStorageArgumentException)
+def argument_error_handler(exception):
+    return error_handler(exception, encode_data, status_code=400)
 
 
 @app.route('/')
