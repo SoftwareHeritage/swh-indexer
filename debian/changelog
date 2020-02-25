@@ -1,3 +1,9 @@
+swh-indexer (0.0.161-1~swh1~bpo10+1) buster-swh; urgency=medium
+
+  * Rebuild for buster-swh
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 25 Feb 2020 11:23:18 +0000
+
 swh-indexer (0.0.161-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.161     - (tagged by Antoine R. Dumont
