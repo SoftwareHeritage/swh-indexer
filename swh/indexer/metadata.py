@@ -294,6 +294,8 @@ class OriginMetadataIndexer(OriginIndexer):
             self.storage.origin_get,
             [{'url': url} for url in origin_urls], ORIGIN_GET_BATCH_SIZE))
         for origin in origins:
+            if origin is None:
+                continue
             head_result = self.origin_head_indexer.index(origin['url'])
             if head_result:
                 origins_with_head.append(origin)

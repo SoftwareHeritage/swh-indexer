@@ -237,3 +237,11 @@ def test_origin_metadata_indexer_delete_metadata(
     results = list(indexer.idx_storage.origin_intrinsic_metadata_get([
         origin]))
     assert results == []
+
+
+def test_origin_metadata_indexer_unknown_origin(
+        idx_storage, storage, obj_storage):
+
+    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    result = indexer.index_list(["https://unknown.org/foo"])
+    assert not result
