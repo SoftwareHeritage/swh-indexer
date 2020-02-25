@@ -19,9 +19,9 @@ create or replace function swh_mktemp(tblname regclass)
 as $$
 begin
     execute format('
-	create temporary table tmp_%1$I
+	create temporary table if not exists tmp_%1$I
 	    (like %1$I including defaults)
-	    on commit drop;
+	    on commit delete rows;
       alter table tmp_%1$I drop column if exists object_id;
 	', tblname);
     return;
@@ -33,9 +33,9 @@ create or replace function swh_mktemp_content_mimetype()
     returns void
     language sql
 as $$
-  create temporary table tmp_content_mimetype (
+  create temporary table if not exists tmp_content_mimetype (
     like content_mimetype including defaults
-  ) on commit drop;
+  ) on commit delete rows;
 $$;
 
 comment on function swh_mktemp_content_mimetype() IS 'Helper table to add mimetype information';
@@ -114,9 +114,9 @@ create or replace function swh_mktemp_content_language()
     returns void
     language sql
 as $$
-  create temporary table tmp_content_language (
+  create temporary table if not exists tmp_content_language (
     like content_language including defaults
-  ) on commit drop;
+  ) on commit delete rows;
 $$;
 
 comment on function swh_mktemp_content_language() is 'Helper table to add content language';
@@ -127,9 +127,9 @@ create or replace function swh_mktemp_content_ctags()
     returns void
     language sql
 as $$
-  create temporary table tmp_content_ctags (
+  create temporary table if not exists tmp_content_ctags (
     like content_ctags including defaults
-  ) on commit drop;
+  ) on commit delete rows;
 $$;
 
 comment on function swh_mktemp_content_ctags() is 'Helper table to add content ctags';
@@ -202,11 +202,11 @@ create or replace function swh_mktemp_content_fossology_license()
     returns void
     language sql
 as $$
-  create temporary table tmp_content_fossology_license (
+  create temporary table if not exists tmp_content_fossology_license (
     id                       sha1,
     license                  text,
     indexer_configuration_id integer
-  ) on commit drop;
+  ) on commit delete rows;
 $$;
 
 comment on function swh_mktemp_content_fossology_license() is 'Helper table to add content license';
@@ -291,9 +291,9 @@ create or replace function swh_mktemp_content_metadata()
     returns void
     language sql
 as $$
-  create temporary table tmp_content_metadata (
+  create temporary table if not exists tmp_content_metadata (
     like content_metadata including defaults
-  ) on commit drop;
+  ) on commit delete rows;
 $$;
 
 comment on function swh_mktemp_content_metadata() is 'Helper table to add content metadata';
@@ -342,9 +342,9 @@ create or replace function swh_mktemp_revision_intrinsic_metadata()
     returns void
     language sql
 as $$
-  create temporary table tmp_revision_intrinsic_metadata (
+  create temporary table if not exists tmp_revision_intrinsic_metadata (
     like revision_intrinsic_metadata including defaults
-  ) on commit drop;
+  ) on commit delete rows;
 $$;
 
 comment on function swh_mktemp_revision_intrinsic_metadata() is 'Helper table to add revision intrinsic metadata';
@@ -354,9 +354,9 @@ create or replace function swh_mktemp_origin_intrinsic_metadata()
     returns void
     language sql
 as $$
-  create temporary table tmp_origin_intrinsic_metadata (
+  create temporary table if not exists tmp_origin_intrinsic_metadata (
     like origin_intrinsic_metadata including defaults
-  ) on commit drop;
+  ) on commit delete rows;
 $$;
 
 comment on function swh_mktemp_origin_intrinsic_metadata() is 'Helper table to add origin intrinsic metadata';
@@ -365,10 +365,10 @@ create or replace function swh_mktemp_indexer_configuration()
     returns void
     language sql
 as $$
-    create temporary table tmp_indexer_configuration (
+    create temporary table if not exists tmp_indexer_configuration (
       like indexer_configuration including defaults
-    ) on commit drop;
-    alter table tmp_indexer_configuration drop column id;
+    ) on commit delete rows;
+    alter table tmp_indexer_configuration drop column if exists id;
 $$;
 
 
