@@ -1184,7 +1184,7 @@ Gem::Specification.new { |s|
         # values
         strategies.recursive(
             strategies.characters(),
-            lambda children: strategies.lists(children, 1)
+            lambda children: strategies.lists(children, min_size=1)
         )
     ))
     def test_gemspec_adversarial(self, doc):
