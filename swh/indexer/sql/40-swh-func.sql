@@ -228,13 +228,14 @@ begin
     on conflict(name) do nothing;
 
     if conflict_update then
-        -- delete from content_fossology_license c
-        --   using tmp_content_fossology_license tmp, indexer_configuration i
-        --   where c.id = tmp.id and i.id=tmp.indexer_configuration_id
-        delete from content_fossology_license
-        where id in (select tmp.id
-                     from tmp_content_fossology_license tmp
-                     inner join indexer_configuration i on i.id=tmp.indexer_configuration_id);
+        insert into content_fossology_license (id, license_id, indexer_configuration_id)
+        select tcl.id,
+              (select id from fossology_license where name = tcl.license) as license,
+              indexer_configuration_id
+        from tmp_content_fossology_license tcl
+            on conflict(id, license_id, indexer_configuration_id)
+            do update set license_id = excluded.license_id;
+        return;
     end if;
 
     insert into content_fossology_license (id, license_id, indexer_configuration_id)
