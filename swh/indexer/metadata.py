@@ -1,9 +1,11 @@
-# Copyright (C) 2017-2018  The Software Heritage developers
+# Copyright (C) 2017-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
+
+from typing import Any, List, Dict, Tuple, Callable, Generator
 
 from swh.core.utils import grouper
 
@@ -21,7 +23,10 @@ REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
 
 
-def call_with_batches(f, args, batch_size):
+def call_with_batches(
+    f: Callable[[List[Dict[str, Any]]], Dict['str', Any]],
+    args: List[Dict[str, str]], batch_size: int
+) -> Generator[str, None, None]:
     """Calls a function with batches of args, and concatenates the results.
     """
     groups = grouper(args, batch_size)
@@ -82,15 +87,17 @@ class ContentMetadataIndexer(ContentIndexer):
             return None
         return result
 
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(
+        self, results: List[Dict], policy_update: str
+    ) -> None:
         """Persist the results in storage.
 
         Args:
-            results ([dict]): list of content_metadata, dict with the
+            results: list of content_metadata, dict with the
               following keys:
               - id (bytes): content's identifier (sha1)
               - metadata (jsonb): detected metadata
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates or ignore them
 
         """
@@ -179,16 +186,18 @@ class RevisionMetadataIndexer(RevisionIndexer):
                 'Problem when indexing rev: %r', e)
         return result
 
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(
+        self, results: List[Dict], policy_update: str
+    ) -> None:
         """Persist the results in storage.
 
         Args:
-            results ([dict]): list of content_mimetype, dict with the
+            results: list of content_mimetype, dict with the
               following keys:
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates or ignore them
 
         """
@@ -198,13 +207,14 @@ class RevisionMetadataIndexer(RevisionIndexer):
             results, conflict_update=(policy_update == 'update-dups'))
 
     def translate_revision_intrinsic_metadata(
-            self, detected_files, log_suffix):
+        self, detected_files: Dict[str, List[Any]], log_suffix: str
+    ) -> Tuple[List[Any], List[Any]]:
         """
         Determine plan of action to translate metadata when containing
         one or multiple detected files:
 
         Args:
-            detected_files (dict): dictionary mapping context names (e.g.,
+            detected_files: dictionary mapping context names (e.g.,
               "npm", "authors") to list of sha1
 
         Returns:
@@ -272,7 +282,7 @@ class OriginMetadataIndexer(OriginIndexer):
 
     USE_TOOLS = False
 
-    def __init__(self, config=None, **kwargs):
+    def __init__(self, config=None, **kwargs) -> None:
         super().__init__(config=config, **kwargs)
         self.origin_head_indexer = OriginHeadIndexer(config=config)
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
@@ -313,14 +323,16 @@ class OriginMetadataIndexer(OriginIndexer):
             results.append((orig_metadata, rev_metadata))
         return results
 
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(
+        self, results: List[Dict], policy_update: str
+    ) -> None:
         conflict_update = (policy_update == 'update-dups')
 
         # Deduplicate revisions
-        rev_metadata = []
-        orig_metadata = []
-        revs_to_delete = []
-        origs_to_delete = []
+        rev_metadata: List[Any] = []
+        orig_metadata: List[Any] = []
+        revs_to_delete: List[Any] = []
+        origs_to_delete: List[Any] = []
         for (orig_item, rev_item) in results:
             assert rev_item['metadata'] == orig_item['metadata']
             if not rev_item['metadata'] or \

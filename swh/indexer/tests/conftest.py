@@ -19,6 +19,15 @@ from .utils import fill_storage, fill_obj_storage
 TASK_NAMES = ['revision_intrinsic_metadata', 'origin_intrinsic_metadata']
 
 
+storage_config = {
+    'cls': 'pipeline',
+    'steps': [
+        {'cls': 'validate'},
+        {'cls': 'memory'},
+    ]
+}
+
+
 @pytest.fixture
 def indexer_scheduler(swh_scheduler):
     for taskname in TASK_NAMES:
@@ -53,7 +62,7 @@ def storage():
        classes.
 
     """
-    storage = get_storage('memory')
+    storage = get_storage(**storage_config)
     fill_storage(storage)
     with patch('swh.storage.in_memory.InMemoryStorage') as storage_mock:
         storage_mock.return_value = storage

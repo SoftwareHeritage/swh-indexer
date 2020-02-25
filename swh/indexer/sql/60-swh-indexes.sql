@@ -39,6 +39,8 @@ alter table content_mimetype add primary key using index content_mimetype_pkey;
 alter table content_mimetype add constraint content_mimetype_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
 alter table content_mimetype validate constraint content_mimetype_indexer_configuration_id_fkey;
 
+create index on content_mimetype(id) where mimetype like 'text/%';
+
 -- content_language
 create unique index content_language_pkey on content_language(id, indexer_configuration_id);
 alter table content_language add primary key using index content_language_pkey;

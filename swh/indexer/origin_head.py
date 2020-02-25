@@ -1,7 +1,9 @@
-# Copyright (C) 2018  The Software Heritage developers
+# Copyright (C) 2018-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
+
+from typing import List, Tuple, Any, Dict, Union
 
 import re
 import click
@@ -20,7 +22,9 @@ class OriginHeadIndexer(OriginIndexer):
 
     USE_TOOLS = False
 
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(
+        self, results: Any, policy_update: str
+    ) -> None:
         """Do nothing. The indexer's results are not persistent, they
         should only be piped to another indexer."""
         pass
@@ -58,7 +62,9 @@ class OriginHeadIndexer(OriginIndexer):
             rb'$')
 
     @classmethod
-    def _parse_version(cls, filename):
+    def _parse_version(
+        cls: Any, filename: str
+    ) -> Tuple[Union[float, int], ...]:
         """Extracts the release version from an archive filename,
         to get an ordering whose maximum is likely to be the last
         version of the software
@@ -92,7 +98,7 @@ class OriginHeadIndexer(OriginIndexer):
                 assert False, res.group('preversion')
         return tuple(version)
 
-    def _try_get_ftp_head(self, snapshot):
+    def _try_get_ftp_head(self, snapshot: Dict[str, Any]) -> Any:
         archive_names = list(snapshot['branches'])
         max_archive_name = max(archive_names, key=self._parse_version)
         r = self._try_resolve_target(snapshot['branches'], max_archive_name)
@@ -100,7 +106,9 @@ class OriginHeadIndexer(OriginIndexer):
 
     # Generic
 
-    def _try_get_head_generic(self, snapshot):
+    def _try_get_head_generic(
+        self, snapshot: Dict[str, Any]
+    ) -> Any:
         # Works on 'deposit', 'pypi', and VCSs.
         try:
             branches = snapshot['branches']
@@ -112,7 +120,7 @@ class OriginHeadIndexer(OriginIndexer):
                     self._try_resolve_target(branches, b'master')
                     )
 
-    def _try_resolve_target(self, branches, target_name):
+    def _try_resolve_target(self, branches: Dict, target_name: bytes) -> Any:
         try:
             target = branches[target_name]
             if target is None:
@@ -140,7 +148,7 @@ class OriginHeadIndexer(OriginIndexer):
 @click.option('--origins', '-i',
               help='Origins to lookup, in the "type+url" format',
               multiple=True)
-def main(origins):
+def main(origins: List[str]) -> None:
     rev_metadata_indexer = OriginHeadIndexer()
     rev_metadata_indexer.run(origins)
 

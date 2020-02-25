@@ -10,8 +10,10 @@ import json
 import operator
 import math
 import re
+from typing import Any, Dict, List
 
-from . import MAPPING_NAMES
+from . import MAPPING_NAMES, check_id_duplicates
+from .exc import IndexerStorageArgumentException
 
 SHA1_DIGEST_SIZE = 160
 
@@ -23,6 +25,12 @@ def _transform_tool(tool):
         'version': tool['tool_version'],
         'configuration': tool['tool_configuration'],
     }
+
+
+def check_id_types(data: List[Dict[str, Any]]):
+    """Checks all elements of the list have an 'id' whose type is 'bytes'."""
+    if not all(isinstance(item.get('id'), bytes) for item in data):
+        raise IndexerStorageArgumentException('identifiers must be bytes.')
 
 
 class SubStorage:
@@ -91,7 +99,7 @@ class SubStorage:
             **limit** (int): Limit result
 
         Raises:
-            ValueError for limit to None
+            IndexerStorageArgumentException for limit to None
 
         Returns:
             a dict with keys:
@@ -101,7 +109,7 @@ class SubStorage:
 
         """
         if limit is None:
-            raise ValueError('Development error: limit should not be None')
+            raise IndexerStorageArgumentException('limit should not be None')
         from_index = bisect.bisect_left(self._sorted_ids, start)
         to_index = bisect.bisect_right(self._sorted_ids, end, lo=from_index)
         if to_index - from_index >= limit:
@@ -131,9 +139,7 @@ class SubStorage:
 
         """
         data = list(data)
-        if len({x['id'] for x in data}) < len(data):
-            # For "exception-compatibility" with the pgsql backend
-            raise ValueError('The same id is present more than once.')
+        check_id_duplicates(data)
         for item in data:
             item = item.copy()
             tool_id = item.pop('indexer_configuration_id')
@@ -211,8 +217,7 @@ class IndexerStorage:
             start, end, indexer_configuration_id, limit)
 
     def content_mimetype_add(self, mimetypes, conflict_update=False):
-        if not all(isinstance(x['id'], bytes) for x in mimetypes):
-            raise TypeError('identifiers must be bytes.')
+        check_id_types(mimetypes)
         self._mimetypes.add(mimetypes, conflict_update)
 
     def content_mimetype_get(self, ids):
@@ -225,8 +230,7 @@ class IndexerStorage:
         yield from self._languages.get(ids)
 
     def content_language_add(self, languages, conflict_update=False):
-        if not all(isinstance(x['id'], bytes) for x in languages):
-            raise TypeError('identifiers must be bytes.')
+        check_id_types(languages)
         self._languages.add(languages, conflict_update)
 
     def content_ctags_missing(self, ctags):
@@ -242,8 +246,7 @@ class IndexerStorage:
                 }
 
     def content_ctags_add(self, ctags, conflict_update=False):
-        if not all(isinstance(x['id'], bytes) for x in ctags):
-            raise TypeError('identifiers must be bytes.')
+        check_id_types(ctags)
         self._content_ctags.add_merge(ctags, conflict_update, 'ctags')
 
     def content_ctags_search(self, expression,
@@ -277,8 +280,7 @@ class IndexerStorage:
             yield {id_: facts}
 
     def content_fossology_license_add(self, licenses, conflict_update=False):
-        if not all(isinstance(x['id'], bytes) for x in licenses):
-            raise TypeError('identifiers must be bytes.')
+        check_id_types(licenses)
         self._licenses.add_merge(licenses, conflict_update, 'licenses')
 
     def content_fossology_license_get_range(
@@ -293,8 +295,7 @@ class IndexerStorage:
         yield from self._content_metadata.get(ids)
 
     def content_metadata_add(self, metadata, conflict_update=False):
-        if not all(isinstance(x['id'], bytes) for x in metadata):
-            raise TypeError('identifiers must be bytes.')
+        check_id_types(metadata)
         self._content_metadata.add(metadata, conflict_update)
 
     def revision_intrinsic_metadata_missing(self, metadata):
@@ -304,8 +305,7 @@ class IndexerStorage:
         yield from self._revision_intrinsic_metadata.get(ids)
 
     def revision_intrinsic_metadata_add(self, metadata, conflict_update=False):
-        if not all(isinstance(x['id'], bytes) for x in metadata):
-            raise TypeError('identifiers must be bytes.')
+        check_id_types(metadata)
         self._revision_intrinsic_metadata.add(metadata, conflict_update)
 
     def revision_intrinsic_metadata_delete(self, entries):

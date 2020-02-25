@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2018  The Software Heritage developers
+# Copyright (C) 2017-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -7,6 +7,7 @@ import logging
 import itertools
 
 from collections import defaultdict
+from typing import Dict, Any, Tuple, List, Generator
 
 from swh.core import utils
 from swh.core.config import SWHConfig
@@ -64,7 +65,7 @@ class RecomputeChecksums(SWHConfig):
 
     CONFIG_BASE_FILENAME = 'indexer/rehash'
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = self.parse_config_file()
         self.storage = get_storage(**self.config['storage'])
         self.objstorage = get_objstorage(**self.config['objstorage'])
@@ -80,7 +81,9 @@ class RecomputeChecksums(SWHConfig):
         if not self.compute_checksums:
             raise ValueError('Checksums list should not be empty.')
 
-    def _read_content_ids(self, contents):
+    def _read_content_ids(
+        self, contents: List[Dict[str, Any]]
+    ) -> Generator[bytes, Any, None]:
         """Read the content identifiers from the contents.
 
         """
@@ -91,14 +94,15 @@ class RecomputeChecksums(SWHConfig):
 
             yield h
 
-    def get_new_contents_metadata(self, all_contents):
+    def get_new_contents_metadata(
+        self, all_contents: List[Dict[str, Any]]
+    ) -> Generator[Tuple[Dict[str, Any], List[Any]], Any, None]:
         """Retrieve raw contents and compute new checksums on the
            contents. Unknown or corrupted contents are skipped.
 
         Args:
-            all_contents ([dict]): List of contents as dictionary with
+            all_contents: List of contents as dictionary with
               the necessary primary keys
-            checksum_algorithms ([str]): List of checksums to compute
 
         Yields:
             tuple: tuple of (content to update, list of checksums computed)
@@ -141,7 +145,7 @@ class RecomputeChecksums(SWHConfig):
                 content.update(content_hashes)
                 yield content, checksums_to_compute
 
-    def run(self, contents):
+    def run(self, contents: List[Dict[str, Any]]) -> None:
         """Given a list of content:
 
           - (re)compute a given set of checksums on contents available in our
@@ -149,7 +153,7 @@ class RecomputeChecksums(SWHConfig):
           - update those contents with the new metadata
 
           Args:
-              contents (dict): contents as dictionary with necessary keys.
+              contents: contents as dictionary with necessary keys.
                   key present in such dictionary should be the ones defined in
                   the 'primary_key' option.
 
@@ -158,7 +162,7 @@ class RecomputeChecksums(SWHConfig):
                 self.get_new_contents_metadata(contents),
                 self.batch_size_update):
 
-            groups = defaultdict(list)
+            groups: Dict[str, List[Any]] = defaultdict(list)
             for content, keys_to_update in data:
                 keys = ','.join(keys_to_update)
                 groups[keys].append(content)
