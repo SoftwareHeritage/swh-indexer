@@ -47,29 +47,31 @@ comment on function swh_mktemp_content_mimetype() IS 'Helper table to add mimety
 -- swh_content_mimetype_missing must take place before calling this
 -- function.
 --
---
 -- operates in bulk: 0. swh_mktemp(content_mimetype), 1. COPY to tmp_content_mimetype,
 -- 2. call this function
 create or replace function swh_content_mimetype_add(conflict_update boolean)
-    returns void
+    returns bigint
     language plpgsql
 as $$
+declare
+  res bigint;
 begin
     if conflict_update then
         insert into content_mimetype (id, mimetype, encoding, indexer_configuration_id)
         select id, mimetype, encoding, indexer_configuration_id
         from tmp_content_mimetype tcm
-            on conflict(id, indexer_configuration_id)
-                do update set mimetype = excluded.mimetype,
-                              encoding = excluded.encoding;
-
+        on conflict(id, indexer_configuration_id)
+        do update set mimetype = excluded.mimetype,
+                      encoding = excluded.encoding;
     else
         insert into content_mimetype (id, mimetype, encoding, indexer_configuration_id)
         select id, mimetype, encoding, indexer_configuration_id
         from tmp_content_mimetype tcm
-            on conflict(id, indexer_configuration_id) do nothing;
+        on conflict(id, indexer_configuration_id)
+        do nothing;
     end if;
-    return;
+    get diagnostics res = ROW_COUNT;
+    return res;
 end
 $$;
 
@@ -85,25 +87,27 @@ comment on function swh_content_mimetype_add(boolean) IS 'Add new content mimety
 -- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
 -- tmp_content_language, 2. call this function
 create or replace function swh_content_language_add(conflict_update boolean)
-    returns void
+    returns bigint
     language plpgsql
 as $$
+declare
+  res bigint;
 begin
     if conflict_update then
       insert into content_language (id, lang, indexer_configuration_id)
       select id, lang, indexer_configuration_id
-    	from tmp_content_language tcl
-            on conflict(id, indexer_configuration_id)
-                do update set lang = excluded.lang;
-
+      from tmp_content_language tcl
+      on conflict(id, indexer_configuration_id)
+      do update set lang = excluded.lang;
     else
         insert into content_language (id, lang, indexer_configuration_id)
         select id, lang, indexer_configuration_id
-    	  from tmp_content_language tcl
-            on conflict(id, indexer_configuration_id)
-            do nothing;
+    	from tmp_content_language tcl
+        on conflict(id, indexer_configuration_id)
+        do nothing;
     end if;
-    return;
+    get diagnostics res = ROW_COUNT;
+    return res;
 end
 $$;
 
@@ -141,9 +145,11 @@ comment on function swh_mktemp_content_ctags() is 'Helper table to add content c
 -- operates in bulk: 0. swh_mktemp(content_ctags), 1. COPY to tmp_content_ctags,
 -- 2. call this function
 create or replace function swh_content_ctags_add(conflict_update boolean)
-    returns void
+    returns bigint
     language plpgsql
 as $$
+declare
+  res bigint;
 begin
     if conflict_update then
         delete from content_ctags
@@ -155,9 +161,10 @@ begin
     insert into content_ctags (id, name, kind, line, lang, indexer_configuration_id)
     select id, name, kind, line, lang, indexer_configuration_id
     from tmp_content_ctags tct
-        on conflict(id, hash_sha1(name), kind, line, lang, indexer_configuration_id)
-        do nothing;
-    return;
+    on conflict(id, hash_sha1(name), kind, line, lang, indexer_configuration_id)
+    do nothing;
+    get diagnostics res = ROW_COUNT;
+    return res;
 end
 $$;
 
@@ -217,9 +224,11 @@ comment on function swh_mktemp_content_fossology_license() is 'Helper table to a
 -- operates in bulk: 0. swh_mktemp(content_fossology_license), 1. COPY to
 -- tmp_content_fossology_license, 2. call this function
 create or replace function swh_content_fossology_license_add(conflict_update boolean)
-    returns void
-    language plpgsql
+  returns bigint
+  language plpgsql
 as $$
+declare
+  res bigint;
 begin
     -- insert unknown licenses first
     insert into fossology_license (name)
@@ -233,9 +242,8 @@ begin
               (select id from fossology_license where name = tcl.license) as license,
               indexer_configuration_id
         from tmp_content_fossology_license tcl
-            on conflict(id, license_id, indexer_configuration_id)
-            do update set license_id = excluded.license_id;
-        return;
+        on conflict(id, license_id, indexer_configuration_id)
+        do update set license_id = excluded.license_id;
     end if;
 
     insert into content_fossology_license (id, license_id, indexer_configuration_id)
@@ -243,13 +251,16 @@ begin
           (select id from fossology_license where name = tcl.license) as license,
           indexer_configuration_id
     from tmp_content_fossology_license tcl
-        on conflict(id, license_id, indexer_configuration_id)
-        do nothing;
-    return;
+    on conflict(id, license_id, indexer_configuration_id)
+    do nothing;
+
+    get diagnostics res = ROW_COUNT;
+    return res;
 end
 $$;
 
 comment on function swh_content_fossology_license_add(boolean) IS 'Add new content licenses';
+
 
 -- content_metadata functions
 
@@ -263,25 +274,27 @@ comment on function swh_content_fossology_license_add(boolean) IS 'Add new conte
 -- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
 -- tmp_content_metadata, 2. call this function
 create or replace function swh_content_metadata_add(conflict_update boolean)
-    returns void
+    returns bigint
     language plpgsql
 as $$
+declare
+  res bigint;
 begin
     if conflict_update then
       insert into content_metadata (id, metadata, indexer_configuration_id)
       select id, metadata, indexer_configuration_id
-    	from tmp_content_metadata tcm
-            on conflict(id, indexer_configuration_id)
-                do update set metadata = excluded.metadata;
-
+      from tmp_content_metadata tcm
+      on conflict(id, indexer_configuration_id)
+      do update set metadata = excluded.metadata;
     else
         insert into content_metadata (id, metadata, indexer_configuration_id)
         select id, metadata, indexer_configuration_id
     	from tmp_content_metadata tcm
-            on conflict(id, indexer_configuration_id)
-            do nothing;
+        on conflict(id, indexer_configuration_id)
+        do nothing;
     end if;
-    return;
+    get diagnostics res = ROW_COUNT;
+    return res;
 end
 $$;
 
@@ -312,27 +325,29 @@ comment on function swh_mktemp_content_metadata() is 'Helper table to add conten
 -- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
 -- tmp_revision_intrinsic_metadata, 2. call this function
 create or replace function swh_revision_intrinsic_metadata_add(conflict_update boolean)
-    returns void
+    returns bigint
     language plpgsql
 as $$
+declare
+  res bigint;
 begin
     if conflict_update then
       insert into revision_intrinsic_metadata (id, metadata, mappings, indexer_configuration_id)
       select id, metadata, mappings, indexer_configuration_id
-    	from tmp_revision_intrinsic_metadata tcm
-            on conflict(id, indexer_configuration_id)
-                do update set
-                    metadata = excluded.metadata,
-                    mappings = excluded.mappings;
-
+      from tmp_revision_intrinsic_metadata tcm
+      on conflict(id, indexer_configuration_id)
+      do update set
+          metadata = excluded.metadata,
+          mappings = excluded.mappings;
     else
         insert into revision_intrinsic_metadata (id, metadata, mappings, indexer_configuration_id)
         select id, metadata, mappings, indexer_configuration_id
     	from tmp_revision_intrinsic_metadata tcm
-            on conflict(id, indexer_configuration_id)
-            do nothing;
+        on conflict(id, indexer_configuration_id)
+        do nothing;
     end if;
-    return;
+    get diagnostics res = ROW_COUNT;
+    return res;
 end
 $$;
 
@@ -408,32 +423,34 @@ $$;
 -- tmp_origin_intrinsic_metadata, 2. call this function
 create or replace function swh_origin_intrinsic_metadata_add(
         conflict_update boolean)
-    returns void
+    returns bigint
     language plpgsql
 as $$
+declare
+  res bigint;
 begin
     perform swh_origin_intrinsic_metadata_compute_tsvector();
     if conflict_update then
       insert into origin_intrinsic_metadata (id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
       select id, metadata, indexer_configuration_id, from_revision,
              metadata_tsvector, mappings
-    	from tmp_origin_intrinsic_metadata
-            on conflict(id, indexer_configuration_id)
-                do update set
-                    metadata = excluded.metadata,
-                    metadata_tsvector = excluded.metadata_tsvector,
-                    mappings = excluded.mappings,
-                    from_revision = excluded.from_revision;
-
+      from tmp_origin_intrinsic_metadata
+      on conflict(id, indexer_configuration_id)
+      do update set
+          metadata = excluded.metadata,
+          metadata_tsvector = excluded.metadata_tsvector,
+          mappings = excluded.mappings,
+          from_revision = excluded.from_revision;
     else
         insert into origin_intrinsic_metadata (id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
         select id, metadata, indexer_configuration_id, from_revision,
                metadata_tsvector, mappings
     	from tmp_origin_intrinsic_metadata
-            on conflict(id, indexer_configuration_id)
-            do nothing;
+        on conflict(id, indexer_configuration_id)
+        do nothing;
     end if;
-    return;
+    get diagnostics res = ROW_COUNT;
+    return res;
 end
 $$;
 

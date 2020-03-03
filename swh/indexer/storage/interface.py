@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from typing import Dict, List
 
 from swh.core.api import remote_api_endpoint
 
@@ -89,7 +90,8 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint('content_mimetype/add')
-    def content_mimetype_add(self, mimetypes, conflict_update=False):
+    def content_mimetype_add(self, mimetypes: List[Dict],
+                             conflict_update: bool = False) -> Dict:
         """Add mimetypes not present in storage.
 
         Args:
@@ -103,6 +105,9 @@ class IndexerStorageInterface:
               - **conflict_update** (bool): Flag to determine if we want to
                 overwrite (``True``) or skip duplicates (``False``, the
                 default)
+
+        Returns:
+            Dict summary of number of rows added
 
         """
         ...
@@ -161,7 +166,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint('content_language/add')
-    def content_language_add(self, languages, conflict_update=False):
+    def content_language_add(
+            self, languages: List[Dict],
+            conflict_update: bool = False) -> Dict:
         """Add languages not present in storage.
 
         Args:
@@ -173,6 +180,9 @@ class IndexerStorageInterface:
             conflict_update (bool): Flag to determine if we want to
                 overwrite (true) or skip duplicates (false, the
                 default)
+
+        Returns:
+            Dict summary of number of rows added
 
         """
         ...
@@ -216,7 +226,8 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint('content/ctags/add')
-    def content_ctags_add(self, ctags, conflict_update=False):
+    def content_ctags_add(self, ctags: List[Dict],
+                          conflict_update: bool = False) -> Dict:
         """Add ctags not present in storage
 
         Args:
@@ -225,6 +236,9 @@ class IndexerStorageInterface:
                 - **id** (bytes): sha1
                 - **ctags** ([list): List of dictionary with keys: name, kind,
                   line, lang
+
+        Returns:
+            Dict summary of number of rows added
 
         """
         ...
@@ -263,7 +277,8 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint('content/fossology_license/add')
-    def content_fossology_license_add(self, licenses, conflict_update=False):
+    def content_fossology_license_add(
+            self, licenses: List[Dict], conflict_update: bool = False) -> Dict:
         """Add licenses not present in storage.
 
         Args:
@@ -277,7 +292,7 @@ class IndexerStorageInterface:
                 or skip duplicates (false, the default)
 
         Returns:
-            list: content_license entries which failed due to unknown licenses
+            Dict summary of number of rows added
 
         """
         ...
@@ -343,7 +358,8 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint('content_metadata/add')
-    def content_metadata_add(self, metadata, conflict_update=False):
+    def content_metadata_add(
+            self, metadata: List[Dict], conflict_update: bool = False) -> Dict:
         """Add metadata not present in storage.
 
         Args:
@@ -354,6 +370,9 @@ class IndexerStorageInterface:
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)
+
+        Returns:
+            Dict summary of number of rows added
 
         """
         ...
@@ -395,7 +414,8 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint('revision_intrinsic_metadata/add')
-    def revision_intrinsic_metadata_add(self, metadata, conflict_update=False):
+    def revision_intrinsic_metadata_add(
+            self, metadata: List[Dict], conflict_update: bool = False) -> Dict:
         """Add metadata not present in storage.
 
         Args:
@@ -410,11 +430,14 @@ class IndexerStorageInterface:
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
 
+        Returns:
+            Dict summary of number of rows added
+
         """
         ...
 
     @remote_api_endpoint('revision_intrinsic_metadata/delete')
-    def revision_intrinsic_metadata_delete(self, entries):
+    def revision_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
         """Remove revision metadata from the storage.
 
         Args:
@@ -423,6 +446,9 @@ class IndexerStorageInterface:
                 - **id** (bytes): revision identifier
                 - **indexer_configuration_id** (int): tool used to compute
                   metadata
+
+        Returns:
+            Summary of number of rows deleted
         """
         ...
 
@@ -448,8 +474,8 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint('origin_intrinsic_metadata/add')
-    def origin_intrinsic_metadata_add(self, metadata,
-                                      conflict_update=False):
+    def origin_intrinsic_metadata_add(
+            self, metadata: List[Dict], conflict_update: bool = False) -> Dict:
         """Add origin metadata not present in storage.
 
         Args:
@@ -466,12 +492,15 @@ class IndexerStorageInterface:
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
 
+        Returns:
+            Dict summary of number of rows added
+
         """
         ...
 
     @remote_api_endpoint('origin_intrinsic_metadata/delete')
     def origin_intrinsic_metadata_delete(
-            self, entries):
+            self, entries: List[Dict]) -> Dict:
         """Remove origin metadata from the storage.
 
         Args:
@@ -480,6 +509,9 @@ class IndexerStorageInterface:
                 - **id** (str): origin urls
                 - **indexer_configuration_id** (int): tool used to compute
                   metadata
+
+        Returns:
+            Summary of number of rows deleted
         """
         ...
 
