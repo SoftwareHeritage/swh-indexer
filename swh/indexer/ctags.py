@@ -1,10 +1,12 @@
-# Copyright (C) 2015-2017  The Software Heritage developers
+# Copyright (C) 2015-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import subprocess
 import json
+
+from typing import Dict, List
 
 from swh.model import hashutil
 
@@ -135,17 +137,18 @@ class CtagsIndexer(ContentIndexer):
 
         return ctags
 
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(
+            self, results: List[Dict], policy_update: str) -> Dict:
         """Persist the results in storage.
 
         Args:
-            results ([dict]): list of content_mimetype, dict with the
+            results: list of content_mimetype, dict with the
               following keys:
               - id (bytes): content's identifier (sha1)
               - ctags ([dict]): ctags list of symbols
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates or ignore them
 
         """
-        self.idx_storage.content_ctags_add(
+        return self.idx_storage.content_ctags_add(
             results, conflict_update=(policy_update == 'update-dups'))

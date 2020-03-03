@@ -36,7 +36,7 @@ class BasicTest(unittest.TestCase):
                  ['GPL', 'AGPL'])]:
             mock_subprocess.check_output.return_value = intermediary_result
 
-            actual_result = compute_license(path, log=None)
+            actual_result = compute_license(path)
 
             self.assertEqual(actual_result, {
                 'licenses': output,
@@ -44,7 +44,7 @@ class BasicTest(unittest.TestCase):
             })
 
 
-def mock_compute_license(path, log=None):
+def mock_compute_license(path):
     """path is the content identifier
 
     """

@@ -5,7 +5,7 @@
 
 from copy import deepcopy
 
-from typing import Any, List, Dict, Tuple, Callable, Generator
+from typing import Any, Callable, Dict, Iterator, List, Tuple
 
 from swh.core.utils import grouper
 
@@ -26,7 +26,7 @@ ORIGIN_GET_BATCH_SIZE = 10
 def call_with_batches(
     f: Callable[[List[Dict[str, Any]]], Dict['str', Any]],
     args: List[Dict[str, str]], batch_size: int
-) -> Generator[str, None, None]:
+) -> Iterator[str]:
     """Calls a function with batches of args, and concatenates the results.
     """
     groups = grouper(args, batch_size)
@@ -89,7 +89,7 @@ class ContentMetadataIndexer(ContentIndexer):
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
-    ) -> None:
+    ) -> Dict:
         """Persist the results in storage.
 
         Args:
@@ -101,7 +101,7 @@ class ContentMetadataIndexer(ContentIndexer):
               respectively update duplicates or ignore them
 
         """
-        self.idx_storage.content_metadata_add(
+        return self.idx_storage.content_metadata_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
 
@@ -188,7 +188,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
-    ) -> None:
+    ) -> Dict:
         """Persist the results in storage.
 
         Args:
@@ -203,7 +203,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         """
         # TODO: add functions in storage to keep data in
         # revision_intrinsic_metadata
-        self.idx_storage.revision_intrinsic_metadata_add(
+        return self.idx_storage.revision_intrinsic_metadata_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
     def translate_revision_intrinsic_metadata(
@@ -327,7 +327,7 @@ class OriginMetadataIndexer(OriginIndexer):
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
-    ) -> None:
+    ) -> Dict:
         conflict_update = (policy_update == 'update-dups')
 
         # Deduplicate revisions
@@ -335,6 +335,7 @@ class OriginMetadataIndexer(OriginIndexer):
         orig_metadata: List[Any] = []
         revs_to_delete: List[Any] = []
         origs_to_delete: List[Any] = []
+        summary: Dict = {}
         for (orig_item, rev_item) in results:
             assert rev_item['metadata'] == orig_item['metadata']
             if not rev_item['metadata'] or \
@@ -352,17 +353,25 @@ class OriginMetadataIndexer(OriginIndexer):
                     orig_metadata.append(orig_item)
 
         if rev_metadata:
-            self.idx_storage.revision_intrinsic_metadata_add(
+            summary_rev = self.idx_storage.revision_intrinsic_metadata_add(
                 rev_metadata, conflict_update=conflict_update)
+            summary.update(summary_rev)
         if orig_metadata:
-            self.idx_storage.origin_intrinsic_metadata_add(
+            summary_ori = self.idx_storage.origin_intrinsic_metadata_add(
                 orig_metadata, conflict_update=conflict_update)
+            summary.update(summary_ori)
 
         # revs_to_delete should always be empty unless we changed a mapping
         # to detect less files or less content.
         # However, origs_to_delete may be empty whenever an upstream deletes
         # a metadata file.
         if origs_to_delete:
-            self.idx_storage.origin_intrinsic_metadata_delete(origs_to_delete)
+            summary_ori = self.idx_storage.origin_intrinsic_metadata_delete(
+                origs_to_delete)
+            summary.update(summary_ori)
         if revs_to_delete:
-            self.idx_storage.revision_intrinsic_metadata_delete(revs_to_delete)
+            summary_rev = self.idx_storage.revision_intrinsic_metadata_delete(
+                revs_to_delete)
+            summary.update(summary_ori)
+
+        return summary
