@@ -13,6 +13,7 @@ from typing import Dict, List
 
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
+from swh.storage.metrics import send_metric, timed, process_metrics
 
 from . import converters
 from .db import Db
@@ -166,6 +167,8 @@ class IndexerStorage:
                                        indexer_configuration_id, limit=limit,
                                        db=db, cur=cur)
 
+    @timed
+    @process_metrics
     @db_transaction()
     def content_mimetype_add(
             self, mimetypes: List[Dict], conflict_update: bool = False,
@@ -184,6 +187,8 @@ class IndexerStorage:
                    ['id', 'mimetype', 'encoding', 'indexer_configuration_id'],
                    cur)
         count = db.content_mimetype_add_from_temp(conflict_update, cur)
+        send_metric('content_mimetype:add',
+                    count=count, method_name='content_mimetype_add')
         return {
             'content_mimetype:add': count
         }
@@ -205,6 +210,8 @@ class IndexerStorage:
             yield converters.db_to_language(
                 dict(zip(db.content_language_cols, c)))
 
+    @timed
+    @process_metrics
     @db_transaction()
     def content_language_add(
             self, languages: List[Dict],
@@ -223,6 +230,8 @@ class IndexerStorage:
             ['id', 'lang', 'indexer_configuration_id'], cur)
 
         count = db.content_language_add_from_temp(conflict_update, cur)
+        send_metric('content_language:add',
+                    count=count, method_name='content_language_add')
         return {
             'content_language:add': count
         }
@@ -237,6 +246,8 @@ class IndexerStorage:
         for c in db.content_ctags_get_from_list(ids, cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
 
+    @timed
+    @process_metrics
     @db_transaction()
     def content_ctags_add(
             self, ctags: List[Dict], conflict_update: bool = False,
@@ -259,6 +270,8 @@ class IndexerStorage:
                    cur=cur)
 
         count = db.content_ctags_add_from_temp(conflict_update, cur)
+        send_metric('content_ctags:add',
+                    count=count, method_name='content_ctags_add')
         return {
             'content_ctags:add': count
         }
@@ -282,6 +295,8 @@ class IndexerStorage:
         for id_, facts in d.items():
             yield {id_: facts}
 
+    @timed
+    @process_metrics
     @db_transaction()
     def content_fossology_license_add(
             self, licenses: List[Dict], conflict_update: bool = False,
@@ -301,6 +316,8 @@ class IndexerStorage:
             cur=cur)
         count = db.content_fossology_license_add_from_temp(
             conflict_update, cur)
+        send_metric('content_fossology_license:add',
+                    count=count, method_name='content_fossology_license_add')
         return {
             'content_fossology_license:add': count
         }
@@ -324,6 +341,8 @@ class IndexerStorage:
             yield converters.db_to_metadata(
                 dict(zip(db.content_metadata_cols, c)))
 
+    @timed
+    @process_metrics
     @db_transaction()
     def content_metadata_add(
             self, metadata: List[Dict], conflict_update: bool = False,
@@ -337,6 +356,8 @@ class IndexerStorage:
                    ['id', 'metadata', 'indexer_configuration_id'],
                    cur)
         count = db.content_metadata_add_from_temp(conflict_update, cur)
+        send_metric('content_metadata:add',
+                    count=count, method_name='content_metadata_add')
         return {
             'content_metadata:add': count,
         }
@@ -353,6 +374,8 @@ class IndexerStorage:
             yield converters.db_to_metadata(
                 dict(zip(db.revision_intrinsic_metadata_cols, c)))
 
+    @timed
+    @process_metrics
     @db_transaction()
     def revision_intrinsic_metadata_add(
             self, metadata: List[Dict], conflict_update: bool = False,
@@ -368,10 +391,14 @@ class IndexerStorage:
                    cur)
         count = db.revision_intrinsic_metadata_add_from_temp(
             conflict_update, cur)
+        send_metric('revision_intrinsic_metadata:add',
+                    count=count, method_name='revision_intrinsic_metadata_add')
         return {
             'revision_intrinsic_metadata:add': count,
         }
 
+    @timed
+    @process_metrics
     @db_transaction()
     def revision_intrinsic_metadata_delete(
             self, entries: List[Dict], db=None, cur=None) -> Dict:
@@ -386,6 +413,8 @@ class IndexerStorage:
             yield converters.db_to_metadata(
                 dict(zip(db.origin_intrinsic_metadata_cols, c)))
 
+    @timed
+    @process_metrics
     @db_transaction()
     def origin_intrinsic_metadata_add(
             self, metadata: List[Dict], conflict_update: bool = False,
@@ -402,10 +431,14 @@ class IndexerStorage:
                    cur)
         count = db.origin_intrinsic_metadata_add_from_temp(
             conflict_update, cur)
+        send_metric('content_origin_intrinsic:add',
+                    count=count, method_name='content_origin_intrinsic_add')
         return {
             'origin_intrinsic_metadata:add': count,
         }
 
+    @timed
+    @process_metrics
     @db_transaction()
     def origin_intrinsic_metadata_delete(
             self, entries: List[Dict], db=None, cur=None) -> Dict:
