@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2019  The Software Heritage developers
+# Copyright (C) 2017-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -734,7 +734,7 @@ class CommonContentIndexerRangeTest:
         actual_results = self.indexer.run(start, end)
 
         # then
-        self.assertTrue(actual_results)
+        self.assertEqual(actual_results, {'status': 'uneventful'})
 
     def test_generate_content_get_input_as_bytes(self):
         """Optimal indexing should result in indexed data
