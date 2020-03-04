@@ -131,6 +131,40 @@ def expand(doc):
                          options={'documentLoader': _document_loader})
 
 
+def merge_values(v1, v2):
+    """If v1 and v2 are of the form `{"@list": l1}` and `{"@list": l2}`,
+    returns `{"@list": l1 + l2}`.
+    Otherwise, make them lists (if they are not already) and concatenate
+    them.
+
+    >>> merge_values('a', 'b')
+    ['a', 'b']
+    >>> merge_values(['a', 'b'], 'c')
+    ['a', 'b', 'c']
+    >>> merge_values({'@list': ['a', 'b']}, {'@list': ['c']})
+    {'@list': ['a', 'b', 'c']}
+    """
+    if v1 is None:
+        return v2
+    elif v2 is None:
+        return v1
+    elif isinstance(v1, dict) and set(v1) == {'@list'}:
+        assert isinstance(v1['@list'], list)
+        if isinstance(v2, dict) and set(v2) == {'@list'}:
+            assert isinstance(v2['@list'], list)
+            return {'@list': v1['@list'] + v2['@list']}
+        else:
+            raise ValueError('Cannot merge %r and %r' % (v1, v2))
+    else:
+        if isinstance(v2, dict) and '@list' in v2:
+            raise ValueError('Cannot merge %r and %r' % (v1, v2))
+        if not isinstance(v1, list):
+            v1 = [v1]
+        if not isinstance(v2, list):
+            v2 = [v2]
+        return v1 + v2
+
+
 def merge_documents(documents):
     """Takes a list of metadata dicts, each generated from a different
     metadata file, and merges them.
@@ -152,7 +186,20 @@ def merge_documents(documents):
                         merged_document[SCHEMA_URI + 'sameAs'].append(value)
             else:
                 for value in values:
-                    if value not in merged_document[key]:
+                    if isinstance(value, dict) and set(value) == {'@list'}:
+                        # Value is of the form {'@list': [item1, item2]}
+                        # instead of the usual [item1, item2].
+                        # We need to merge the inner lists (and mostly
+                        # preserve order).
+                        merged_value = merged_document.setdefault(
+                            key, {'@list': []})
+                        for subvalue in value['@list']:
+                            # merged_value must be of the form
+                            # {'@list': [item1, item2]}; as it is the same
+                            # type as value, which is an @list.
+                            if subvalue not in merged_value['@list']:
+                                merged_value['@list'].append(subvalue)
+                    elif value not in merged_document[key]:
                         merged_document[key].append(value)
 
     return compact(merged_document)
