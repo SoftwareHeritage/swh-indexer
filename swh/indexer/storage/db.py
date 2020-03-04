@@ -60,8 +60,10 @@ class Db(BaseDb):
     def mktemp_content_mimetype(self, cur=None): pass
 
     def content_mimetype_add_from_temp(self, conflict_update, cur=None):
-        self._cursor(cur).execute("SELECT swh_content_mimetype_add(%s)",
-                                  (conflict_update, ))
+        cur = self._cursor(cur)
+        cur.execute('select * from swh_content_mimetype_add(%s)',
+                    (conflict_update, ))
+        return cur.fetchone()[0]
 
     def _convert_key(self, key, main_table='c'):
         """Convert keys according to specific use in the module.
@@ -176,8 +178,10 @@ class Db(BaseDb):
     def mktemp_content_language(self, cur=None): pass
 
     def content_language_add_from_temp(self, conflict_update, cur=None):
-        self._cursor(cur).execute("SELECT swh_content_language_add(%s)",
-                                  (conflict_update, ))
+        cur = self._cursor(cur)
+        cur.execute('select * from swh_content_language_add(%s)',
+                    (conflict_update, ))
+        return cur.fetchone()[0]
 
     def content_language_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
@@ -201,8 +205,11 @@ class Db(BaseDb):
     def mktemp_content_ctags(self, cur=None): pass
 
     def content_ctags_add_from_temp(self, conflict_update, cur=None):
-        self._cursor(cur).execute("SELECT swh_content_ctags_add(%s)",
-                                  (conflict_update, ))
+        cur = self._cursor(cur)
+        cur.execute(
+            'select * from swh_content_ctags_add(%s)',
+            (conflict_update, ))
+        return cur.fetchone()[0]
 
     def content_ctags_get_from_list(self, ids, cur=None):
         cur = self._cursor(cur)
@@ -252,9 +259,11 @@ class Db(BaseDb):
         """Add new licenses per content.
 
         """
-        self._cursor(cur).execute(
-            "SELECT swh_content_fossology_license_add(%s)",
+        cur = self._cursor(cur)
+        cur.execute(
+            'select * from swh_content_fossology_license_add(%s)',
             (conflict_update, ))
+        return cur.fetchone()[0]
 
     def content_fossology_license_get_from_list(self, ids, cur=None):
         """Retrieve licenses per id.
@@ -293,8 +302,11 @@ class Db(BaseDb):
     def mktemp_content_metadata(self, cur=None): pass
 
     def content_metadata_add_from_temp(self, conflict_update, cur=None):
-        self._cursor(cur).execute("SELECT swh_content_metadata_add(%s)",
-                                  (conflict_update, ))
+        cur = self._cursor(cur)
+        cur.execute(
+            'select * from swh_content_metadata_add(%s)',
+            (conflict_update, ))
+        return cur.fetchone()[0]
 
     def content_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
@@ -321,9 +333,11 @@ class Db(BaseDb):
 
     def revision_intrinsic_metadata_add_from_temp(
             self, conflict_update, cur=None):
-        self._cursor(cur).execute(
-                "SELECT swh_revision_intrinsic_metadata_add(%s)",
-                (conflict_update, ))
+        cur = self._cursor(cur)
+        cur.execute(
+            'select * from swh_revision_intrinsic_metadata_add(%s)',
+            (conflict_update, ))
+        return cur.fetchone()[0]
 
     def revision_intrinsic_metadata_delete(
             self, entries, cur=None):
@@ -331,9 +345,11 @@ class Db(BaseDb):
         cur.execute(
                 "DELETE from revision_intrinsic_metadata "
                 "WHERE (id, indexer_configuration_id) IN "
-                "   (VALUES %s)" % (', '.join('%s' for _ in entries)),
+                "   (VALUES %s) "
+                "RETURNING id" % (', '.join('%s' for _ in entries)),
                 tuple((e['id'], e['indexer_configuration_id'])
                       for e in entries),)
+        return len(cur.fetchall())
 
     def revision_intrinsic_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
@@ -358,8 +374,9 @@ class Db(BaseDb):
             self, conflict_update, cur=None):
         cur = self._cursor(cur)
         cur.execute(
-                "SELECT swh_origin_intrinsic_metadata_add(%s)",
-                (conflict_update, ))
+            'select * from swh_origin_intrinsic_metadata_add(%s)',
+            (conflict_update, ))
+        return cur.fetchone()[0]
 
     def origin_intrinsic_metadata_delete(
             self, entries, cur=None):
@@ -367,9 +384,11 @@ class Db(BaseDb):
         cur.execute(
                 "DELETE from origin_intrinsic_metadata "
                 "WHERE (id, indexer_configuration_id) IN"
-                "   (VALUES %s)" % (', '.join('%s' for _ in entries)),
+                "   (VALUES %s) "
+                "RETURNING id" % (', '.join('%s' for _ in entries)),
                 tuple((e['id'], e['indexer_configuration_id'])
                       for e in entries),)
+        return len(cur.fetchall())
 
     def origin_intrinsic_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(

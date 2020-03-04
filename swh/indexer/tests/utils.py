@@ -746,12 +746,12 @@ class CommonContentIndexerRangeTest:
         start, end = map(hashutil.hash_to_bytes, (_start, _end))
 
         # given
-        actual_results = self.indexer.run(  # checks the bytes input this time
+        actual_results = self.indexer.run(
             start, end, skip_existing=False)
         # no already indexed data so same result as prior test
 
         # then
-        self.assertTrue(actual_results)
+        self.assertEquals(actual_results, {'status': 'uneventful'})
 
     def test_generate_content_get_no_result(self):
         """No result indexed returns False"""
@@ -759,8 +759,7 @@ class CommonContentIndexerRangeTest:
                         '0000000000000000000000000000000000000001']
         start, end = map(hashutil.hash_to_bytes, (_start, _end))
         # given
-        actual_results = self.indexer.run(
-            start, end, incremental=False)
+        actual_results = self.indexer.run(start, end, incremental=False)
 
         # then
-        self.assertFalse(actual_results)
+        self.assertEquals(actual_results, {'status': 'uneventful'})

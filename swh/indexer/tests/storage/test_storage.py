@@ -1,10 +1,12 @@
-# Copyright (C) 2015-2019  The Software Heritage developers
+# Copyright (C) 2015-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import inspect
 import threading
+
+from typing import Dict
 
 import pytest
 
@@ -31,8 +33,39 @@ def prepare_mimetypes_from(fossology_licenses):
     return mimetypes
 
 
-def endpoint(storage, endpoint_type, endpoint_name):
-    return getattr(storage, endpoint_type + '_' + endpoint_name)
+def endpoint_name(etype: str, ename: str) -> str:
+    """Compute the storage's endpoint's name
+
+    >>> endpoint_name('content_mimetype', 'add')
+    'content_mimetype_add'
+    >>> endpoint_name('content_fosso_license', 'delete')
+    'content_fosso_license_delete'
+
+    """
+    return f'{etype}_{ename}'
+
+
+def endpoint(storage, etype: str, ename: str):
+    return getattr(storage, endpoint_name(etype, ename))
+
+
+def expected_summary(
+        count: int, etype: str, ename: str = 'add') -> Dict[str, int]:
+    """Compute the expected summary
+
+    The key is determine according to etype and ename
+
+        >>> expected_summary(10, 'content_mimetype', 'add')
+        {'content_mimetype:add': 10}
+        >>> expected_summary(9, 'origin_intrinsic_metadata', 'delete')
+        {'origin_intrinsic_metadata:del': 9}
+
+    """
+    pattern = ename[0:3]
+    key = endpoint_name(etype, ename).replace(f'_{ename}', f':{pattern}')
+    return {
+        key: count
+    }
 
 
 class StorageETypeTester:
@@ -71,11 +104,13 @@ class StorageETypeTester:
         ]
 
         # now, when we add one of them
-        endpoint(storage, etype, 'add')([{
+        summary = endpoint(storage, etype, 'add')([{
             'id': data.sha1_2,
             **self.example_data[0],
             'indexer_configuration_id': tool_id,
         }])
+
+        assert summary == expected_summary(1, etype)
 
         # we expect only the other one returned
         actual_missing = endpoint(storage, etype, 'missing')(query)
@@ -92,7 +127,8 @@ class StorageETypeTester:
             **self.example_data[0],
             'indexer_configuration_id': tool_id,
         }
-        endpoint(storage, etype, 'add')([data_v1])
+        summary = endpoint(storage, etype, 'add')([data_v1])
+        assert summary == expected_summary(1, etype)
 
         # should be able to retrieve it
         actual_data = list(endpoint(storage, etype, 'get')([data.sha1_2]))
@@ -106,7 +142,8 @@ class StorageETypeTester:
         # now if we add a modified version of the same object (same id)
         data_v2 = data_v1.copy()
         data_v2.update(self.example_data[1])
-        endpoint(storage, etype, 'add')([data_v2])
+        summary2 = endpoint(storage, etype, 'add')([data_v2])
+        assert summary2 == expected_summary(0, etype)  # not added
 
         # we expect to retrieve the original data, not the modified one
         actual_data = list(endpoint(storage, etype, 'get')([data.sha1_2]))
@@ -125,7 +162,8 @@ class StorageETypeTester:
         }
 
         # given
-        endpoint(storage, etype, 'add')([data_v1])
+        summary = endpoint(storage, etype, 'add')([data_v1])
+        assert summary == expected_summary(1, etype)  # not added
 
         # when
         actual_data = list(endpoint(storage, etype, 'get')([data.sha1_2]))
@@ -144,6 +182,7 @@ class StorageETypeTester:
         data_v2.update(self.example_data[1])
 
         endpoint(storage, etype, 'add')([data_v2], conflict_update=True)
+        assert summary == expected_summary(1, etype)  # modified so counted
 
         actual_data = list(endpoint(storage, etype, 'get')([data.sha1_2]))
 
@@ -254,7 +293,8 @@ class StorageETypeTester:
         }
 
         # when
-        endpoint(storage, etype, 'add')([data_rev1])
+        summary = endpoint(storage, etype, 'add')([data_rev1])
+        assert summary == expected_summary(1, etype)
 
         with pytest.raises(DuplicateId):
             endpoint(storage, etype, 'add')(
@@ -285,7 +325,8 @@ class StorageETypeTester:
         }
 
         # when
-        endpoint(storage, etype, 'add')([data1])
+        summary = endpoint(storage, etype, 'add')([data1])
+        assert summary == expected_summary(1, etype)
 
         # then
         actual_data = list(endpoint(storage, etype, 'get')(query))
@@ -843,13 +884,16 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
         }
 
         # when
-        endpoint(storage, etype, 'add')([data1])
-        endpoint(storage, etype, 'delete')([
+        summary = endpoint(storage, etype, 'add')([data1])
+        assert summary == expected_summary(1, etype)
+
+        summary2 = endpoint(storage, etype, 'delete')([
             {
                 'id': data.sha1_2,
                 'indexer_configuration_id': tool['id'],
             }
         ])
+        assert summary2 == expected_summary(1, etype, 'del')
 
         # then
         actual_data = list(endpoint(storage, etype, 'get')(query))

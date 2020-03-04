@@ -24,10 +24,10 @@ class OriginHeadIndexer(OriginIndexer):
 
     def persist_index_computations(
         self, results: Any, policy_update: str
-    ) -> None:
+    ) -> Dict:
         """Do nothing. The indexer's results are not persistent, they
         should only be piped to another indexer."""
-        pass
+        return {}
 
     # Dispatch
 

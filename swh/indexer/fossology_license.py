@@ -1,17 +1,21 @@
-# Copyright (C) 2016-2018  The Software Heritage developers
+# Copyright (C) 2016-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import logging
 import subprocess
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from swh.model import hashutil
 from .indexer import ContentIndexer, ContentRangeIndexer, write_to_temp
 
 
-def compute_license(path, log=None):
+logger = logging.getLogger(__name__)
+
+
+def compute_license(path):
     """Determine license from file at path.
 
     Args:
@@ -38,10 +42,9 @@ def compute_license(path, log=None):
             'path': path,
         }
     except subprocess.CalledProcessError:
-        if log:
-            from os import path as __path
-            log.exception('Problem during license detection for sha1 %s' %
-                          __path.basename(path))
+        from os import path as __path
+        logger.exception('Problem during license detection for sha1 %s' %
+                         __path.basename(path))
         return {
             'licenses': [],
             'path': path,
@@ -68,12 +71,15 @@ class MixinFossologyLicenseIndexer:
     }
 
     CONFIG_BASE_FILENAME = 'indexer/fossology_license'  # type: Optional[str]
+    tool: Any
+    idx_storage: Any
 
     def prepare(self):
         super().prepare()
         self.working_directory = self.config['workdir']
 
-    def index(self, id, data):
+    def index(self, id: bytes, data: Optional[bytes] = None,
+              **kwargs) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
         Args:
@@ -90,33 +96,35 @@ class MixinFossologyLicenseIndexer:
 
         """
         assert isinstance(id, bytes)
+        assert data is not None
         with write_to_temp(
                 filename=hashutil.hash_to_hex(id),  # use the id as pathname
                 data=data,
                 working_directory=self.working_directory) as content_path:
-            properties = compute_license(path=content_path, log=self.log)
+            properties = compute_license(path=content_path)
             properties.update({
                 'id': id,
                 'indexer_configuration_id': self.tool['id'],
             })
         return properties
 
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(
+            self, results: List[Dict], policy_update: str) -> Dict:
         """Persist the results in storage.
 
         Args:
-            results ([dict]): list of content_license, dict with the
+            results: list of content_license dict with the
               following keys:
 
               - id (bytes): content's identifier (sha1)
               - license (bytes): license in bytes
               - path (bytes): path
 
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates or ignore them
 
         """
-        self.idx_storage.content_fossology_license_add(
+        return self.idx_storage.content_fossology_license_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
 

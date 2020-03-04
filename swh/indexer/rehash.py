@@ -145,19 +145,25 @@ class RecomputeChecksums(SWHConfig):
                 content.update(content_hashes)
                 yield content, checksums_to_compute
 
-    def run(self, contents: List[Dict[str, Any]]) -> None:
+    def run(self, contents: List[Dict[str, Any]]) -> Dict:
         """Given a list of content:
 
           - (re)compute a given set of checksums on contents available in our
             object storage
           - update those contents with the new metadata
 
-          Args:
-              contents: contents as dictionary with necessary keys.
-                  key present in such dictionary should be the ones defined in
-                  the 'primary_key' option.
+        Args:
+            contents: contents as dictionary with necessary keys.
+                key present in such dictionary should be the ones defined in
+                the 'primary_key' option.
+
+        Returns:
+            A summary dict with key 'status', task' status and 'count' the
+            number of updated contents.
 
         """
+        status = 'uneventful'
+        count = 0
         for data in utils.grouper(
                 self.get_new_contents_metadata(contents),
                 self.batch_size_update):
@@ -172,6 +178,13 @@ class RecomputeChecksums(SWHConfig):
                 try:
                     self.storage.content_update(contents,
                                                 keys=keys)
+                    count += len(contents)
+                    status = 'eventful'
                 except Exception:
                     self.log.exception('Problem during update.')
                     continue
+
+        return {
+            'status': status,
+            'count': count,
+        }
