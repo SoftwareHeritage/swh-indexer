@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2018  The Software Heritage developers
+# Copyright (C) 2017-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -18,18 +18,19 @@ from swh.indexer.tests.utils import (
 )
 
 
-class BasicTest(unittest.TestCase):
-    def test_compute_mimetype_encoding(self):
-        """Compute mimetype encoding should return results"""
-        for _input, _mimetype, _encoding in [
-                ('du français'.encode(), 'text/plain', 'utf-8'),
-                (b'def __init__(self):', 'text/x-python', 'us-ascii')]:
-
-            actual_result = compute_mimetype_encoding(_input)
-            self.assertEqual(actual_result, {
-                'mimetype': _mimetype,
-                'encoding': _encoding
-            })
+def test_compute_mimetype_encoding():
+    """Compute mimetype encoding should return results"""
+    for _input, _mimetype, _encoding in [
+            ('du français'.encode(), 'text/plain', 'utf-8'),
+            (b'def __init__(self):', 'text/x-python', 'us-ascii'),
+            (b'\xff\xfe\x00\x00\x00\x00\xff\xfe\xff\xff',
+             'application/octet-stream', '')
+    ]:
+        actual_result = compute_mimetype_encoding(_input)
+        assert actual_result == {
+            'mimetype': _mimetype,
+            'encoding': _encoding
+        }
 
 
 CONFIG = {
