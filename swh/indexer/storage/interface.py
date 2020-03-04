@@ -91,7 +91,7 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint('content_mimetype/add')
     def content_mimetype_add(self, mimetypes: List[Dict],
-                             conflict_update: bool = False) -> Dict:
+                             conflict_update: bool = False) -> Dict[str, int]:
         """Add mimetypes not present in storage.
 
         Args:
@@ -168,7 +168,7 @@ class IndexerStorageInterface:
     @remote_api_endpoint('content_language/add')
     def content_language_add(
             self, languages: List[Dict],
-            conflict_update: bool = False) -> Dict:
+            conflict_update: bool = False) -> Dict[str, int]:
         """Add languages not present in storage.
 
         Args:
@@ -227,7 +227,7 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint('content/ctags/add')
     def content_ctags_add(self, ctags: List[Dict],
-                          conflict_update: bool = False) -> Dict:
+                          conflict_update: bool = False) -> Dict[str, int]:
         """Add ctags not present in storage
 
         Args:
@@ -278,7 +278,8 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint('content/fossology_license/add')
     def content_fossology_license_add(
-            self, licenses: List[Dict], conflict_update: bool = False) -> Dict:
+            self, licenses: List[Dict],
+            conflict_update: bool = False) -> Dict[str, int]:
         """Add licenses not present in storage.
 
         Args:
@@ -359,7 +360,8 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint('content_metadata/add')
     def content_metadata_add(
-            self, metadata: List[Dict], conflict_update: bool = False) -> Dict:
+            self, metadata: List[Dict],
+            conflict_update: bool = False) -> Dict[str, int]:
         """Add metadata not present in storage.
 
         Args:
@@ -415,7 +417,8 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint('revision_intrinsic_metadata/add')
     def revision_intrinsic_metadata_add(
-            self, metadata: List[Dict], conflict_update: bool = False) -> Dict:
+            self, metadata: List[Dict],
+            conflict_update: bool = False) -> Dict[str, int]:
         """Add metadata not present in storage.
 
         Args:
@@ -475,7 +478,8 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint('origin_intrinsic_metadata/add')
     def origin_intrinsic_metadata_add(
-            self, metadata: List[Dict], conflict_update: bool = False) -> Dict:
+            self, metadata: List[Dict],
+            conflict_update: bool = False) -> Dict[str, int]:
         """Add origin metadata not present in storage.
 
         Args:

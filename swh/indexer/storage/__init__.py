@@ -172,7 +172,7 @@ class IndexerStorage:
     @db_transaction()
     def content_mimetype_add(
             self, mimetypes: List[Dict], conflict_update: bool = False,
-            db=None, cur=None) -> Dict:
+            db=None, cur=None) -> Dict[str, int]:
         """Add mimetypes to the storage (if conflict_update is True, this will
            override existing data if any).
 
@@ -214,8 +214,8 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_language_add(
-            self, languages: List[Dict],
-            conflict_update: bool = False, db=None, cur=None) -> Dict:
+            self, languages: List[Dict], conflict_update: bool = False,
+            db=None, cur=None) -> Dict[str, int]:
         check_id_duplicates(languages)
         languages.sort(key=lambda m: m['id'])
         db.mktemp_content_language(cur)
@@ -251,7 +251,7 @@ class IndexerStorage:
     @db_transaction()
     def content_ctags_add(
             self, ctags: List[Dict], conflict_update: bool = False,
-            db=None, cur=None) -> Dict:
+            db=None, cur=None) -> Dict[str, int]:
         check_id_duplicates(ctags)
         ctags.sort(key=lambda m: m['id'])
 
@@ -300,7 +300,7 @@ class IndexerStorage:
     @db_transaction()
     def content_fossology_license_add(
             self, licenses: List[Dict], conflict_update: bool = False,
-            db=None, cur=None) -> Dict:
+            db=None, cur=None) -> Dict[str, int]:
         check_id_duplicates(licenses)
         licenses.sort(key=lambda m: m['id'])
         db.mktemp_content_fossology_license(cur)
@@ -346,7 +346,7 @@ class IndexerStorage:
     @db_transaction()
     def content_metadata_add(
             self, metadata: List[Dict], conflict_update: bool = False,
-            db=None, cur=None) -> Dict:
+            db=None, cur=None) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
@@ -379,7 +379,7 @@ class IndexerStorage:
     @db_transaction()
     def revision_intrinsic_metadata_add(
             self, metadata: List[Dict], conflict_update: bool = False,
-            db=None, cur=None) -> Dict:
+            db=None, cur=None) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
@@ -418,7 +418,7 @@ class IndexerStorage:
     @db_transaction()
     def origin_intrinsic_metadata_add(
             self, metadata: List[Dict], conflict_update: bool = False,
-            db=None, cur=None) -> Dict:
+            db=None, cur=None) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m['id'])
 
