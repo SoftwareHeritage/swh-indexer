@@ -12,10 +12,8 @@ from hypothesis import given, strategies, settings, HealthCheck
 
 from swh.model.hashutil import hash_to_bytes
 
-from swh.indexer.codemeta import CODEMETA_TERMS, CROSSWALK_TABLE
-from swh.indexer.codemeta import merge_documents
+from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_dictionary import MAPPINGS
-from swh.indexer.metadata_dictionary.base import merge_values
 from swh.indexer.metadata_dictionary.maven import MavenMapping
 from swh.indexer.metadata_dictionary.npm import NpmMapping
 from swh.indexer.metadata_dictionary.ruby import GemspecMapping
@@ -72,69 +70,6 @@ class Metadata(unittest.TestCase):
         self.pkginfo_mapping = MAPPINGS['PythonPkginfoMapping']()
         self.gemspec_mapping = MAPPINGS['GemspecMapping']()
 
-    def test_crosstable(self):
-        self.assertEqual(CROSSWALK_TABLE['NodeJS'], {
-            'repository': 'http://schema.org/codeRepository',
-            'os': 'http://schema.org/operatingSystem',
-            'cpu': 'http://schema.org/processorRequirements',
-            'engines':
-                'http://schema.org/processorRequirements',
-            'author': 'http://schema.org/author',
-            'author.email': 'http://schema.org/email',
-            'author.name': 'http://schema.org/name',
-            'contributor': 'http://schema.org/contributor',
-            'keywords': 'http://schema.org/keywords',
-            'license': 'http://schema.org/license',
-            'version': 'http://schema.org/version',
-            'description': 'http://schema.org/description',
-            'name': 'http://schema.org/name',
-            'bugs': 'https://codemeta.github.io/terms/issueTracker',
-            'homepage': 'http://schema.org/url'
-        })
-
-    def test_merge_values(self):
-        self.assertEqual(
-            merge_values('a', 'b'),
-            ['a', 'b'])
-        self.assertEqual(
-            merge_values(['a', 'b'], 'c'),
-            ['a', 'b', 'c'])
-        self.assertEqual(
-            merge_values('a', ['b', 'c']),
-            ['a', 'b', 'c'])
-
-        self.assertEqual(
-            merge_values({'@list': ['a']}, {'@list': ['b']}),
-            {'@list': ['a', 'b']})
-        self.assertEqual(
-            merge_values({'@list': ['a', 'b']}, {'@list': ['c']}),
-            {'@list': ['a', 'b', 'c']})
-
-        with self.assertRaises(ValueError):
-            merge_values({'@list': ['a']}, 'b')
-        with self.assertRaises(ValueError):
-            merge_values('a', {'@list': ['b']})
-        with self.assertRaises(ValueError):
-            merge_values({'@list': ['a']}, ['b'])
-        with self.assertRaises(ValueError):
-            merge_values(['a'], {'@list': ['b']})
-
-        self.assertEqual(
-            merge_values('a', None),
-            'a')
-        self.assertEqual(
-            merge_values(['a', 'b'], None),
-            ['a', 'b'])
-        self.assertEqual(
-            merge_values(None, ['b', 'c']),
-            ['b', 'c'])
-        self.assertEqual(
-            merge_values({'@list': ['a']}, None),
-            {'@list': ['a']})
-        self.assertEqual(
-            merge_values(None, {'@list': ['a']}),
-            {'@list': ['a']})
-
     def test_compute_metadata_none(self):
         """
         testing content empty content is empty
@@ -189,105 +124,6 @@ class Metadata(unittest.TestCase):
         result = self.npm_mapping.translate(content)
         # then
         self.assertEqual(declared_metadata, result)
-
-    def test_merge_documents(self):
-        """
-        Test the creation of a coherent minimal metadata set
-        """
-        # given
-        metadata_list = [{
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'name': 'test_1',
-            'version': '0.0.2',
-            'description': 'Simple package.json test for indexer',
-            'codeRepository':
-                'git+https://github.com/moranegg/metadata_test',
-        }, {
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'name': 'test_0_1',
-            'version': '0.0.2',
-            'description': 'Simple package.json test for indexer',
-            'codeRepository':
-                'git+https://github.com/moranegg/metadata_test'
-        }, {
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'name': 'test_metadata',
-            'version': '0.0.2',
-            'author': {
-                'type': 'Person',
-                'name': 'moranegg',
-            },
-        }]
-
-        # when
-        results = merge_documents(metadata_list)
-
-        # then
-        expected_results = {
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            "version": '0.0.2',
-            "description": 'Simple package.json test for indexer',
-            "name": ['test_1', 'test_0_1', 'test_metadata'],
-            "author": [{
-                'type': 'Person',
-                'name': 'moranegg'
-            }],
-            "codeRepository":
-                'git+https://github.com/moranegg/metadata_test',
-        }
-        self.assertEqual(expected_results, results)
-
-    def test_merge_documents_ids(self):
-        # given
-        metadata_list = [{
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'id': 'http://example.org/test1',
-            'name': 'test_1',
-        }, {
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'id': 'http://example.org/test2',
-            'name': 'test_2',
-        }]
-
-        # when
-        results = merge_documents(metadata_list)
-
-        # then
-        expected_results = {
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'id': 'http://example.org/test1',
-            'schema:sameAs': 'http://example.org/test2',
-            "name": ['test_1', 'test_2']
-        }
-        self.assertEqual(expected_results, results)
-
-    def test_merge_documents_duplicate_ids(self):
-        # given
-        metadata_list = [{
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'id': 'http://example.org/test1',
-            'name': 'test_1',
-        }, {
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'id': 'http://example.org/test1',
-            'name': 'test_1b',
-        }, {
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'id': 'http://example.org/test2',
-            'name': 'test_2',
-        }]
-
-        # when
-        results = merge_documents(metadata_list)
-
-        # then
-        expected_results = {
-            '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
-            'id': 'http://example.org/test1',
-            'schema:sameAs': 'http://example.org/test2',
-            "name": ['test_1', 'test_1b', 'test_2']
-        }
-        self.assertEqual(expected_results, results)
 
     def test_index_content_metadata_npm(self):
         """
