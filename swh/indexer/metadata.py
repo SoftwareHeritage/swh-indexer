@@ -89,7 +89,7 @@ class ContentMetadataIndexer(ContentIndexer):
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
-    ) -> Dict:
+    ) -> Dict[str, int]:
         """Persist the results in storage.
 
         Args:
@@ -188,7 +188,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
-    ) -> Dict:
+    ) -> Dict[str, int]:
         """Persist the results in storage.
 
         Args:
@@ -327,7 +327,7 @@ class OriginMetadataIndexer(OriginIndexer):
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
-    ) -> Dict:
+    ) -> Dict[str, int]:
         conflict_update = (policy_update == 'update-dups')
 
         # Deduplicate revisions
@@ -372,6 +372,6 @@ class OriginMetadataIndexer(OriginIndexer):
         if revs_to_delete:
             summary_rev = self.idx_storage.revision_intrinsic_metadata_delete(
                 revs_to_delete)
-            summary.update(summary_ori)
+            summary.update(summary_rev)
 
         return summary
