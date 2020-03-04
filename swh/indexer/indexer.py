@@ -534,9 +534,18 @@ class OriginIndexer(BaseIndexer):
             **kwargs: passed to the `index` method
 
         """
+        summary: Dict[str, Any] = {}
+        status = 'uneventful'
         results = self.index_list(origin_urls, **kwargs)
-        summary = self.persist_index_computations(results, policy_update)
+        summary_persist = self.persist_index_computations(
+            results, policy_update)
         self.results = results
+        if summary_persist:
+            for value in summary_persist.values():
+                if value > 0:
+                    status = 'eventful'
+            summary.update(summary_persist)
+        summary['status'] = status
         return summary
 
     def index_list(self, origins: List[Any], **kwargs: Any) -> List[Dict]:
@@ -578,6 +587,8 @@ class RevisionIndexer(BaseIndexer):
               respectively update duplicates or ignore them
 
         """
+        summary: Dict[str, Any] = {}
+        status = 'uneventful'
         results = []
         revs = self.storage.revision_get(
             hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
@@ -597,6 +608,14 @@ class RevisionIndexer(BaseIndexer):
                     raise
                 self.log.exception(
                         'Problem when processing revision')
-        summary = self.persist_index_computations(results, policy_update)
+                status = 'failed'
+        summary_persist = self.persist_index_computations(
+            results, policy_update)
+        if summary_persist:
+            for value in summary_persist.values():
+                if value > 0:
+                    status = 'eventful'
+            summary.update(summary_persist)
         self.results = results
+        summary['status'] = status
         return summary
