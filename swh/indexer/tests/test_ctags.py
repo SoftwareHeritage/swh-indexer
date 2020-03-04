@@ -165,7 +165,6 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
         swh.indexer.ctags.compute_language = fake_language
 
         def fake_check_output(cmd, *args, **kwargs):
-            print(cmd)
             id_ = cmd[-1].split('/')[-1]
             return '\n'.join(
                 json.dumps({'language': ctag['lang'], **ctag})

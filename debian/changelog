@@ -1,8 +1,15 @@
-swh-indexer (0.0.162-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.0.163-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.0.163     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2020-03-04 11:26:56
+    +0100)
+  * Upstream changes:     - v0.0.163     - Make indexers return a
+    summary of their actions     - swh.indexer.storage: Add metrics to
+    add/del endpoints     - indexer.storage: Make add/del endpoints sum
+    up added objects count     - indexer: Remove unused next_step
+    pattern
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 27 Feb 2020 10:12:00 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 04 Mar 2020 10:31:03 +0000
 
 swh-indexer (0.0.162-1~swh1) unstable-swh; urgency=medium
 
