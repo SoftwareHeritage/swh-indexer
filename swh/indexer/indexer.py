@@ -267,7 +267,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         yield from ids
 
     @abc.abstractmethod
-    def persist_index_computations(self, results, policy_update) -> Dict:
+    def persist_index_computations(
+            self, results, policy_update) -> Dict[str, int]:
         """Persist the computation resulting from the index.
 
         Args:
