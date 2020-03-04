@@ -471,6 +471,7 @@ class ContentRangeIndexer(BaseIndexer):
         """
         status = 'uneventful'
         summary: Dict[str, Any] = {}
+        count = 0
         try:
             range_start = hashutil.hash_to_bytes(start) \
                 if isinstance(start, str) else start
@@ -484,16 +485,17 @@ class ContentRangeIndexer(BaseIndexer):
                 gen = self._index_contents(
                     range_start, range_end, indexed=set([]))
 
-            key: Optional[str] = None
+            count_object_added_key: Optional[str] = None
 
             for contents in utils.grouper(
                     gen, n=self.config['write_batch_size']):
                 res = self.persist_index_computations(
                     contents, policy_update='update-dups')
-                if not key:
-                    key = list(res.keys())[0]
-                summary[key] += res[key]
-                status = 'eventful'
+                if not count_object_added_key:
+                    count_object_added_key = list(res.keys())[0]
+                count += res[count_object_added_key]
+                if count > 0:
+                    status = 'eventful'
         except Exception:
             if not self.catch_exceptions:
                 raise
@@ -502,6 +504,8 @@ class ContentRangeIndexer(BaseIndexer):
             status = 'failed'
         finally:
             summary['status'] = status
+            if count > 0 and count_object_added_key:
+                summary[count_object_added_key] = count
             return summary
 
 
