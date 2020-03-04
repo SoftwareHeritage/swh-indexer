@@ -138,7 +138,7 @@ class CtagsIndexer(ContentIndexer):
         return ctags
 
     def persist_index_computations(
-            self, results: List[Dict], policy_update: str) -> Dict:
+            self, results: List[Dict], policy_update: str) -> Dict[str, int]:
         """Persist the results in storage.
 
         Args:
