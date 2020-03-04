@@ -32,6 +32,7 @@ sql/upgrades/127.sql
 sql/upgrades/128.sql
 sql/upgrades/129.sql
 sql/upgrades/130.sql
+sql/upgrades/131.sql
 swh/__init__.py
 swh.indexer.egg-info/PKG-INFO
 swh.indexer.egg-info/SOURCES.txt
@@ -76,6 +77,7 @@ swh/indexer/storage/db.py
 swh/indexer/storage/exc.py
 swh/indexer/storage/in_memory.py
 swh/indexer/storage/interface.py
+swh/indexer/storage/metrics.py
 swh/indexer/storage/api/__init__.py
 swh/indexer/storage/api/client.py
 swh/indexer/storage/api/server.py
@@ -97,5 +99,6 @@ swh/indexer/tests/storage/generate_data_test.py
 swh/indexer/tests/storage/test_api_client.py
 swh/indexer/tests/storage/test_converters.py
 swh/indexer/tests/storage/test_in_memory.py
+swh/indexer/tests/storage/test_metrics.py
 swh/indexer/tests/storage/test_server.py
 swh/indexer/tests/storage/test_storage.py

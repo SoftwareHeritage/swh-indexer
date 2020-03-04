@@ -8,14 +8,12 @@ import os
 import logging
 import shutil
 import tempfile
-import datetime
 
-from copy import deepcopy
 from contextlib import contextmanager
-from typing import Any, Dict, Tuple, Generator, Union, List, Optional
-from typing import Set
+from typing import (
+    Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+)
 
-from swh.scheduler import get_scheduler
 from swh.scheduler import CONFIG as SWH_CONFIG
 
 from swh.storage import get_storage
@@ -29,8 +27,7 @@ from swh.core import utils
 
 @contextmanager
 def write_to_temp(
-    filename: str, data: bytes, working_directory: str
-) -> Generator[str, None, None]:
+        filename: str, data: bytes, working_directory: str) -> Iterator[str]:
     """Write the sha1's content in a temporary file.
 
     Args:
@@ -241,9 +238,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         else:
             return []
 
-    def index(
-        self, id: bytes, data: bytes
-    ) -> Dict[str, Any]:
+    def index(self, id: bytes, data: Optional[bytes] = None,
+              **kwargs) -> Dict[str, Any]:
         """Index computation for the id and associated raw data.
 
         Args:
@@ -258,7 +254,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError()
 
-    def filter(self, ids: List[bytes]) -> Generator[bytes, None, None]:
+    def filter(self, ids: List[bytes]) -> Iterator[bytes]:
         """Filter missing ids for that particular indexer.
 
         Args:
@@ -271,7 +267,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         yield from ids
 
     @abc.abstractmethod
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(self, results, policy_update) -> Dict:
         """Persist the computation resulting from the index.
 
         Args:
@@ -282,62 +278,10 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
               respectively update duplicates or ignore them
 
         Returns:
-            None
+            a summary dict of what has been inserted in the storage
 
         """
-        pass
-
-    def next_step(
-        self, results: List[Dict], task: Optional[Dict[str, Any]]
-    ) -> None:
-        """Do something else with computations results (e.g. send to another
-        queue, ...).
-
-        (This is not an abstractmethod since it is optional).
-
-        Args:
-            results: List of results (dict) as returned
-              by index function.
-            task: a dict in the form expected by
-              `scheduler.backend.SchedulerBackend.create_tasks`
-              without `next_run`, plus an optional `result_name` key.
-
-        Returns:
-            None
-
-        """
-        if task:
-            if getattr(self, 'scheduler', None):
-                scheduler = self.scheduler
-            else:
-                scheduler = get_scheduler(**self.config['scheduler'])
-            task = deepcopy(task)
-            result_name = task.pop('result_name', None)
-            task['next_run'] = datetime.datetime.now()
-            if result_name:
-                task['arguments']['kwargs'][result_name] = self.results
-            scheduler.create_tasks([task])
-
-    @abc.abstractmethod
-    def run(self, ids, policy_update,
-            next_step=None, **kwargs):
-        """Given a list of ids:
-
-        - retrieves the data from the storage
-        - executes the indexing computations
-        - stores the results (according to policy_update)
-
-        Args:
-            ids ([bytes]): id's identifier list
-            policy_update (str): either 'update-dups' or 'ignore-dups' to
-              respectively update duplicates or ignore them
-            next_step (dict): a dict in the form expected by
-              `scheduler.backend.SchedulerBackend.create_tasks`
-              without `next_run`, plus a `result_name` key.
-            **kwargs: passed to the `index` method
-
-        """
-        pass
+        return {}
 
 
 class ContentIndexer(BaseIndexer):
@@ -351,9 +295,8 @@ class ContentIndexer(BaseIndexer):
     methods mentioned in the :class:`BaseIndexer` class.
 
     """
-
-    def run(self, ids, policy_update,
-            next_step=None, **kwargs):
+    def run(self, ids: Union[List[bytes], bytes, str], policy_update: str,
+            **kwargs) -> Dict:
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -365,17 +308,19 @@ class ContentIndexer(BaseIndexer):
             policy_update (str): either 'update-dups' or 'ignore-dups' to
                                  respectively update duplicates or ignore
                                  them
-            next_step (dict): a dict in the form expected by
-                        `scheduler.backend.SchedulerBackend.create_tasks`
-                        without `next_run`, plus an optional `result_name` key.
             **kwargs: passed to the `index` method
 
+        Returns:
+            A summary Dict of the task's status
+
         """
-        ids = [hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
-               for id_ in ids]
+        status = 'uneventful'
+        sha1s = [hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
+                 for id_ in ids]
         results = []
+        summary: Dict = {}
         try:
-            for sha1 in ids:
+            for sha1 in sha1s:
                 try:
                     raw_content = self.objstorage.get(sha1)
                 except ObjNotFoundError:
@@ -385,15 +330,18 @@ class ContentIndexer(BaseIndexer):
                 res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
                     results.append(res)
-
-            self.persist_index_computations(results, policy_update)
+                    status = 'eventful'
+            summary = self.persist_index_computations(results, policy_update)
             self.results = results
-            return self.next_step(results, task=next_step)
         except Exception:
             if not self.catch_exceptions:
                 raise
             self.log.exception(
                 'Problem when reading contents metadata.')
+            status = 'failed'
+        finally:
+            summary['status'] = status
+            return summary
 
 
 class ContentRangeIndexer(BaseIndexer):
@@ -426,7 +374,7 @@ class ContentRangeIndexer(BaseIndexer):
 
     def _list_contents_to_index(
         self, start: bytes, end: bytes, indexed: Set[bytes]
-    ) -> Generator[bytes, None, None]:
+    ) -> Iterator[bytes]:
         """Compute from storage the new contents to index in the range [start,
            end]. The already indexed contents are skipped.
 
@@ -454,7 +402,7 @@ class ContentRangeIndexer(BaseIndexer):
 
     def _index_contents(
         self, start: bytes, end: bytes, indexed: Set[bytes], **kwargs: Any
-    ) -> Generator[Dict, None, None]:
+    ) -> Iterator[Dict]:
         """Index the contents from within range [start, end]
 
         Args:
@@ -473,7 +421,7 @@ class ContentRangeIndexer(BaseIndexer):
                 self.log.warning('Content %s not found in objstorage' %
                                  hashutil.hash_to_hex(sha1))
                 continue
-            res = self.index(sha1, raw_content, **kwargs)  # type: ignore
+            res = self.index(sha1, raw_content, **kwargs)
             if res:
                 if not isinstance(res['id'], bytes):
                     raise TypeError(
@@ -482,8 +430,7 @@ class ContentRangeIndexer(BaseIndexer):
                 yield res
 
     def _index_with_skipping_already_done(
-        self, start: bytes, end: bytes
-    ) -> Generator[Dict, None, None]:
+            self, start: bytes, end: bytes) -> Iterator[Dict]:
         """Index not already indexed contents in range [start, end].
 
         Args:
@@ -503,47 +450,55 @@ class ContentRangeIndexer(BaseIndexer):
                     start, _end, contents)
             start = indexed_page['next']
 
-    def run(self, start, end, skip_existing=True, **kwargs):
+    def run(self, start: Union[bytes, str], end: Union[bytes, str],
+            skip_existing: bool = True, **kwargs) -> Dict:
         """Given a range of content ids, compute the indexing computations on
            the contents within. Either the indexer is incremental
            (filter out existing computed data) or not (compute
            everything from scratch).
 
         Args:
-            start (Union[bytes, str]): Starting range identifier
-            end (Union[bytes, str]): Ending range identifier
-            skip_existing (bool): Skip existing indexed data
+            start: Starting range identifier
+            end: Ending range identifier
+            skip_existing: Skip existing indexed data
               (default) or not
             **kwargs: passed to the `index` method
 
         Returns:
-            bool: True if data was indexed, False otherwise.
+            A dict with the task's status
 
         """
-        with_indexed_data = False
+        status = 'uneventful'
+        summary: Dict = {}
         try:
-            if isinstance(start, str):
-                start = hashutil.hash_to_bytes(start)
-            if isinstance(end, str):
-                end = hashutil.hash_to_bytes(end)
+            range_start = hashutil.hash_to_bytes(start) \
+                if isinstance(start, str) else start
+            range_end = hashutil.hash_to_bytes(end) \
+                if isinstance(end, str) else end
 
             if skip_existing:
-                gen = self._index_with_skipping_already_done(start, end)
+                gen = self._index_with_skipping_already_done(
+                    range_start, range_end)
             else:
-                gen = self._index_contents(start, end, indexed=[])
+                gen = self._index_contents(
+                    range_start, range_end, indexed=set([]))
 
-            for results in utils.grouper(gen,
-                                         n=self.config['write_batch_size']):
-                self.persist_index_computations(
-                    results, policy_update='update-dups')
-                with_indexed_data = True
+            for contents in utils.grouper(
+                    gen, n=self.config['write_batch_size']):
+                res = self.persist_index_computations(
+                    contents, policy_update='update-dups')
+                summary['content_mimetype:add'] += res.get(
+                    'content_mimetype:add')
+                status = 'eventful'
         except Exception:
             if not self.catch_exceptions:
                 raise
             self.log.exception(
                 'Problem when computing metadata.')
+            status = 'failed'
         finally:
-            return with_indexed_data
+            summary['status'] = status
+            return summary
 
 
 class OriginIndexer(BaseIndexer):
@@ -556,8 +511,8 @@ class OriginIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, origin_urls, policy_update='update-dups',
-            next_step=None, **kwargs):
+    def run(self, origin_urls: List[str],
+            policy_update: str = 'update-dups', **kwargs) -> Dict:
         """Given a list of origin urls:
 
         - retrieve origins from storage
@@ -565,21 +520,16 @@ class OriginIndexer(BaseIndexer):
         - store the results (according to policy_update)
 
         Args:
-            origin_urls ([str]): list of origin urls.
-            policy_update (str): either 'update-dups' or 'ignore-dups' to
+            origin_urls: list of origin urls.
+            policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates (default) or ignore them
-            next_step (dict): a dict in the form expected by
-              `scheduler.backend.SchedulerBackend.create_tasks` without
-              `next_run`, plus an optional `result_name` key.
-            parse_ids (bool): Do we need to parse id or not (default)
             **kwargs: passed to the `index` method
 
         """
         results = self.index_list(origin_urls, **kwargs)
-
-        self.persist_index_computations(results, policy_update)
+        summary = self.persist_index_computations(results, policy_update)
         self.results = results
-        return self.next_step(results, task=next_step)
+        return summary
 
     def index_list(self, origins: List[Any], **kwargs: Any) -> List[Dict]:
         results = []
@@ -607,7 +557,7 @@ class RevisionIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, ids, policy_update, next_step=None):
+    def run(self, ids: Union[str, bytes], policy_update: str) -> Dict:
         """Given a list of sha1_gits:
 
         - retrieve revisions from storage
@@ -615,15 +565,15 @@ class RevisionIndexer(BaseIndexer):
         - store the results (according to policy_update)
 
         Args:
-            ids ([bytes or str]): sha1_git's identifier list
-            policy_update (str): either 'update-dups' or 'ignore-dups' to
+            ids: sha1_git's identifier list
+            policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates or ignore them
 
         """
         results = []
-        ids = [hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
-               for id_ in ids]
-        revs = self.storage.revision_get(ids)
+        revs = self.storage.revision_get(
+            hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
+            for id_ in ids)
 
         for rev in revs:
             if not rev:
@@ -639,6 +589,6 @@ class RevisionIndexer(BaseIndexer):
                     raise
                 self.log.exception(
                         'Problem when processing revision')
-        self.persist_index_computations(results, policy_update)
+        summary = self.persist_index_computations(results, policy_update)
         self.results = results
-        return self.next_step(results, task=next_step)
+        return summary

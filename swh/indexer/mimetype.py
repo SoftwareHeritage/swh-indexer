@@ -55,7 +55,8 @@ class MixinMimetypeIndexer:
 
     CONFIG_BASE_FILENAME = 'indexer/mimetype'  # type: Optional[str]
 
-    def index(self, id: bytes, data: bytes) -> Dict[str, Any]:
+    def index(self, id: bytes, data: Optional[bytes] = None,
+              **kwargs) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
         Args:
@@ -70,6 +71,7 @@ class MixinMimetypeIndexer:
             - encoding: encoding in bytes
 
         """
+        assert data is not None
         properties = compute_mimetype_encoding(data)
         properties.update({
             'id': id,
@@ -78,8 +80,8 @@ class MixinMimetypeIndexer:
         return properties
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: List[str]
-    ) -> None:
+        self, results: List[Dict], policy_update: str
+    ) -> Dict:
         """Persist the results in storage.
 
         Args:
@@ -90,7 +92,7 @@ class MixinMimetypeIndexer:
                respectively update duplicates or ignore them
 
         """
-        self.idx_storage.content_mimetype_add(
+        return self.idx_storage.content_mimetype_add(
             results, conflict_update=(policy_update == 'update-dups'))
 
 
