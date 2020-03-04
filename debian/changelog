@@ -1,8 +1,14 @@
-swh-indexer (0.0.163-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.0.164-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.0.164     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2020-03-04 13:52:15
+    +0100)
+  * Upstream changes:     - v0.0.164     - range-indexers: Fix hard-
+    coded summary key value     - indexers: Improve
+    persist_index_computations type     - indexer.metadata: Fix wrong
+    update
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 04 Mar 2020 10:33:26 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 04 Mar 2020 13:00:18 +0000
 
 swh-indexer (0.0.163-1~swh1) unstable-swh; urgency=medium
 

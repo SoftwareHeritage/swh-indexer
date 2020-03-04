@@ -81,7 +81,7 @@ class MixinMimetypeIndexer:
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
-    ) -> Dict:
+    ) -> Dict[str, int]:
         """Persist the results in storage.
 
         Args:
