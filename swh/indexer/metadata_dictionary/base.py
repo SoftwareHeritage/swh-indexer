@@ -10,41 +10,7 @@ import logging
 from typing import List
 
 from swh.indexer.codemeta import SCHEMA_URI
-from swh.indexer.codemeta import compact
-
-
-def merge_values(v1, v2):
-    """If v1 and v2 are of the form `{"@list": l1}` and `{"@list": l2}`,
-    returns `{"@list": l1 + l2}`.
-    Otherwise, make them lists (if they are not already) and concatenate
-    them.
-
-    >>> merge_values('a', 'b')
-    ['a', 'b']
-    >>> merge_values(['a', 'b'], 'c')
-    ['a', 'b', 'c']
-    >>> merge_values({'@list': ['a', 'b']}, {'@list': ['c']})
-    {'@list': ['a', 'b', 'c']}
-    """
-    if v1 is None:
-        return v2
-    elif v2 is None:
-        return v1
-    elif isinstance(v1, dict) and set(v1) == {'@list'}:
-        assert isinstance(v1['@list'], list)
-        if isinstance(v2, dict) and set(v2) == {'@list'}:
-            assert isinstance(v2['@list'], list)
-            return {'@list': v1['@list'] + v2['@list']}
-        else:
-            raise ValueError('Cannot merge %r and %r' % (v1, v2))
-    else:
-        if isinstance(v2, dict) and '@list' in v2:
-            raise ValueError('Cannot merge %r and %r' % (v1, v2))
-        if not isinstance(v1, list):
-            v1 = [v1]
-        if not isinstance(v2, list):
-            v2 = [v2]
-        return v1 + v2
+from swh.indexer.codemeta import compact, merge_values
 
 
 class BaseMapping(metaclass=abc.ABCMeta):
