@@ -751,7 +751,7 @@ class CommonContentIndexerRangeTest:
         # no already indexed data so same result as prior test
 
         # then
-        self.assertEquals(actual_results, {'status': 'uneventful'})
+        self.assertEqual(actual_results, {'status': 'uneventful'})
 
     def test_generate_content_get_no_result(self):
         """No result indexed returns False"""
@@ -762,4 +762,4 @@ class CommonContentIndexerRangeTest:
         actual_results = self.indexer.run(start, end, incremental=False)
 
         # then
-        self.assertEquals(actual_results, {'status': 'uneventful'})
+        self.assertEqual(actual_results, {'status': 'uneventful'})
