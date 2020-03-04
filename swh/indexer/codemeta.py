@@ -186,7 +186,20 @@ def merge_documents(documents):
                         merged_document[SCHEMA_URI + 'sameAs'].append(value)
             else:
                 for value in values:
-                    if value not in merged_document[key]:
+                    if isinstance(value, dict) and set(value) == {'@list'}:
+                        # Value is of the form {'@list': [item1, item2]}
+                        # instead of the usual [item1, item2].
+                        # We need to merge the inner lists (and mostly
+                        # preserve order).
+                        merged_value = merged_document.setdefault(
+                            key, {'@list': []})
+                        for subvalue in value['@list']:
+                            # merged_value must be of the form
+                            # {'@list': [item1, item2]}; as it is the same
+                            # type as value, which is an @list.
+                            if subvalue not in merged_value['@list']:
+                                merged_value['@list'].append(subvalue)
+                    elif value not in merged_document[key]:
                         merged_document[key].append(value)
 
     return compact(merged_document)

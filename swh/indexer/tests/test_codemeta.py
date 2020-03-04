@@ -156,3 +156,128 @@ def test_merge_documents_duplicate_ids():
         "name": ['test_1', 'test_1b', 'test_2']
     }
     assert results == expected_results
+
+
+def test_merge_documents_lists():
+    """Tests merging two @list elements."""
+    # given
+    metadata_list = [{
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': {
+            '@list': [
+                {'name': 'test_1'},
+            ]
+        },
+    }, {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': {
+            '@list': [
+                {'name': 'test_2'},
+            ]
+        },
+    }]
+
+    # when
+    results = merge_documents(metadata_list)
+
+    # then
+    expected_results = {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': [
+            {'name': 'test_1'},
+            {'name': 'test_2'},
+        ],
+    }
+    assert results == expected_results
+
+
+def test_merge_documents_lists_duplicates():
+    """Tests merging two @list elements with a duplicate subelement."""
+    # given
+    metadata_list = [{
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': {
+            '@list': [
+                {'name': 'test_1'},
+            ]
+        },
+    }, {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': {
+            '@list': [
+                {'name': 'test_2'},
+                {'name': 'test_1'},
+            ]
+        },
+    }]
+
+    # when
+    results = merge_documents(metadata_list)
+
+    # then
+    expected_results = {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': [
+            {'name': 'test_1'},
+            {'name': 'test_2'},
+        ],
+    }
+    assert results == expected_results
+
+
+def test_merge_documents_list_left():
+    """Tests merging a singleton with an @list."""
+    # given
+    metadata_list = [{
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': {'name': 'test_1'},
+    }, {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': {
+            '@list': [
+                {'name': 'test_2'},
+            ]
+        },
+    }]
+
+    # when
+    results = merge_documents(metadata_list)
+
+    # then
+    expected_results = {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': [
+            {'name': 'test_1'},
+            {'name': 'test_2'},
+        ],
+    }
+    assert results == expected_results
+
+
+def test_merge_documents_list_right():
+    """Tests merging an @list with a singleton."""
+    # given
+    metadata_list = [{
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': {
+            '@list': [
+                {'name': 'test_1'},
+            ]
+        },
+    }, {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': {'name': 'test_2'},
+    }]
+
+    # when
+    results = merge_documents(metadata_list)
+
+    # then
+    expected_results = {
+        '@context': 'https://doi.org/10.5063/schema/codemeta-2.0',
+        'author': [
+            {'name': 'test_1'},
+            {'name': 'test_2'},
+        ],
+    }
+    assert results == expected_results
