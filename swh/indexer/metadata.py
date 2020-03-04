@@ -372,6 +372,6 @@ class OriginMetadataIndexer(OriginIndexer):
         if revs_to_delete:
             summary_rev = self.idx_storage.revision_intrinsic_metadata_delete(
                 revs_to_delete)
-            summary.update(summary_ori)
+            summary.update(summary_rev)
 
         return summary
