@@ -1,3 +1,14 @@
+swh-indexer (0.0.165-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.165     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2020-03-04 15:29:52
+    +0100)
+  * Upstream changes:     - v0.0.165     - indexers: Fix summary
+    computation for range indexers     - tests: Use assertEqual instead
+    of deprecated assertEquals
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 04 Mar 2020 14:33:09 +0000
+
 swh-indexer (0.0.164-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.164     - (tagged by Antoine R. Dumont
