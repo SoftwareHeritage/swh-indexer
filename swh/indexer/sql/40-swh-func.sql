@@ -244,15 +244,15 @@ begin
         from tmp_content_fossology_license tcl
         on conflict(id, license_id, indexer_configuration_id)
         do update set license_id = excluded.license_id;
+    else
+        insert into content_fossology_license (id, license_id, indexer_configuration_id)
+        select tcl.id,
+              (select id from fossology_license where name = tcl.license) as license,
+              indexer_configuration_id
+        from tmp_content_fossology_license tcl
+        on conflict(id, license_id, indexer_configuration_id)
+        do nothing;
     end if;
-
-    insert into content_fossology_license (id, license_id, indexer_configuration_id)
-    select tcl.id,
-          (select id from fossology_license where name = tcl.license) as license,
-          indexer_configuration_id
-    from tmp_content_fossology_license tcl
-    on conflict(id, license_id, indexer_configuration_id)
-    do nothing;
 
     get diagnostics res = ROW_COUNT;
     return res;
