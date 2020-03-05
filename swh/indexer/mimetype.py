@@ -26,7 +26,10 @@ def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
     """
     m = magic.Magic(mime=True, mime_encoding=True)
     res = m.from_buffer(raw_content)
-    (mimetype, encoding) = res.split('; charset=')
+    try:
+        mimetype, encoding = res.split('; charset=')
+    except ValueError:
+        mimetype, encoding = res, ''
     return {
         'mimetype': mimetype,
         'encoding': encoding,
