@@ -13,7 +13,7 @@ from typing import Dict, List
 
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
-from swh.storage.metrics import timed, process_metrics
+from swh.storage.metrics import process_metrics, send_metric, timed
 
 from . import converters
 from .db import Db
@@ -495,6 +495,7 @@ class IndexerStorage:
             'per_mapping': results,
         }
 
+    @timed
     @db_transaction_generator()
     def indexer_configuration_add(self, tools, db=None, cur=None):
         db.mktemp_indexer_configuration(cur)
@@ -503,8 +504,12 @@ class IndexerStorage:
                    cur)
 
         tools = db.indexer_configuration_add_from_temp(cur)
+        count = 0
         for line in tools:
             yield dict(zip(db.indexer_configuration_cols, line))
+            count += 1
+        send_metric('indexer_configuration:add', count,
+                    method_name='indexer_configuration_add')
 
     @db_transaction()
     def indexer_configuration_get(self, tool, db=None, cur=None):
