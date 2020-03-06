@@ -13,11 +13,11 @@ from typing import Dict, List
 
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
-from swh.storage.metrics import process_metrics, send_metric, timed
 
 from . import converters
 from .db import Db
 from .exc import IndexerStorageArgumentException, DuplicateId
+from .metrics import process_metrics, send_metric, timed
 
 
 INDEXER_CFG_KEY = 'indexer_storage'
