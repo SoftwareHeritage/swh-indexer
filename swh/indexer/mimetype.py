@@ -42,7 +42,7 @@ class MixinMimetypeIndexer:
     See :class:`MimetypeIndexer` and :class:`MimetypeRangeIndexer`
 
     """
-    tool: Dict[str, Any]
+    tool: Any
     idx_storage: Any
     ADDITIONAL_CONFIG = {
         'tools': ('dict', {
