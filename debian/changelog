@@ -1,3 +1,16 @@
+swh-indexer (0.0.169-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.0.169     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2020-03-06 15:19:21
+    +0100)
+  * Upstream changes:     - v0.0.169     - storage: Add @timed metrics
+    on remaining indexer storage endpoints     - indexer.storage: Use
+    the correct metrics module     - idx.storage: Add time and counter
+    metric to idx_configuration_add     - indexer.storage: Remove
+    redundant calls to send_metric     - indexer: Fix mypy issues
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 06 Mar 2020 14:24:50 +0000
+
 swh-indexer (0.0.168-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.0.168     - (tagged by Antoine R. Dumont
