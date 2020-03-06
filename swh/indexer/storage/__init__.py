@@ -13,7 +13,7 @@ from typing import Dict, List
 
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
-from swh.storage.metrics import send_metric, timed, process_metrics
+from swh.storage.metrics import timed, process_metrics
 
 from . import converters
 from .db import Db
@@ -187,8 +187,6 @@ class IndexerStorage:
                    ['id', 'mimetype', 'encoding', 'indexer_configuration_id'],
                    cur)
         count = db.content_mimetype_add_from_temp(conflict_update, cur)
-        send_metric('content_mimetype:add',
-                    count=count, method_name='content_mimetype_add')
         return {
             'content_mimetype:add': count
         }
@@ -230,8 +228,6 @@ class IndexerStorage:
             ['id', 'lang', 'indexer_configuration_id'], cur)
 
         count = db.content_language_add_from_temp(conflict_update, cur)
-        send_metric('content_language:add',
-                    count=count, method_name='content_language_add')
         return {
             'content_language:add': count
         }
@@ -270,8 +266,6 @@ class IndexerStorage:
                    cur=cur)
 
         count = db.content_ctags_add_from_temp(conflict_update, cur)
-        send_metric('content_ctags:add',
-                    count=count, method_name='content_ctags_add')
         return {
             'content_ctags:add': count
         }
@@ -316,8 +310,6 @@ class IndexerStorage:
             cur=cur)
         count = db.content_fossology_license_add_from_temp(
             conflict_update, cur)
-        send_metric('content_fossology_license:add',
-                    count=count, method_name='content_fossology_license_add')
         return {
             'content_fossology_license:add': count
         }
@@ -356,8 +348,6 @@ class IndexerStorage:
                    ['id', 'metadata', 'indexer_configuration_id'],
                    cur)
         count = db.content_metadata_add_from_temp(conflict_update, cur)
-        send_metric('content_metadata:add',
-                    count=count, method_name='content_metadata_add')
         return {
             'content_metadata:add': count,
         }
@@ -391,8 +381,6 @@ class IndexerStorage:
                    cur)
         count = db.revision_intrinsic_metadata_add_from_temp(
             conflict_update, cur)
-        send_metric('revision_intrinsic_metadata:add',
-                    count=count, method_name='revision_intrinsic_metadata_add')
         return {
             'revision_intrinsic_metadata:add': count,
         }
@@ -431,8 +419,6 @@ class IndexerStorage:
                    cur)
         count = db.origin_intrinsic_metadata_add_from_temp(
             conflict_update, cur)
-        send_metric('content_origin_intrinsic:add',
-                    count=count, method_name='content_origin_intrinsic_add')
         return {
             'origin_intrinsic_metadata:add': count,
         }
