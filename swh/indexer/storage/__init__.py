@@ -113,6 +113,7 @@ class IndexerStorage:
         if db is not self._db:
             db.put_conn()
 
+    @timed
     @db_transaction()
     def check_config(self, *, check_write, db=None, cur=None):
         # Check permissions on one of the tables
@@ -127,6 +128,7 @@ class IndexerStorage:
         )
         return cur.fetchone()[0]
 
+    @timed
     @db_transaction_generator()
     def content_mimetype_missing(self, mimetypes, db=None, cur=None):
         for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
@@ -160,6 +162,7 @@ class IndexerStorage:
             'next': next_id
         }
 
+    @timed
     @db_transaction()
     def content_mimetype_get_range(self, start, end, indexer_configuration_id,
                                    limit=1000, db=None, cur=None):
@@ -191,17 +194,20 @@ class IndexerStorage:
             'content_mimetype:add': count
         }
 
+    @timed
     @db_transaction_generator()
     def content_mimetype_get(self, ids, db=None, cur=None):
         for c in db.content_mimetype_get_from_list(ids, cur):
             yield converters.db_to_mimetype(
                 dict(zip(db.content_mimetype_cols, c)))
 
+    @timed
     @db_transaction_generator()
     def content_language_missing(self, languages, db=None, cur=None):
         for obj in db.content_language_missing_from_list(languages, cur):
             yield obj[0]
 
+    @timed
     @db_transaction_generator()
     def content_language_get(self, ids, db=None, cur=None):
         for c in db.content_language_get_from_list(ids, cur):
@@ -232,11 +238,13 @@ class IndexerStorage:
             'content_language:add': count
         }
 
+    @timed
     @db_transaction_generator()
     def content_ctags_missing(self, ctags, db=None, cur=None):
         for obj in db.content_ctags_missing_from_list(ctags, cur):
             yield obj[0]
 
+    @timed
     @db_transaction_generator()
     def content_ctags_get(self, ids, db=None, cur=None):
         for c in db.content_ctags_get_from_list(ids, cur):
@@ -270,6 +278,7 @@ class IndexerStorage:
             'content_ctags:add': count
         }
 
+    @timed
     @db_transaction_generator()
     def content_ctags_search(self, expression,
                              limit=10, last_sha1=None, db=None, cur=None):
@@ -277,6 +286,7 @@ class IndexerStorage:
                                            cur=cur):
             yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
 
+    @timed
     @db_transaction_generator()
     def content_fossology_license_get(self, ids, db=None, cur=None):
         d = defaultdict(list)
@@ -314,6 +324,7 @@ class IndexerStorage:
             'content_fossology_license:add': count
         }
 
+    @timed
     @db_transaction()
     def content_fossology_license_get_range(
             self, start, end, indexer_configuration_id,
@@ -322,11 +333,13 @@ class IndexerStorage:
                                        indexer_configuration_id, limit=limit,
                                        with_textual_data=True, db=db, cur=cur)
 
+    @timed
     @db_transaction_generator()
     def content_metadata_missing(self, metadata, db=None, cur=None):
         for obj in db.content_metadata_missing_from_list(metadata, cur):
             yield obj[0]
 
+    @timed
     @db_transaction_generator()
     def content_metadata_get(self, ids, db=None, cur=None):
         for c in db.content_metadata_get_from_list(ids, cur):
@@ -352,12 +365,14 @@ class IndexerStorage:
             'content_metadata:add': count,
         }
 
+    @timed
     @db_transaction_generator()
     def revision_intrinsic_metadata_missing(self, metadata, db=None, cur=None):
         for obj in db.revision_intrinsic_metadata_missing_from_list(
                 metadata, cur):
             yield obj[0]
 
+    @timed
     @db_transaction_generator()
     def revision_intrinsic_metadata_get(self, ids, db=None, cur=None):
         for c in db.revision_intrinsic_metadata_get_from_list(ids, cur):
@@ -395,6 +410,7 @@ class IndexerStorage:
             'revision_intrinsic_metadata:del': count
         }
 
+    @timed
     @db_transaction_generator()
     def origin_intrinsic_metadata_get(self, ids, db=None, cur=None):
         for c in db.origin_intrinsic_metadata_get_from_list(ids, cur):
@@ -433,6 +449,7 @@ class IndexerStorage:
             'origin_intrinsic_metadata:del': count,
         }
 
+    @timed
     @db_transaction_generator()
     def origin_intrinsic_metadata_search_fulltext(
             self, conjunction, limit=100, db=None, cur=None):
@@ -441,6 +458,7 @@ class IndexerStorage:
             yield converters.db_to_metadata(
                 dict(zip(db.origin_intrinsic_metadata_cols, c)))
 
+    @timed
     @db_transaction()
     def origin_intrinsic_metadata_search_by_producer(
             self, page_token='', limit=100, ids_only=False,
@@ -465,6 +483,7 @@ class IndexerStorage:
                 result['next_page_token'] = result['origins'][-1]['id']
         return result
 
+    @timed
     @db_transaction()
     def origin_intrinsic_metadata_stats(
             self, db=None, cur=None):
@@ -511,6 +530,7 @@ class IndexerStorage:
         send_metric('indexer_configuration:add', count,
                     method_name='indexer_configuration_add')
 
+    @timed
     @db_transaction()
     def indexer_configuration_get(self, tool, db=None, cur=None):
         tool_conf = tool['tool_configuration']
