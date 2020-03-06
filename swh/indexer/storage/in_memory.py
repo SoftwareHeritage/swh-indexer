@@ -161,6 +161,7 @@ class SubStorage:
     def add_merge(self, new_data: List[Dict], conflict_update: bool,
                   merged_key: str) -> int:
         added = 0
+        all_subitems: List
         for new_item in new_data:
             id_ = new_item['id']
             tool_id = new_item['indexer_configuration_id']
