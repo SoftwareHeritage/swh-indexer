@@ -287,7 +287,7 @@ class OriginMetadataIndexer(OriginIndexer):
         self.origin_head_indexer = OriginHeadIndexer(config=config)
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
-    def index_list(self, origin_urls):
+    def index_list(self, origin_urls, **kwargs):
         head_rev_ids = []
         origins_with_head = []
         origins = list(call_with_batches(
