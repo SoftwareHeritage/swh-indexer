@@ -1,3 +1,4 @@
 pytest
 pytest-postgresql
 hypothesis>=3.11.0
+swh.storage>= 0.0.178

@@ -69,7 +69,7 @@ class OriginHead(unittest.TestCase):
             }
         }])
         self.indexer.storage.origin_visit_update(
-            origin_url, visit['visit'], status='partial', snapshot=b'foo')
+            origin_url, visit.visit, status='partial', snapshot=b'foo')
         self.indexer.run([origin_url])
         self.assertEqual(self.indexer.results, [])
 
@@ -100,7 +100,7 @@ class OriginHead(unittest.TestCase):
             }
         }])
         self.indexer.storage.origin_visit_update(
-            origin_url, visit['visit'], status='full', snapshot=b'foo')
+            origin_url, visit.visit, status='full', snapshot=b'foo')
         self.indexer.run(['https://pypi.org/project/abcdef/'])
         self.assertEqual(self.indexer.results, [])
 

@@ -554,7 +554,7 @@ def fill_storage(storage):
     for snap in SNAPSHOTS:
         origin_url = snap['origin']
         visit = storage.origin_visit_add(
-            origin=origin_url,
+            origin_url,
             date=datetime.datetime.now(),
             type=visit_types[origin_url])
         snap_id = snap.get('id') or \
@@ -564,7 +564,7 @@ def fill_storage(storage):
             'branches': snap['branches']
         }])
         storage.origin_visit_update(
-            origin_url, visit['visit'], status='full', snapshot=snap_id)
+            origin_url, visit.visit, status='full', snapshot=snap_id)
     storage.revision_add(REVISIONS)
 
     contents = []
