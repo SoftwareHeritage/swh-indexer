@@ -193,12 +193,12 @@ def schedule_origin_metadata_reindex(
               help='Prefix of Kafka topic names to read from.')
 @click.option('--group-id', type=str,
               help='Consumer/group id for reading from Kafka.')
-@click.option('--max-messages', '-m', default=None, type=int,
+@click.option('--stop-after-objects', '-m', default=None, type=int,
               help='Maximum number of objects to replay. Default is to '
                    'run forever.')
 @click.pass_context
 def journal_client(ctx, scheduler_url, origin_metadata_task_type,
-                   brokers, prefix, group_id, max_messages):
+                   brokers, prefix, group_id, stop_after_objects):
     """Listens for new objects from the SWH Journal, and schedules tasks
     to run relevant indexers (currently, only origin-intrinsic-metadata)
     on these new objects."""
@@ -212,7 +212,7 @@ def journal_client(ctx, scheduler_url, origin_metadata_task_type,
     client = get_journal_client(
         ctx, brokers=brokers, prefix=prefix, group_id=group_id,
         object_types=['origin_visit'],
-        max_messages=max_messages,
+        stop_after_objects=stop_after_objects,
     )
 
     worker_fn = functools.partial(
@@ -225,7 +225,7 @@ def journal_client(ctx, scheduler_url, origin_metadata_task_type,
     nb_messages = 0
     last_log_time = 0
     try:
-        while not max_messages or nb_messages < max_messages:
+        while not stop_after_objects or nb_messages < stop_after_objects:
             nb_messages += client.process(worker_fn)
             if time.monotonic() - last_log_time >= 60:
                 print('Processed %d messages.' % nb_messages)

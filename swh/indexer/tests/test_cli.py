@@ -338,7 +338,7 @@ def test_journal_client(storage, indexer_scheduler):
                return_value=consumer):
         result = invoke(indexer_scheduler, False, [
             'journal-client',
-            '--max-messages', '1',
+            '--stop-after-objects', '1',
             '--broker', '192.0.2.1',
             '--prefix', 'swh.journal.objects',
             '--group-id', 'test-consumer',
