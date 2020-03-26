@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2018  The Software Heritage developers
+# Copyright (C) 2017-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -75,7 +75,6 @@ class OriginHead(unittest.TestCase):
 
     def test_vcs_missing_snapshot(self):
         self.indexer.storage.origin_add([{
-            'type': 'git',
             'url': 'https://github.com/SoftwareHeritage/swh-indexer',
         }])
         self.indexer.run(
@@ -114,7 +113,6 @@ class OriginHead(unittest.TestCase):
 
     def test_ftp_missing_snapshot(self):
         self.indexer.storage.origin_add([{
-            'type': 'ftp',
             'url': 'rsync://ftp.gnu.org/gnu/foobar',
         }])
         self.indexer.run(
@@ -133,7 +131,6 @@ class OriginHead(unittest.TestCase):
 
     def test_deposit_missing_snapshot(self):
         self.indexer.storage.origin_add([{
-            'type': 'deposit',
             'url': 'https://forge.softwareheritage.org/source/foobar',
         }])
         self.indexer.run(

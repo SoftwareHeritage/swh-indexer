@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2019  The Software Heritage developers
+# Copyright (C) 2018-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -71,7 +71,6 @@ def test_origin_metadata_indexer_missing_head(
         idx_storage, storage, obj_storage):
 
     storage.origin_add([{
-        'type': 'git',
         'url': 'https://example.com'
     }])
 
@@ -89,7 +88,6 @@ def test_origin_metadata_indexer_partial_missing_head(
         idx_storage, storage, obj_storage):
 
     storage.origin_add([{
-        'type': 'git',
         'url': 'https://example.com'
     }])
 
