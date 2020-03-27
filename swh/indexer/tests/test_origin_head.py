@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import unittest
+from datetime import datetime
 
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.tests.utils import (
@@ -56,7 +57,7 @@ class OriginHead(unittest.TestCase):
             'url': origin_url,
         })
         visit = self.indexer.storage.origin_visit_add(
-            origin_url, '2019-02-27', type='git',
+            origin_url, datetime(2019, 2, 27), type='git',
         )
         self.indexer.storage.snapshot_add([{
             'id': b'foo',
@@ -87,7 +88,7 @@ class OriginHead(unittest.TestCase):
             'url': origin_url,
         })
         visit = self.indexer.storage.origin_visit_add(
-            origin_url, '2019-02-27', type='pypi')
+            origin_url, datetime(2019, 2, 27), type='pypi')
         self.indexer.storage.snapshot_add([{
             'id': b'foo',
             'branches': {

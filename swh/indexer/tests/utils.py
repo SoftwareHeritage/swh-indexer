@@ -159,7 +159,7 @@ SNAPSHOTS = [
 
 REVISIONS = [{
     'id': hash_to_bytes('8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f'),
-    'message': 'Improve search functionality',
+    'message': b'Improve search functionality',
     'author': {
         'name': b'Andrew Nesbitt',
         'fullname': b'Andrew Nesbitt <andrewnez@gmail.com>',
@@ -171,11 +171,11 @@ REVISIONS = [{
         'email': b'andrewnez@gmail.com'
     },
     'committer_date': {
-        'negative_utc': None,
+        'negative_utc': False,
         'offset': 120,
         'timestamp': {
             'microseconds': 0,
-            'seconds': 1380883849
+            'seconds': 1380883849,
         }
     },
     'type': 'git',
@@ -184,7 +184,7 @@ REVISIONS = [{
         'negative_utc': False,
         'timestamp': {
             'seconds': 1487596456,
-            'microseconds': 0
+            'microseconds': 0,
         },
         'offset': 0
     },
