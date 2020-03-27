@@ -1,11 +1,10 @@
-# Copyright (C) 2019  The Software Heritage developers
+# Copyright (C) 2019-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import functools
 import json
-import time
 
 import click
 
@@ -222,18 +221,14 @@ def journal_client(ctx, scheduler_url, origin_metadata_task_type,
             'origin_metadata': origin_metadata_task_type,
         }
     )
-    nb_messages = 0
-    last_log_time = 0
     try:
-        while not stop_after_objects or nb_messages < stop_after_objects:
-            nb_messages += client.process(worker_fn)
-            if time.monotonic() - last_log_time >= 60:
-                print('Processed %d messages.' % nb_messages)
-                last_log_time = time.monotonic()
+        client.process(worker_fn)
     except KeyboardInterrupt:
         ctx.exit(0)
     else:
         print('Done.')
+    finally:
+        client.close()
 
 
 @cli.command('rpc-serve')
