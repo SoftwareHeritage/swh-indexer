@@ -8,10 +8,11 @@ import magic
 
 from .indexer import ContentIndexer, ContentRangeIndexer
 
-if not hasattr(magic.Magic, 'from_buffer'):
+if not hasattr(magic.Magic, "from_buffer"):
     raise ImportError(
         'Expected "import magic" to import python-magic, but file_magic '
-        'was imported instead.')
+        "was imported instead."
+    )
 
 
 def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
@@ -27,12 +28,12 @@ def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
     m = magic.Magic(mime=True, mime_encoding=True)
     res = m.from_buffer(raw_content)
     try:
-        mimetype, encoding = res.split('; charset=')
+        mimetype, encoding = res.split("; charset=")
     except ValueError:
-        mimetype, encoding = res, ''
+        mimetype, encoding = res, ""
     return {
-        'mimetype': mimetype,
-        'encoding': encoding,
+        "mimetype": mimetype,
+        "encoding": encoding,
     }
 
 
@@ -42,24 +43,26 @@ class MixinMimetypeIndexer:
     See :class:`MimetypeIndexer` and :class:`MimetypeRangeIndexer`
 
     """
+
     tool: Any
     idx_storage: Any
     ADDITIONAL_CONFIG = {
-        'tools': ('dict', {
-            'name': 'file',
-            'version': '1:5.30-1+deb9u1',
-            'configuration': {
-                "type": "library",
-                "debian-package": "python3-magic"
+        "tools": (
+            "dict",
+            {
+                "name": "file",
+                "version": "1:5.30-1+deb9u1",
+                "configuration": {"type": "library", "debian-package": "python3-magic"},
             },
-        }),
-        'write_batch_size': ('int', 1000),
+        ),
+        "write_batch_size": ("int", 1000),
     }
 
-    CONFIG_BASE_FILENAME = 'indexer/mimetype'  # type: Optional[str]
+    CONFIG_BASE_FILENAME = "indexer/mimetype"  # type: Optional[str]
 
-    def index(self, id: bytes, data: Optional[bytes] = None,
-              **kwargs) -> Dict[str, Any]:
+    def index(
+        self, id: bytes, data: Optional[bytes] = None, **kwargs
+    ) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
         Args:
@@ -76,10 +79,9 @@ class MixinMimetypeIndexer:
         """
         assert data is not None
         properties = compute_mimetype_encoding(data)
-        properties.update({
-            'id': id,
-            'indexer_configuration_id': self.tool['id'],
-        })
+        properties.update(
+            {"id": id, "indexer_configuration_id": self.tool["id"],}
+        )
         return properties
 
     def persist_index_computations(
@@ -96,7 +98,8 @@ class MixinMimetypeIndexer:
 
         """
         return self.idx_storage.content_mimetype_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+            results, conflict_update=(policy_update == "update-dups")
+        )
 
 
 class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
@@ -111,16 +114,14 @@ class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
     - stores result in storage
 
     """
+
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.idx_storage.content_mimetype_missing((
-            {
-                'id': sha1,
-                'indexer_configuration_id': self.tool['id'],
-            } for sha1 in ids
-        ))
+        yield from self.idx_storage.content_mimetype_missing(
+            ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
+        )
 
 
 class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
@@ -153,5 +154,4 @@ class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
               this sha1 if any
 
         """
-        return self.idx_storage.content_mimetype_get_range(
-            start, end, self.tool['id'])
+        return self.idx_storage.content_mimetype_get_range(start, end, self.tool["id"])

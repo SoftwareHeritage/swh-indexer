@@ -34,52 +34,50 @@ class RecomputeChecksums(SWHConfig):
       hashes specified in compute_checksums.  Default to False.
 
     """
+
     DEFAULT_CONFIG = {
         # The storage to read from or update metadata to
-        'storage': ('dict', {
-            'cls': 'remote',
-            'args': {
-              'url': 'http://localhost:5002/'
-            },
-        }),
+        "storage": (
+            "dict",
+            {"cls": "remote", "args": {"url": "http://localhost:5002/"},},
+        ),
         # The objstorage to read contents' data from
-        'objstorage': ('dict', {
-            'cls': 'pathslicing',
-            'args': {
-                'root': '/srv/softwareheritage/objects',
-                'slicing': '0:2/2:4/4:6',
+        "objstorage": (
+            "dict",
+            {
+                "cls": "pathslicing",
+                "args": {
+                    "root": "/srv/softwareheritage/objects",
+                    "slicing": "0:2/2:4/4:6",
+                },
             },
-        }),
+        ),
         # the set of checksums that should be computed.
         # Examples: 'sha1_git', 'blake2b512', 'blake2s256'
-        'compute_checksums': (
-            'list[str]', []),
+        "compute_checksums": ("list[str]", []),
         # whether checksums that already exist in the DB should be
         # recomputed/updated or left untouched
-        'recompute_checksums': ('bool', False),
+        "recompute_checksums": ("bool", False),
         # Number of contents to retrieve blobs at the same time
-        'batch_size_retrieve_content': ('int', 10),
+        "batch_size_retrieve_content": ("int", 10),
         # Number of contents to update at the same time
-        'batch_size_update': ('int', 100),
+        "batch_size_update": ("int", 100),
     }
 
-    CONFIG_BASE_FILENAME = 'indexer/rehash'
+    CONFIG_BASE_FILENAME = "indexer/rehash"
 
     def __init__(self) -> None:
         self.config = self.parse_config_file()
-        self.storage = get_storage(**self.config['storage'])
-        self.objstorage = get_objstorage(**self.config['objstorage'])
-        self.compute_checksums = self.config['compute_checksums']
-        self.recompute_checksums = self.config[
-            'recompute_checksums']
-        self.batch_size_retrieve_content = self.config[
-            'batch_size_retrieve_content']
-        self.batch_size_update = self.config[
-            'batch_size_update']
-        self.log = logging.getLogger('swh.indexer.rehash')
+        self.storage = get_storage(**self.config["storage"])
+        self.objstorage = get_objstorage(**self.config["objstorage"])
+        self.compute_checksums = self.config["compute_checksums"]
+        self.recompute_checksums = self.config["recompute_checksums"]
+        self.batch_size_retrieve_content = self.config["batch_size_retrieve_content"]
+        self.batch_size_update = self.config["batch_size_update"]
+        self.log = logging.getLogger("swh.indexer.rehash")
 
         if not self.compute_checksums:
-            raise ValueError('Checksums list should not be empty.')
+            raise ValueError("Checksums list should not be empty.")
 
     def _read_content_ids(
         self, contents: List[Dict[str, Any]]
@@ -88,7 +86,7 @@ class RecomputeChecksums(SWHConfig):
 
         """
         for c in contents:
-            h = c['sha1']
+            h = c["sha1"]
             if isinstance(h, str):
                 h = hashutil.hash_to_bytes(h)
 
@@ -109,15 +107,14 @@ class RecomputeChecksums(SWHConfig):
 
         """
         content_ids = self._read_content_ids(all_contents)
-        for contents in utils.grouper(content_ids,
-                                      self.batch_size_retrieve_content):
+        for contents in utils.grouper(content_ids, self.batch_size_retrieve_content):
             contents_iter = itertools.tee(contents, 2)
             try:
                 content_metadata = self.storage.content_get_metadata(
-                    [s for s in contents_iter[0]])
+                    [s for s in contents_iter[0]]
+                )
             except Exception:
-                self.log.exception(
-                    'Problem when reading contents metadata.')
+                self.log.exception("Problem when reading contents metadata.")
                 continue
 
             for content in content_metadata:
@@ -127,21 +124,24 @@ class RecomputeChecksums(SWHConfig):
                 else:
                     # Compute checksums provided in compute_checksums
                     # options not already defined for that content
-                    checksums_to_compute = [h for h in self.compute_checksums
-                                            if not content.get(h)]
+                    checksums_to_compute = [
+                        h for h in self.compute_checksums if not content.get(h)
+                    ]
 
                 if not checksums_to_compute:  # Nothing to recompute
                     continue
 
                 try:
-                    raw_content = self.objstorage.get(content['sha1'])
+                    raw_content = self.objstorage.get(content["sha1"])
                 except ObjNotFoundError:
-                    self.log.warning('Content %s not found in objstorage!' %
-                                     content['sha1'])
+                    self.log.warning(
+                        "Content %s not found in objstorage!" % content["sha1"]
+                    )
                     continue
 
                 content_hashes = hashutil.MultiHash.from_data(
-                    raw_content, hash_names=checksums_to_compute).digest()
+                    raw_content, hash_names=checksums_to_compute
+                ).digest()
                 content.update(content_hashes)
                 yield content, checksums_to_compute
 
@@ -162,29 +162,28 @@ class RecomputeChecksums(SWHConfig):
             number of updated contents.
 
         """
-        status = 'uneventful'
+        status = "uneventful"
         count = 0
         for data in utils.grouper(
-                self.get_new_contents_metadata(contents),
-                self.batch_size_update):
+            self.get_new_contents_metadata(contents), self.batch_size_update
+        ):
 
             groups: Dict[str, List[Any]] = defaultdict(list)
             for content, keys_to_update in data:
-                keys = ','.join(keys_to_update)
+                keys = ",".join(keys_to_update)
                 groups[keys].append(content)
 
             for keys_to_update, contents in groups.items():
-                keys = keys_to_update.split(',')
+                keys = keys_to_update.split(",")
                 try:
-                    self.storage.content_update(contents,
-                                                keys=keys)
+                    self.storage.content_update(contents, keys=keys)
                     count += len(contents)
-                    status = 'eventful'
+                    status = "eventful"
                 except Exception:
-                    self.log.exception('Problem during update.')
+                    self.log.exception("Problem during update.")
                     continue
 
         return {
-            'status': status,
-            'count': count,
+            "status": status,
+            "count": count,
         }

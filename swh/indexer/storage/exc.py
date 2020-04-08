@@ -6,14 +6,17 @@
 
 class IndexerStorageAPIError(Exception):
     """Generic error of the indexer storage."""
+
     pass
 
 
 class IndexerStorageArgumentException(Exception):
     """Argument passed to an IndexerStorage endpoint is invalid."""
+
     pass
 
 
 class DuplicateId(IndexerStorageArgumentException):
     """The same identifier is present more than once."""
+
     pass

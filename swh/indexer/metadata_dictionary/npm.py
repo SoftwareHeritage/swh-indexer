@@ -13,19 +13,20 @@ class NpmMapping(JsonMapping):
     """
     dedicated class for NPM (package.json) mapping and translation
     """
-    name = 'npm'
-    mapping = CROSSWALK_TABLE['NodeJS']
-    filename = b'package.json'
-    string_fields = ['name', 'version', 'homepage', 'description', 'email']
+
+    name = "npm"
+    mapping = CROSSWALK_TABLE["NodeJS"]
+    filename = b"package.json"
+    string_fields = ["name", "version", "homepage", "description", "email"]
 
     _schema_shortcuts = {
-            'github': 'git+https://github.com/%s.git',
-            'gist': 'git+https://gist.github.com/%s.git',
-            'gitlab': 'git+https://gitlab.com/%s.git',
-            # Bitbucket supports both hg and git, and the shortcut does not
-            # tell which one to use.
-            # 'bitbucket': 'https://bitbucket.org/',
-            }
+        "github": "git+https://github.com/%s.git",
+        "gist": "git+https://gist.github.com/%s.git",
+        "gitlab": "git+https://gitlab.com/%s.git",
+        # Bitbucket supports both hg and git, and the shortcut does not
+        # tell which one to use.
+        # 'bitbucket': 'https://bitbucket.org/',
+    }
 
     def normalize_repository(self, d):
         """https://docs.npmjs.com/files/package.json#repository
@@ -42,25 +43,28 @@ class NpmMapping(JsonMapping):
         ...     'foo/bar')
         {'@id': 'git+https://github.com/foo/bar.git'}
         """
-        if isinstance(d, dict) and isinstance(d.get('type'), str) \
-                and isinstance(d.get('url'), str):
-            url = '{type}+{url}'.format(**d)
+        if (
+            isinstance(d, dict)
+            and isinstance(d.get("type"), str)
+            and isinstance(d.get("url"), str)
+        ):
+            url = "{type}+{url}".format(**d)
         elif isinstance(d, str):
-            if '://' in d:
+            if "://" in d:
                 url = d
-            elif ':' in d:
-                (schema, rest) = d.split(':', 1)
+            elif ":" in d:
+                (schema, rest) = d.split(":", 1)
                 if schema in self._schema_shortcuts:
                     url = self._schema_shortcuts[schema] % rest
                 else:
                     return None
             else:
-                url = self._schema_shortcuts['github'] % d
+                url = self._schema_shortcuts["github"] % d
 
         else:
             return None
 
-        return {'@id': url}
+        return {"@id": url}
 
     def normalize_bugs(self, d):
         """https://docs.npmjs.com/files/package.json#bugs
@@ -74,18 +78,16 @@ class NpmMapping(JsonMapping):
         ...     'https://example.org/bugs/')
         {'@id': 'https://example.org/bugs/'}
         """
-        if isinstance(d, dict) and isinstance(d.get('url'), str):
-            return {'@id': d['url']}
+        if isinstance(d, dict) and isinstance(d.get("url"), str):
+            return {"@id": d["url"]}
         elif isinstance(d, str):
-            return {'@id': d}
+            return {"@id": d}
         else:
             return None
 
-    _parse_author = re.compile(r'^ *'
-                               r'(?P<name>.*?)'
-                               r'( +<(?P<email>.*)>)?'
-                               r'( +\((?P<url>.*)\))?'
-                               r' *$')
+    _parse_author = re.compile(
+        r"^ *" r"(?P<name>.*?)" r"( +<(?P<email>.*)>)?" r"( +\((?P<url>.*)\))?" r" *$"
+    )
 
     def normalize_author(self, d):
         """https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
@@ -107,27 +109,27 @@ class NpmMapping(JsonMapping):
                     'http://schema.org/email': 'john.doe@example.org',
                     'http://schema.org/name': 'John Doe',
                     'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
-        """ # noqa
-        author = {'@type': SCHEMA_URI+'Person'}
+        """  # noqa
+        author = {"@type": SCHEMA_URI + "Person"}
         if isinstance(d, dict):
-            name = d.get('name', None)
-            email = d.get('email', None)
-            url = d.get('url', None)
+            name = d.get("name", None)
+            email = d.get("email", None)
+            url = d.get("url", None)
         elif isinstance(d, str):
             match = self._parse_author.match(d)
             if not match:
                 return None
-            name = match.group('name')
-            email = match.group('email')
-            url = match.group('url')
+            name = match.group("name")
+            email = match.group("email")
+            url = match.group("url")
         else:
             return None
         if name and isinstance(name, str):
-            author[SCHEMA_URI+'name'] = name
+            author[SCHEMA_URI + "name"] = name
         if email and isinstance(email, str):
-            author[SCHEMA_URI+'email'] = email
+            author[SCHEMA_URI + "email"] = email
         if url and isinstance(url, str):
-            author[SCHEMA_URI+'url'] = {'@id': url}
+            author[SCHEMA_URI + "url"] = {"@id": url}
         return {"@list": [author]}
 
     def normalize_license(self, s):

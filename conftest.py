@@ -8,4 +8,4 @@ settings.register_profile("slow", max_examples=20, deadline=5000)
 # Ignore the following modules because wsgi module fails as no
 # configuration file is found (--doctest-modules forces the module
 # loading)
-collect_ignore = ['swh/indexer/storage/api/wsgi.py']
+collect_ignore = ["swh/indexer/storage/api/wsgi.py"]

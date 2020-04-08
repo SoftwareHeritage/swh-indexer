@@ -14,17 +14,17 @@ class CodemetaMapping(SingleFileMapping):
     """
     dedicated class for CodeMeta (codemeta.json) mapping and translation
     """
-    name = 'codemeta'
-    filename = b'codemeta.json'
+
+    name = "codemeta"
+    filename = b"codemeta.json"
     string_fields = None
 
     @classmethod
     def supported_terms(cls):
-        return [term for term in CODEMETA_TERMS if not term.startswith('@')]
+        return [term for term in CODEMETA_TERMS if not term.startswith("@")]
 
     def translate(self, content):
         try:
-            return self.normalize_translation(expand(
-                json.loads(content.decode())))
+            return self.normalize_translation(expand(json.loads(content.decode())))
         except Exception:
             return None
