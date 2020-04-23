@@ -13,52 +13,51 @@ from .base import DictMapping
 
 def name_to_person(name):
     return {
-        '@type': SCHEMA_URI + 'Person',
-        SCHEMA_URI + 'name': name,
+        "@type": SCHEMA_URI + "Person",
+        SCHEMA_URI + "name": name,
     }
 
 
 class GemspecMapping(DictMapping):
-    name = 'gemspec'
-    mapping = CROSSWALK_TABLE['Ruby Gem']
-    string_fields = ['name', 'version', 'description', 'summary', 'email']
+    name = "gemspec"
+    mapping = CROSSWALK_TABLE["Ruby Gem"]
+    string_fields = ["name", "version", "description", "summary", "email"]
 
-    _re_spec_new = re.compile(r'.*Gem::Specification.new +(do|\{) +\|.*\|.*')
-    _re_spec_entry = re.compile(r'\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)')
+    _re_spec_new = re.compile(r".*Gem::Specification.new +(do|\{) +\|.*\|.*")
+    _re_spec_entry = re.compile(r"\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)")
 
     @classmethod
     def detect_metadata_files(cls, file_entries):
         for entry in file_entries:
-            if entry['name'].endswith(b'.gemspec'):
-                return [entry['sha1']]
+            if entry["name"].endswith(b".gemspec"):
+                return [entry["sha1"]]
         return []
 
     def translate(self, raw_content):
         try:
             raw_content = raw_content.decode()
         except UnicodeDecodeError:
-            self.log.warning('Error unidecoding from %s', self.log_suffix)
+            self.log.warning("Error unidecoding from %s", self.log_suffix)
             return
 
         # Skip lines before 'Gem::Specification.new'
         lines = itertools.dropwhile(
-            lambda x: not self._re_spec_new.match(x),
-            raw_content.split('\n'))
+            lambda x: not self._re_spec_new.match(x), raw_content.split("\n")
+        )
 
         try:
             next(lines)  # Consume 'Gem::Specification.new'
         except StopIteration:
-            self.log.warning('Could not find Gem::Specification in %s',
-                             self.log_suffix)
+            self.log.warning("Could not find Gem::Specification in %s", self.log_suffix)
             return
 
         content_dict = {}
         for line in lines:
             match = self._re_spec_entry.match(line)
             if match:
-                value = self.eval_ruby_expression(match.group('expr'))
+                value = self.eval_ruby_expression(match.group("expr"))
                 if value:
-                    content_dict[match.group('key')] = value
+                    content_dict[match.group("key")] = value
         return self._translate_dict(content_dict)
 
     def eval_ruby_expression(self, expr):
@@ -76,6 +75,7 @@ class GemspecMapping(DictMapping):
                 "['Foo'.freeze, 'bar'.freeze]")
         ['Foo', 'bar']
         """
+
         def evaluator(node):
             if isinstance(node, ast.Str):
                 return node.s
@@ -88,13 +88,13 @@ class GemspecMapping(DictMapping):
                     res.append(val)
                 return res
 
-        expr = expr.replace('.freeze', '')
+        expr = expr.replace(".freeze", "")
         try:
             # We're parsing Ruby expressions here, but Python's
             # ast.parse works for very simple Ruby expressions
             # (mainly strings delimited with " or ', and lists
             # of such strings).
-            tree = ast.parse(expr, mode='eval')
+            tree = ast.parse(expr, mode="eval")
         except (SyntaxError, ValueError):
             return
         if isinstance(tree, ast.Expression):
@@ -110,9 +110,11 @@ class GemspecMapping(DictMapping):
 
     def normalize_licenses(self, licenses):
         if isinstance(licenses, list):
-            return [{"@id": "https://spdx.org/licenses/" + license}
-                    for license in licenses
-                    if isinstance(license, str)]
+            return [
+                {"@id": "https://spdx.org/licenses/" + license}
+                for license in licenses
+                if isinstance(license, str)
+            ]
 
     def normalize_author(self, author):
         if isinstance(author, str):
@@ -120,5 +122,10 @@ class GemspecMapping(DictMapping):
 
     def normalize_authors(self, authors):
         if isinstance(authors, list):
-            return {"@list": [name_to_person(author) for author in authors
-                              if isinstance(author, str)]}
+            return {
+                "@list": [
+                    name_to_person(author)
+                    for author in authors
+                    if isinstance(author, str)
+                ]
+            }

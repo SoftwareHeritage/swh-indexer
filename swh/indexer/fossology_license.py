@@ -29,25 +29,26 @@ def compute_license(path):
 
     """
     try:
-        properties = subprocess.check_output(['nomossa', path],
-                                             universal_newlines=True)
+        properties = subprocess.check_output(["nomossa", path], universal_newlines=True)
         if properties:
-            res = properties.rstrip().split(' contains license(s) ')
-            licenses = res[1].split(',')
+            res = properties.rstrip().split(" contains license(s) ")
+            licenses = res[1].split(",")
         else:
             licenses = []
 
         return {
-            'licenses': licenses,
-            'path': path,
+            "licenses": licenses,
+            "path": path,
         }
     except subprocess.CalledProcessError:
         from os import path as __path
-        logger.exception('Problem during license detection for sha1 %s' %
-                         __path.basename(path))
+
+        logger.exception(
+            "Problem during license detection for sha1 %s" % __path.basename(path)
+        )
         return {
-            'licenses': [],
-            'path': path,
+            "licenses": [],
+            "path": path,
         }
 
 
@@ -58,28 +59,31 @@ class MixinFossologyLicenseIndexer:
     :class:`FossologyLicenseRangeIndexer`
 
     """
+
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp/swh/indexer.fossology.license'),
-        'tools': ('dict', {
-            'name': 'nomos',
-            'version': '3.1.0rc2-31-ga2cbb8c',
-            'configuration': {
-                'command_line': 'nomossa <filepath>',
+        "workdir": ("str", "/tmp/swh/indexer.fossology.license"),
+        "tools": (
+            "dict",
+            {
+                "name": "nomos",
+                "version": "3.1.0rc2-31-ga2cbb8c",
+                "configuration": {"command_line": "nomossa <filepath>",},
             },
-        }),
-        'write_batch_size': ('int', 1000),
+        ),
+        "write_batch_size": ("int", 1000),
     }
 
-    CONFIG_BASE_FILENAME = 'indexer/fossology_license'  # type: Optional[str]
+    CONFIG_BASE_FILENAME = "indexer/fossology_license"  # type: Optional[str]
     tool: Any
     idx_storage: Any
 
     def prepare(self):
         super().prepare()
-        self.working_directory = self.config['workdir']
+        self.working_directory = self.config["workdir"]
 
-    def index(self, id: bytes, data: Optional[bytes] = None,
-              **kwargs) -> Dict[str, Any]:
+    def index(
+        self, id: bytes, data: Optional[bytes] = None, **kwargs
+    ) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
         Args:
@@ -98,18 +102,19 @@ class MixinFossologyLicenseIndexer:
         assert isinstance(id, bytes)
         assert data is not None
         with write_to_temp(
-                filename=hashutil.hash_to_hex(id),  # use the id as pathname
-                data=data,
-                working_directory=self.working_directory) as content_path:
+            filename=hashutil.hash_to_hex(id),  # use the id as pathname
+            data=data,
+            working_directory=self.working_directory,
+        ) as content_path:
             properties = compute_license(path=content_path)
-            properties.update({
-                'id': id,
-                'indexer_configuration_id': self.tool['id'],
-            })
+            properties.update(
+                {"id": id, "indexer_configuration_id": self.tool["id"],}
+            )
         return properties
 
     def persist_index_computations(
-            self, results: List[Dict], policy_update: str) -> Dict[str, int]:
+        self, results: List[Dict], policy_update: str
+    ) -> Dict[str, int]:
         """Persist the results in storage.
 
         Args:
@@ -125,11 +130,11 @@ class MixinFossologyLicenseIndexer:
 
         """
         return self.idx_storage.content_fossology_license_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+            results, conflict_update=(policy_update == "update-dups")
+        )
 
 
-class FossologyLicenseIndexer(
-        MixinFossologyLicenseIndexer, ContentIndexer):
+class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer):
     """Indexer in charge of:
 
     - filtering out content already indexed
@@ -138,20 +143,17 @@ class FossologyLicenseIndexer(
     - store result in storage
 
     """
+
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.idx_storage.content_fossology_license_missing((
-            {
-                'id': sha1,
-                'indexer_configuration_id': self.tool['id'],
-            } for sha1 in ids
-        ))
+        yield from self.idx_storage.content_fossology_license_missing(
+            ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
+        )
 
 
-class FossologyLicenseRangeIndexer(
-        MixinFossologyLicenseIndexer, ContentRangeIndexer):
+class FossologyLicenseRangeIndexer(MixinFossologyLicenseIndexer, ContentRangeIndexer):
     """FossologyLicense Range Indexer working on range of content identifiers.
 
     - filters out the non textual content
@@ -162,6 +164,7 @@ class FossologyLicenseRangeIndexer(
     - stores result in storage
 
     """
+
     def indexed_contents_in_range(self, start, end):
         """Retrieve indexed content id within range [start, end].
 
@@ -178,4 +181,5 @@ class FossologyLicenseRangeIndexer(
 
         """
         return self.idx_storage.content_fossology_license_get_range(
-                start, end, self.tool['id'])
+            start, end, self.tool["id"]
+        )

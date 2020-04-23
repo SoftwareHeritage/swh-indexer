@@ -29,16 +29,16 @@ def ctags_to_db(ctags):
         - tool_id (int): tool id used to compute ctags
 
     """
-    id = ctags['id']
-    tool_id = ctags['indexer_configuration_id']
-    for ctag in ctags['ctags']:
+    id = ctags["id"]
+    tool_id = ctags["indexer_configuration_id"]
+    for ctag in ctags["ctags"]:
         yield {
-            'id': id,
-            'name': ctag['name'],
-            'kind': ctag['kind'],
-            'line': ctag['line'],
-            'lang': ctag['lang'],
-            'indexer_configuration_id': tool_id,
+            "id": id,
+            "name": ctag["name"],
+            "kind": ctag["kind"],
+            "line": ctag["line"],
+            "lang": ctag["lang"],
+            "indexer_configuration_id": tool_id,
         }
 
 
@@ -66,17 +66,17 @@ def db_to_ctags(ctag):
 
     """
     return {
-        'id': ctag['id'],
-        'name': ctag['name'],
-        'kind': ctag['kind'],
-        'line': ctag['line'],
-        'lang': ctag['lang'],
-        'tool': {
-            'id': ctag['tool_id'],
-            'name': ctag['tool_name'],
-            'version': ctag['tool_version'],
-            'configuration': ctag['tool_configuration']
-        }
+        "id": ctag["id"],
+        "name": ctag["name"],
+        "kind": ctag["kind"],
+        "line": ctag["line"],
+        "lang": ctag["lang"],
+        "tool": {
+            "id": ctag["tool_id"],
+            "name": ctag["tool_name"],
+            "version": ctag["tool_version"],
+            "configuration": ctag["tool_configuration"],
+        },
     }
 
 
@@ -85,15 +85,15 @@ def db_to_mimetype(mimetype):
 
     """
     return {
-        'id': mimetype['id'],
-        'encoding': mimetype['encoding'],
-        'mimetype': mimetype['mimetype'],
-        'tool': {
-            'id': mimetype['tool_id'],
-            'name': mimetype['tool_name'],
-            'version': mimetype['tool_version'],
-            'configuration': mimetype['tool_configuration']
-        }
+        "id": mimetype["id"],
+        "encoding": mimetype["encoding"],
+        "mimetype": mimetype["mimetype"],
+        "tool": {
+            "id": mimetype["tool_id"],
+            "name": mimetype["tool_name"],
+            "version": mimetype["tool_version"],
+            "configuration": mimetype["tool_configuration"],
+        },
     }
 
 
@@ -102,14 +102,14 @@ def db_to_language(language):
 
     """
     return {
-        'id': language['id'],
-        'lang': language['lang'],
-        'tool': {
-            'id': language['tool_id'],
-            'name': language['tool_name'],
-            'version': language['tool_version'],
-            'configuration': language['tool_configuration']
-        }
+        "id": language["id"],
+        "lang": language["lang"],
+        "tool": {
+            "id": language["tool_id"],
+            "name": language["tool_name"],
+            "version": language["tool_version"],
+            "configuration": language["tool_configuration"],
+        },
     }
 
 
@@ -117,24 +117,24 @@ def db_to_metadata(metadata):
     """Convert a metadata entry into a ready metadata output.
 
     """
-    metadata['tool'] = {
-        'id': metadata['tool_id'],
-        'name': metadata['tool_name'],
-        'version': metadata['tool_version'],
-        'configuration': metadata['tool_configuration']
+    metadata["tool"] = {
+        "id": metadata["tool_id"],
+        "name": metadata["tool_name"],
+        "version": metadata["tool_version"],
+        "configuration": metadata["tool_configuration"],
     }
-    del metadata['tool_id'], metadata['tool_configuration']
-    del metadata['tool_version'], metadata['tool_name']
+    del metadata["tool_id"], metadata["tool_configuration"]
+    del metadata["tool_version"], metadata["tool_name"]
     return metadata
 
 
 def db_to_fossology_license(license):
     return {
-        'licenses': license['licenses'],
-        'tool': {
-            'id': license['tool_id'],
-            'name': license['tool_name'],
-            'version': license['tool_version'],
-            'configuration': license['tool_configuration'],
-        }
+        "licenses": license["licenses"],
+        "tool": {
+            "id": license["tool_id"],
+            "name": license["tool_name"],
+            "version": license["tool_version"],
+            "configuration": license["tool_configuration"],
+        },
     }

@@ -10,9 +10,7 @@ import shutil
 import tempfile
 
 from contextlib import contextmanager
-from typing import (
-    Any, Dict, Iterator, List, Optional, Set, Tuple, Union
-)
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from swh.scheduler import CONFIG as SWH_CONFIG
 
@@ -26,8 +24,7 @@ from swh.core import utils
 
 
 @contextmanager
-def write_to_temp(
-        filename: str, data: bytes, working_directory: str) -> Iterator[str]:
+def write_to_temp(filename: str, data: bytes, working_directory: str) -> Iterator[str]:
     """Write the sha1's content in a temporary file.
 
     Args:
@@ -46,7 +43,7 @@ def write_to_temp(
     temp_dir = tempfile.mkdtemp(dir=working_directory)
     content_path = os.path.join(temp_dir, filename)
 
-    with open(content_path, 'wb') as f:
+    with open(content_path, "wb") as f:
         f.write(data)
 
     yield content_path
@@ -105,29 +102,24 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
       filtering.
 
     """
+
     results: List[Dict]
 
-    CONFIG = 'indexer/base'
+    CONFIG = "indexer/base"
 
     DEFAULT_CONFIG = {
-        INDEXER_CFG_KEY: ('dict', {
-            'cls': 'remote',
-            'args': {
-                'url': 'http://localhost:5007/'
-            }
-        }),
-        'storage': ('dict', {
-            'cls': 'remote',
-            'args': {
-                'url': 'http://localhost:5002/',
-            }
-        }),
-        'objstorage': ('dict', {
-            'cls': 'remote',
-            'args': {
-                'url': 'http://localhost:5003/',
-            }
-        })
+        INDEXER_CFG_KEY: (
+            "dict",
+            {"cls": "remote", "args": {"url": "http://localhost:5007/"}},
+        ),
+        "storage": (
+            "dict",
+            {"cls": "remote", "args": {"url": "http://localhost:5002/",}},
+        ),
+        "objstorage": (
+            "dict",
+            {"cls": "remote", "args": {"url": "http://localhost:5003/",}},
+        ),
     }
 
     ADDITIONAL_CONFIG = {}  # type: Dict[str, Tuple[str, Any]]
@@ -150,40 +142,43 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         elif SWH_CONFIG:
             self.config = SWH_CONFIG.copy()
         else:
-            config_keys = ('base_filename', 'config_filename',
-                           'additional_configs', 'global_config')
+            config_keys = (
+                "base_filename",
+                "config_filename",
+                "additional_configs",
+                "global_config",
+            )
             config_args = {k: v for k, v in kw.items() if k in config_keys}
             if self.ADDITIONAL_CONFIG:
-                config_args.setdefault('additional_configs', []).append(
-                    self.ADDITIONAL_CONFIG)
+                config_args.setdefault("additional_configs", []).append(
+                    self.ADDITIONAL_CONFIG
+                )
             self.config = self.parse_config_file(**config_args)
         self.prepare()
         self.check()
-        self.log.debug('%s: config=%s', self, self.config)
+        self.log.debug("%s: config=%s", self, self.config)
 
     def prepare(self) -> None:
         """Prepare the indexer's needed runtime configuration.
            Without this step, the indexer cannot possibly run.
 
         """
-        config_storage = self.config.get('storage')
+        config_storage = self.config.get("storage")
         if config_storage:
             self.storage = get_storage(**config_storage)
 
-        objstorage = self.config['objstorage']
-        self.objstorage = get_objstorage(objstorage['cls'],
-                                         objstorage['args'])
+        objstorage = self.config["objstorage"]
+        self.objstorage = get_objstorage(objstorage["cls"], objstorage["args"])
 
         idx_storage = self.config[INDEXER_CFG_KEY]
         self.idx_storage = get_indexer_storage(**idx_storage)
 
-        _log = logging.getLogger('requests.packages.urllib3.connectionpool')
+        _log = logging.getLogger("requests.packages.urllib3.connectionpool")
         _log.setLevel(logging.WARN)
-        self.log = logging.getLogger('swh.indexer')
+        self.log = logging.getLogger("swh.indexer")
 
         if self.USE_TOOLS:
-            self.tools = list(self.register_tools(
-                self.config.get('tools', [])))
+            self.tools = list(self.register_tools(self.config.get("tools", [])))
         self.results = []
 
     @property
@@ -196,14 +191,13 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
         """
         if self.USE_TOOLS and not self.tools:
-            raise ValueError('Tools %s is unknown, cannot continue' %
-                             self.tools)
+            raise ValueError("Tools %s is unknown, cannot continue" % self.tools)
 
     def _prepare_tool(self, tool: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare the tool dict to be compliant with the storage api.
 
         """
-        return {'tool_%s' % key: value for key, value in tool.items()}
+        return {"tool_%s" % key: value for key, value in tool.items()}
 
     def register_tools(
         self, tools: Union[Dict[str, Any], List[Dict[str, Any]]]
@@ -231,15 +225,16 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         elif isinstance(tools, dict):
             tools = [self._prepare_tool(tools)]
         else:
-            raise ValueError('Configuration tool(s) must be a dict or list!')
+            raise ValueError("Configuration tool(s) must be a dict or list!")
 
         if tools:
             return self.idx_storage.indexer_configuration_add(tools)
         else:
             return []
 
-    def index(self, id: bytes, data: Optional[bytes] = None,
-              **kwargs) -> Dict[str, Any]:
+    def index(
+        self, id: bytes, data: Optional[bytes] = None, **kwargs
+    ) -> Dict[str, Any]:
         """Index computation for the id and associated raw data.
 
         Args:
@@ -267,8 +262,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         yield from ids
 
     @abc.abstractmethod
-    def persist_index_computations(
-            self, results, policy_update) -> Dict[str, int]:
+    def persist_index_computations(self, results, policy_update) -> Dict[str, int]:
         """Persist the computation resulting from the index.
 
         Args:
@@ -296,8 +290,10 @@ class ContentIndexer(BaseIndexer):
     methods mentioned in the :class:`BaseIndexer` class.
 
     """
-    def run(self, ids: Union[List[bytes], bytes, str], policy_update: str,
-            **kwargs) -> Dict:
+
+    def run(
+        self, ids: Union[List[bytes], bytes, str], policy_update: str, **kwargs
+    ) -> Dict:
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -315,9 +311,10 @@ class ContentIndexer(BaseIndexer):
             A summary Dict of the task's status
 
         """
-        status = 'uneventful'
-        sha1s = [hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
-                 for id_ in ids]
+        status = "uneventful"
+        sha1s = [
+            hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
+        ]
         results = []
         summary: Dict = {}
         try:
@@ -325,23 +322,24 @@ class ContentIndexer(BaseIndexer):
                 try:
                     raw_content = self.objstorage.get(sha1)
                 except ObjNotFoundError:
-                    self.log.warning('Content %s not found in objstorage' %
-                                     hashutil.hash_to_hex(sha1))
+                    self.log.warning(
+                        "Content %s not found in objstorage"
+                        % hashutil.hash_to_hex(sha1)
+                    )
                     continue
                 res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
                     results.append(res)
-                    status = 'eventful'
+                    status = "eventful"
             summary = self.persist_index_computations(results, policy_update)
             self.results = results
         except Exception:
             if not self.catch_exceptions:
                 raise
-            self.log.exception(
-                'Problem when reading contents metadata.')
-            status = 'failed'
+            self.log.exception("Problem when reading contents metadata.")
+            status = "failed"
         finally:
-            summary['status'] = status
+            summary["status"] = status
             return summary
 
 
@@ -357,10 +355,9 @@ class ContentRangeIndexer(BaseIndexer):
     the methods mentioned in the :class:`BaseIndexer` class.
 
     """
+
     @abc.abstractmethod
-    def indexed_contents_in_range(
-        self, start: bytes, end: bytes
-    ) -> Any:
+    def indexed_contents_in_range(self, start: bytes, end: bytes) -> Any:
         """Retrieve indexed contents within range [start, end].
 
         Args:
@@ -389,17 +386,16 @@ class ContentRangeIndexer(BaseIndexer):
 
         """
         if not isinstance(start, bytes) or not isinstance(end, bytes):
-            raise TypeError('identifiers must be bytes, not %r and %r.' %
-                            (start, end))
+            raise TypeError("identifiers must be bytes, not %r and %r." % (start, end))
         while start:
             result = self.storage.content_get_range(start, end)
-            contents = result['contents']
+            contents = result["contents"]
             for c in contents:
-                _id = hashutil.hash_to_bytes(c['sha1'])
+                _id = hashutil.hash_to_bytes(c["sha1"])
                 if _id in indexed:
                     continue
                 yield _id
-            start = result['next']
+            start = result["next"]
 
     def _index_contents(
         self, start: bytes, end: bytes, indexed: Set[bytes], **kwargs: Any
@@ -419,19 +415,22 @@ class ContentRangeIndexer(BaseIndexer):
             try:
                 raw_content = self.objstorage.get(sha1)
             except ObjNotFoundError:
-                self.log.warning('Content %s not found in objstorage' %
-                                 hashutil.hash_to_hex(sha1))
+                self.log.warning(
+                    "Content %s not found in objstorage" % hashutil.hash_to_hex(sha1)
+                )
                 continue
             res = self.index(sha1, raw_content, **kwargs)
             if res:
-                if not isinstance(res['id'], bytes):
+                if not isinstance(res["id"], bytes):
                     raise TypeError(
-                        '%r.index should return ids as bytes, not %r' %
-                        (self.__class__.__name__, res['id']))
+                        "%r.index should return ids as bytes, not %r"
+                        % (self.__class__.__name__, res["id"])
+                    )
                 yield res
 
     def _index_with_skipping_already_done(
-            self, start: bytes, end: bytes) -> Iterator[Dict]:
+        self, start: bytes, end: bytes
+    ) -> Iterator[Dict]:
         """Index not already indexed contents in range [start, end].
 
         Args:
@@ -445,14 +444,18 @@ class ContentRangeIndexer(BaseIndexer):
         """
         while start:
             indexed_page = self.indexed_contents_in_range(start, end)
-            contents = indexed_page['ids']
+            contents = indexed_page["ids"]
             _end = contents[-1] if contents else end
-            yield from self._index_contents(
-                    start, _end, contents)
-            start = indexed_page['next']
+            yield from self._index_contents(start, _end, contents)
+            start = indexed_page["next"]
 
-    def run(self, start: Union[bytes, str], end: Union[bytes, str],
-            skip_existing: bool = True, **kwargs) -> Dict:
+    def run(
+        self,
+        start: Union[bytes, str],
+        end: Union[bytes, str],
+        skip_existing: bool = True,
+        **kwargs
+    ) -> Dict:
         """Given a range of content ids, compute the indexing computations on
            the contents within. Either the indexer is incremental
            (filter out existing computed data) or not (compute
@@ -469,41 +472,38 @@ class ContentRangeIndexer(BaseIndexer):
             A dict with the task's status
 
         """
-        status = 'uneventful'
+        status = "uneventful"
         summary: Dict[str, Any] = {}
         count = 0
         try:
-            range_start = hashutil.hash_to_bytes(start) \
-                if isinstance(start, str) else start
-            range_end = hashutil.hash_to_bytes(end) \
-                if isinstance(end, str) else end
+            range_start = (
+                hashutil.hash_to_bytes(start) if isinstance(start, str) else start
+            )
+            range_end = hashutil.hash_to_bytes(end) if isinstance(end, str) else end
 
             if skip_existing:
-                gen = self._index_with_skipping_already_done(
-                    range_start, range_end)
+                gen = self._index_with_skipping_already_done(range_start, range_end)
             else:
-                gen = self._index_contents(
-                    range_start, range_end, indexed=set([]))
+                gen = self._index_contents(range_start, range_end, indexed=set([]))
 
             count_object_added_key: Optional[str] = None
 
-            for contents in utils.grouper(
-                    gen, n=self.config['write_batch_size']):
+            for contents in utils.grouper(gen, n=self.config["write_batch_size"]):
                 res = self.persist_index_computations(
-                    contents, policy_update='update-dups')
+                    contents, policy_update="update-dups"
+                )
                 if not count_object_added_key:
                     count_object_added_key = list(res.keys())[0]
                 count += res[count_object_added_key]
                 if count > 0:
-                    status = 'eventful'
+                    status = "eventful"
         except Exception:
             if not self.catch_exceptions:
                 raise
-            self.log.exception(
-                'Problem when computing metadata.')
-            status = 'failed'
+            self.log.exception("Problem when computing metadata.")
+            status = "failed"
         finally:
-            summary['status'] = status
+            summary["status"] = status
             if count > 0 and count_object_added_key:
                 summary[count_object_added_key] = count
             return summary
@@ -519,8 +519,10 @@ class OriginIndexer(BaseIndexer):
     class.
 
     """
-    def run(self, origin_urls: List[str],
-            policy_update: str = 'update-dups', **kwargs) -> Dict:
+
+    def run(
+        self, origin_urls: List[str], policy_update: str = "update-dups", **kwargs
+    ) -> Dict:
         """Given a list of origin urls:
 
         - retrieve origins from storage
@@ -535,17 +537,16 @@ class OriginIndexer(BaseIndexer):
 
         """
         summary: Dict[str, Any] = {}
-        status = 'uneventful'
+        status = "uneventful"
         results = self.index_list(origin_urls, **kwargs)
-        summary_persist = self.persist_index_computations(
-            results, policy_update)
+        summary_persist = self.persist_index_computations(results, policy_update)
         self.results = results
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
-                    status = 'eventful'
+                    status = "eventful"
             summary.update(summary_persist)
-        summary['status'] = status
+        summary["status"] = status
         return summary
 
     def index_list(self, origins: List[Any], **kwargs: Any) -> List[Dict]:
@@ -558,9 +559,7 @@ class OriginIndexer(BaseIndexer):
             except Exception:
                 if not self.catch_exceptions:
                     raise
-                self.log.exception(
-                    'Problem when processing origin %s',
-                    origin['id'])
+                self.log.exception("Problem when processing origin %s", origin["id"])
         return results
 
 
@@ -574,6 +573,7 @@ class RevisionIndexer(BaseIndexer):
     class.
 
     """
+
     def run(self, ids: Union[str, bytes], policy_update: str) -> Dict:
         """Given a list of sha1_gits:
 
@@ -588,16 +588,18 @@ class RevisionIndexer(BaseIndexer):
 
         """
         summary: Dict[str, Any] = {}
-        status = 'uneventful'
+        status = "uneventful"
         results = []
         revs = self.storage.revision_get(
-            hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_
-            for id_ in ids)
+            hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
+        )
 
         for rev in revs:
             if not rev:
-                self.log.warning('Revisions %s not found in storage' %
-                                 list(map(hashutil.hash_to_hex, ids)))
+                self.log.warning(
+                    "Revisions %s not found in storage"
+                    % list(map(hashutil.hash_to_hex, ids))
+                )
                 continue
             try:
                 res = self.index(rev)
@@ -606,16 +608,14 @@ class RevisionIndexer(BaseIndexer):
             except Exception:
                 if not self.catch_exceptions:
                     raise
-                self.log.exception(
-                        'Problem when processing revision')
-                status = 'failed'
-        summary_persist = self.persist_index_computations(
-            results, policy_update)
+                self.log.exception("Problem when processing revision")
+                status = "failed"
+        summary_persist = self.persist_index_computations(results, policy_update)
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
-                    status = 'eventful'
+                    status = "eventful"
             summary.update(summary_persist)
         self.results = results
-        summary['status'] = status
+        summary["status"] = status
         return summary

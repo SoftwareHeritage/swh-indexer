@@ -5,11 +5,11 @@ import click
 from . import maven, npm, codemeta, python, ruby
 
 MAPPINGS = {
-    'CodemetaMapping': codemeta.CodemetaMapping,
-    'MavenMapping': maven.MavenMapping,
-    'NpmMapping': npm.NpmMapping,
-    'PythonPkginfoMapping': python.PythonPkginfoMapping,
-    'GemspecMapping': ruby.GemspecMapping,
+    "CodemetaMapping": codemeta.CodemetaMapping,
+    "MavenMapping": maven.MavenMapping,
+    "NpmMapping": npm.NpmMapping,
+    "PythonPkginfoMapping": python.PythonPkginfoMapping,
+    "GemspecMapping": ruby.GemspecMapping,
 }
 
 
@@ -24,15 +24,16 @@ def list_terms():
 
 
 @click.command()
-@click.argument('mapping_name')
-@click.argument('file_name')
+@click.argument("mapping_name")
+@click.argument("file_name")
 def main(mapping_name, file_name):
     from pprint import pprint
-    with open(file_name, 'rb') as fd:
+
+    with open(file_name, "rb") as fd:
         file_content = fd.read()
     res = MAPPINGS[mapping_name]().translate(file_content)
     pprint(res)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -15,22 +15,23 @@ from .indexer import ContentIndexer, write_to_temp
 
 # Options used to compute tags
 __FLAGS = [
-    '--fields=+lnz',  # +l: language
-                      # +n: line number of tag definition
-                      # +z: include the symbol's kind (function, variable, ...)
-    '--sort=no',      # sort output on tag name
-    '--links=no',     # do not follow symlinks
-    '--output-format=json',  # outputs in json
+    "--fields=+lnz",  # +l: language
+    # +n: line number of tag definition
+    # +z: include the symbol's kind (function, variable, ...)
+    "--sort=no",  # sort output on tag name
+    "--links=no",  # do not follow symlinks
+    "--output-format=json",  # outputs in json
 ]
 
 
 def compute_language(content, log=None):
     raise NotImplementedError(
-        'Language detection was unreliable, so it is currently disabled. '
-        'See https://forge.softwareheritage.org/D1455')
+        "Language detection was unreliable, so it is currently disabled. "
+        "See https://forge.softwareheritage.org/D1455"
+    )
 
 
-def run_ctags(path, lang=None, ctags_command='ctags'):
+def run_ctags(path, lang=None, ctags_command="ctags"):
     """Run ctags on file path with optional language.
 
     Args:
@@ -43,59 +44,62 @@ def run_ctags(path, lang=None, ctags_command='ctags'):
     """
     optional = []
     if lang:
-        optional = ['--language-force=%s' % lang]
+        optional = ["--language-force=%s" % lang]
 
     cmd = [ctags_command] + __FLAGS + optional + [path]
     output = subprocess.check_output(cmd, universal_newlines=True)
 
-    for symbol in output.split('\n'):
+    for symbol in output.split("\n"):
         if not symbol:
             continue
         js_symbol = json.loads(symbol)
         yield {
-            'name': js_symbol['name'],
-            'kind': js_symbol['kind'],
-            'line': js_symbol['line'],
-            'lang': js_symbol['language'],
+            "name": js_symbol["name"],
+            "kind": js_symbol["kind"],
+            "line": js_symbol["line"],
+            "lang": js_symbol["language"],
         }
 
 
 class CtagsIndexer(ContentIndexer):
-    CONFIG_BASE_FILENAME = 'indexer/ctags'
+    CONFIG_BASE_FILENAME = "indexer/ctags"
 
     ADDITIONAL_CONFIG = {
-        'workdir': ('str', '/tmp/swh/indexer.ctags'),
-        'tools': ('dict', {
-            'name': 'universal-ctags',
-            'version': '~git7859817b',
-            'configuration': {
-                'command_line': '''ctags --fields=+lnz --sort=no --links=no '''
-                                '''--output-format=json <filepath>'''
+        "workdir": ("str", "/tmp/swh/indexer.ctags"),
+        "tools": (
+            "dict",
+            {
+                "name": "universal-ctags",
+                "version": "~git7859817b",
+                "configuration": {
+                    "command_line": """ctags --fields=+lnz --sort=no --links=no """
+                    """--output-format=json <filepath>"""
+                },
             },
-        }),
-        'languages': ('dict', {
-            'ada': 'Ada',
-            'adl': None,
-            'agda': None,
-            # ...
-        })
+        ),
+        "languages": (
+            "dict",
+            {
+                "ada": "Ada",
+                "adl": None,
+                "agda": None,
+                # ...
+            },
+        ),
     }
 
     def prepare(self):
         super().prepare()
-        self.working_directory = self.config['workdir']
-        self.language_map = self.config['languages']
+        self.working_directory = self.config["workdir"]
+        self.language_map = self.config["languages"]
 
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.idx_storage.content_ctags_missing((
-            {
-                'id': sha1,
-                'indexer_configuration_id': self.tool['id'],
-            } for sha1 in ids
-        ))
+        yield from self.idx_storage.content_ctags_missing(
+            ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
+        )
 
     def index(self, id, data):
         """Index sha1s' content and store result.
@@ -111,7 +115,7 @@ class CtagsIndexer(ContentIndexer):
             - **ctags** ([dict]): ctags list of symbols
 
         """
-        lang = compute_language(data, log=self.log)['lang']
+        lang = compute_language(data, log=self.log)["lang"]
 
         if not lang:
             return None
@@ -122,23 +126,23 @@ class CtagsIndexer(ContentIndexer):
             return None
 
         ctags = {
-            'id': id,
+            "id": id,
         }
 
         filename = hashutil.hash_to_hex(id)
         with write_to_temp(
-                filename=filename, data=data,
-                working_directory=self.working_directory) as content_path:
+            filename=filename, data=data, working_directory=self.working_directory
+        ) as content_path:
             result = run_ctags(content_path, lang=ctags_lang)
-            ctags.update({
-                'ctags': list(result),
-                'indexer_configuration_id': self.tool['id'],
-            })
+            ctags.update(
+                {"ctags": list(result), "indexer_configuration_id": self.tool["id"],}
+            )
 
         return ctags
 
     def persist_index_computations(
-            self, results: List[Dict], policy_update: str) -> Dict[str, int]:
+        self, results: List[Dict], policy_update: str
+    ) -> Dict[str, int]:
         """Persist the results in storage.
 
         Args:
@@ -151,4 +155,5 @@ class CtagsIndexer(ContentIndexer):
 
         """
         return self.idx_storage.content_ctags_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+            results, conflict_update=(policy_update == "update-dups")
+        )

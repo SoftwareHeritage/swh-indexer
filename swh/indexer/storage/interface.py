@@ -9,12 +9,12 @@ from swh.core.api import remote_api_endpoint
 
 
 class IndexerStorageInterface:
-    @remote_api_endpoint('check_config')
+    @remote_api_endpoint("check_config")
     def check_config(self, *, check_write):
         """Check that the storage is configured and ready to go."""
         ...
 
-    @remote_api_endpoint('content_mimetype/missing')
+    @remote_api_endpoint("content_mimetype/missing")
     def content_mimetype_missing(self, mimetypes):
         """Generate mimetypes missing from storage.
 
@@ -31,9 +31,15 @@ class IndexerStorageInterface:
         """
         ...
 
-    def _content_get_range(self, content_type, start, end,
-                           indexer_configuration_id, limit=1000,
-                           with_textual_data=False):
+    def _content_get_range(
+        self,
+        content_type,
+        start,
+        end,
+        indexer_configuration_id,
+        limit=1000,
+        with_textual_data=False,
+    ):
         """Retrieve ids of type content_type within range [start, end] bound
            by limit.
 
@@ -64,9 +70,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_mimetype/range')
-    def content_mimetype_get_range(self, start, end, indexer_configuration_id,
-                                   limit=1000):
+    @remote_api_endpoint("content_mimetype/range")
+    def content_mimetype_get_range(
+        self, start, end, indexer_configuration_id, limit=1000
+    ):
         """Retrieve mimetypes within range [start, end] bound by limit.
 
         Args:
@@ -89,9 +96,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_mimetype/add')
-    def content_mimetype_add(self, mimetypes: List[Dict],
-                             conflict_update: bool = False) -> Dict[str, int]:
+    @remote_api_endpoint("content_mimetype/add")
+    def content_mimetype_add(
+        self, mimetypes: List[Dict], conflict_update: bool = False
+    ) -> Dict[str, int]:
         """Add mimetypes not present in storage.
 
         Args:
@@ -112,7 +120,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_mimetype')
+    @remote_api_endpoint("content_mimetype")
     def content_mimetype_get(self, ids):
         """Retrieve full content mimetype per ids.
 
@@ -130,7 +138,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_language/missing')
+    @remote_api_endpoint("content_language/missing")
     def content_language_missing(self, languages):
         """List languages missing from storage.
 
@@ -148,7 +156,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_language')
+    @remote_api_endpoint("content_language")
     def content_language_get(self, ids):
         """Retrieve full content language per ids.
 
@@ -165,10 +173,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_language/add')
+    @remote_api_endpoint("content_language/add")
     def content_language_add(
-            self, languages: List[Dict],
-            conflict_update: bool = False) -> Dict[str, int]:
+        self, languages: List[Dict], conflict_update: bool = False
+    ) -> Dict[str, int]:
         """Add languages not present in storage.
 
         Args:
@@ -187,7 +195,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content/ctags/missing')
+    @remote_api_endpoint("content/ctags/missing")
     def content_ctags_missing(self, ctags):
         """List ctags missing from storage.
 
@@ -205,7 +213,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content/ctags')
+    @remote_api_endpoint("content/ctags")
     def content_ctags_get(self, ids):
         """Retrieve ctags per id.
 
@@ -225,9 +233,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content/ctags/add')
-    def content_ctags_add(self, ctags: List[Dict],
-                          conflict_update: bool = False) -> Dict[str, int]:
+    @remote_api_endpoint("content/ctags/add")
+    def content_ctags_add(
+        self, ctags: List[Dict], conflict_update: bool = False
+    ) -> Dict[str, int]:
         """Add ctags not present in storage
 
         Args:
@@ -243,9 +252,8 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content/ctags/search')
-    def content_ctags_search(self, expression,
-                             limit=10, last_sha1=None):
+    @remote_api_endpoint("content/ctags/search")
+    def content_ctags_search(self, expression, limit=10, last_sha1=None):
         """Search through content's raw ctags symbols.
 
         Args:
@@ -259,7 +267,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content/fossology_license')
+    @remote_api_endpoint("content/fossology_license")
     def content_fossology_license_get(self, ids):
         """Retrieve licenses per id.
 
@@ -276,10 +284,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content/fossology_license/add')
+    @remote_api_endpoint("content/fossology_license/add")
     def content_fossology_license_add(
-            self, licenses: List[Dict],
-            conflict_update: bool = False) -> Dict[str, int]:
+        self, licenses: List[Dict], conflict_update: bool = False
+    ) -> Dict[str, int]:
         """Add licenses not present in storage.
 
         Args:
@@ -298,10 +306,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content/fossology_license/range')
+    @remote_api_endpoint("content/fossology_license/range")
     def content_fossology_license_get_range(
-            self, start, end, indexer_configuration_id,
-            limit=1000):
+        self, start, end, indexer_configuration_id, limit=1000
+    ):
         """Retrieve licenses within range [start, end] bound by limit.
 
         Args:
@@ -324,7 +332,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_metadata/missing')
+    @remote_api_endpoint("content_metadata/missing")
     def content_metadata_missing(self, metadata):
         """List metadata missing from storage.
 
@@ -341,7 +349,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_metadata')
+    @remote_api_endpoint("content_metadata")
     def content_metadata_get(self, ids):
         """Retrieve metadata per id.
 
@@ -358,10 +366,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('content_metadata/add')
+    @remote_api_endpoint("content_metadata/add")
     def content_metadata_add(
-            self, metadata: List[Dict],
-            conflict_update: bool = False) -> Dict[str, int]:
+        self, metadata: List[Dict], conflict_update: bool = False
+    ) -> Dict[str, int]:
         """Add metadata not present in storage.
 
         Args:
@@ -379,7 +387,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('revision_intrinsic_metadata/missing')
+    @remote_api_endpoint("revision_intrinsic_metadata/missing")
     def revision_intrinsic_metadata_missing(self, metadata):
         """List metadata missing from storage.
 
@@ -396,7 +404,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('revision_intrinsic_metadata')
+    @remote_api_endpoint("revision_intrinsic_metadata")
     def revision_intrinsic_metadata_get(self, ids):
         """Retrieve revision metadata per id.
 
@@ -415,10 +423,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('revision_intrinsic_metadata/add')
+    @remote_api_endpoint("revision_intrinsic_metadata/add")
     def revision_intrinsic_metadata_add(
-            self, metadata: List[Dict],
-            conflict_update: bool = False) -> Dict[str, int]:
+        self, metadata: List[Dict], conflict_update: bool = False
+    ) -> Dict[str, int]:
         """Add metadata not present in storage.
 
         Args:
@@ -439,7 +447,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('revision_intrinsic_metadata/delete')
+    @remote_api_endpoint("revision_intrinsic_metadata/delete")
     def revision_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
         """Remove revision metadata from the storage.
 
@@ -455,7 +463,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('origin_intrinsic_metadata')
+    @remote_api_endpoint("origin_intrinsic_metadata")
     def origin_intrinsic_metadata_get(self, ids):
         """Retrieve origin metadata per id.
 
@@ -476,10 +484,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('origin_intrinsic_metadata/add')
+    @remote_api_endpoint("origin_intrinsic_metadata/add")
     def origin_intrinsic_metadata_add(
-            self, metadata: List[Dict],
-            conflict_update: bool = False) -> Dict[str, int]:
+        self, metadata: List[Dict], conflict_update: bool = False
+    ) -> Dict[str, int]:
         """Add origin metadata not present in storage.
 
         Args:
@@ -502,9 +510,8 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('origin_intrinsic_metadata/delete')
-    def origin_intrinsic_metadata_delete(
-            self, entries: List[Dict]) -> Dict:
+    @remote_api_endpoint("origin_intrinsic_metadata/delete")
+    def origin_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
         """Remove origin metadata from the storage.
 
         Args:
@@ -519,9 +526,8 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('origin_intrinsic_metadata/search/fulltext')
-    def origin_intrinsic_metadata_search_fulltext(
-            self, conjunction, limit=100):
+    @remote_api_endpoint("origin_intrinsic_metadata/search/fulltext")
+    def origin_intrinsic_metadata_search_fulltext(self, conjunction, limit=100):
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
@@ -542,10 +548,10 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('origin_intrinsic_metadata/search/by_producer')
+    @remote_api_endpoint("origin_intrinsic_metadata/search/by_producer")
     def origin_intrinsic_metadata_search_by_producer(
-            self, page_token='', limit=100, ids_only=False,
-            mappings=None, tool_ids=None):
+        self, page_token="", limit=100, ids_only=False, mappings=None, tool_ids=None
+    ):
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
@@ -575,9 +581,8 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('origin_intrinsic_metadata/stats')
-    def origin_intrinsic_metadata_stats(
-            self):
+    @remote_api_endpoint("origin_intrinsic_metadata/stats")
+    def origin_intrinsic_metadata_stats(self):
         """Returns counts of indexed metadata per origins, broken down
         into metadata types.
 
@@ -595,7 +600,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('indexer_configuration/add')
+    @remote_api_endpoint("indexer_configuration/add")
     def indexer_configuration_add(self, tools):
         """Add new tools to the storage.
 
@@ -616,7 +621,7 @@ class IndexerStorageInterface:
         """
         ...
 
-    @remote_api_endpoint('indexer_configuration/data')
+    @remote_api_endpoint("indexer_configuration/data")
     def indexer_configuration_get(self, tool):
         """Retrieve tool information.
 

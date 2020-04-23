@@ -1,9 +1,11 @@
 MANIFEST.in
 Makefile
 README.md
+pyproject.toml
 requirements-swh.txt
 requirements-test.txt
 requirements.txt
+setup.cfg
 setup.py
 version.txt
 sql/bin/db-upgrade

@@ -11,13 +11,19 @@ from typing import Any, Dict
 
 from swh.indexer import fossology_license
 from swh.indexer.fossology_license import (
-    FossologyLicenseIndexer, FossologyLicenseRangeIndexer,
-    compute_license
+    FossologyLicenseIndexer,
+    FossologyLicenseRangeIndexer,
+    compute_license,
 )
 
 from swh.indexer.tests.utils import (
-    SHA1_TO_LICENSES, CommonContentIndexerTest, CommonContentIndexerRangeTest,
-    BASE_TEST_CONFIG, fill_storage, fill_obj_storage, filter_dict,
+    SHA1_TO_LICENSES,
+    CommonContentIndexerTest,
+    CommonContentIndexerRangeTest,
+    BASE_TEST_CONFIG,
+    fill_storage,
+    fill_obj_storage,
+    filter_dict,
 )
 
 
@@ -28,20 +34,15 @@ class BasicTest(unittest.TestCase):
 
         """
         for path, intermediary_result, output in [
-                (b'some/path', None,
-                 []),
-                (b'some/path/2', [],
-                 []),
-                (b'other/path', ' contains license(s) GPL,AGPL',
-                 ['GPL', 'AGPL'])]:
+            (b"some/path", None, []),
+            (b"some/path/2", [], []),
+            (b"other/path", " contains license(s) GPL,AGPL", ["GPL", "AGPL"]),
+        ]:
             mock_subprocess.check_output.return_value = intermediary_result
 
             actual_result = compute_license(path)
 
-            self.assertEqual(actual_result, {
-                'licenses': output,
-                'path': path,
-            })
+            self.assertEqual(actual_result, {"licenses": output, "path": path,})
 
 
 def mock_compute_license(path):
@@ -49,27 +50,23 @@ def mock_compute_license(path):
 
     """
     if isinstance(id, bytes):
-        path = path.decode('utf-8')
+        path = path.decode("utf-8")
     # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
-    path = path.split('/')[-1]
-    return {
-        'licenses': SHA1_TO_LICENSES.get(path)
-    }
+    path = path.split("/")[-1]
+    return {"licenses": SHA1_TO_LICENSES.get(path)}
 
 
 CONFIG = {
     **BASE_TEST_CONFIG,
-    'workdir': '/tmp',
-    'tools': {
-        'name': 'nomos',
-        'version': '3.1.0rc2-31-ga2cbb8c',
-        'configuration': {
-            'command_line': 'nomossa <filepath>',
-        },
+    "workdir": "/tmp",
+    "tools": {
+        "name": "nomos",
+        "version": "3.1.0rc2-31-ga2cbb8c",
+        "configuration": {"command_line": "nomossa <filepath>",},
     },
 }  # type: Dict[str, Any]
 
-RANGE_CONFIG = dict(list(CONFIG.items()) + [('write_batch_size', 100)])
+RANGE_CONFIG = dict(list(CONFIG.items()) + [("write_batch_size", 100)])
 
 
 class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
@@ -95,26 +92,16 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 
-        self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
-        self.id1 = '688a5ef812c53907562fe379d4b3851e69c7cb15'
-        self.id2 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'  # empty content
+        self.id0 = "01c9379dfc33803963d07c1ccc748d3fe4c96bb5"
+        self.id1 = "688a5ef812c53907562fe379d4b3851e69c7cb15"
+        self.id2 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"  # empty content
 
-        tool = {k.replace('tool_', ''): v
-                for (k, v) in self.indexer.tool.items()}
+        tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
         # then
         self.expected_results = {
-            self.id0: {
-                'tool': tool,
-                'licenses': SHA1_TO_LICENSES[self.id0],
-            },
-            self.id1: {
-                'tool': tool,
-                'licenses': SHA1_TO_LICENSES[self.id1],
-            },
-            self.id2: {
-                'tool': tool,
-                'licenses': SHA1_TO_LICENSES[self.id2],
-            }
+            self.id0: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id0],},
+            self.id1: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id1],},
+            self.id2: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id2],},
         }
 
     def tearDown(self):
@@ -123,7 +110,8 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
 
 
 class TestFossologyLicenseRangeIndexer(
-        CommonContentIndexerRangeTest, unittest.TestCase):
+    CommonContentIndexerRangeTest, unittest.TestCase
+):
     """Range Fossology License Indexer tests.
 
     - new data within range are indexed
@@ -132,6 +120,7 @@ class TestFossologyLicenseRangeIndexer(
     - without filtering existing indexed data prior to compute new index
 
     """
+
     def setUp(self):
         super().setUp()
 
@@ -144,26 +133,26 @@ class TestFossologyLicenseRangeIndexer(
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 
-        self.id0 = '01c9379dfc33803963d07c1ccc748d3fe4c96bb5'
-        self.id1 = '02fb2c89e14f7fab46701478c83779c7beb7b069'
-        self.id2 = '103bc087db1d26afc3a0283f38663d081e9b01e6'
-        tool_id = self.indexer.tool['id']
+        self.id0 = "01c9379dfc33803963d07c1ccc748d3fe4c96bb5"
+        self.id1 = "02fb2c89e14f7fab46701478c83779c7beb7b069"
+        self.id2 = "103bc087db1d26afc3a0283f38663d081e9b01e6"
+        tool_id = self.indexer.tool["id"]
         self.expected_results = {
             self.id0: {
-                'id': self.id0,
-                'indexer_configuration_id': tool_id,
-                'licenses': SHA1_TO_LICENSES[self.id0]
+                "id": self.id0,
+                "indexer_configuration_id": tool_id,
+                "licenses": SHA1_TO_LICENSES[self.id0],
             },
             self.id1: {
-                'id': self.id1,
-                'indexer_configuration_id': tool_id,
-                'licenses': SHA1_TO_LICENSES[self.id1]
+                "id": self.id1,
+                "indexer_configuration_id": tool_id,
+                "licenses": SHA1_TO_LICENSES[self.id1],
             },
             self.id2: {
-                'id': self.id2,
-                'indexer_configuration_id': tool_id,
-                'licenses': SHA1_TO_LICENSES[self.id2]
-            }
+                "id": self.id2,
+                "indexer_configuration_id": tool_id,
+                "licenses": SHA1_TO_LICENSES[self.id2],
+            },
         }
 
     def tearDown(self):
@@ -173,9 +162,9 @@ class TestFossologyLicenseRangeIndexer(
 
 def test_fossology_w_no_tool():
     with pytest.raises(ValueError):
-        FossologyLicenseIndexer(config=filter_dict(CONFIG, 'tools'))
+        FossologyLicenseIndexer(config=filter_dict(CONFIG, "tools"))
 
 
 def test_fossology_range_w_no_tool():
     with pytest.raises(ValueError):
-        FossologyLicenseRangeIndexer(config=filter_dict(RANGE_CONFIG, 'tools'))
+        FossologyLicenseRangeIndexer(config=filter_dict(RANGE_CONFIG, "tools"))
