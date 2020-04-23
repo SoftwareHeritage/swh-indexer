@@ -10,7 +10,7 @@ import click
 
 from swh.core import config
 from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup
-from swh.journal.cli import get_journal_client
+from swh.journal.client import get_journal_client
 from swh.scheduler import get_scheduler
 from swh.scheduler.cli_utils import schedule_origin_batches
 from swh.storage import get_storage
@@ -237,7 +237,7 @@ def journal_client(
     scheduler = _get_api(get_scheduler, ctx.obj["config"], "scheduler", scheduler_url)
 
     client = get_journal_client(
-        ctx,
+        cls="kafka",
         brokers=brokers,
         prefix=prefix,
         group_id=group_id,
