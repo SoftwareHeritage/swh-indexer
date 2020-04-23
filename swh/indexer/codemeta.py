@@ -97,7 +97,7 @@ with open(CROSSWALK_TABLE_PATH) as fd:
     (CODEMETA_TERMS, CROSSWALK_TABLE) = _read_crosstable(fd)
 
 
-def _document_loader(url):
+def _document_loader(url, options=None):
     """Document loader for pyld.
 
     Reads the local codemeta.jsonld file instead of fetching it
