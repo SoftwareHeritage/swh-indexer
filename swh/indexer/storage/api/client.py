@@ -6,7 +6,8 @@
 from swh.core.api import RPCClient
 
 from swh.indexer.storage.exc import (
-    IndexerStorageAPIError, IndexerStorageArgumentException,
+    IndexerStorageAPIError,
+    IndexerStorageArgumentException,
     DuplicateId,
 )
 
@@ -18,6 +19,4 @@ class RemoteStorage(RPCClient):
 
     backend_class = IndexerStorageInterface
     api_exception = IndexerStorageAPIError
-    reraise_exceptions = [
-        IndexerStorageArgumentException, DuplicateId
-    ]
+    reraise_exceptions = [IndexerStorageArgumentException, DuplicateId]

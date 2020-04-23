@@ -6,20 +6,20 @@
 from uuid import uuid1
 
 from swh.model.hashutil import MultiHash
-from hypothesis.strategies import (composite, sets, one_of, uuids,
-                                   tuples, sampled_from)
+from hypothesis.strategies import composite, sets, one_of, uuids, tuples, sampled_from
+
 MIMETYPES = [
-    b'application/json',
-    b'application/octet-stream',
-    b'application/xml',
-    b'text/plain',
+    b"application/json",
+    b"application/octet-stream",
+    b"application/xml",
+    b"text/plain",
 ]
 
 ENCODINGS = [
-    b'iso8859-1',
-    b'iso8859-15',
-    b'latin1',
-    b'utf-8',
+    b"iso8859-1",
+    b"iso8859-15",
+    b"latin1",
+    b"utf-8",
 ]
 
 
@@ -42,8 +42,8 @@ def _init_content(uuid):
 
     """
     return {
-        'id': MultiHash.from_data(uuid.bytes, {'sha1'}).digest()['sha1'],
-        'indexer_configuration_id': 1,
+        "id": MultiHash.from_data(uuid.bytes, {"sha1"}).digest()["sha1"],
+        "indexer_configuration_id": 1,
     }
 
 
@@ -67,102 +67,104 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
     """
     _ids = draw(
         sets(
-            tuples(
-                uuids(),
-                gen_mimetype(),
-                gen_encoding()
-            ),
-            min_size=min_size, max_size=max_size
+            tuples(uuids(), gen_mimetype(), gen_encoding()),
+            min_size=min_size,
+            max_size=max_size,
         )
     )
 
     content_mimetypes = []
     for uuid, mimetype, encoding in _ids:
-        content_mimetypes.append({
-            **_init_content(uuid),
-            'mimetype': mimetype,
-            'encoding': encoding,
-        })
+        content_mimetypes.append(
+            {**_init_content(uuid), "mimetype": mimetype, "encoding": encoding,}
+        )
     return content_mimetypes
 
 
 TOOLS = [
     {
-        'tool_name': 'universal-ctags',
-        'tool_version': '~git7859817b',
-        'tool_configuration': {
+        "tool_name": "universal-ctags",
+        "tool_version": "~git7859817b",
+        "tool_configuration": {
             "command_line": "ctags --fields=+lnz --sort=no --links=no "
-                            "--output-format=json <filepath>"}
-    },
-    {
-        'tool_name': 'swh-metadata-translator',
-        'tool_version': '0.0.1',
-        'tool_configuration': {"type": "local", "context": "NpmMapping"},
-    },
-    {
-        'tool_name': 'swh-metadata-detector',
-        'tool_version': '0.0.1',
-        'tool_configuration': {
-            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
-    },
-    {
-        'tool_name': 'swh-metadata-detector2',
-        'tool_version': '0.0.1',
-        'tool_configuration': {
-            "type": "local", "context": ["NpmMapping", "CodemetaMapping"]},
-    },
-    {
-        'tool_name': 'file',
-        'tool_version': '5.22',
-        'tool_configuration': {"command_line": "file --mime <filepath>"},
-    },
-    {
-        'tool_name': 'pygments',
-        'tool_version': '2.0.1+dfsg-1.1+deb8u1',
-        'tool_configuration': {
-            "type": "library", "debian-package": "python3-pygments"},
-    },
-    {
-        'tool_name': 'pygments2',
-        'tool_version': '2.0.1+dfsg-1.1+deb8u1',
-        'tool_configuration': {
-            "type": "library",
-            "debian-package": "python3-pygments",
-            "max_content_size": 10240
+            "--output-format=json <filepath>"
         },
     },
     {
-        'tool_name': 'nomos',
-        'tool_version': '3.1.0rc2-31-ga2cbb8c',
-        'tool_configuration': {"command_line": "nomossa <filepath>"},
+        "tool_name": "swh-metadata-translator",
+        "tool_version": "0.0.1",
+        "tool_configuration": {"type": "local", "context": "NpmMapping"},
+    },
+    {
+        "tool_name": "swh-metadata-detector",
+        "tool_version": "0.0.1",
+        "tool_configuration": {
+            "type": "local",
+            "context": ["NpmMapping", "CodemetaMapping"],
+        },
+    },
+    {
+        "tool_name": "swh-metadata-detector2",
+        "tool_version": "0.0.1",
+        "tool_configuration": {
+            "type": "local",
+            "context": ["NpmMapping", "CodemetaMapping"],
+        },
+    },
+    {
+        "tool_name": "file",
+        "tool_version": "5.22",
+        "tool_configuration": {"command_line": "file --mime <filepath>"},
+    },
+    {
+        "tool_name": "pygments",
+        "tool_version": "2.0.1+dfsg-1.1+deb8u1",
+        "tool_configuration": {"type": "library", "debian-package": "python3-pygments"},
+    },
+    {
+        "tool_name": "pygments2",
+        "tool_version": "2.0.1+dfsg-1.1+deb8u1",
+        "tool_configuration": {
+            "type": "library",
+            "debian-package": "python3-pygments",
+            "max_content_size": 10240,
+        },
+    },
+    {
+        "tool_name": "nomos",
+        "tool_version": "3.1.0rc2-31-ga2cbb8c",
+        "tool_configuration": {"command_line": "nomossa <filepath>"},
     },
 ]
 
 
 MIMETYPE_OBJECTS = [
-    {'id': MultiHash.from_data(uuid1().bytes, {'sha1'}).digest()['sha1'],
-     'mimetype': mt,
-     'encoding': enc,
-     # 'indexer_configuration_id' will be added after TOOLS get registered
-     }
+    {
+        "id": MultiHash.from_data(uuid1().bytes, {"sha1"}).digest()["sha1"],
+        "mimetype": mt,
+        "encoding": enc,
+        # 'indexer_configuration_id' will be added after TOOLS get registered
+    }
     for mt in MIMETYPES
-    for enc in ENCODINGS]
+    for enc in ENCODINGS
+]
 
 LICENSES = [
-    b'3DFX',
-    b'BSD',
-    b'GPL',
-    b'Apache2',
-    b'MIT',
+    b"3DFX",
+    b"BSD",
+    b"GPL",
+    b"Apache2",
+    b"MIT",
 ]
 
 FOSSOLOGY_LICENSES = [
-    {'id': MultiHash.from_data(uuid1().bytes, {'sha1'}).digest()['sha1'],
-     'licenses': [LICENSES[i % len(LICENSES)], ],
-     # 'indexer_configuration_id' will be added after TOOLS get registered
-     }
+    {
+        "id": MultiHash.from_data(uuid1().bytes, {"sha1"}).digest()["sha1"],
+        "licenses": [LICENSES[i % len(LICENSES)],],
+        # 'indexer_configuration_id' will be added after TOOLS get registered
+    }
     for i in range(10)
-    ]
+]
 
 
 def gen_license():
@@ -188,19 +190,12 @@ def gen_content_fossology_licenses(draw, *, min_size=0, max_size=100):
 
     """
     _ids = draw(
-        sets(
-            tuples(
-                uuids(),
-                gen_license(),
-            ),
-            min_size=min_size, max_size=max_size
-        )
+        sets(tuples(uuids(), gen_license(),), min_size=min_size, max_size=max_size)
     )
 
     content_licenses = []
     for uuid, license in _ids:
-        content_licenses.append({
-            **_init_content(uuid),
-            'licenses': [license],
-        })
+        content_licenses.append(
+            {**_init_content(uuid), "licenses": [license],}
+        )
     return content_licenses

@@ -7,11 +7,8 @@ import os
 import logging
 
 from swh.core import config
-from swh.core.api import (RPCServerApp, error_handler,
-                          encode_data_server as encode_data)
-from swh.indexer.storage import (
-    get_indexer_storage, INDEXER_CFG_KEY
-)
+from swh.core.api import RPCServerApp, error_handler, encode_data_server as encode_data
+from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
 from swh.indexer.storage.exc import IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
 
@@ -24,9 +21,9 @@ def get_storage():
     return storage
 
 
-app = RPCServerApp(__name__,
-                   backend_class=IndexerStorageInterface,
-                   backend_factory=get_storage)
+app = RPCServerApp(
+    __name__, backend_class=IndexerStorageInterface, backend_factory=get_storage
+)
 storage = None
 
 
@@ -40,15 +37,15 @@ def argument_error_handler(exception):
     return error_handler(exception, encode_data, status_code=400)
 
 
-@app.route('/')
+@app.route("/")
 def index():
-    return 'SWH Indexer Storage API server'
+    return "SWH Indexer Storage API server"
 
 
 api_cfg = None
 
 
-def load_and_check_config(config_file, type='local'):
+def load_and_check_config(config_file, type="local"):
     """Check the minimal configuration is set to run the api or raise an
        error explanation.
 
@@ -65,28 +62,27 @@ def load_and_check_config(config_file, type='local'):
 
     """
     if not config_file:
-        raise EnvironmentError('Configuration file must be defined')
+        raise EnvironmentError("Configuration file must be defined")
 
     if not os.path.exists(config_file):
-        raise FileNotFoundError('Configuration file %s does not exist' % (
-            config_file, ))
+        raise FileNotFoundError("Configuration file %s does not exist" % (config_file,))
 
     cfg = config.read(config_file)
-    if 'indexer_storage' not in cfg:
+    if "indexer_storage" not in cfg:
         raise KeyError("Missing '%indexer_storage' configuration")
 
-    if type == 'local':
-        vcfg = cfg['indexer_storage']
-        cls = vcfg.get('cls')
-        if cls != 'local':
+    if type == "local":
+        vcfg = cfg["indexer_storage"]
+        cls = vcfg.get("cls")
+        if cls != "local":
             raise ValueError(
                 "The indexer_storage backend can only be started with a "
-                "'local' configuration")
+                "'local' configuration"
+            )
 
-        args = vcfg['args']
-        if not args.get('db'):
-            raise ValueError(
-                "Invalid configuration; missing 'db' config entry")
+        args = vcfg["args"]
+        if not args.get("db"):
+            raise ValueError("Invalid configuration; missing 'db' config entry")
 
     return cfg
 
@@ -101,7 +97,7 @@ def make_app_from_configfile():
     """
     global api_cfg
     if not api_cfg:
-        config_file = os.environ.get('SWH_CONFIG_FILENAME')
+        config_file = os.environ.get("SWH_CONFIG_FILENAME")
         api_cfg = load_and_check_config(config_file)
         app.config.update(api_cfg)
     handler = logging.StreamHandler()
@@ -109,5 +105,5 @@ def make_app_from_configfile():
     return app
 
 
-if __name__ == '__main__':
-    print('Deprecated. Use swh-indexer')
+if __name__ == "__main__":
+    print("Deprecated. Use swh-indexer")

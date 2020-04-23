@@ -21,11 +21,12 @@ class BaseMapping(metaclass=abc.ABCMeta):
     - inherit this class
     - override translate function
     """
-    def __init__(self, log_suffix=''):
+
+    def __init__(self, log_suffix=""):
         self.log_suffix = log_suffix
-        self.log = logging.getLogger('%s.%s' % (
-            self.__class__.__module__,
-            self.__class__.__name__))
+        self.log = logging.getLogger(
+            "%s.%s" % (self.__class__.__module__, self.__class__.__name__)
+        )
 
     @property
     @abc.abstractmethod
@@ -68,8 +69,8 @@ class SingleFileMapping(BaseMapping):
     @classmethod
     def detect_metadata_files(cls, file_entries):
         for entry in file_entries:
-            if entry['name'] == cls.filename:
-                return [entry['sha1']]
+            if entry["name"] == cls.filename:
+                return [entry["sha1"]]
         return []
 
 
@@ -78,8 +79,8 @@ class DictMapping(BaseMapping):
     a key-value store (eg. a shallow JSON dict)."""
 
     string_fields = []  # type: List[str]
-    '''List of fields that are simple strings, and don't need any
-    normalization.'''
+    """List of fields that are simple strings, and don't need any
+    normalization."""
 
     @property
     @abc.abstractmethod
@@ -89,15 +90,17 @@ class DictMapping(BaseMapping):
 
     @staticmethod
     def _normalize_method_name(name):
-        return name.replace('-', '_')
+        return name.replace("-", "_")
 
     @classmethod
     def supported_terms(cls):
         return {
-            term for (key, term) in cls.mapping.items()
+            term
+            for (key, term) in cls.mapping.items()
             if key in cls.string_fields
-            or hasattr(cls, 'translate_' + cls._normalize_method_name(key))
-            or hasattr(cls, 'normalize_' + cls._normalize_method_name(key))}
+            or hasattr(cls, "translate_" + cls._normalize_method_name(key))
+            or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
+        }
 
     def _translate_dict(self, content_dict, *, normalize=True):
         """
@@ -112,12 +115,13 @@ class DictMapping(BaseMapping):
             the indexer
 
         """
-        translated_metadata = {'@type': SCHEMA_URI + 'SoftwareSourceCode'}
+        translated_metadata = {"@type": SCHEMA_URI + "SoftwareSourceCode"}
         for k, v in content_dict.items():
             # First, check if there is a specific translation
             # method for this key
             translation_method = getattr(
-                self, 'translate_' + self._normalize_method_name(k), None)
+                self, "translate_" + self._normalize_method_name(k), None
+            )
             if translation_method:
                 translation_method(translated_metadata, v)
             elif k in self.mapping:
@@ -127,7 +131,8 @@ class DictMapping(BaseMapping):
 
                 # if there is a normalization method, use it on the value
                 normalization_method = getattr(
-                    self, 'normalize_' + self._normalize_method_name(k), None)
+                    self, "normalize_" + self._normalize_method_name(k), None
+                )
                 if normalization_method:
                     v = normalization_method(v)
                 elif k in self.string_fields and isinstance(v, str):
@@ -140,7 +145,8 @@ class DictMapping(BaseMapping):
                 # set the translation metadata with the normalized value
                 if codemeta_key in translated_metadata:
                     translated_metadata[codemeta_key] = merge_values(
-                        translated_metadata[codemeta_key], v)
+                        translated_metadata[codemeta_key], v
+                    )
                 else:
                     translated_metadata[codemeta_key] = v
         if normalize:
@@ -168,12 +174,12 @@ class JsonMapping(DictMapping, SingleFileMapping):
         try:
             raw_content = raw_content.decode()
         except UnicodeDecodeError:
-            self.log.warning('Error unidecoding from %s', self.log_suffix)
+            self.log.warning("Error unidecoding from %s", self.log_suffix)
             return
         try:
             content_dict = json.loads(raw_content)
         except json.JSONDecodeError:
-            self.log.warning('Error unjsoning from %s', self.log_suffix)
+            self.log.warning("Error unjsoning from %s", self.log_suffix)
             return
         if isinstance(content_dict, dict):
             return self._translate_dict(content_dict)

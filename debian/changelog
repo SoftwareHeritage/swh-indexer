@@ -1,8 +1,19 @@
-swh-indexer (0.0.170-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.0.171-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.0.171     - (tagged by Antoine R. Dumont
+    (@ardumont) <antoine.romain.dumont@gmail.com> on 2020-04-23 16:46:52
+    +0200)
+  * Upstream changes:     - v0.0.171     - cli: Adapt journal client
+    instantiation according to latest change     - codemeta: Add
+    compatibility with PyLD >= 2.0.0.     - setup: Update the minimum
+    required runtime python3 version     - Add a pyproject.toml file to
+    target py37 for black     - Enable black     - test: make test data
+    properly typed     - indexer.cli.journal_client: Simplify the
+    journal client call     - Remove type from origin_add calls     -
+    Rename --max-messages to --stop-after-objects.     - tests: Migrate
+    to latest swh-storage api change
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Sun, 08 Mar 2020 09:06:26 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 23 Apr 2020 14:49:17 +0000
 
 swh-indexer (0.0.170-1~swh1) unstable-swh; urgency=medium
 

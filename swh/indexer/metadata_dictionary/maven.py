@@ -16,31 +16,31 @@ class MavenMapping(DictMapping, SingleFileMapping):
     """
     dedicated class for Maven (pom.xml) mapping and translation
     """
-    name = 'maven'
-    filename = b'pom.xml'
-    mapping = CROSSWALK_TABLE['Java (Maven)']
-    string_fields = ['name', 'version', 'description', 'email']
+
+    name = "maven"
+    filename = b"pom.xml"
+    mapping = CROSSWALK_TABLE["Java (Maven)"]
+    string_fields = ["name", "version", "description", "email"]
 
     def translate(self, content):
         try:
-            d = xmltodict.parse(content).get('project') or {}
+            d = xmltodict.parse(content).get("project") or {}
         except xml.parsers.expat.ExpatError:
-            self.log.warning('Error parsing XML from %s', self.log_suffix)
+            self.log.warning("Error parsing XML from %s", self.log_suffix)
             return None
         except UnicodeDecodeError:
-            self.log.warning('Error unidecoding XML from %s', self.log_suffix)
+            self.log.warning("Error unidecoding XML from %s", self.log_suffix)
             return None
         except (LookupError, ValueError):
             # unknown encoding or multi-byte encoding
-            self.log.warning('Error detecting XML encoding from %s',
-                             self.log_suffix)
+            self.log.warning("Error detecting XML encoding from %s", self.log_suffix)
             return None
         metadata = self._translate_dict(d, normalize=False)
-        metadata[SCHEMA_URI+'codeRepository'] = self.parse_repositories(d)
-        metadata[SCHEMA_URI+'license'] = self.parse_licenses(d)
+        metadata[SCHEMA_URI + "codeRepository"] = self.parse_repositories(d)
+        metadata[SCHEMA_URI + "license"] = self.parse_licenses(d)
         return self.normalize_translation(metadata)
 
-    _default_repository = {'url': 'https://repo.maven.apache.org/maven2/'}
+    _default_repository = {"url": "https://repo.maven.apache.org/maven2/"}
 
     def parse_repositories(self, d):
         """https://maven.apache.org/pom.html#Repositories
@@ -59,15 +59,14 @@ class MavenMapping(DictMapping, SingleFileMapping):
         ... ''')
         >>> MavenMapping().parse_repositories(d)
         """
-        repositories = d.get('repositories')
+        repositories = d.get("repositories")
         if not repositories:
             results = [self.parse_repository(d, self._default_repository)]
         elif isinstance(repositories, dict):
-            repositories = repositories.get('repository') or []
+            repositories = repositories.get("repository") or []
             if not isinstance(repositories, list):
                 repositories = [repositories]
-            results = [self.parse_repository(d, repo)
-                       for repo in repositories]
+            results = [self.parse_repository(d, repo) for repo in repositories]
         else:
             results = []
         return [res for res in results if res] or None
@@ -75,14 +74,17 @@ class MavenMapping(DictMapping, SingleFileMapping):
     def parse_repository(self, d, repo):
         if not isinstance(repo, dict):
             return
-        if repo.get('layout', 'default') != 'default':
+        if repo.get("layout", "default") != "default":
             return  # TODO ?
-        url = repo.get('url')
-        group_id = d.get('groupId')
-        artifact_id = d.get('artifactId')
-        if (isinstance(url, str) and isinstance(group_id, str)
-                and isinstance(artifact_id, str)):
-            repo = os.path.join(url, *group_id.split('.'), artifact_id)
+        url = repo.get("url")
+        group_id = d.get("groupId")
+        artifact_id = d.get("artifactId")
+        if (
+            isinstance(url, str)
+            and isinstance(group_id, str)
+            and isinstance(artifact_id, str)
+        ):
+            repo = os.path.join(url, *group_id.split("."), artifact_id)
             return {"@id": repo}
 
     def normalize_groupId(self, id_):
@@ -140,15 +142,16 @@ class MavenMapping(DictMapping, SingleFileMapping):
          {'@id': 'https://opensource.org/licenses/MIT'}]
         """
 
-        licenses = d.get('licenses')
+        licenses = d.get("licenses")
         if not isinstance(licenses, dict):
             return
-        licenses = licenses.get('license')
+        licenses = licenses.get("license")
         if isinstance(licenses, dict):
             licenses = [licenses]
         elif not isinstance(licenses, list):
             return
-        return [{"@id": license['url']}
-                for license in licenses
-                if isinstance(license, dict)
-                and isinstance(license.get('url'), str)] or None
+        return [
+            {"@id": license["url"]}
+            for license in licenses
+            if isinstance(license, dict) and isinstance(license.get("url"), str)
+        ] or None

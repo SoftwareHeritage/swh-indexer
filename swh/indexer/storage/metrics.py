@@ -8,7 +8,7 @@ import logging
 
 from swh.core.statsd import statsd
 
-OPERATIONS_METRIC = 'swh_indexer_storage_operations_total'
+OPERATIONS_METRIC = "swh_indexer_storage_operations_total"
 OPERATIONS_UNIT_METRIC = "swh_indexer_storage_operations_{unit}_total"
 DURATION_METRIC = "swh_indexer_storage_request_duration_seconds"
 
@@ -17,9 +17,10 @@ def timed(f):
     """Time that function!
 
     """
+
     @wraps(f)
     def d(*a, **kw):
-        with statsd.timed(DURATION_METRIC, tags={'endpoint': f.__name__}):
+        with statsd.timed(DURATION_METRIC, tags={"endpoint": f.__name__}):
             return f(*a, **kw)
 
     return d
@@ -42,7 +43,7 @@ def send_metric(metric, count, method_name):
     if count == 0:
         return False
 
-    metric_type = metric.split(':')
+    metric_type = metric.split(":")
     _length = len(metric_type)
     if _length == 2:
         object_type, operation = metric_type
@@ -51,16 +52,18 @@ def send_metric(metric, count, method_name):
         object_type, operation, unit = metric_type
         metric_name = OPERATIONS_UNIT_METRIC.format(unit=unit)
     else:
-        logging.warning('Skipping unknown metric {%s: %s}' % (
-            metric, count))
+        logging.warning("Skipping unknown metric {%s: %s}" % (metric, count))
         return False
 
     statsd.increment(
-        metric_name, count, tags={
-            'endpoint': method_name,
-            'object_type': object_type,
-            'operation': operation,
-        })
+        metric_name,
+        count,
+        tags={
+            "endpoint": method_name,
+            "object_type": object_type,
+            "operation": operation,
+        },
+    )
     return True
 
 
@@ -68,6 +71,7 @@ def process_metrics(f):
     """Increment object counters for the decorated function.
 
     """
+
     @wraps(f)
     def d(*a, **kw):
         r = f(*a, **kw)
