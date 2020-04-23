@@ -13,7 +13,8 @@ class Db(BaseDb):
     """Proxy to the SWH Indexer DB, with wrappers around stored procedures
 
     """
-    content_mimetype_hash_keys = ['id', 'indexer_configuration_id']
+
+    content_mimetype_hash_keys = ["id", "indexer_configuration_id"]
 
     def _missing_from_list(self, table, data, hash_keys, cur=None):
         """Read from table the data with hash_keys that are missing.
@@ -29,19 +30,19 @@ class Db(BaseDb):
 
         """
         cur = self._cursor(cur)
-        keys = ', '.join(hash_keys)
-        equality = ' AND '.join(
-            ('t.%s = c.%s' % (key, key)) for key in hash_keys
-        )
+        keys = ", ".join(hash_keys)
+        equality = " AND ".join(("t.%s = c.%s" % (key, key)) for key in hash_keys)
         yield from execute_values_generator(
-            cur, """
+            cur,
+            """
             select %s from (values %%s) as t(%s)
             where not exists (
                 select 1 from %s c
                 where %s
             )
-            """ % (keys, keys, table, equality),
-            (tuple(m[k] for k in hash_keys) for m in data)
+            """
+            % (keys, keys, table, equality),
+            (tuple(m[k] for k in hash_keys) for m in data),
         )
 
     def content_mimetype_missing_from_list(self, mimetypes, cur=None):
@@ -49,23 +50,29 @@ class Db(BaseDb):
 
         """
         yield from self._missing_from_list(
-            'content_mimetype', mimetypes, self.content_mimetype_hash_keys,
-            cur=cur)
+            "content_mimetype", mimetypes, self.content_mimetype_hash_keys, cur=cur
+        )
 
     content_mimetype_cols = [
-        'id', 'mimetype', 'encoding',
-        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
+        "id",
+        "mimetype",
+        "encoding",
+        "tool_id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+    ]
 
-    @stored_procedure('swh_mktemp_content_mimetype')
-    def mktemp_content_mimetype(self, cur=None): pass
+    @stored_procedure("swh_mktemp_content_mimetype")
+    def mktemp_content_mimetype(self, cur=None):
+        pass
 
     def content_mimetype_add_from_temp(self, conflict_update, cur=None):
         cur = self._cursor(cur)
-        cur.execute('select * from swh_content_mimetype_add(%s)',
-                    (conflict_update, ))
+        cur.execute("select * from swh_content_mimetype_add(%s)", (conflict_update,))
         return cur.fetchone()[0]
 
-    def _convert_key(self, key, main_table='c'):
+    def _convert_key(self, key, main_table="c"):
         """Convert keys according to specific use in the module.
 
         Args:
@@ -80,19 +87,22 @@ class Db(BaseDb):
             being aliased as 'i'.
 
         """
-        if key == 'id':
-            return '%s.id' % main_table
-        elif key == 'tool_id':
-            return 'i.id as tool_id'
-        elif key == 'licenses':
-            return '''
+        if key == "id":
+            return "%s.id" % main_table
+        elif key == "tool_id":
+            return "i.id as tool_id"
+        elif key == "licenses":
+            return (
+                """
                 array(select name
                       from fossology_license
                       where id = ANY(
-                         array_agg(%s.license_id))) as licenses''' % main_table
+                         array_agg(%s.license_id))) as licenses"""
+                % main_table
+            )
         return key
 
-    def _get_from_list(self, table, ids, cols, cur=None, id_col='id'):
+    def _get_from_list(self, table, ids, cols, cur=None, id_col="id"):
         """Fetches entries from the `table` such that their `id` field
         (or whatever is given to `id_col`) is in `ids`.
         Returns the columns `cols`.
@@ -108,22 +118,25 @@ class Db(BaseDb):
             inner join indexer_configuration i
                 on c.indexer_configuration_id=i.id;
             """.format(
-                keys=', '.join(keys),
-                id_col=id_col,
-                table=table)
-        yield from execute_values_generator(
-            cur, query,
-            ((_id,) for _id in ids)
+            keys=", ".join(keys), id_col=id_col, table=table
         )
+        yield from execute_values_generator(cur, query, ((_id,) for _id in ids))
 
     content_indexer_names = {
-        'mimetype': 'content_mimetype',
-        'fossology_license': 'content_fossology_license',
+        "mimetype": "content_mimetype",
+        "fossology_license": "content_fossology_license",
     }
 
-    def content_get_range(self, content_type, start, end,
-                          indexer_configuration_id, limit=1000,
-                          with_textual_data=False, cur=None):
+    def content_get_range(
+        self,
+        content_type,
+        start,
+        end,
+        indexer_configuration_id,
+        limit=1000,
+        with_textual_data=False,
+        cur=None,
+    ):
         """Retrieve contents with content_type, within range [start, end]
            bound by limit and associated to the given indexer
            configuration id.
@@ -148,74 +161,92 @@ class Db(BaseDb):
                           and %(start)s <= t.id and t.id <= %(end)s
                     order by t.indexer_configuration_id, t.id
                     limit %(limit)s"""
-        cur.execute(query, {
-            'start': start,
-            'end': end,
-            'tool_id': indexer_configuration_id,
-            'limit': limit,
-        })
+        cur.execute(
+            query,
+            {
+                "start": start,
+                "end": end,
+                "tool_id": indexer_configuration_id,
+                "limit": limit,
+            },
+        )
         yield from cur
 
     def content_mimetype_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            'content_mimetype', ids, self.content_mimetype_cols, cur=cur)
+            "content_mimetype", ids, self.content_mimetype_cols, cur=cur
+        )
 
-    content_language_hash_keys = ['id', 'indexer_configuration_id']
+    content_language_hash_keys = ["id", "indexer_configuration_id"]
 
     def content_language_missing_from_list(self, languages, cur=None):
         """List missing languages.
 
         """
         yield from self._missing_from_list(
-            'content_language', languages, self.content_language_hash_keys,
-            cur=cur)
+            "content_language", languages, self.content_language_hash_keys, cur=cur
+        )
 
     content_language_cols = [
-        'id', 'lang',
-        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
+        "id",
+        "lang",
+        "tool_id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+    ]
 
-    @stored_procedure('swh_mktemp_content_language')
-    def mktemp_content_language(self, cur=None): pass
+    @stored_procedure("swh_mktemp_content_language")
+    def mktemp_content_language(self, cur=None):
+        pass
 
     def content_language_add_from_temp(self, conflict_update, cur=None):
         cur = self._cursor(cur)
-        cur.execute('select * from swh_content_language_add(%s)',
-                    (conflict_update, ))
+        cur.execute("select * from swh_content_language_add(%s)", (conflict_update,))
         return cur.fetchone()[0]
 
     def content_language_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            'content_language', ids, self.content_language_cols, cur=cur)
+            "content_language", ids, self.content_language_cols, cur=cur
+        )
 
-    content_ctags_hash_keys = ['id', 'indexer_configuration_id']
+    content_ctags_hash_keys = ["id", "indexer_configuration_id"]
 
     def content_ctags_missing_from_list(self, ctags, cur=None):
         """List missing ctags.
 
         """
         yield from self._missing_from_list(
-            'content_ctags', ctags, self.content_ctags_hash_keys,
-            cur=cur)
+            "content_ctags", ctags, self.content_ctags_hash_keys, cur=cur
+        )
 
     content_ctags_cols = [
-        'id', 'name', 'kind', 'line', 'lang',
-        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
+        "id",
+        "name",
+        "kind",
+        "line",
+        "lang",
+        "tool_id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+    ]
 
-    @stored_procedure('swh_mktemp_content_ctags')
-    def mktemp_content_ctags(self, cur=None): pass
+    @stored_procedure("swh_mktemp_content_ctags")
+    def mktemp_content_ctags(self, cur=None):
+        pass
 
     def content_ctags_add_from_temp(self, conflict_update, cur=None):
         cur = self._cursor(cur)
-        cur.execute(
-            'select * from swh_content_ctags_add(%s)',
-            (conflict_update, ))
+        cur.execute("select * from swh_content_ctags_add(%s)", (conflict_update,))
         return cur.fetchone()[0]
 
     def content_ctags_get_from_list(self, ids, cur=None):
         cur = self._cursor(cur)
         keys = map(self._convert_key, self.content_ctags_cols)
         yield from execute_values_generator(
-            cur, """
+            cur,
+            """
             select %s
             from (values %%s) as t(id)
             inner join content_ctags c
@@ -223,46 +254,54 @@ class Db(BaseDb):
             inner join indexer_configuration i
                 on c.indexer_configuration_id=i.id
             order by line
-            """ % ', '.join(keys),
-            ((_id,) for _id in ids)
-         )
+            """
+            % ", ".join(keys),
+            ((_id,) for _id in ids),
+        )
 
     def content_ctags_search(self, expression, last_sha1, limit, cur=None):
         cur = self._cursor(cur)
         if not last_sha1:
             query = """SELECT %s
                        FROM swh_content_ctags_search(%%s, %%s)""" % (
-                           ','.join(self.content_ctags_cols))
+                ",".join(self.content_ctags_cols)
+            )
             cur.execute(query, (expression, limit))
         else:
             if last_sha1 and isinstance(last_sha1, bytes):
-                last_sha1 = '\\x%s' % hashutil.hash_to_hex(last_sha1)
+                last_sha1 = "\\x%s" % hashutil.hash_to_hex(last_sha1)
             elif last_sha1:
-                last_sha1 = '\\x%s' % last_sha1
+                last_sha1 = "\\x%s" % last_sha1
 
             query = """SELECT %s
                        FROM swh_content_ctags_search(%%s, %%s, %%s)""" % (
-                           ','.join(self.content_ctags_cols))
+                ",".join(self.content_ctags_cols)
+            )
             cur.execute(query, (expression, limit, last_sha1))
 
         yield from cur
 
     content_fossology_license_cols = [
-        'id', 'tool_id', 'tool_name', 'tool_version', 'tool_configuration',
-        'licenses']
+        "id",
+        "tool_id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+        "licenses",
+    ]
 
-    @stored_procedure('swh_mktemp_content_fossology_license')
-    def mktemp_content_fossology_license(self, cur=None): pass
+    @stored_procedure("swh_mktemp_content_fossology_license")
+    def mktemp_content_fossology_license(self, cur=None):
+        pass
 
-    def content_fossology_license_add_from_temp(self, conflict_update,
-                                                cur=None):
+    def content_fossology_license_add_from_temp(self, conflict_update, cur=None):
         """Add new licenses per content.
 
         """
         cur = self._cursor(cur)
         cur.execute(
-            'select * from swh_content_fossology_license_add(%s)',
-            (conflict_update, ))
+            "select * from swh_content_fossology_license_add(%s)", (conflict_update,)
+        )
         return cur.fetchone()[0]
 
     def content_fossology_license_get_from_list(self, ids, cur=None):
@@ -272,7 +311,8 @@ class Db(BaseDb):
         cur = self._cursor(cur)
         keys = map(self._convert_key, self.content_fossology_license_cols)
         yield from execute_values_generator(
-            cur, """
+            cur,
+            """
             select %s
             from (values %%s) as t(id)
             inner join content_fossology_license c on t.id=c.id
@@ -280,149 +320,180 @@ class Db(BaseDb):
                 on i.id=c.indexer_configuration_id
             group by c.id, i.id, i.tool_name, i.tool_version,
                      i.tool_configuration;
-            """ % ', '.join(keys),
-            ((_id,) for _id in ids)
+            """
+            % ", ".join(keys),
+            ((_id,) for _id in ids),
         )
 
-    content_metadata_hash_keys = ['id', 'indexer_configuration_id']
+    content_metadata_hash_keys = ["id", "indexer_configuration_id"]
 
     def content_metadata_missing_from_list(self, metadata, cur=None):
         """List missing metadata.
 
         """
         yield from self._missing_from_list(
-            'content_metadata', metadata, self.content_metadata_hash_keys,
-            cur=cur)
+            "content_metadata", metadata, self.content_metadata_hash_keys, cur=cur
+        )
 
     content_metadata_cols = [
-        'id', 'metadata',
-        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
+        "id",
+        "metadata",
+        "tool_id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+    ]
 
-    @stored_procedure('swh_mktemp_content_metadata')
-    def mktemp_content_metadata(self, cur=None): pass
+    @stored_procedure("swh_mktemp_content_metadata")
+    def mktemp_content_metadata(self, cur=None):
+        pass
 
     def content_metadata_add_from_temp(self, conflict_update, cur=None):
         cur = self._cursor(cur)
-        cur.execute(
-            'select * from swh_content_metadata_add(%s)',
-            (conflict_update, ))
+        cur.execute("select * from swh_content_metadata_add(%s)", (conflict_update,))
         return cur.fetchone()[0]
 
     def content_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            'content_metadata', ids, self.content_metadata_cols, cur=cur)
+            "content_metadata", ids, self.content_metadata_cols, cur=cur
+        )
 
-    revision_intrinsic_metadata_hash_keys = [
-        'id', 'indexer_configuration_id']
+    revision_intrinsic_metadata_hash_keys = ["id", "indexer_configuration_id"]
 
-    def revision_intrinsic_metadata_missing_from_list(
-            self, metadata, cur=None):
+    def revision_intrinsic_metadata_missing_from_list(self, metadata, cur=None):
         """List missing metadata.
 
         """
         yield from self._missing_from_list(
-            'revision_intrinsic_metadata', metadata,
-            self.revision_intrinsic_metadata_hash_keys, cur=cur)
+            "revision_intrinsic_metadata",
+            metadata,
+            self.revision_intrinsic_metadata_hash_keys,
+            cur=cur,
+        )
 
     revision_intrinsic_metadata_cols = [
-        'id', 'metadata', 'mappings',
-        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
+        "id",
+        "metadata",
+        "mappings",
+        "tool_id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+    ]
 
-    @stored_procedure('swh_mktemp_revision_intrinsic_metadata')
-    def mktemp_revision_intrinsic_metadata(self, cur=None): pass
+    @stored_procedure("swh_mktemp_revision_intrinsic_metadata")
+    def mktemp_revision_intrinsic_metadata(self, cur=None):
+        pass
 
-    def revision_intrinsic_metadata_add_from_temp(
-            self, conflict_update, cur=None):
+    def revision_intrinsic_metadata_add_from_temp(self, conflict_update, cur=None):
         cur = self._cursor(cur)
         cur.execute(
-            'select * from swh_revision_intrinsic_metadata_add(%s)',
-            (conflict_update, ))
+            "select * from swh_revision_intrinsic_metadata_add(%s)", (conflict_update,)
+        )
         return cur.fetchone()[0]
 
-    def revision_intrinsic_metadata_delete(
-            self, entries, cur=None):
+    def revision_intrinsic_metadata_delete(self, entries, cur=None):
         cur = self._cursor(cur)
         cur.execute(
-                "DELETE from revision_intrinsic_metadata "
-                "WHERE (id, indexer_configuration_id) IN "
-                "   (VALUES %s) "
-                "RETURNING id" % (', '.join('%s' for _ in entries)),
-                tuple((e['id'], e['indexer_configuration_id'])
-                      for e in entries),)
+            "DELETE from revision_intrinsic_metadata "
+            "WHERE (id, indexer_configuration_id) IN "
+            "   (VALUES %s) "
+            "RETURNING id" % (", ".join("%s" for _ in entries)),
+            tuple((e["id"], e["indexer_configuration_id"]) for e in entries),
+        )
         return len(cur.fetchall())
 
     def revision_intrinsic_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            'revision_intrinsic_metadata', ids,
-            self.revision_intrinsic_metadata_cols, cur=cur)
+            "revision_intrinsic_metadata",
+            ids,
+            self.revision_intrinsic_metadata_cols,
+            cur=cur,
+        )
 
     origin_intrinsic_metadata_cols = [
-        'id', 'metadata', 'from_revision', 'mappings',
-        'tool_id', 'tool_name', 'tool_version', 'tool_configuration']
+        "id",
+        "metadata",
+        "from_revision",
+        "mappings",
+        "tool_id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+    ]
 
-    origin_intrinsic_metadata_regconfig = 'pg_catalog.simple'
+    origin_intrinsic_metadata_regconfig = "pg_catalog.simple"
     """The dictionary used to normalize 'metadata' and queries.
     'pg_catalog.simple' provides no stopword, so it should be suitable
     for proper names and non-English content.
     When updating this value, make sure to add a new index on
     origin_intrinsic_metadata.metadata."""
 
-    @stored_procedure('swh_mktemp_origin_intrinsic_metadata')
-    def mktemp_origin_intrinsic_metadata(self, cur=None): pass
+    @stored_procedure("swh_mktemp_origin_intrinsic_metadata")
+    def mktemp_origin_intrinsic_metadata(self, cur=None):
+        pass
 
-    def origin_intrinsic_metadata_add_from_temp(
-            self, conflict_update, cur=None):
+    def origin_intrinsic_metadata_add_from_temp(self, conflict_update, cur=None):
         cur = self._cursor(cur)
         cur.execute(
-            'select * from swh_origin_intrinsic_metadata_add(%s)',
-            (conflict_update, ))
+            "select * from swh_origin_intrinsic_metadata_add(%s)", (conflict_update,)
+        )
         return cur.fetchone()[0]
 
-    def origin_intrinsic_metadata_delete(
-            self, entries, cur=None):
+    def origin_intrinsic_metadata_delete(self, entries, cur=None):
         cur = self._cursor(cur)
         cur.execute(
-                "DELETE from origin_intrinsic_metadata "
-                "WHERE (id, indexer_configuration_id) IN"
-                "   (VALUES %s) "
-                "RETURNING id" % (', '.join('%s' for _ in entries)),
-                tuple((e['id'], e['indexer_configuration_id'])
-                      for e in entries),)
+            "DELETE from origin_intrinsic_metadata "
+            "WHERE (id, indexer_configuration_id) IN"
+            "   (VALUES %s) "
+            "RETURNING id" % (", ".join("%s" for _ in entries)),
+            tuple((e["id"], e["indexer_configuration_id"]) for e in entries),
+        )
         return len(cur.fetchall())
 
     def origin_intrinsic_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            'origin_intrinsic_metadata', ids,
-            self.origin_intrinsic_metadata_cols, cur=cur,
-            id_col='id')
+            "origin_intrinsic_metadata",
+            ids,
+            self.origin_intrinsic_metadata_cols,
+            cur=cur,
+            id_col="id",
+        )
 
     def origin_intrinsic_metadata_search_fulltext(self, terms, *, limit, cur):
         regconfig = self.origin_intrinsic_metadata_regconfig
-        tsquery_template = ' && '.join("plainto_tsquery('%s', %%s)" % regconfig
-                                       for _ in terms)
+        tsquery_template = " && ".join(
+            "plainto_tsquery('%s', %%s)" % regconfig for _ in terms
+        )
         tsquery_args = [(term,) for term in terms]
-        keys = (self._convert_key(col, 'oim') for col in
-                self.origin_intrinsic_metadata_cols)
+        keys = (
+            self._convert_key(col, "oim") for col in self.origin_intrinsic_metadata_cols
+        )
 
-        query = ("SELECT {keys} FROM origin_intrinsic_metadata AS oim "
-                 "INNER JOIN indexer_configuration AS i "
-                 "ON oim.indexer_configuration_id=i.id "
-                 "JOIN LATERAL (SELECT {tsquery_template}) AS s(tsq) ON true "
-                 "WHERE oim.metadata_tsvector @@ tsq "
-                 "ORDER BY ts_rank(oim.metadata_tsvector, tsq, 1) DESC "
-                 "LIMIT %s;"
-                 ).format(keys=', '.join(keys),
-                          tsquery_template=tsquery_template)
+        query = (
+            "SELECT {keys} FROM origin_intrinsic_metadata AS oim "
+            "INNER JOIN indexer_configuration AS i "
+            "ON oim.indexer_configuration_id=i.id "
+            "JOIN LATERAL (SELECT {tsquery_template}) AS s(tsq) ON true "
+            "WHERE oim.metadata_tsvector @@ tsq "
+            "ORDER BY ts_rank(oim.metadata_tsvector, tsq, 1) DESC "
+            "LIMIT %s;"
+        ).format(keys=", ".join(keys), tsquery_template=tsquery_template)
         cur.execute(query, tsquery_args + [limit])
         yield from cur
 
     def origin_intrinsic_metadata_search_by_producer(
-            self, last, limit, ids_only, mappings, tool_ids, cur):
+        self, last, limit, ids_only, mappings, tool_ids, cur
+    ):
         if ids_only:
-            keys = 'oim.id'
+            keys = "oim.id"
         else:
-            keys = ', '.join((self._convert_key(col, 'oim') for col in
-                              self.origin_intrinsic_metadata_cols))
+            keys = ", ".join(
+                (
+                    self._convert_key(col, "oim")
+                    for col in self.origin_intrinsic_metadata_cols
+                )
+            )
         query_parts = [
             "SELECT %s" % keys,
             "FROM origin_intrinsic_metadata AS oim",
@@ -433,47 +504,56 @@ class Db(BaseDb):
 
         where = []
         if last:
-            where.append('oim.id > %s')
+            where.append("oim.id > %s")
             args.append(last)
         if mappings is not None:
-            where.append('oim.mappings && %s')
+            where.append("oim.mappings && %s")
             args.append(mappings)
         if tool_ids is not None:
-            where.append('oim.indexer_configuration_id = ANY(%s)')
+            where.append("oim.indexer_configuration_id = ANY(%s)")
             args.append(tool_ids)
         if where:
-            query_parts.append('WHERE')
-            query_parts.append(' AND '.join(where))
+            query_parts.append("WHERE")
+            query_parts.append(" AND ".join(where))
 
         if limit:
-            query_parts.append('LIMIT %s')
+            query_parts.append("LIMIT %s")
             args.append(limit)
 
-        cur.execute(' '.join(query_parts), args)
+        cur.execute(" ".join(query_parts), args)
         yield from cur
 
-    indexer_configuration_cols = ['id', 'tool_name', 'tool_version',
-                                  'tool_configuration']
+    indexer_configuration_cols = [
+        "id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+    ]
 
-    @stored_procedure('swh_mktemp_indexer_configuration')
+    @stored_procedure("swh_mktemp_indexer_configuration")
     def mktemp_indexer_configuration(self, cur=None):
         pass
 
     def indexer_configuration_add_from_temp(self, cur=None):
         cur = self._cursor(cur)
-        cur.execute("SELECT %s from swh_indexer_configuration_add()" % (
-            ','.join(self.indexer_configuration_cols), ))
+        cur.execute(
+            "SELECT %s from swh_indexer_configuration_add()"
+            % (",".join(self.indexer_configuration_cols),)
+        )
         yield from cur
 
-    def indexer_configuration_get(self, tool_name,
-                                  tool_version, tool_configuration, cur=None):
+    def indexer_configuration_get(
+        self, tool_name, tool_version, tool_configuration, cur=None
+    ):
         cur = self._cursor(cur)
-        cur.execute('''select %s
+        cur.execute(
+            """select %s
                        from indexer_configuration
                        where tool_name=%%s and
                              tool_version=%%s and
-                             tool_configuration=%%s''' % (
-                                 ','.join(self.indexer_configuration_cols)),
-                    (tool_name, tool_version, tool_configuration))
+                             tool_configuration=%%s"""
+            % (",".join(self.indexer_configuration_cols)),
+            (tool_name, tool_version, tool_configuration),
+        )
 
         return cur.fetchone()

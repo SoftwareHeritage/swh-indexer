@@ -24,8 +24,9 @@ ORIGIN_GET_BATCH_SIZE = 10
 
 
 def call_with_batches(
-    f: Callable[[List[Dict[str, Any]]], Dict['str', Any]],
-    args: List[Dict[str, str]], batch_size: int
+    f: Callable[[List[Dict[str, Any]]], Dict["str", Any]],
+    args: List[Dict[str, str]],
+    batch_size: int,
 ) -> Iterator[str]:
     """Calls a function with batches of args, and concatenates the results.
     """
@@ -46,17 +47,15 @@ class ContentMetadataIndexer(ContentIndexer):
     - store result in content_metadata table
 
     """
+
     def filter(self, ids):
         """Filter out known sha1s and return only missing ones.
         """
-        yield from self.idx_storage.content_metadata_missing((
-            {
-                'id': sha1,
-                'indexer_configuration_id': self.tool['id'],
-            } for sha1 in ids
-        ))
+        yield from self.idx_storage.content_metadata_missing(
+            ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
+        )
 
-    def index(self, id, data, log_suffix='unknown revision'):
+    def index(self, id, data, log_suffix="unknown revision"):
         """Index sha1s' content and store result.
 
         Args:
@@ -70,20 +69,20 @@ class ContentMetadataIndexer(ContentIndexer):
 
         """
         result = {
-            'id': id,
-            'indexer_configuration_id': self.tool['id'],
-            'metadata': None
+            "id": id,
+            "indexer_configuration_id": self.tool["id"],
+            "metadata": None,
         }
         try:
-            mapping_name = self.tool['tool_configuration']['context']
-            log_suffix += ', content_id=%s' % hashutil.hash_to_hex(id)
-            result['metadata'] = \
-                MAPPINGS[mapping_name](log_suffix).translate(data)
+            mapping_name = self.tool["tool_configuration"]["context"]
+            log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id)
+            result["metadata"] = MAPPINGS[mapping_name](log_suffix).translate(data)
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
-                "for content %s" % hashutil.hash_to_hex(id))
-        if result['metadata'] is None:
+                "for content %s" % hashutil.hash_to_hex(id)
+            )
+        if result["metadata"] is None:
             return None
         return result
 
@@ -102,7 +101,8 @@ class ContentMetadataIndexer(ContentIndexer):
 
         """
         return self.idx_storage.content_metadata_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+            results, conflict_update=(policy_update == "update-dups")
+        )
 
 
 class RevisionMetadataIndexer(RevisionIndexer):
@@ -119,25 +119,24 @@ class RevisionMetadataIndexer(RevisionIndexer):
     - store the results for revision
 
     """
+
     ADDITIONAL_CONFIG = {
-        'tools': ('dict', {
-            'name': 'swh-metadata-detector',
-            'version': '0.0.2',
-            'configuration': {
-            },
-        }),
+        "tools": (
+            "dict",
+            {"name": "swh-metadata-detector", "version": "0.0.2", "configuration": {},},
+        ),
     }
 
     def filter(self, sha1_gits):
         """Filter out known sha1s and return only missing ones.
 
         """
-        yield from self.idx_storage.revision_intrinsic_metadata_missing((
-            {
-                'id': sha1_git,
-                'indexer_configuration_id': self.tool['id'],
-            } for sha1_git in sha1_gits
-        ))
+        yield from self.idx_storage.revision_intrinsic_metadata_missing(
+            (
+                {"id": sha1_git, "indexer_configuration_id": self.tool["id"],}
+                for sha1_git in sha1_gits
+            )
+        )
 
     def index(self, rev):
         """Index rev by processing it and organizing result.
@@ -160,30 +159,30 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         """
         result = {
-            'id': rev['id'],
-            'indexer_configuration_id': self.tool['id'],
-            'mappings': None,
-            'metadata': None
+            "id": rev["id"],
+            "indexer_configuration_id": self.tool["id"],
+            "mappings": None,
+            "metadata": None,
         }
 
         try:
-            root_dir = rev['directory']
+            root_dir = rev["directory"]
             dir_ls = list(self.storage.directory_ls(root_dir, recursive=False))
-            if [entry['type'] for entry in dir_ls] == ['dir']:
+            if [entry["type"] for entry in dir_ls] == ["dir"]:
                 # If the root is just a single directory, recurse into it
                 # eg. PyPI packages, GNU tarballs
-                subdir = dir_ls[0]['target']
+                subdir = dir_ls[0]["target"]
                 dir_ls = self.storage.directory_ls(subdir, recursive=False)
-            files = [entry for entry in dir_ls if entry['type'] == 'file']
+            files = [entry for entry in dir_ls if entry["type"] == "file"]
             detected_files = detect_metadata(files)
             (mappings, metadata) = self.translate_revision_intrinsic_metadata(
                 detected_files,
-                log_suffix='revision=%s' % hashutil.hash_to_hex(rev['id']))
-            result['mappings'] = mappings
-            result['metadata'] = metadata
+                log_suffix="revision=%s" % hashutil.hash_to_hex(rev["id"]),
+            )
+            result["mappings"] = mappings
+            result["metadata"] = metadata
         except Exception as e:
-            self.log.exception(
-                'Problem when indexing rev: %r', e)
+            self.log.exception("Problem when indexing rev: %r", e)
         return result
 
     def persist_index_computations(
@@ -204,7 +203,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
         # TODO: add functions in storage to keep data in
         # revision_intrinsic_metadata
         return self.idx_storage.revision_intrinsic_metadata_add(
-            results, conflict_update=(policy_update == 'update-dups'))
+            results, conflict_update=(policy_update == "update-dups")
+        )
 
     def translate_revision_intrinsic_metadata(
         self, detected_files: Dict[str, List[Any]], log_suffix: str
@@ -225,53 +225,52 @@ class RevisionMetadataIndexer(RevisionIndexer):
         used_mappings = [MAPPINGS[context].name for context in detected_files]
         metadata = []
         tool = {
-                'name': 'swh-metadata-translator',
-                'version': '0.0.2',
-                'configuration': {
-                },
-            }
+            "name": "swh-metadata-translator",
+            "version": "0.0.2",
+            "configuration": {},
+        }
         # TODO: iterate on each context, on each file
         # -> get raw_contents
         # -> translate each content
-        config = {
-            k: self.config[k]
-            for k in [INDEXER_CFG_KEY, 'objstorage', 'storage']
-        }
-        config['tools'] = [tool]
+        config = {k: self.config[k] for k in [INDEXER_CFG_KEY, "objstorage", "storage"]}
+        config["tools"] = [tool]
         for context in detected_files.keys():
             cfg = deepcopy(config)
-            cfg['tools'][0]['configuration']['context'] = context
+            cfg["tools"][0]["configuration"]["context"] = context
             c_metadata_indexer = ContentMetadataIndexer(config=cfg)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
             metadata_generator = self.idx_storage.content_metadata_get(
-                detected_files[context])
+                detected_files[context]
+            )
             for c in metadata_generator:
                 # extracting metadata
-                sha1 = c['id']
+                sha1 = c["id"]
                 sha1s_in_storage.append(sha1)
-                local_metadata = c['metadata']
+                local_metadata = c["metadata"]
                 # local metadata is aggregated
                 if local_metadata:
                     metadata.append(local_metadata)
 
-            sha1s_filtered = [item for item in detected_files[context]
-                              if item not in sha1s_in_storage]
+            sha1s_filtered = [
+                item for item in detected_files[context] if item not in sha1s_in_storage
+            ]
 
             if sha1s_filtered:
                 # content indexing
                 try:
-                    c_metadata_indexer.run(sha1s_filtered,
-                                           policy_update='ignore-dups',
-                                           log_suffix=log_suffix)
+                    c_metadata_indexer.run(
+                        sha1s_filtered,
+                        policy_update="ignore-dups",
+                        log_suffix=log_suffix,
+                    )
                     # on the fly possibility:
                     for result in c_metadata_indexer.results:
-                        local_metadata = result['metadata']
+                        local_metadata = result["metadata"]
                         metadata.append(local_metadata)
 
                 except Exception:
-                    self.log.exception(
-                        "Exception while indexing metadata on contents")
+                    self.log.exception("Exception while indexing metadata on contents")
 
         metadata = merge_documents(metadata)
         return (used_mappings, metadata)
@@ -290,37 +289,41 @@ class OriginMetadataIndexer(OriginIndexer):
     def index_list(self, origin_urls, **kwargs):
         head_rev_ids = []
         origins_with_head = []
-        origins = list(call_with_batches(
-            self.storage.origin_get,
-            [{'url': url} for url in origin_urls], ORIGIN_GET_BATCH_SIZE))
+        origins = list(
+            call_with_batches(
+                self.storage.origin_get,
+                [{"url": url} for url in origin_urls],
+                ORIGIN_GET_BATCH_SIZE,
+            )
+        )
         for origin in origins:
             if origin is None:
                 continue
-            head_result = self.origin_head_indexer.index(origin['url'])
+            head_result = self.origin_head_indexer.index(origin["url"])
             if head_result:
                 origins_with_head.append(origin)
-                head_rev_ids.append(head_result['revision_id'])
+                head_rev_ids.append(head_result["revision_id"])
 
-        head_revs = list(call_with_batches(
-            self.storage.revision_get,
-            head_rev_ids, REVISION_GET_BATCH_SIZE))
+        head_revs = list(
+            call_with_batches(
+                self.storage.revision_get, head_rev_ids, REVISION_GET_BATCH_SIZE
+            )
+        )
         assert len(head_revs) == len(head_rev_ids)
 
         results = []
         for (origin, rev) in zip(origins_with_head, head_revs):
             if not rev:
-                self.log.warning('Missing head revision of origin %r',
-                                 origin['url'])
+                self.log.warning("Missing head revision of origin %r", origin["url"])
                 continue
 
             rev_metadata = self.revision_metadata_indexer.index(rev)
             orig_metadata = {
-                'from_revision': rev_metadata['id'],
-                'id': origin['url'],
-                'metadata': rev_metadata['metadata'],
-                'mappings': rev_metadata['mappings'],
-                'indexer_configuration_id':
-                    rev_metadata['indexer_configuration_id'],
+                "from_revision": rev_metadata["id"],
+                "id": origin["url"],
+                "metadata": rev_metadata["metadata"],
+                "mappings": rev_metadata["mappings"],
+                "indexer_configuration_id": rev_metadata["indexer_configuration_id"],
             }
             results.append((orig_metadata, rev_metadata))
         return results
@@ -328,7 +331,7 @@ class OriginMetadataIndexer(OriginIndexer):
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
     ) -> Dict[str, int]:
-        conflict_update = (policy_update == 'update-dups')
+        conflict_update = policy_update == "update-dups"
 
         # Deduplicate revisions
         rev_metadata: List[Any] = []
@@ -337,9 +340,8 @@ class OriginMetadataIndexer(OriginIndexer):
         origs_to_delete: List[Any] = []
         summary: Dict = {}
         for (orig_item, rev_item) in results:
-            assert rev_item['metadata'] == orig_item['metadata']
-            if not rev_item['metadata'] or \
-                    rev_item['metadata'].keys() <= {'@context'}:
+            assert rev_item["metadata"] == orig_item["metadata"]
+            if not rev_item["metadata"] or rev_item["metadata"].keys() <= {"@context"}:
                 # If we didn't find any metadata, don't store a DB record
                 # (and delete existing ones, if any)
                 if rev_item not in revs_to_delete:
@@ -354,11 +356,13 @@ class OriginMetadataIndexer(OriginIndexer):
 
         if rev_metadata:
             summary_rev = self.idx_storage.revision_intrinsic_metadata_add(
-                rev_metadata, conflict_update=conflict_update)
+                rev_metadata, conflict_update=conflict_update
+            )
             summary.update(summary_rev)
         if orig_metadata:
             summary_ori = self.idx_storage.origin_intrinsic_metadata_add(
-                orig_metadata, conflict_update=conflict_update)
+                orig_metadata, conflict_update=conflict_update
+            )
             summary.update(summary_ori)
 
         # revs_to_delete should always be empty unless we changed a mapping
@@ -367,11 +371,13 @@ class OriginMetadataIndexer(OriginIndexer):
         # a metadata file.
         if origs_to_delete:
             summary_ori = self.idx_storage.origin_intrinsic_metadata_delete(
-                origs_to_delete)
+                origs_to_delete
+            )
             summary.update(summary_ori)
         if revs_to_delete:
             summary_rev = self.idx_storage.revision_intrinsic_metadata_delete(
-                revs_to_delete)
+                revs_to_delete
+            )
             summary.update(summary_rev)
 
         return summary

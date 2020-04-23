@@ -13,47 +13,45 @@ import re
 import swh.indexer
 from pyld import jsonld
 
-_DATA_DIR = os.path.join(os.path.dirname(swh.indexer.__file__), 'data')
+_DATA_DIR = os.path.join(os.path.dirname(swh.indexer.__file__), "data")
 
-CROSSWALK_TABLE_PATH = os.path.join(_DATA_DIR, 'codemeta', 'crosswalk.csv')
+CROSSWALK_TABLE_PATH = os.path.join(_DATA_DIR, "codemeta", "crosswalk.csv")
 
-CODEMETA_CONTEXT_PATH = os.path.join(_DATA_DIR, 'codemeta', 'codemeta.jsonld')
+CODEMETA_CONTEXT_PATH = os.path.join(_DATA_DIR, "codemeta", "codemeta.jsonld")
 
 
 with open(CODEMETA_CONTEXT_PATH) as fd:
     CODEMETA_CONTEXT = json.load(fd)
 
-CODEMETA_CONTEXT_URL = 'https://doi.org/10.5063/schema/codemeta-2.0'
+CODEMETA_CONTEXT_URL = "https://doi.org/10.5063/schema/codemeta-2.0"
 CODEMETA_ALTERNATE_CONTEXT_URLS = {
-    ('https://raw.githubusercontent.com/codemeta/codemeta/'
-     'master/codemeta.jsonld')
+    ("https://raw.githubusercontent.com/codemeta/codemeta/" "master/codemeta.jsonld")
 }
-CODEMETA_URI = 'https://codemeta.github.io/terms/'
-SCHEMA_URI = 'http://schema.org/'
+CODEMETA_URI = "https://codemeta.github.io/terms/"
+SCHEMA_URI = "http://schema.org/"
 
 
 PROPERTY_BLACKLIST = {
     # CodeMeta properties that we cannot properly represent.
-    SCHEMA_URI + 'softwareRequirements',
-    CODEMETA_URI + 'softwareSuggestions',
-
+    SCHEMA_URI + "softwareRequirements",
+    CODEMETA_URI + "softwareSuggestions",
     # Duplicate of 'author'
-    SCHEMA_URI + 'creator',
-    }
+    SCHEMA_URI + "creator",
+}
 
-_codemeta_field_separator = re.compile(r'\s*[,/]\s*')
+_codemeta_field_separator = re.compile(r"\s*[,/]\s*")
 
 
 def make_absolute_uri(local_name):
-    definition = CODEMETA_CONTEXT['@context'][local_name]
+    definition = CODEMETA_CONTEXT["@context"][local_name]
     if isinstance(definition, str):
         return definition
     elif isinstance(definition, dict):
-        prefixed_name = definition['@id']
-        (prefix, local_name) = prefixed_name.split(':')
-        if prefix == 'schema':
+        prefixed_name = definition["@id"]
+        (prefix, local_name) = prefixed_name.split(":")
+        if prefix == "schema":
             canonical_name = SCHEMA_URI + local_name
-        elif prefix == 'codemeta':
+        elif prefix == "codemeta":
             canonical_name = CODEMETA_URI + local_name
         else:
             assert False, prefix
@@ -67,17 +65,16 @@ def _read_crosstable(fd):
     try:
         header = next(reader)
     except StopIteration:
-        raise ValueError('empty file')
+        raise ValueError("empty file")
 
-    data_sources = set(header) - {'Parent Type', 'Property',
-                                  'Type', 'Description'}
-    assert 'codemeta-V1' in data_sources
+    data_sources = set(header) - {"Parent Type", "Property", "Type", "Description"}
+    assert "codemeta-V1" in data_sources
 
     codemeta_translation = {data_source: {} for data_source in data_sources}
     terms = set()
 
     for line in reader:  # For each canonical name
-        local_name = dict(zip(header, line))['Property']
+        local_name = dict(zip(header, line))["Property"]
         if not local_name:
             continue
         canonical_name = make_absolute_uri(local_name)
@@ -91,8 +88,7 @@ def _read_crosstable(fd):
                     # For each of the data source's properties that maps
                     # to this canonical name
                     if local_name.strip():
-                        codemeta_translation[col][local_name.strip()] = \
-                                canonical_name
+                        codemeta_translation[col][local_name.strip()] = canonical_name
 
     return (terms, codemeta_translation)
 
@@ -101,34 +97,37 @@ with open(CROSSWALK_TABLE_PATH) as fd:
     (CODEMETA_TERMS, CROSSWALK_TABLE) = _read_crosstable(fd)
 
 
-def _document_loader(url):
+def _document_loader(url, options=None):
     """Document loader for pyld.
 
     Reads the local codemeta.jsonld file instead of fetching it
     from the Internet every single time."""
     if url == CODEMETA_CONTEXT_URL or url in CODEMETA_ALTERNATE_CONTEXT_URLS:
         return {
-                'contextUrl': None,
-                'documentUrl': url,
-                'document': CODEMETA_CONTEXT,
-                }
+            "contextUrl": None,
+            "documentUrl": url,
+            "document": CODEMETA_CONTEXT,
+        }
     elif url == CODEMETA_URI:
-        raise Exception('{} is CodeMeta\'s URI, use {} as context url'.format(
-            CODEMETA_URI, CODEMETA_CONTEXT_URL))
+        raise Exception(
+            "{} is CodeMeta's URI, use {} as context url".format(
+                CODEMETA_URI, CODEMETA_CONTEXT_URL
+            )
+        )
     else:
         raise Exception(url)
 
 
 def compact(doc):
     """Same as `pyld.jsonld.compact`, but in the context of CodeMeta."""
-    return jsonld.compact(doc, CODEMETA_CONTEXT_URL,
-                          options={'documentLoader': _document_loader})
+    return jsonld.compact(
+        doc, CODEMETA_CONTEXT_URL, options={"documentLoader": _document_loader}
+    )
 
 
 def expand(doc):
     """Same as `pyld.jsonld.expand`, but in the context of CodeMeta."""
-    return jsonld.expand(doc,
-                         options={'documentLoader': _document_loader})
+    return jsonld.expand(doc, options={"documentLoader": _document_loader})
 
 
 def merge_values(v1, v2):
@@ -148,16 +147,16 @@ def merge_values(v1, v2):
         return v2
     elif v2 is None:
         return v1
-    elif isinstance(v1, dict) and set(v1) == {'@list'}:
-        assert isinstance(v1['@list'], list)
-        if isinstance(v2, dict) and set(v2) == {'@list'}:
-            assert isinstance(v2['@list'], list)
-            return {'@list': v1['@list'] + v2['@list']}
+    elif isinstance(v1, dict) and set(v1) == {"@list"}:
+        assert isinstance(v1["@list"], list)
+        if isinstance(v2, dict) and set(v2) == {"@list"}:
+            assert isinstance(v2["@list"], list)
+            return {"@list": v1["@list"] + v2["@list"]}
         else:
-            raise ValueError('Cannot merge %r and %r' % (v1, v2))
+            raise ValueError("Cannot merge %r and %r" % (v1, v2))
     else:
-        if isinstance(v2, dict) and '@list' in v2:
-            raise ValueError('Cannot merge %r and %r' % (v1, v2))
+        if isinstance(v2, dict) and "@list" in v2:
+            raise ValueError("Cannot merge %r and %r" % (v1, v2))
         if not isinstance(v1, list):
             v1 = [v1]
         if not isinstance(v2, list):
@@ -174,31 +173,30 @@ def merge_documents(documents):
     merged_document = collections.defaultdict(list)
     for document in documents:
         for (key, values) in document.items():
-            if key == '@id':
+            if key == "@id":
                 # @id does not get expanded to a list
                 value = values
 
                 # Only one @id is allowed, move it to sameAs
-                if '@id' not in merged_document:
-                    merged_document['@id'] = value
-                elif value != merged_document['@id']:
-                    if value not in merged_document[SCHEMA_URI + 'sameAs']:
-                        merged_document[SCHEMA_URI + 'sameAs'].append(value)
+                if "@id" not in merged_document:
+                    merged_document["@id"] = value
+                elif value != merged_document["@id"]:
+                    if value not in merged_document[SCHEMA_URI + "sameAs"]:
+                        merged_document[SCHEMA_URI + "sameAs"].append(value)
             else:
                 for value in values:
-                    if isinstance(value, dict) and set(value) == {'@list'}:
+                    if isinstance(value, dict) and set(value) == {"@list"}:
                         # Value is of the form {'@list': [item1, item2]}
                         # instead of the usual [item1, item2].
                         # We need to merge the inner lists (and mostly
                         # preserve order).
-                        merged_value = merged_document.setdefault(
-                            key, {'@list': []})
-                        for subvalue in value['@list']:
+                        merged_value = merged_document.setdefault(key, {"@list": []})
+                        for subvalue in value["@list"]:
                             # merged_value must be of the form
                             # {'@list': [item1, item2]}; as it is the same
                             # type as value, which is an @list.
-                            if subvalue not in merged_value['@list']:
-                                merged_value['@list'].append(subvalue)
+                            if subvalue not in merged_value["@list"]:
+                                merged_value["@list"].append(subvalue)
                     elif value not in merged_document[key]:
                         merged_document[key].append(value)
 

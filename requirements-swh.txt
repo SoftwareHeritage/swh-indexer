@@ -3,4 +3,4 @@ swh.model >= 0.0.15
 swh.objstorage >= 0.0.28
 swh.scheduler >= 0.0.47
 swh.storage >= 0.0.156
-swh.journal >= 0.0.17
+swh.journal >= 0.0.31
