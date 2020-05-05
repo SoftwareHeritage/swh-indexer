@@ -25,7 +25,7 @@ with open(CODEMETA_CONTEXT_PATH) as fd:
 
 CODEMETA_CONTEXT_URL = "https://doi.org/10.5063/schema/codemeta-2.0"
 CODEMETA_ALTERNATE_CONTEXT_URLS = {
-    ("https://raw.githubusercontent.com/codemeta/codemeta/" "master/codemeta.jsonld")
+    ("https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld")
 }
 CODEMETA_URI = "https://codemeta.github.io/terms/"
 SCHEMA_URI = "http://schema.org/"

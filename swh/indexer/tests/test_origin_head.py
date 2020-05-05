@@ -124,7 +124,7 @@ class OriginHead(unittest.TestCase):
         self.assertEqual(self.indexer.results, [])
 
     def test_deposit(self):
-        self.indexer.run(["https://forge.softwareheritage.org/source/" "jesuisgpl/"])
+        self.indexer.run(["https://forge.softwareheritage.org/source/jesuisgpl/"])
         self.assertEqual(
             self.indexer.results,
             [

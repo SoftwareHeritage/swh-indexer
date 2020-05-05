@@ -236,7 +236,7 @@ def test_origin_metadata_reindex_filter_one_mapping(
     )
 
     # Check the output
-    expected_output = "Scheduled 2 tasks (11 origins).\n" "Done.\n"
+    expected_output = "Scheduled 2 tasks (11 origins).\nDone.\n"
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
 
@@ -269,7 +269,7 @@ def test_origin_metadata_reindex_filter_two_mappings(
     )
 
     # Check the output
-    expected_output = "Scheduled 3 tasks (22 origins).\n" "Done.\n"
+    expected_output = "Scheduled 3 tasks (22 origins).\nDone.\n"
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
 

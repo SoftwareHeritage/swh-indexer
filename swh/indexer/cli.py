@@ -178,7 +178,7 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids):
     "-m",
     "mappings",
     multiple=True,
-    help="Mapping(s) that should be re-scheduled (eg. 'npm', " "'gemspec', 'maven')",
+    help="Mapping(s) that should be re-scheduled (eg. 'npm', 'gemspec', 'maven')",
 )
 @click.option(
     "--task-type",
@@ -219,7 +219,7 @@ def schedule_origin_metadata_reindex(
     "-m",
     default=None,
     type=int,
-    help="Maximum number of objects to replay. Default is to " "run forever.",
+    help="Maximum number of objects to replay. Default is to run forever.",
 )
 @click.pass_context
 def journal_client(
