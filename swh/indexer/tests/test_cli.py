@@ -9,8 +9,9 @@ import tempfile
 from unittest.mock import patch
 
 from click.testing import CliRunner
+from confluent_kafka import Consumer, Producer
 
-from swh.journal.tests.utils import FakeKafkaMessage, MockedKafkaConsumer
+from swh.journal.serializers import value_to_kafka
 from swh.model.hashutil import hash_to_bytes
 
 from swh.indexer.cli import cli
@@ -335,32 +336,40 @@ def test_origin_metadata_reindex_filter_one_tool(
     _assert_tasks_for_origins(tasks, [x * 2 for x in range(55)])
 
 
-def test_journal_client(storage, indexer_scheduler):
+def test_journal_client(
+    storage, indexer_scheduler, kafka_prefix: str, kafka_server, consumer: Consumer
+):
     """Test the 'swh indexer journal-client' cli tool."""
-    message = FakeKafkaMessage(
-        "swh.journal.objects.origin_visit",
-        "bogus",
-        {"status": "full", "origin": {"url": "file://dev/0000",}},
+    producer = Producer(
+        {
+            "bootstrap.servers": kafka_server,
+            "client.id": "test producer",
+            "acks": "all",
+        }
     )
 
-    consumer = MockedKafkaConsumer([message])
+    STATUS = {"status": "full", "origin": {"url": "file://dev/0000",}}
+    producer.produce(
+        topic=kafka_prefix + ".origin_visit",
+        key=b"bogus",
+        value=value_to_kafka(STATUS),
+    )
 
-    with patch("swh.journal.client.Consumer", return_value=consumer):
-        result = invoke(
-            indexer_scheduler,
-            False,
-            [
-                "journal-client",
-                "--stop-after-objects",
-                "1",
-                "--broker",
-                "192.0.2.1",
-                "--prefix",
-                "swh.journal.objects",
-                "--group-id",
-                "test-consumer",
-            ],
-        )
+    result = invoke(
+        indexer_scheduler,
+        False,
+        [
+            "journal-client",
+            "--stop-after-objects",
+            "1",
+            "--broker",
+            kafka_server,
+            "--prefix",
+            kafka_prefix,
+            "--group-id",
+            "test-consumer",
+        ],
+    )
 
     # Check the output
     expected_output = "Done.\n"
