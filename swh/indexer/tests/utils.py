@@ -170,6 +170,7 @@ REVISIONS = [
             "offset": 0,
         },
         "directory": b"10",
+        "parents": (),
     }
 ]
 
