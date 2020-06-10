@@ -3,7 +3,6 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import datetime
 import abc
 import functools
 import random
@@ -14,6 +13,8 @@ from hypothesis import strategies
 
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
+from swh.model.model import OriginVisitStatus
+from swh.storage.utils import now
 
 from swh.indexer.storage import INDEXER_CFG_KEY
 
@@ -508,15 +509,19 @@ def fill_storage(storage):
         visit_types[visit["url"]] = visit["type"]
     for snap in SNAPSHOTS:
         origin_url = snap["origin"]
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
         visit = storage.origin_visit_add(
-            origin_url, date=now, type=visit_types[origin_url]
+            origin_url, date=now(), type=visit_types[origin_url]
         )
         snap_id = snap.get("id") or bytes([random.randint(0, 255) for _ in range(32)])
         storage.snapshot_add([{"id": snap_id, "branches": snap["branches"]}])
-        storage.origin_visit_update(
-            origin_url, visit.visit, status="full", snapshot=snap_id
+        visit_status = OriginVisitStatus(
+            origin=origin_url,
+            visit=visit.visit,
+            date=now(),
+            status="full",
+            snapshot=snap_id,
         )
+        storage.origin_visit_status_add([visit_status])
     storage.revision_add(REVISIONS)
 
     contents = []
