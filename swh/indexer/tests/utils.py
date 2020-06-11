@@ -13,7 +13,7 @@ from hypothesis import strategies
 
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
-from swh.model.model import OriginVisitStatus
+from swh.model.model import OriginVisit, OriginVisitStatus
 from swh.storage.utils import now
 
 from swh.indexer.storage import INDEXER_CFG_KEY
@@ -510,8 +510,16 @@ def fill_storage(storage):
     for snap in SNAPSHOTS:
         origin_url = snap["origin"]
         visit = storage.origin_visit_add(
-            origin_url, date=now(), type=visit_types[origin_url]
-        )
+            [
+                OriginVisit(
+                    origin=origin_url,
+                    date=now(),
+                    type=visit_types[origin_url],
+                    status="ongoing",
+                    snapshot=None,
+                )
+            ]
+        )[0]
         snap_id = snap.get("id") or bytes([random.randint(0, 255) for _ in range(32)])
         storage.snapshot_add([{"id": snap_id, "branches": snap["branches"]}])
         visit_status = OriginVisitStatus(

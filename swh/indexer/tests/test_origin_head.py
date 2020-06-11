@@ -6,7 +6,7 @@
 import unittest
 from datetime import datetime, timezone
 
-from swh.model.model import OriginVisitStatus
+from swh.model.model import OriginVisit, OriginVisitStatus
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.tests.utils import BASE_TEST_CONFIG, fill_storage
 from swh.storage.utils import now
@@ -56,8 +56,16 @@ class OriginHead(unittest.TestCase):
             {"url": origin_url,}
         )
         visit = self.indexer.storage.origin_visit_add(
-            origin_url, datetime(2019, 2, 27, tzinfo=timezone.utc), type="git"
-        )
+            [
+                OriginVisit(
+                    origin=origin_url,
+                    date=datetime(2019, 2, 27, tzinfo=timezone.utc),
+                    type="git",
+                    status="ongoing",
+                    snapshot=None,
+                )
+            ]
+        )[0]
         self.indexer.storage.snapshot_add(
             [
                 {
@@ -93,8 +101,16 @@ class OriginHead(unittest.TestCase):
             {"url": origin_url,}
         )
         visit = self.indexer.storage.origin_visit_add(
-            origin_url, datetime(2019, 2, 27, tzinfo=timezone.utc), type="pypi"
-        )
+            [
+                OriginVisit(
+                    origin=origin_url,
+                    date=datetime(2019, 2, 27, tzinfo=timezone.utc),
+                    type="pypi",
+                    status="ongoing",
+                    snapshot=None,
+                )
+            ]
+        )[0]
         self.indexer.storage.snapshot_add(
             [
                 {
