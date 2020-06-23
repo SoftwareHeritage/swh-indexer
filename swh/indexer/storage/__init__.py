@@ -247,11 +247,11 @@ class IndexerStorage:
         db.copy_to(
             (
                 {
-                    "id": l["id"],
-                    "lang": "unknown" if not l["lang"] else l["lang"],
-                    "indexer_configuration_id": l["indexer_configuration_id"],
+                    "id": lang["id"],
+                    "lang": "unknown" if not lang["lang"] else lang["lang"],
+                    "indexer_configuration_id": lang["indexer_configuration_id"],
                 }
-                for l in languages
+                for lang in languages
             ),
             "tmp_content_language",
             ["id", "lang", "indexer_configuration_id"],

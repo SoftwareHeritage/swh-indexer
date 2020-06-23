@@ -1,8 +1,13 @@
-swh-indexer (0.0.171-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.1.0-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.1.0     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-06-23 15:44:15
+    +0200)
+  * Upstream changes:     - v0.1.0     - origin_head: Retrieve snapshot
+    out of the last visit status     - Fix tests according to latest
+    internal api changes
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 23 Apr 2020 14:59:49 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 23 Jun 2020 13:46:23 +0000
 
 swh-indexer (0.0.171-1~swh1) unstable-swh; urgency=medium
 
