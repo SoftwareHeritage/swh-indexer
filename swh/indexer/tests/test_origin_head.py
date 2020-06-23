@@ -4,10 +4,12 @@
 # See top-level LICENSE file for more information
 
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
+from swh.model.model import OriginVisit, OriginVisitStatus
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.tests.utils import BASE_TEST_CONFIG, fill_storage
+from swh.storage.utils import now
 
 ORIGIN_HEAD_CONFIG = {
     **BASE_TEST_CONFIG,
@@ -54,8 +56,16 @@ class OriginHead(unittest.TestCase):
             {"url": origin_url,}
         )
         visit = self.indexer.storage.origin_visit_add(
-            origin_url, datetime(2019, 2, 27), type="git",
-        )
+            [
+                OriginVisit(
+                    origin=origin_url,
+                    date=datetime(2019, 2, 27, tzinfo=timezone.utc),
+                    type="git",
+                    status="ongoing",
+                    snapshot=None,
+                )
+            ]
+        )[0]
         self.indexer.storage.snapshot_add(
             [
                 {
@@ -67,9 +77,14 @@ class OriginHead(unittest.TestCase):
                 }
             ]
         )
-        self.indexer.storage.origin_visit_update(
-            origin_url, visit.visit, status="partial", snapshot=b"foo"
+        visit_status = OriginVisitStatus(
+            origin=origin_url,
+            visit=visit.visit,
+            date=now(),
+            status="partial",
+            snapshot=b"foo",
         )
+        self.indexer.storage.origin_visit_status_add([visit_status])
         self.indexer.run([origin_url])
         self.assertEqual(self.indexer.results, [])
 
@@ -86,8 +101,16 @@ class OriginHead(unittest.TestCase):
             {"url": origin_url,}
         )
         visit = self.indexer.storage.origin_visit_add(
-            origin_url, datetime(2019, 2, 27), type="pypi"
-        )
+            [
+                OriginVisit(
+                    origin=origin_url,
+                    date=datetime(2019, 2, 27, tzinfo=timezone.utc),
+                    type="pypi",
+                    status="ongoing",
+                    snapshot=None,
+                )
+            ]
+        )[0]
         self.indexer.storage.snapshot_add(
             [
                 {
@@ -99,9 +122,14 @@ class OriginHead(unittest.TestCase):
                 }
             ]
         )
-        self.indexer.storage.origin_visit_update(
-            origin_url, visit.visit, status="full", snapshot=b"foo"
+        visit_status = OriginVisitStatus(
+            origin=origin_url,
+            visit=visit.visit,
+            date=now(),
+            status="full",
+            snapshot=b"foo",
         )
+        self.indexer.storage.origin_visit_status_add([visit_status])
         self.indexer.run(["https://pypi.org/project/abcdef/"])
         self.assertEqual(self.indexer.results, [])
 
@@ -124,7 +152,7 @@ class OriginHead(unittest.TestCase):
         self.assertEqual(self.indexer.results, [])
 
     def test_deposit(self):
-        self.indexer.run(["https://forge.softwareheritage.org/source/" "jesuisgpl/"])
+        self.indexer.run(["https://forge.softwareheritage.org/source/jesuisgpl/"])
         self.assertEqual(
             self.indexer.results,
             [

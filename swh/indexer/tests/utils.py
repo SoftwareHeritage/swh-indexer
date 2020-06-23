@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import abc
-import datetime
 import functools
 import random
 from typing import Dict, Any
@@ -14,8 +13,11 @@ from hypothesis import strategies
 
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
+from swh.model.model import OriginVisit, OriginVisitStatus
+from swh.storage.utils import now
 
 from swh.indexer.storage import INDEXER_CFG_KEY
+
 
 BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
     "storage": {"cls": "pipeline", "steps": [{"cls": "validate"}, {"cls": "memory"},]},
@@ -169,6 +171,7 @@ REVISIONS = [
             "offset": 0,
         },
         "directory": b"10",
+        "parents": (),
     }
 ]
 
@@ -507,13 +510,26 @@ def fill_storage(storage):
     for snap in SNAPSHOTS:
         origin_url = snap["origin"]
         visit = storage.origin_visit_add(
-            origin_url, date=datetime.datetime.now(), type=visit_types[origin_url]
-        )
+            [
+                OriginVisit(
+                    origin=origin_url,
+                    date=now(),
+                    type=visit_types[origin_url],
+                    status="ongoing",
+                    snapshot=None,
+                )
+            ]
+        )[0]
         snap_id = snap.get("id") or bytes([random.randint(0, 255) for _ in range(32)])
         storage.snapshot_add([{"id": snap_id, "branches": snap["branches"]}])
-        storage.origin_visit_update(
-            origin_url, visit.visit, status="full", snapshot=snap_id
+        visit_status = OriginVisitStatus(
+            origin=origin_url,
+            visit=visit.visit,
+            date=now(),
+            status="full",
+            snapshot=snap_id,
         )
+        storage.origin_visit_status_add([visit_status])
     storage.revision_add(REVISIONS)
 
     contents = []

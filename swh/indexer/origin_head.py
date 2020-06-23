@@ -10,6 +10,7 @@ import click
 import logging
 
 from swh.indexer.indexer import OriginIndexer
+from swh.storage.algos.origin import origin_get_latest_visit_status
 
 
 class OriginHeadIndexer(OriginIndexer):
@@ -32,14 +33,17 @@ class OriginHeadIndexer(OriginIndexer):
     # Dispatch
 
     def index(self, origin_url):
-        latest_visit = self.storage.origin_visit_get_latest(
-            origin_url, allowed_statuses=["full"], require_snapshot=True
+        visit_and_status = origin_get_latest_visit_status(
+            self.storage, origin_url, allowed_statuses=["full"], require_snapshot=True
         )
-        if latest_visit is None:
+        if not visit_and_status:
             return None
-        latest_snapshot = self.storage.snapshot_get(latest_visit["snapshot"])
+        visit, visit_status = visit_and_status
+        latest_snapshot = self.storage.snapshot_get(visit_status.snapshot)
+        if latest_snapshot is None:
+            return None
         method = getattr(
-            self, "_try_get_%s_head" % latest_visit["type"], self._try_get_head_generic
+            self, "_try_get_%s_head" % visit.type, self._try_get_head_generic
         )
 
         rev_id = method(latest_snapshot)

@@ -150,11 +150,11 @@ class NpmMapping(JsonMapping):
         if isinstance(s, str):
             return {"@id": s}
 
-    def normalize_keywords(self, l):
+    def normalize_keywords(self, lst):
         """https://docs.npmjs.com/files/package.json#homepage
 
         >>> NpmMapping().normalize_keywords(['foo', 'bar'])
         ['foo', 'bar']
         """
-        if isinstance(l, list):
-            return [x for x in l if isinstance(x, str)]
+        if isinstance(lst, list):
+            return [x for x in lst if isinstance(x, str)]

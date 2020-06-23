@@ -123,8 +123,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
                     return ctags
             else:
                 raise ValueError(
-                    ("%r not found in objstorage, can't mock " "its ctags.")
-                    % raw_content
+                    ("%r not found in objstorage, can't mock its ctags.") % raw_content
                 )
 
         def fake_language(raw_content, *args, **kwargs):
