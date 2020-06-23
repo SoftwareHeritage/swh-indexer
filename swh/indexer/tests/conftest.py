@@ -72,7 +72,9 @@ def obj_storage():
     """
     objstorage = get_objstorage("memory", {})
     fill_obj_storage(objstorage)
-    with patch.dict("swh.objstorage._STORAGE_CLASSES", {"memory": lambda: objstorage}):
+    with patch.dict(
+        "swh.objstorage.factory._STORAGE_CLASSES", {"memory": lambda: objstorage}
+    ):
         yield objstorage
 
 
