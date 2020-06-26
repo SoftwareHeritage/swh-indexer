@@ -61,8 +61,6 @@ class OriginHead(unittest.TestCase):
                     origin=origin_url,
                     date=datetime(2019, 2, 27, tzinfo=timezone.utc),
                     type="git",
-                    status="ongoing",
-                    snapshot=None,
                 )
             ]
         )[0]
@@ -106,8 +104,6 @@ class OriginHead(unittest.TestCase):
                     origin=origin_url,
                     date=datetime(2019, 2, 27, tzinfo=timezone.utc),
                     type="pypi",
-                    status="ongoing",
-                    snapshot=None,
                 )
             ]
         )[0]

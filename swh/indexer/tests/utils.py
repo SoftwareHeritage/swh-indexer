@@ -510,15 +510,7 @@ def fill_storage(storage):
     for snap in SNAPSHOTS:
         origin_url = snap["origin"]
         visit = storage.origin_visit_add(
-            [
-                OriginVisit(
-                    origin=origin_url,
-                    date=now(),
-                    type=visit_types[origin_url],
-                    status="ongoing",
-                    snapshot=None,
-                )
-            ]
+            [OriginVisit(origin=origin_url, date=now(), type=visit_types[origin_url],)]
         )[0]
         snap_id = snap.get("id") or bytes([random.randint(0, 255) for _ in range(32)])
         storage.snapshot_add([{"id": snap_id, "branches": snap["branches"]}])
