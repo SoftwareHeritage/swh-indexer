@@ -9,7 +9,6 @@ from unittest.mock import patch
 import pytest
 
 from swh.objstorage import get_objstorage
-from swh.scheduler.tests.conftest import *  # noqa
 from swh.storage import get_storage
 from swh.indexer.storage import get_indexer_storage
 
@@ -76,11 +75,3 @@ def obj_storage():
         "swh.objstorage.factory._STORAGE_CLASSES", {"memory": lambda: objstorage}
     ):
         yield objstorage
-
-
-@pytest.fixture(scope="session")  # type: ignore  # expected redefinition
-def celery_includes():
-    return [
-        "swh.indexer.tests.tasks",
-        "swh.indexer.tasks",
-    ]
