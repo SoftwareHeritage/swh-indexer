@@ -505,7 +505,7 @@ def fill_obj_storage(obj_storage):
 def fill_storage(storage):
     visit_types = {}
     for visit in ORIGIN_VISITS:
-        storage.origin_add_one({"url": visit["url"]})
+        storage.origin_add([{"url": visit["url"]}])
         visit_types[visit["url"]] = visit["type"]
     for snap in SNAPSHOTS:
         origin_url = snap["origin"]
