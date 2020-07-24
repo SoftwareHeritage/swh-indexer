@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2018  The Software Heritage developers
+# Copyright (C) 2017-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,11 +6,10 @@
 import json
 import unittest
 
-import attr
-
 from hypothesis import given, strategies, settings, HealthCheck
 
 from swh.model.hashutil import hash_to_bytes
+from swh.model.model import Directory, DirectoryEntry, Revision
 
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_dictionary import MAPPINGS
@@ -19,6 +18,8 @@ from swh.indexer.metadata_dictionary.npm import NpmMapping
 from swh.indexer.metadata_dictionary.ruby import GemspecMapping
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata import ContentMetadataIndexer, RevisionMetadataIndexer
+
+from swh.indexer.tests.utils import REVISION, DIRECTORY2
 
 from .utils import (
     BASE_TEST_CONFIG,
@@ -1105,32 +1106,31 @@ Gem::Specification.new { |s|
         fill_storage(metadata_indexer.storage)
 
         tool = metadata_indexer.idx_storage.indexer_configuration_get(
-            {"tool_" + k: v for (k, v) in TRANSLATOR_TOOL.items()}
+            {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
         )
         assert tool is not None
+        rev = REVISION
+        assert rev.directory == DIRECTORY2.id
 
         metadata_indexer.idx_storage.content_metadata_add(
             [
                 {
                     "indexer_configuration_id": tool["id"],
-                    "id": b"cde",
+                    "id": DIRECTORY2.entries[0].target,
                     "metadata": YARN_PARSER_METADATA,
                 }
             ]
         )
 
-        sha1_gits = [
-            hash_to_bytes("8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f"),
-        ]
-        metadata_indexer.run(sha1_gits, "update-dups")
+        metadata_indexer.run([rev.id], "update-dups")
 
         results = list(
-            metadata_indexer.idx_storage.revision_intrinsic_metadata_get(sha1_gits)
+            metadata_indexer.idx_storage.revision_intrinsic_metadata_get([REVISION.id])
         )
 
         expected_results = [
             {
-                "id": hash_to_bytes("8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f"),
+                "id": rev.id,
                 "tool": TRANSLATOR_TOOL,
                 "metadata": YARN_PARSER_METADATA,
                 "mappings": ["npm"],
@@ -1141,7 +1141,7 @@ Gem::Specification.new { |s|
             del result["tool"]["id"]
 
         # then
-        self.assertEqual(expected_results, results)
+        self.assertEqual(results, expected_results)
 
     def test_revision_metadata_indexer_single_root_dir(self):
         metadata_indexer = RevisionMetadataIndexer(config=REVISION_METADATA_CONFIG)
@@ -1150,28 +1150,26 @@ Gem::Specification.new { |s|
 
         # Add a parent directory, that is the only directory at the root
         # of the revision
-        rev_id = hash_to_bytes("8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f")
-        rev = metadata_indexer.storage._revisions[rev_id]
-        subdir_id = rev.directory
-        rev = attr.evolve(rev, directory=b"123456")
-        metadata_indexer.storage.directory_add(
-            [
-                {
-                    "id": b"123456",
-                    "entries": [
-                        {
-                            "name": b"foobar-1.0.0",
-                            "type": "dir",
-                            "target": subdir_id,
-                            "perms": 16384,
-                        }
-                    ],
-                }
-            ]
+        rev = REVISION
+        assert rev.directory == DIRECTORY2.id
+
+        directory = Directory(
+            entries=(
+                DirectoryEntry(
+                    name=b"foobar-1.0.0", type="dir", target=rev.directory, perms=16384,
+                ),
+            ),
         )
+        assert directory.id is not None
+        metadata_indexer.storage.directory_add([directory])
+
+        new_rev_dict = {**rev.to_dict(), "directory": directory.id}
+        new_rev_dict.pop("id")
+        new_rev = Revision.from_dict(new_rev_dict)
+        metadata_indexer.storage.revision_add([new_rev])
 
         tool = metadata_indexer.idx_storage.indexer_configuration_get(
-            {"tool_" + k: v for (k, v) in TRANSLATOR_TOOL.items()}
+            {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
         )
         assert tool is not None
 
@@ -1179,24 +1177,21 @@ Gem::Specification.new { |s|
             [
                 {
                     "indexer_configuration_id": tool["id"],
-                    "id": b"cde",
+                    "id": DIRECTORY2.entries[0].target,
                     "metadata": YARN_PARSER_METADATA,
                 }
             ]
         )
 
-        sha1_gits = [
-            hash_to_bytes("8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f"),
-        ]
-        metadata_indexer.run(sha1_gits, "update-dups")
+        metadata_indexer.run([new_rev.id], "update-dups")
 
         results = list(
-            metadata_indexer.idx_storage.revision_intrinsic_metadata_get(sha1_gits)
+            metadata_indexer.idx_storage.revision_intrinsic_metadata_get([new_rev.id])
         )
 
         expected_results = [
             {
-                "id": hash_to_bytes("8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f"),
+                "id": new_rev.id,
                 "tool": TRANSLATOR_TOOL,
                 "metadata": YARN_PARSER_METADATA,
                 "mappings": ["npm"],
@@ -1207,4 +1202,4 @@ Gem::Specification.new { |s|
             del result["tool"]["id"]
 
         # then
-        self.assertEqual(expected_results, results)
+        self.assertEqual(results, expected_results)
