@@ -1,0 +1,84 @@
+@startuml
+  participant LOADERS as "Loaders"
+  participant JOURNAL as "Journal"
+  participant SCHEDULER as "Scheduler"
+  participant IDX_ORIG_HEAD as "Origin-Head Indexer"
+  participant IDX_REV_META as "Revision Metadata Indexer"
+  participant IDX_CONT_META as "Content Metadata Indexer"
+  participant IDX_ORIG_META as "Origin Metadata Indexer"
+  participant IDX_STORAGE as "Indexer Storage"
+  participant STORAGE as "Graph Storage"
+  participant OBJ_STORAGE as "Object Storage"
+
+  activate OBJ_STORAGE
+  activate IDX_STORAGE
+  activate STORAGE
+  activate JOURNAL
+  activate SCHEDULER
+
+  activate LOADERS
+
+  LOADERS->>JOURNAL: Origin 42 was added/revisited
+  deactivate LOADERS
+
+  JOURNAL->>SCHEDULER: run indexers on origin 42
+
+  SCHEDULER->>IDX_ORIG_HEAD: Find HEAD revision of 42
+  activate IDX_ORIG_HEAD
+
+  IDX_ORIG_HEAD->>STORAGE: snapshot_get_latest(origin=42)
+
+  STORAGE->>IDX_ORIG_HEAD: branches
+
+  IDX_ORIG_HEAD->>SCHEDULER: run Revision Metadata Indexer\non revision 42abcdef\n(head of origin 42)
+  deactivate IDX_ORIG_HEAD
+
+  SCHEDULER->>IDX_REV_META: Index revision 42abcdef\n(head of origin 42)
+  activate IDX_REV_META
+
+  IDX_REV_META->>STORAGE: revision_get(sha1=42abcdef)
+  STORAGE->>IDX_REV_META: {id: 42abcdef, message: "Commit message", directory: 456789ab, ...}
+
+  IDX_REV_META->>STORAGE: directory_ls(sha1=456789ab)
+  STORAGE->>IDX_REV_META: [{id: 1234cafe, name: "package.json", type: file, ...}, {id: cafe4321, name: "README", type: file, ...}, ...]
+
+  IDX_REV_META->>IDX_REV_META: package.json is a metadata file
+
+  IDX_REV_META->>IDX_STORAGE: content_metadata_get(sha1=1234cafe)
+  IDX_STORAGE->>IDX_REV_META: none / {author: "Jane Doe", ...}
+
+  alt If the storage answered "none"
+    IDX_REV_META->>IDX_CONT_META: Index file 1234cafe as an NPM metadata file
+    activate IDX_CONT_META
+
+    IDX_CONT_META->>OBJ_STORAGE: content_get 1234cafe
+
+    OBJ_STORAGE->>IDX_CONT_META: raw content is: '{"name": "FooPackage", "author": "Jane Doe"...'
+
+    IDX_CONT_META->>IDX_CONT_META: "Jane Doe" is the author
+
+    IDX_CONT_META->>IDX_STORAGE: content_metadata_add(sha1=1234cafe, {author: "Jane Doe", ...})
+    IDX_STORAGE->>IDX_CONT_META: ok
+
+    IDX_CONT_META->>IDX_REV_META: extracted: {author: "Jane Doe", ...}
+    deactivate IDX_CONT_META
+  end
+
+  IDX_REV_META->>IDX_STORAGE: revision_metadata_add(sha1=42abcdef, {author: "Jane Doe", ...})
+  IDX_STORAGE->>IDX_REV_META: ok
+
+  IDX_REV_META->>SCHEDULER: run Origin Metadata Indexer\non origin 42; the head is 42abcdef
+  deactivate IDX_REV_META
+
+  SCHEDULER->>IDX_ORIG_META: Index origin 42; the head is 42abcdef
+  activate IDX_ORIG_META
+
+  IDX_ORIG_META->>IDX_STORAGE: revision_metadata_get(sha1=42abcdef)
+  IDX_STORAGE->>IDX_ORIG_META: {author: "Jane Doe", ...}
+
+  IDX_ORIG_META->>IDX_STORAGE: origin_metadata_add(id=42, {author: "Jane Doe", ...})
+  IDX_STORAGE->>IDX_ORIG_META: ok
+  deactivate IDX_ORIG_META
+
+
+@enduml
