@@ -2,6 +2,7 @@ include README.md
 include Makefile
 include requirements*.txt
 include version.txt
+include conftest.py
 recursive-include sql *
 recursive-include swh/indexer/sql *.sql
 recursive-include swh/indexer/data *
