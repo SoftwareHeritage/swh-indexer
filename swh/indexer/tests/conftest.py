@@ -9,7 +9,6 @@ from unittest.mock import patch
 import pytest
 
 from swh.objstorage import get_objstorage
-from swh.scheduler.tests.conftest import *  # noqa
 from swh.storage import get_storage
 from swh.indexer.storage import get_indexer_storage
 
@@ -17,9 +16,6 @@ from .utils import fill_storage, fill_obj_storage
 
 
 TASK_NAMES = ["revision_intrinsic_metadata", "origin_intrinsic_metadata"]
-
-
-storage_config = {"cls": "pipeline", "steps": [{"cls": "validate"}, {"cls": "memory"},]}
 
 
 @pytest.fixture
@@ -57,7 +53,7 @@ def storage():
        classes.
 
     """
-    storage = get_storage(**storage_config)
+    storage = get_storage(cls="memory")
     fill_storage(storage)
     with patch("swh.storage.in_memory.InMemoryStorage") as storage_mock:
         storage_mock.return_value = storage
@@ -76,11 +72,3 @@ def obj_storage():
         "swh.objstorage.factory._STORAGE_CLASSES", {"memory": lambda: objstorage}
     ):
         yield objstorage
-
-
-@pytest.fixture(scope="session")  # type: ignore  # expected redefinition
-def celery_includes():
-    return [
-        "swh.indexer.tests.tasks",
-        "swh.indexer.tasks",
-    ]

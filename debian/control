@@ -15,24 +15,24 @@ Build-Depends: debhelper (>= 9),
                python3-magic,
                python3-pyld,
                python3-setuptools,
-               python3-swh.core (>= 0.0.61~),
+               python3-setuptools-scm,
+               python3-swh.core (>= 0.0.87~),
                python3-swh.model (>= 0.0.15~),
-               python3-swh.objstorage (>= 0.0.28~),
+               python3-swh.objstorage (>= 0.0.43~),
                python3-swh.scheduler (>= 0.0.47~),
-               python3-swh.storage (>= 0.0.143~),
-               python3-swh.journal (>= 0.0.13~),
-               python3-vcversioner,
+               python3-swh.storage (>= 0.6.0~),
+               python3-swh.journal (>= 0.1.0~),
                python3-xmltodict,
 Standards-Version: 3.9.6
 Homepage: https://forge.softwareheritage.org/diffusion/78/
 
 Package: python3-swh.indexer.storage
 Architecture: all
-Depends: python3-swh.core (>= 0.0.61~),
+Depends: python3-swh.core (>= 0.0.87~),
          python3-swh.model (>= 0.0.15~),
-         python3-swh.objstorage (>= 0.0.28~),
+         python3-swh.objstorage (>= 0.0.43~),
          python3-swh.scheduler (>= 0.0.47~),
-         python3-swh.storage (>= 0.0.143~),
+         python3-swh.storage (>= 0.6.0~),
          ${misc:Depends},
          ${python3:Depends}
 Description: Software Heritage Content Indexer Storage
@@ -41,11 +41,11 @@ Package: python3-swh.indexer
 Architecture: all
 Recommends: universal-ctags (>= 0.8~),
             fossology-nomossa (>= 3.1~)
-Depends: python3-swh.core (>= 0.0.61~),
+Depends: python3-swh.core (>= 0.0.87~),
          python3-swh.model (>= 0.0.15~),
-         python3-swh.objstorage (>= 0.0.28~),
+         python3-swh.objstorage (>= 0.0.43~),
          python3-swh.scheduler (>= 0.0.47~),
-         python3-swh.storage (>= 0.0.143~),
+         python3-swh.storage (>= 0.6.0~),
          python3-swh.indexer.storage (= ${binary:Version}),
          ${misc:Depends},
          ${python3:Depends}

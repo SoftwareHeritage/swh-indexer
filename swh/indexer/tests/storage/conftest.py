@@ -7,7 +7,7 @@ from os.path import join
 import pytest
 
 from . import SQL_DIR
-from swh.storage.tests.conftest import postgresql_fact
+from swh.storage.pytest_plugin import postgresql_fact
 from swh.indexer.storage import get_indexer_storage
 from swh.model.hashutil import hash_to_bytes
 from .generate_data_test import MIMETYPE_OBJECTS, FOSSOLOGY_LICENSES, TOOLS

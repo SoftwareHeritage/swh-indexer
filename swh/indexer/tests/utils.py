@@ -5,7 +5,6 @@
 
 import abc
 import functools
-import random
 from typing import Dict, Any
 import unittest
 
@@ -13,175 +12,221 @@ from hypothesis import strategies
 
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
-from swh.model.model import OriginVisit, OriginVisitStatus
+from swh.model.model import (
+    Content,
+    Directory,
+    DirectoryEntry,
+    Origin,
+    OriginVisit,
+    OriginVisitStatus,
+    Person,
+    Revision,
+    RevisionType,
+    Snapshot,
+    SnapshotBranch,
+    TargetType,
+    Timestamp,
+    TimestampWithTimezone,
+)
 from swh.storage.utils import now
 
 from swh.indexer.storage import INDEXER_CFG_KEY
 
 
 BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
-    "storage": {"cls": "pipeline", "steps": [{"cls": "validate"}, {"cls": "memory"},]},
+    "storage": {"cls": "memory"},
     "objstorage": {"cls": "memory", "args": {},},
     INDEXER_CFG_KEY: {"cls": "memory", "args": {},},
 }
 
-ORIGIN_VISITS = [
-    {"type": "git", "url": "https://github.com/SoftwareHeritage/swh-storage"},
-    {"type": "ftp", "url": "rsync://ftp.gnu.org/gnu/3dldf"},
-    {"type": "deposit", "url": "https://forge.softwareheritage.org/source/jesuisgpl/"},
-    {"type": "pypi", "url": "https://pypi.org/project/limnoria/"},
-    {"type": "svn", "url": "http://0-512-md.googlecode.com/svn/"},
-    {"type": "git", "url": "https://github.com/librariesio/yarn-parser"},
-    {"type": "git", "url": "https://github.com/librariesio/yarn-parser.git"},
+
+ORIGINS = [
+    Origin(url="https://github.com/SoftwareHeritage/swh-storage"),
+    Origin(url="rsync://ftp.gnu.org/gnu/3dldf"),
+    Origin(url="https://forge.softwareheritage.org/source/jesuisgpl/"),
+    Origin(url="https://pypi.org/project/limnoria/"),
+    Origin(url="http://0-512-md.googlecode.com/svn/"),
+    Origin(url="https://github.com/librariesio/yarn-parser"),
+    Origin(url="https://github.com/librariesio/yarn-parser.git"),
 ]
+
+
+ORIGIN_VISITS = [
+    {"type": "git", "origin": ORIGINS[0].url},
+    {"type": "ftp", "origin": ORIGINS[1].url},
+    {"type": "deposit", "origin": ORIGINS[2].url},
+    {"type": "pypi", "origin": ORIGINS[3].url},
+    {"type": "svn", "origin": ORIGINS[4].url},
+    {"type": "git", "origin": ORIGINS[5].url},
+    {"type": "git", "origin": ORIGINS[6].url},
+]
+
+
+DIRECTORY = Directory(
+    id=hash_to_bytes("34f335a750111ca0a8b64d8034faec9eedc396be"),
+    entries=(
+        DirectoryEntry(
+            name=b"index.js",
+            type="file",
+            target=hash_to_bytes("01c9379dfc33803963d07c1ccc748d3fe4c96bb5"),
+            perms=0o100644,
+        ),
+        DirectoryEntry(
+            name=b"package.json",
+            type="file",
+            target=hash_to_bytes("26a9f72a7c87cc9205725cfd879f514ff4f3d8d5"),
+            perms=0o100644,
+        ),
+        DirectoryEntry(
+            name=b".github",
+            type="dir",
+            target=Directory(entries=()).id,
+            perms=0o040000,
+        ),
+    ),
+)
+
+DIRECTORY2 = Directory(
+    id=b"\xf8zz\xa1\x12`<1$\xfav\xf9\x01\xfd5\x85F`\xf2\xb6",
+    entries=(
+        DirectoryEntry(
+            name=b"package.json",
+            type="file",
+            target=hash_to_bytes("f5305243b3ce7ef8dc864ebc73794da304025beb"),
+            perms=0o100644,
+        ),
+    ),
+)
+
+REVISION = Revision(
+    id=hash_to_bytes("c6201cb1b9b9df9a7542f9665c3b5dfab85e9775"),
+    message=b"Improve search functionality",
+    author=Person(
+        name=b"Andrew Nesbitt",
+        fullname=b"Andrew Nesbitt <andrewnez@gmail.com>",
+        email=b"andrewnez@gmail.com",
+    ),
+    committer=Person(
+        name=b"Andrew Nesbitt",
+        fullname=b"Andrew Nesbitt <andrewnez@gmail.com>",
+        email=b"andrewnez@gmail.com",
+    ),
+    committer_date=TimestampWithTimezone(
+        timestamp=Timestamp(seconds=1380883849, microseconds=0,),
+        offset=120,
+        negative_utc=False,
+    ),
+    type=RevisionType.GIT,
+    synthetic=False,
+    date=TimestampWithTimezone(
+        timestamp=Timestamp(seconds=1487596456, microseconds=0,),
+        offset=0,
+        negative_utc=False,
+    ),
+    directory=DIRECTORY2.id,
+    parents=(),
+)
+
+REVISIONS = [REVISION]
 
 SNAPSHOTS = [
-    {
-        "origin": "https://github.com/SoftwareHeritage/swh-storage",
-        "branches": {
-            b"refs/heads/add-revision-origin-cache": {
-                "target": b'L[\xce\x1c\x88\x8eF\t\xf1"\x19\x1e\xfb\xc0'
-                b"s\xe7/\xe9l\x1e",
-                "target_type": "revision",
-            },
-            b"refs/head/master": {
-                "target": b"8K\x12\x00d\x03\xcc\xe4]bS\xe3\x8f{\xd7}" b"\xac\xefrm",
-                "target_type": "revision",
-            },
-            b"HEAD": {"target": b"refs/head/master", "target_type": "alias"},
-            b"refs/tags/v0.0.103": {
-                "target": b'\xb6"Im{\xfdLb\xb0\x94N\xea\x96m\x13x\x88+' b"\x0f\xdd",
-                "target_type": "release",
-            },
+    Snapshot(
+        id=hash_to_bytes("a50fde72265343b7d28cecf6db20d98a81d21965"),
+        branches={
+            b"refs/heads/add-revision-origin-cache": SnapshotBranch(
+                target=b'L[\xce\x1c\x88\x8eF\t\xf1"\x19\x1e\xfb\xc0s\xe7/\xe9l\x1e',
+                target_type=TargetType.REVISION,
+            ),
+            b"refs/head/master": SnapshotBranch(
+                target=b"8K\x12\x00d\x03\xcc\xe4]bS\xe3\x8f{\xd7}\xac\xefrm",
+                target_type=TargetType.REVISION,
+            ),
+            b"HEAD": SnapshotBranch(
+                target=b"refs/head/master", target_type=TargetType.ALIAS
+            ),
+            b"refs/tags/v0.0.103": SnapshotBranch(
+                target=b'\xb6"Im{\xfdLb\xb0\x94N\xea\x96m\x13x\x88+\x0f\xdd',
+                target_type=TargetType.RELEASE,
+            ),
         },
-    },
-    {
-        "origin": "rsync://ftp.gnu.org/gnu/3dldf",
-        "branches": {
-            b"3DLDF-1.1.4.tar.gz": {
-                "target": b"dJ\xfb\x1c\x91\xf4\x82B%]6\xa2\x90|\xd3\xfc" b'"G\x99\x11',
-                "target_type": "revision",
-            },
-            b"3DLDF-2.0.2.tar.gz": {
-                "target": b"\xb6\x0e\xe7\x9e9\xac\xaa\x19\x9e="
-                b"\xd1\xc5\x00\\\xc6\xfc\xe0\xa6\xb4V",
-                "target_type": "revision",
-            },
-            b"3DLDF-2.0.3-examples.tar.gz": {
-                "target": b"!H\x19\xc0\xee\x82-\x12F1\xbd\x97"
-                b"\xfe\xadZ\x80\x80\xc1\x83\xff",
-                "target_type": "revision",
-            },
-            b"3DLDF-2.0.3.tar.gz": {
-                "target": b"\x8e\xa9\x8e/\xea}\x9feF\xf4\x9f\xfd\xee"
-                b"\xcc\x1a\xb4`\x8c\x8by",
-                "target_type": "revision",
-            },
-            b"3DLDF-2.0.tar.gz": {
-                "target": b"F6*\xff(?\x19a\xef\xb6\xc2\x1fv$S\xe3G" b"\xd3\xd1m",
-                "target_type": "revision",
-            },
+    ),
+    Snapshot(
+        id=hash_to_bytes("2c67f69a416bca4e1f3fcd848c588fab88ad0642"),
+        branches={
+            b"3DLDF-1.1.4.tar.gz": SnapshotBranch(
+                target=b'dJ\xfb\x1c\x91\xf4\x82B%]6\xa2\x90|\xd3\xfc"G\x99\x11',
+                target_type=TargetType.REVISION,
+            ),
+            b"3DLDF-2.0.2.tar.gz": SnapshotBranch(
+                target=b"\xb6\x0e\xe7\x9e9\xac\xaa\x19\x9e=\xd1\xc5\x00\\\xc6\xfc\xe0\xa6\xb4V",  # noqa
+                target_type=TargetType.REVISION,
+            ),
+            b"3DLDF-2.0.3-examples.tar.gz": SnapshotBranch(
+                target=b"!H\x19\xc0\xee\x82-\x12F1\xbd\x97\xfe\xadZ\x80\x80\xc1\x83\xff",  # noqa
+                target_type=TargetType.REVISION,
+            ),
+            b"3DLDF-2.0.3.tar.gz": SnapshotBranch(
+                target=b"\x8e\xa9\x8e/\xea}\x9feF\xf4\x9f\xfd\xee\xcc\x1a\xb4`\x8c\x8by",  # noqa
+                target_type=TargetType.REVISION,
+            ),
+            b"3DLDF-2.0.tar.gz": SnapshotBranch(
+                target=b"F6*\xff(?\x19a\xef\xb6\xc2\x1fv$S\xe3G\xd3\xd1m",
+                target_type=TargetType.REVISION,
+            ),
         },
-    },
-    {
-        "origin": "https://forge.softwareheritage.org/source/jesuisgpl/",
-        "branches": {
-            b"master": {
-                "target": b"\xe7n\xa4\x9c\x9f\xfb\xb7\xf76\x11\x08{"
-                b"\xa6\xe9\x99\xb1\x9e]q\xeb",
-                "target_type": "revision",
-            }
+    ),
+    Snapshot(
+        id=hash_to_bytes("68c0d26104d47e278dd6be07ed61fafb561d0d20"),
+        branches={
+            b"master": SnapshotBranch(
+                target=b"\xe7n\xa4\x9c\x9f\xfb\xb7\xf76\x11\x08{\xa6\xe9\x99\xb1\x9e]q\xeb",  # noqa
+                target_type=TargetType.REVISION,
+            )
         },
-        "id": b"h\xc0\xd2a\x04\xd4~'\x8d\xd6\xbe\x07\xeda\xfa\xfbV" b"\x1d\r ",
-    },
-    {
-        "origin": "https://pypi.org/project/limnoria/",
-        "branches": {
-            b"HEAD": {"target": b"releases/2018.09.09", "target_type": "alias"},
-            b"releases/2018.09.01": {
-                "target": b"<\xee1(\xe8\x8d_\xc1\xc9\xa6rT\xf1\x1d"
-                b"\xbb\xdfF\xfdw\xcf",
-                "target_type": "revision",
-            },
-            b"releases/2018.09.09": {
-                "target": b"\x83\xb9\xb6\xc7\x05\xb1%\xd0\xfem\xd8k"
-                b"A\x10\x9d\xc5\xfa2\xf8t",
-                "target_type": "revision",
-            },
+    ),
+    Snapshot(
+        id=hash_to_bytes("f255245269e15fc99d284affd79f766668de0b67"),
+        branches={
+            b"HEAD": SnapshotBranch(
+                target=b"releases/2018.09.09", target_type=TargetType.ALIAS
+            ),
+            b"releases/2018.09.01": SnapshotBranch(
+                target=b"<\xee1(\xe8\x8d_\xc1\xc9\xa6rT\xf1\x1d\xbb\xdfF\xfdw\xcf",
+                target_type=TargetType.REVISION,
+            ),
+            b"releases/2018.09.09": SnapshotBranch(
+                target=b"\x83\xb9\xb6\xc7\x05\xb1%\xd0\xfem\xd8kA\x10\x9d\xc5\xfa2\xf8t",  # noqa
+                target_type=TargetType.REVISION,
+            ),
         },
-        "id": b"{\xda\x8e\x84\x7fX\xff\x92\x80^\x93V\x18\xa3\xfay" b"\x12\x9e\xd6\xb3",
-    },
-    {
-        "origin": "http://0-512-md.googlecode.com/svn/",
-        "branches": {
-            b"master": {
-                "target": b"\xe4?r\xe1,\x88\xab\xec\xe7\x9a\x87\xb8"
-                b"\xc9\xad#.\x1bw=\x18",
-                "target_type": "revision",
-            }
+    ),
+    Snapshot(
+        id=hash_to_bytes("a1a28c0ab387a8f9e0618cb705eab81fc448f473"),
+        branches={
+            b"master": SnapshotBranch(
+                target=b"\xe4?r\xe1,\x88\xab\xec\xe7\x9a\x87\xb8\xc9\xad#.\x1bw=\x18",
+                target_type=TargetType.REVISION,
+            )
         },
-        "id": b"\xa1\xa2\x8c\n\xb3\x87\xa8\xf9\xe0a\x8c\xb7"
-        b"\x05\xea\xb8\x1f\xc4H\xf4s",
-    },
-    {
-        "origin": "https://github.com/librariesio/yarn-parser",
-        "branches": {
-            b"HEAD": {
-                "target": hash_to_bytes("8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f"),
-                "target_type": "revision",
-            }
+    ),
+    Snapshot(
+        id=hash_to_bytes("bb4fd3a836930ce629d912864319637040ff3040"),
+        branches={
+            b"HEAD": SnapshotBranch(
+                target=REVISION.id, target_type=TargetType.REVISION,
+            )
         },
-    },
-    {
-        "origin": "https://github.com/librariesio/yarn-parser.git",
-        "branches": {
-            b"HEAD": {
-                "target": hash_to_bytes("8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f"),
-                "target_type": "revision",
-            }
+    ),
+    Snapshot(
+        id=hash_to_bytes("bb4fd3a836930ce629d912864319637040ff3040"),
+        branches={
+            b"HEAD": SnapshotBranch(
+                target=REVISION.id, target_type=TargetType.REVISION,
+            )
         },
-    },
+    ),
 ]
 
-
-REVISIONS = [
-    {
-        "id": hash_to_bytes("8dbb6aeb036e7fd80664eb8bfd1507881af1ba9f"),
-        "message": b"Improve search functionality",
-        "author": {
-            "name": b"Andrew Nesbitt",
-            "fullname": b"Andrew Nesbitt <andrewnez@gmail.com>",
-            "email": b"andrewnez@gmail.com",
-        },
-        "committer": {
-            "name": b"Andrew Nesbitt",
-            "fullname": b"Andrew Nesbitt <andrewnez@gmail.com>",
-            "email": b"andrewnez@gmail.com",
-        },
-        "committer_date": {
-            "negative_utc": False,
-            "offset": 120,
-            "timestamp": {"microseconds": 0, "seconds": 1380883849,},
-        },
-        "type": "git",
-        "synthetic": False,
-        "date": {
-            "negative_utc": False,
-            "timestamp": {"seconds": 1487596456, "microseconds": 0,},
-            "offset": 0,
-        },
-        "directory": b"10",
-        "parents": (),
-    }
-]
-
-DIRECTORY_ID = b"10"
-
-DIRECTORY_ENTRIES = [
-    {"name": b"index.js", "type": "file", "target": b"abc", "perms": 33188,},
-    {"name": b"package.json", "type": "file", "target": b"cde", "perms": 33188,},
-    {"name": b".github", "type": "dir", "target": b"11", "perms": 16384,},
-]
 
 SHA1_TO_LICENSES = {
     "01c9379dfc33803963d07c1ccc748d3fe4c96bb5": ["GPL"],
@@ -292,12 +337,10 @@ OBJ_STORAGE_DATA = {
     "a7ab314d8a11d2c93e3dcf528ca294e7b431c449": b"""
     """,
     "da39a3ee5e6b4b0d3255bfef95601890afd80709": b"",
-    # 626364
-    hash_to_hex(b"bcd"): b"unimportant content for bcd",
-    # 636465
-    hash_to_hex(
-        b"cde"
-    ): b"""
+    # was 626364 / b'bcd'
+    "e3e40fee6ff8a52f06c3b428bfe7c0ed2ef56e92": b"unimportant content for bcd",
+    # was 636465 / b'cde' now yarn-parser package.json
+    "f5305243b3ce7ef8dc864ebc73794da304025beb": b"""
     {
       "name": "yarn-parser",
       "version": "1.0.0",
@@ -341,6 +384,7 @@ OBJ_STORAGE_DATA = {
 
 """,
 }
+
 
 YARN_PARSER_METADATA = {
     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -503,51 +547,41 @@ def fill_obj_storage(obj_storage):
 
 
 def fill_storage(storage):
-    visit_types = {}
-    for visit in ORIGIN_VISITS:
-        storage.origin_add_one({"url": visit["url"]})
-        visit_types[visit["url"]] = visit["type"]
-    for snap in SNAPSHOTS:
-        origin_url = snap["origin"]
+    storage.origin_add(ORIGINS)
+    storage.directory_add([DIRECTORY, DIRECTORY2])
+    storage.revision_add(REVISIONS)
+    storage.snapshot_add(SNAPSHOTS)
+
+    for visit, snapshot in zip(ORIGIN_VISITS, SNAPSHOTS):
+        assert snapshot.id is not None
+
         visit = storage.origin_visit_add(
-            [
-                OriginVisit(
-                    origin=origin_url,
-                    date=now(),
-                    type=visit_types[origin_url],
-                    status="ongoing",
-                    snapshot=None,
-                )
-            ]
+            [OriginVisit(origin=visit["origin"], date=now(), type=visit["type"])]
         )[0]
-        snap_id = snap.get("id") or bytes([random.randint(0, 255) for _ in range(32)])
-        storage.snapshot_add([{"id": snap_id, "branches": snap["branches"]}])
         visit_status = OriginVisitStatus(
-            origin=origin_url,
+            origin=visit.origin,
             visit=visit.visit,
             date=now(),
             status="full",
-            snapshot=snap_id,
+            snapshot=snapshot.id,
         )
         storage.origin_visit_status_add([visit_status])
-    storage.revision_add(REVISIONS)
 
     contents = []
     for (obj_id, content) in OBJ_STORAGE_DATA.items():
         content_hashes = hashutil.MultiHash.from_data(content).digest()
         contents.append(
-            {
-                "data": content,
-                "length": len(content),
-                "status": "visible",
-                "sha1": hash_to_bytes(obj_id),
-                "sha1_git": hash_to_bytes(obj_id),
-                "sha256": content_hashes["sha256"],
-                "blake2s256": content_hashes["blake2s256"],
-            }
+            Content(
+                data=content,
+                length=len(content),
+                status="visible",
+                sha1=hash_to_bytes(obj_id),
+                sha1_git=hash_to_bytes(obj_id),
+                sha256=content_hashes["sha256"],
+                blake2s256=content_hashes["blake2s256"],
+            )
         )
     storage.content_add(contents)
-    storage.directory_add([{"id": DIRECTORY_ID, "entries": DIRECTORY_ENTRIES,}])
 
 
 class CommonContentIndexerTest(metaclass=abc.ABCMeta):
