@@ -1,3 +1,19 @@
+swh-indexer (0.1.1-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.1.1     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-07-28 12:42:19
+    +0200)
+  * Upstream changes:     - v0.1.1     - setup.py: Migrate from
+    vcversioner to setuptools-scm     - MANIFEST: Include missing
+    conftest.py requirement     - metadata: Update
+    swh.storage.origin_get call to latest api change     - Drop
+    unsupported "validate" proxy     - tests: Drop deprecated
+    storage.origin_add_one use     - Drop useless use of pifpaf     -
+    Clean up the swh.scheduler and swh.storage pytest plugin imports
+    - tests: Drop obsolete origin visit fields
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 28 Jul 2020 10:44:54 +0000
+
 swh-indexer (0.1.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.1.0     - (tagged by Antoine R. Dumont
