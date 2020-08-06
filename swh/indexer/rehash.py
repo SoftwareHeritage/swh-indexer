@@ -173,11 +173,11 @@ class RecomputeChecksums(SWHConfig):
 
             groups: Dict[str, List[Any]] = defaultdict(list)
             for content, keys_to_update in data:
-                keys = ",".join(keys_to_update)
-                groups[keys].append(content)
+                keys_str = ",".join(keys_to_update)
+                groups[keys_str].append(content)
 
             for keys_to_update, contents in groups.items():
-                keys = keys_to_update.split(",")
+                keys: List[str] = keys_to_update.split(",")
                 try:
                     self.storage.content_update(contents, keys=keys)
                     count += len(contents)

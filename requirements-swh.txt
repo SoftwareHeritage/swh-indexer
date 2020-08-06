@@ -1,6 +1,6 @@
-swh.core[db,http] >= 0.0.87
+swh.core[db,http] >= 0.2.2
 swh.model >= 0.0.15
 swh.objstorage >= 0.0.43
 swh.scheduler >= 0.0.47
-swh.storage >= 0.8.0
+swh.storage >= 0.12.0
 swh.journal >= 0.1.0

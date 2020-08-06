@@ -6,9 +6,9 @@
 
 from celery import current_app as app
 
-from .mimetype import MimetypeIndexer, MimetypeRangeIndexer
+from .mimetype import MimetypeIndexer, MimetypePartitionIndexer
 from .ctags import CtagsIndexer
-from .fossology_license import FossologyLicenseIndexer, FossologyLicenseRangeIndexer
+from .fossology_license import FossologyLicenseIndexer, FossologyLicensePartitionIndexer
 from .rehash import RecomputeChecksums
 from .metadata import OriginMetadataIndexer
 
@@ -40,9 +40,9 @@ def mimetype(*args, **kwargs):
 
 @app.task(name=__name__ + ".ContentRangeMimetype")
 def range_mimetype(*args, **kwargs):
-    return MimetypeRangeIndexer().run(*args, **kwargs)
+    return MimetypePartitionIndexer().run(*args, **kwargs)
 
 
 @app.task(name=__name__ + ".ContentRangeFossologyLicense")
 def range_license(*args, **kwargs):
-    return FossologyLicenseRangeIndexer().run(*args, **kwargs)
+    return FossologyLicensePartitionIndexer().run(*args, **kwargs)

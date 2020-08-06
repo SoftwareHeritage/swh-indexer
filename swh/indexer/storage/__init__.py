@@ -9,11 +9,16 @@ import psycopg2
 import psycopg2.pool
 
 from collections import defaultdict, Counter
-from typing import Dict, List
+from typing import Dict, List, Optional
 
+from swh.model.hashutil import hash_to_bytes, hash_to_hex
+from swh.model.model import SHA1_SIZE
 from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
+from swh.storage.utils import get_partition_bounds_bytes
 
+
+from .interface import PagedResult, Sha1
 from . import converters
 from .db import Db
 from .exc import IndexerStorageArgumentException, DuplicateId
@@ -135,30 +140,60 @@ class IndexerStorage:
         for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
             yield obj[0]
 
-    def _content_get_range(
+    @timed
+    @db_transaction()
+    def get_partition(
         self,
-        content_type,
-        start,
-        end,
-        indexer_configuration_id,
-        limit=1000,
+        indexer_type: str,
+        indexer_configuration_id: int,
+        partition_id: int,
+        nb_partitions: int,
+        page_token: Optional[str] = None,
+        limit: int = 1000,
         with_textual_data=False,
         db=None,
         cur=None,
-    ):
+    ) -> PagedResult[Sha1]:
+        """Retrieve ids of content with `indexer_type` within within partition partition_id
+        bound by limit.
+
+        Args:
+            **indexer_type**: Type of data content to index (mimetype, language, etc...)
+            **indexer_configuration_id**: The tool used to index data
+            **partition_id**: index of the partition to fetch
+            **nb_partitions**: total number of partitions to split into
+            **page_token**: opaque token used for pagination
+            **limit**: Limit result (default to 1000)
+            **with_textual_data** (bool): Deal with only textual content (True) or all
+                content (all contents by defaults, False)
+
+        Raises:
+            IndexerStorageArgumentException for;
+            - limit to None
+            - wrong indexer_type provided
+
+        Returns:
+            PagedResult of Sha1. If next_page_token is None, there is no more data to
+            fetch
+
+        """
         if limit is None:
             raise IndexerStorageArgumentException("limit should not be None")
-        if content_type not in db.content_indexer_names:
-            err = "Wrong type. Should be one of [%s]" % (
-                ",".join(db.content_indexer_names)
-            )
+        if indexer_type not in db.content_indexer_names:
+            err = f"Wrong type. Should be one of [{','.join(db.content_indexer_names)}]"
             raise IndexerStorageArgumentException(err)
 
-        ids = []
-        next_id = None
-        for counter, obj in enumerate(
-            db.content_get_range(
-                content_type,
+        start, end = get_partition_bounds_bytes(partition_id, nb_partitions, SHA1_SIZE)
+        if page_token is not None:
+            start = hash_to_bytes(page_token)
+        if end is None:
+            end = b"\xff" * SHA1_SIZE
+
+        next_page_token: Optional[str] = None
+        ids = [
+            row[0]
+            for row in db.content_get_range(
+                indexer_type,
                 start,
                 end,
                 indexer_configuration_id,
@@ -166,26 +201,33 @@ class IndexerStorage:
                 with_textual_data=with_textual_data,
                 cur=cur,
             )
-        ):
-            _id = obj[0]
-            if counter >= limit:
-                next_id = _id
-                break
+        ]
 
-            ids.append(_id)
+        if len(ids) >= limit:
+            next_page_token = hash_to_hex(ids[-1])
+            ids = ids[:limit]
 
-        return {"ids": ids, "next": next_id}
+        assert len(ids) <= limit
+        return PagedResult(results=ids, next_page_token=next_page_token)
 
     @timed
     @db_transaction()
-    def content_mimetype_get_range(
-        self, start, end, indexer_configuration_id, limit=1000, db=None, cur=None
-    ):
-        return self._content_get_range(
+    def content_mimetype_get_partition(
+        self,
+        indexer_configuration_id: int,
+        partition_id: int,
+        nb_partitions: int,
+        page_token: Optional[str] = None,
+        limit: int = 1000,
+        db=None,
+        cur=None,
+    ) -> PagedResult[Sha1]:
+        return self.get_partition(
             "mimetype",
-            start,
-            end,
             indexer_configuration_id,
+            partition_id,
+            nb_partitions,
+            page_token=page_token,
             limit=limit,
             db=db,
             cur=cur,
@@ -349,14 +391,22 @@ class IndexerStorage:
 
     @timed
     @db_transaction()
-    def content_fossology_license_get_range(
-        self, start, end, indexer_configuration_id, limit=1000, db=None, cur=None
-    ):
-        return self._content_get_range(
+    def content_fossology_license_get_partition(
+        self,
+        indexer_configuration_id: int,
+        partition_id: int,
+        nb_partitions: int,
+        page_token: Optional[str] = None,
+        limit: int = 1000,
+        db=None,
+        cur=None,
+    ) -> PagedResult[Sha1]:
+        return self.get_partition(
             "fossology_license",
-            start,
-            end,
             indexer_configuration_id,
+            partition_id,
+            nb_partitions,
+            page_token=page_token,
             limit=limit,
             with_textual_data=True,
             db=db,

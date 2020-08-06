@@ -12,14 +12,14 @@ from typing import Any, Dict
 from swh.indexer import fossology_license
 from swh.indexer.fossology_license import (
     FossologyLicenseIndexer,
-    FossologyLicenseRangeIndexer,
+    FossologyLicensePartitionIndexer,
     compute_license,
 )
 
 from swh.indexer.tests.utils import (
     SHA1_TO_LICENSES,
     CommonContentIndexerTest,
-    CommonContentIndexerRangeTest,
+    CommonContentIndexerPartitionTest,
     BASE_TEST_CONFIG,
     fill_storage,
     fill_obj_storage,
@@ -109,8 +109,8 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         fossology_license.compute_license = self.orig_compute_license
 
 
-class TestFossologyLicenseRangeIndexer(
-    CommonContentIndexerRangeTest, unittest.TestCase
+class TestFossologyLicensePartitionIndexer(
+    CommonContentIndexerPartitionTest, unittest.TestCase
 ):
     """Range Fossology License Indexer tests.
 
@@ -128,32 +128,10 @@ class TestFossologyLicenseRangeIndexer(
         self.orig_compute_license = fossology_license.compute_license
         fossology_license.compute_license = mock_compute_license
 
-        self.indexer = FossologyLicenseRangeIndexer(config=RANGE_CONFIG)
+        self.indexer = FossologyLicensePartitionIndexer(config=RANGE_CONFIG)
         self.indexer.catch_exceptions = False
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
-
-        self.id0 = "01c9379dfc33803963d07c1ccc748d3fe4c96bb5"
-        self.id1 = "02fb2c89e14f7fab46701478c83779c7beb7b069"
-        self.id2 = "103bc087db1d26afc3a0283f38663d081e9b01e6"
-        tool_id = self.indexer.tool["id"]
-        self.expected_results = {
-            self.id0: {
-                "id": self.id0,
-                "indexer_configuration_id": tool_id,
-                "licenses": SHA1_TO_LICENSES[self.id0],
-            },
-            self.id1: {
-                "id": self.id1,
-                "indexer_configuration_id": tool_id,
-                "licenses": SHA1_TO_LICENSES[self.id1],
-            },
-            self.id2: {
-                "id": self.id2,
-                "indexer_configuration_id": tool_id,
-                "licenses": SHA1_TO_LICENSES[self.id2],
-            },
-        }
 
     def tearDown(self):
         super().tearDown()
@@ -167,4 +145,4 @@ def test_fossology_w_no_tool():
 
 def test_fossology_range_w_no_tool():
     with pytest.raises(ValueError):
-        FossologyLicenseRangeIndexer(config=filter_dict(RANGE_CONFIG, "tools"))
+        FossologyLicensePartitionIndexer(config=filter_dict(RANGE_CONFIG, "tools"))

@@ -10,8 +10,9 @@ import unittest
 
 from hypothesis import strategies
 
+from swh.core.api.classes import stream_results
 from swh.model import hashutil
-from swh.model.hashutil import hash_to_bytes, hash_to_hex
+from swh.model.hashutil import hash_to_bytes
 from swh.model.model import (
     Content,
     Directory,
@@ -22,13 +23,14 @@ from swh.model.model import (
     Person,
     Revision,
     RevisionType,
+    SHA1_SIZE,
     Snapshot,
     SnapshotBranch,
     TargetType,
     Timestamp,
     TimestampWithTimezone,
 )
-from swh.storage.utils import now
+from swh.storage.utils import now, get_partition_bounds_bytes
 
 from swh.indexer.storage import INDEXER_CFG_KEY
 
@@ -677,7 +679,7 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         self.assert_results_ok(sha1s, expected_results)
 
 
-class CommonContentIndexerRangeTest:
+class CommonContentIndexerPartitionTest:
     """Allows to factorize tests on range indexer.
 
     """
@@ -685,90 +687,84 @@ class CommonContentIndexerRangeTest:
     def setUp(self):
         self.contents = sorted(OBJ_STORAGE_DATA)
 
-    def assert_results_ok(self, start, end, actual_results, expected_results=None):
-        if expected_results is None:
-            expected_results = self.expected_results
+    def assert_results_ok(self, partition_id, nb_partitions, actual_results):
+        expected_ids = [
+            c.sha1
+            for c in stream_results(
+                self.indexer.storage.content_get_partition,
+                partition_id=partition_id,
+                nb_partitions=nb_partitions,
+            )
+        ]
+
+        start, end = get_partition_bounds_bytes(partition_id, nb_partitions, SHA1_SIZE)
 
         actual_results = list(actual_results)
         for indexed_data in actual_results:
             _id = indexed_data["id"]
             assert isinstance(_id, bytes)
-            indexed_data = indexed_data.copy()
-            indexed_data["id"] = hash_to_hex(indexed_data["id"])
-            self.assertEqual(indexed_data, expected_results[hash_to_hex(_id)])
-            self.assertTrue(start <= _id <= end)
+            assert _id in expected_ids
+
+            assert start <= _id
+            if end:
+                assert _id <= end
+
             _tool_id = indexed_data["indexer_configuration_id"]
-            self.assertEqual(_tool_id, self.indexer.tool["id"])
+            assert _tool_id == self.indexer.tool["id"]
 
     def test__index_contents(self):
         """Indexing contents without existing data results in indexed data
 
         """
-        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
-        start, end = map(hashutil.hash_to_bytes, (_start, _end))
-        # given
-        actual_results = list(self.indexer._index_contents(start, end, indexed={}))
+        partition_id = 0
+        nb_partitions = 4
 
-        self.assert_results_ok(start, end, actual_results)
+        actual_results = list(
+            self.indexer._index_contents(partition_id, nb_partitions, indexed={})
+        )
+
+        self.assert_results_ok(partition_id, nb_partitions, actual_results)
 
     def test__index_contents_with_indexed_data(self):
         """Indexing contents with existing data results in less indexed data
 
         """
-        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
-        start, end = map(hashutil.hash_to_bytes, (_start, _end))
-        data_indexed = [self.id0, self.id2]
+        partition_id = 3
+        nb_partitions = 4
 
-        # given
-        actual_results = self.indexer._index_contents(
-            start, end, indexed=set(map(hash_to_bytes, data_indexed))
+        # first pass
+        actual_results = list(
+            self.indexer._index_contents(partition_id, nb_partitions, indexed={})
         )
 
-        # craft the expected results
-        expected_results = self.expected_results.copy()
-        for already_indexed_key in data_indexed:
-            expected_results.pop(already_indexed_key)
+        self.assert_results_ok(partition_id, nb_partitions, actual_results)
 
-        self.assert_results_ok(start, end, actual_results, expected_results)
+        indexed_ids = set(res["id"] for res in actual_results)
+
+        actual_results = list(
+            self.indexer._index_contents(
+                partition_id, nb_partitions, indexed=indexed_ids
+            )
+        )
+
+        # already indexed, so nothing new
+        assert actual_results == []
 
     def test_generate_content_get(self):
         """Optimal indexing should result in indexed data
 
         """
-        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
-        start, end = map(hashutil.hash_to_bytes, (_start, _end))
+        partition_id = 0
+        nb_partitions = 4
 
-        # given
-        actual_results = self.indexer.run(start, end)
+        actual_results = self.indexer.run(
+            partition_id, nb_partitions, skip_existing=False
+        )
 
-        # then
-        self.assertEqual(actual_results, {"status": "uneventful"})
-
-    def test_generate_content_get_input_as_bytes(self):
-        """Optimal indexing should result in indexed data
-
-        Input are in bytes here.
-
-        """
-        _start, _end = [self.contents[0], self.contents[2]]  # output hex ids
-        start, end = map(hashutil.hash_to_bytes, (_start, _end))
-
-        # given
-        actual_results = self.indexer.run(start, end, skip_existing=False)
-        # no already indexed data so same result as prior test
-
-        # then
-        self.assertEqual(actual_results, {"status": "uneventful"})
+        assert actual_results == {"status": "uneventful"}  # why?
 
     def test_generate_content_get_no_result(self):
         """No result indexed returns False"""
-        _start, _end = [
-            "0000000000000000000000000000000000000000",
-            "0000000000000000000000000000000000000001",
-        ]
-        start, end = map(hashutil.hash_to_bytes, (_start, _end))
-        # given
-        actual_results = self.indexer.run(start, end, incremental=False)
+        actual_results = self.indexer.run(0, 0, incremental=False)
 
-        # then
-        self.assertEqual(actual_results, {"status": "uneventful"})
+        assert actual_results == {"status": "uneventful"}

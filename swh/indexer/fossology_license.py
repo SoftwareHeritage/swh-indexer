@@ -6,11 +6,12 @@
 import logging
 import subprocess
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from swh.model import hashutil
-from .indexer import ContentIndexer, ContentRangeIndexer, write_to_temp
+from .indexer import ContentIndexer, ContentPartitionIndexer, write_to_temp
 
+from swh.indexer.storage.interface import PagedResult, Sha1
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ class MixinFossologyLicenseIndexer:
     """Mixin fossology license indexer.
 
     See :class:`FossologyLicenseIndexer` and
-    :class:`FossologyLicenseRangeIndexer`
+    :class:`FossologyLicensePartitionIndexer`
 
     """
 
@@ -82,7 +83,7 @@ class MixinFossologyLicenseIndexer:
         self.working_directory = self.config["workdir"]
 
     def index(
-        self, id: bytes, data: Optional[bytes] = None, **kwargs
+        self, id: Union[bytes, Dict], data: Optional[bytes] = None, **kwargs
     ) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
@@ -153,33 +154,39 @@ class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer):
         )
 
 
-class FossologyLicenseRangeIndexer(MixinFossologyLicenseIndexer, ContentRangeIndexer):
-    """FossologyLicense Range Indexer working on range of content identifiers.
+class FossologyLicensePartitionIndexer(
+    MixinFossologyLicenseIndexer, ContentPartitionIndexer
+):
+    """FossologyLicense Range Indexer working on range/partition of content identifiers.
 
     - filters out the non textual content
     - (optionally) filters out content already indexed (cf
-      :meth:`.indexed_contents_in_range`)
+      :meth:`.indexed_contents_in_partition`)
     - reads content from objstorage per the content's id (sha1)
     - computes {mimetype, encoding} from that content
     - stores result in storage
 
     """
 
-    def indexed_contents_in_range(self, start, end):
-        """Retrieve indexed content id within range [start, end].
+    def indexed_contents_in_partition(
+        self, partition_id: int, nb_partitions: int, page_token: Optional[str] = None
+    ) -> PagedResult[Sha1]:
+        """Retrieve indexed content id within the partition id
 
         Args:
-            start (bytes): Starting bound from range identifier
-            end (bytes): End range identifier
+            partition_id: Index of the partition to fetch
+            nb_partitions: Total number of partitions to split into
+            page_token: opaque token used for pagination
 
         Returns:
-            dict: a dict with keys:
-
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
-              this sha1 if any
+            PagedResult of Sha1. If next_page_token is None, there is no more data
+            to fetch
 
         """
-        return self.idx_storage.content_fossology_license_get_range(
-            start, end, self.tool["id"]
+        return self.idx_storage.content_fossology_license_get_partition(
+            self.tool["id"], partition_id, nb_partitions, page_token=page_token
         )
+
+
+# alias for retrocompatibility
+FossologyLicenseRangeIndexer = FossologyLicensePartitionIndexer
