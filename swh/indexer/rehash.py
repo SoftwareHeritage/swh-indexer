@@ -7,11 +7,12 @@ import logging
 import itertools
 
 from collections import defaultdict
-from typing import Dict, Any, Tuple, List, Generator
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from swh.core import utils
 from swh.core.config import SWHConfig
 from swh.model import hashutil
+from swh.model.model import Content
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.storage import get_storage
@@ -110,19 +111,18 @@ class RecomputeChecksums(SWHConfig):
         for contents in utils.grouper(content_ids, self.batch_size_retrieve_content):
             contents_iter = itertools.tee(contents, 2)
             try:
-                content_metadata: Dict[
-                    bytes, List[Dict]
-                ] = self.storage.content_get_metadata(  # noqa
-                    [s for s in contents_iter[0]]
+                sha1s = [s for s in contents_iter[0]]
+                content_metadata: List[Optional[Content]] = self.storage.content_get(
+                    sha1s
                 )
             except Exception:
                 self.log.exception("Problem when reading contents metadata.")
                 continue
 
-            for sha1, content_dicts in content_metadata.items():
-                if not content_dicts:
+            for sha1, content_model in zip(sha1s, content_metadata):
+                if not content_model:
                     continue
-                content: Dict = content_dicts[0]
+                content: Dict = content_model.to_dict()
                 # Recompute checksums provided in compute_checksums options
                 if self.recompute_checksums:
                     checksums_to_compute = list(self.compute_checksums)
