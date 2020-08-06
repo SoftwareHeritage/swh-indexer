@@ -18,7 +18,7 @@ from swh.storage import get_storage
 from swh.core.config import SWHConfig
 from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
-from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
+from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY, PagedResult, Sha1
 from swh.model import hashutil
 from swh.core import utils
 
@@ -233,12 +233,12 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             return []
 
     def index(
-        self, id: bytes, data: Optional[bytes] = None, **kwargs
+        self, id: Union[bytes, Dict], data: Optional[bytes] = None, **kwargs
     ) -> Dict[str, Any]:
         """Index computation for the id and associated raw data.
 
         Args:
-            id: identifier
+            id: identifier or Dict object
             data: id's data from storage or objstorage depending on
               object type
 
@@ -282,7 +282,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 class ContentIndexer(BaseIndexer):
     """A content indexer working on a list of ids directly.
 
-    To work on indexer range, use the :class:`ContentRangeIndexer`
+    To work on indexer partition, use the :class:`ContentPartitionIndexer`
     instead.
 
     Note: :class:`ContentIndexer` is not an instantiable object. To
@@ -343,64 +343,76 @@ class ContentIndexer(BaseIndexer):
             return summary
 
 
-class ContentRangeIndexer(BaseIndexer):
-    """A content range indexer.
+class ContentPartitionIndexer(BaseIndexer):
+    """A content partition indexer.
 
-    This expects as input a range of ids to index.
+    This expects as input a partition_id and a nb_partitions. This will then index the
+    contents within that partition.
 
     To work on a list of ids, use the :class:`ContentIndexer` instead.
 
-    Note: :class:`ContentRangeIndexer` is not an instantiable
+    Note: :class:`ContentPartitionIndexer` is not an instantiable
     object. To use it, one should inherit from this class and override
     the methods mentioned in the :class:`BaseIndexer` class.
 
     """
 
     @abc.abstractmethod
-    def indexed_contents_in_range(self, start: bytes, end: bytes) -> Any:
+    def indexed_contents_in_partition(
+        self, partition_id: int, nb_partitions: int, page_token: Optional[str] = None
+    ) -> PagedResult[Sha1]:
         """Retrieve indexed contents within range [start, end].
 
         Args:
-            start: Starting bound from range identifier
-            end: End range identifier
+            partition_id: Index of the partition to fetch
+            nb_partitions: Total number of partitions to split into
+            page_token: opaque token used for pagination
 
-        Yields:
-            bytes: Content identifier present in the range ``[start, end]``
+        Returns:
+            PagedResult of Sha1. If next_page_token is None, there is no more data
+            to fetch
 
         """
         pass
 
     def _list_contents_to_index(
-        self, start: bytes, end: bytes, indexed: Set[bytes]
-    ) -> Iterator[bytes]:
-        """Compute from storage the new contents to index in the range [start,
-           end]. The already indexed contents are skipped.
+        self, partition_id: int, nb_partitions: int, indexed: Set[Sha1]
+    ) -> Iterator[Sha1]:
+        """Compute from storage the new contents to index in the partition_id . The already
+           indexed contents are skipped.
 
         Args:
-            start: Starting bound from range identifier
-            end: End range identifier
+            partition_id: Index of the partition to fetch data from
+            nb_partitions: Total number of partition
             indexed: Set of content already indexed.
 
         Yields:
-            bytes: Identifier of contents to index.
+            Sha1 id (bytes) of contents to index
 
         """
-        if not isinstance(start, bytes) or not isinstance(end, bytes):
-            raise TypeError("identifiers must be bytes, not %r and %r." % (start, end))
-        while start:
-            result = self.storage.content_get_range(start, end)
-            contents = result["contents"]
+        if not isinstance(partition_id, int) or not isinstance(nb_partitions, int):
+            raise TypeError(
+                f"identifiers must be int, not {partition_id!r} and {nb_partitions!r}."
+            )
+        next_page_token = None
+        while True:
+            result = self.storage.content_get_partition(
+                partition_id, nb_partitions, page_token=next_page_token
+            )
+            contents = result.results
             for c in contents:
-                _id = hashutil.hash_to_bytes(c["sha1"])
+                _id = hashutil.hash_to_bytes(c.sha1)
                 if _id in indexed:
                     continue
                 yield _id
-            start = result["next"]
+            next_page_token = result.next_page_token
+            if next_page_token is None:
+                break
 
     def _index_contents(
-        self, start: bytes, end: bytes, indexed: Set[bytes], **kwargs: Any
+        self, partition_id: int, nb_partitions: int, indexed: Set[Sha1], **kwargs: Any
     ) -> Iterator[Dict]:
-        """Index the contents from within range [start, end]
+        """Index the contents within the partition_id.
 
         Args:
             start: Starting bound from range identifier
@@ -408,16 +420,14 @@ class ContentRangeIndexer(BaseIndexer):
             indexed: Set of content already indexed.
 
         Yields:
-            dict: Data indexed to persist using the indexer storage
+            indexing result as dict to persist in the indexer backend
 
         """
-        for sha1 in self._list_contents_to_index(start, end, indexed):
+        for sha1 in self._list_contents_to_index(partition_id, nb_partitions, indexed):
             try:
                 raw_content = self.objstorage.get(sha1)
             except ObjNotFoundError:
-                self.log.warning(
-                    "Content %s not found in objstorage" % hashutil.hash_to_hex(sha1)
-                )
+                self.log.warning(f"Content {sha1.hex()} not found in objstorage")
                 continue
             res = self.index(sha1, raw_content, **kwargs)
             if res:
@@ -429,62 +439,64 @@ class ContentRangeIndexer(BaseIndexer):
                 yield res
 
     def _index_with_skipping_already_done(
-        self, start: bytes, end: bytes
+        self, partition_id: int, nb_partitions: int
     ) -> Iterator[Dict]:
-        """Index not already indexed contents in range [start, end].
+        """Index not already indexed contents within the partition partition_id
 
         Args:
-            start: Starting range identifier
-            end: Ending range identifier
+            partition_id: Index of the partition to fetch
+            nb_partitions: Total number of partitions to split into
 
         Yields:
-            dict: Content identifier present in the range
-            ``[start, end]`` which are not already indexed.
+           indexing result as dict to persist in the indexer backend
 
         """
-        while start:
-            indexed_page = self.indexed_contents_in_range(start, end)
-            contents = indexed_page["ids"]
-            _end = contents[-1] if contents else end
-            yield from self._index_contents(start, _end, contents)
-            start = indexed_page["next"]
+        next_page_token = None
+        contents = set()
+        while True:
+            indexed_page = self.indexed_contents_in_partition(
+                partition_id, nb_partitions, page_token=next_page_token
+            )
+            for sha1 in indexed_page.results:
+                contents.add(sha1)
+            yield from self._index_contents(partition_id, nb_partitions, contents)
+            next_page_token = indexed_page.next_page_token
+            if next_page_token is None:
+                break
 
     def run(
         self,
-        start: Union[bytes, str],
-        end: Union[bytes, str],
+        partition_id: int,
+        nb_partitions: int,
         skip_existing: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Dict:
-        """Given a range of content ids, compute the indexing computations on
-           the contents within. Either the indexer is incremental
-           (filter out existing computed data) or not (compute
-           everything from scratch).
+        """Given a partition of content ids, index the contents within.
+
+           Either the indexer is incremental (filter out existing computed data) or it
+           computes everything from scratch.
 
         Args:
-            start: Starting range identifier
-            end: Ending range identifier
+            partition_id: Index of the partition to fetch
+            nb_partitions: Total number of partitions to split into
             skip_existing: Skip existing indexed data
-              (default) or not
+                (default) or not
             **kwargs: passed to the `index` method
 
         Returns:
-            A dict with the task's status
+            dict with the indexing task status
 
         """
         status = "uneventful"
         summary: Dict[str, Any] = {}
         count = 0
         try:
-            range_start = (
-                hashutil.hash_to_bytes(start) if isinstance(start, str) else start
-            )
-            range_end = hashutil.hash_to_bytes(end) if isinstance(end, str) else end
-
             if skip_existing:
-                gen = self._index_with_skipping_already_done(range_start, range_end)
+                gen = self._index_with_skipping_already_done(
+                    partition_id, nb_partitions
+                )
             else:
-                gen = self._index_contents(range_start, range_end, indexed=set([]))
+                gen = self._index_contents(partition_id, nb_partitions, indexed=set([]))
 
             count_object_added_key: Optional[str] = None
 
@@ -590,11 +602,11 @@ class RevisionIndexer(BaseIndexer):
         summary: Dict[str, Any] = {}
         status = "uneventful"
         results = []
-        revs = self.storage.revision_get(
-            hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
-        )
 
-        for rev in revs:
+        revision_ids = [
+            hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
+        ]
+        for rev in self.storage.revision_get(revision_ids):
             if not rev:
                 self.log.warning(
                     "Revisions %s not found in storage"

@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import inspect
+import math
 import threading
 
 from typing import Dict
@@ -28,7 +29,7 @@ def prepare_mimetypes_from(fossology_licenses):
         mimetypes.append(
             {
                 "id": c["id"],
-                "mimetype": "text/plain",
+                "mimetype": "text/plain",  # for filtering on textual data to work
                 "encoding": "utf-8",
                 "indexer_configuration_id": c["indexer_configuration_id"],
             }
@@ -363,85 +364,126 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         {"mimetype": "text/html", "encoding": "us-ascii",},
     ]
 
-    def test_generate_content_mimetype_get_range_limit_none(self, swh_indexer_storage):
-        """mimetype_get_range call with wrong limit input should fail"""
+    def test_generate_content_mimetype_get_partition_failure(self, swh_indexer_storage):
+        """get_partition call with wrong limit input should fail"""
         storage = swh_indexer_storage
-        with pytest.raises(IndexerStorageArgumentException) as e:
-            storage.content_mimetype_get_range(
-                start=None, end=None, indexer_configuration_id=None, limit=None
+        indexer_configuration_id = None
+        with pytest.raises(
+            IndexerStorageArgumentException, match="limit should not be None"
+        ):
+            storage.content_mimetype_get_partition(
+                indexer_configuration_id, 0, 3, limit=None
             )
 
-        assert e.value.args == ("limit should not be None",)
-
-    def test_generate_content_mimetype_get_range_no_limit(
+    def test_generate_content_mimetype_get_partition_no_limit(
         self, swh_indexer_storage_with_data
     ):
-        """mimetype_get_range returns mimetypes within range provided"""
+        """get_partition should return result"""
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
 
-        # All ids from the db
-        content_ids = sorted([c["id"] for c in mimetypes])
+        expected_ids = set([c["id"] for c in mimetypes])
+        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
 
-        start = content_ids[0]
-        end = content_ids[-1]
+        assert len(mimetypes) == 16
+        nb_partitions = 16
 
-        # retrieve mimetypes
-        tool_id = mimetypes[0]["indexer_configuration_id"]
-        actual_result = storage.content_mimetype_get_range(
-            start, end, indexer_configuration_id=tool_id
-        )
+        actual_ids = []
+        for partition_id in range(nb_partitions):
+            actual_result = storage.content_mimetype_get_partition(
+                indexer_configuration_id, partition_id, nb_partitions
+            )
+            assert actual_result.next_page_token is None
+            actual_ids.extend(actual_result.results)
 
-        actual_ids = actual_result["ids"]
-        actual_next = actual_result["next"]
+        assert len(actual_ids) == len(expected_ids)
+        for actual_id in actual_ids:
+            assert actual_id in expected_ids
 
-        assert len(mimetypes) == len(actual_ids)
-        assert actual_next is None
-        assert content_ids == actual_ids
-
-    def test_generate_content_mimetype_get_range_limit(
+    def test_generate_content_mimetype_get_partition_full(
         self, swh_indexer_storage_with_data
     ):
-        """mimetype_get_range paginates results if limit exceeded"""
+        """get_partition for a single partition should return available ids
+
+        """
         storage, data = swh_indexer_storage_with_data
+        mimetypes = data.mimetypes
+        expected_ids = set([c["id"] for c in mimetypes])
+        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
 
-        indexer_configuration_id = data.tools["file"]["id"]
-
-        # input the list of sha1s we want from storage
-        content_ids = sorted([c["id"] for c in data.mimetypes])
-        mimetypes = list(storage.content_mimetype_get(content_ids))
-        assert len(mimetypes) == len(data.mimetypes)
-
-        start = content_ids[0]
-        end = content_ids[-1]
-        # retrieve mimetypes limited to 10 results
-        actual_result = storage.content_mimetype_get_range(
-            start, end, indexer_configuration_id=indexer_configuration_id, limit=10
+        actual_result = storage.content_mimetype_get_partition(
+            indexer_configuration_id, 0, 1
         )
+        assert actual_result.next_page_token is None
+        actual_ids = actual_result.results
+        assert len(actual_ids) == len(expected_ids)
+        for actual_id in actual_ids:
+            assert actual_id in expected_ids
 
-        assert actual_result
-        assert set(actual_result.keys()) == {"ids", "next"}
-        actual_ids = actual_result["ids"]
-        actual_next = actual_result["next"]
+    def test_generate_content_mimetype_get_partition_empty(
+        self, swh_indexer_storage_with_data
+    ):
+        """get_partition when at least one of the partitions is empty"""
+        storage, data = swh_indexer_storage_with_data
+        mimetypes = data.mimetypes
+        expected_ids = set([c["id"] for c in mimetypes])
+        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
 
-        assert len(actual_ids) == 10
-        assert actual_next is not None
-        assert actual_next == content_ids[10]
+        # nb_partitions = smallest power of 2 such that at least one of
+        # the partitions is empty
+        nb_mimetypes = len(mimetypes)
+        nb_partitions = 1 << math.floor(math.log2(nb_mimetypes) + 1)
 
-        expected_mimetypes = content_ids[:10]
-        assert expected_mimetypes == actual_ids
+        seen_ids = []
 
-        # retrieve next part
-        actual_result = storage.content_mimetype_get_range(
-            start=end, end=end, indexer_configuration_id=indexer_configuration_id
-        )
-        assert set(actual_result.keys()) == {"ids", "next"}
-        actual_ids = actual_result["ids"]
-        actual_next = actual_result["next"]
+        for partition_id in range(nb_partitions):
+            actual_result = storage.content_mimetype_get_partition(
+                indexer_configuration_id,
+                partition_id,
+                nb_partitions,
+                limit=nb_mimetypes + 1,
+            )
 
-        assert actual_next is None
-        expected_mimetypes = [content_ids[-1]]
-        assert expected_mimetypes == actual_ids
+            for actual_id in actual_result.results:
+                seen_ids.append(actual_id)
+
+            # Limit is higher than the max number of results
+            assert actual_result.next_page_token is None
+
+        assert set(seen_ids) == expected_ids
+
+    def test_generate_content_mimetype_get_partition_with_pagination(
+        self, swh_indexer_storage_with_data
+    ):
+        """get_partition should return ids provided with pagination
+
+        """
+        storage, data = swh_indexer_storage_with_data
+        mimetypes = data.mimetypes
+        expected_ids = set([c["id"] for c in mimetypes])
+        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+
+        nb_partitions = 4
+
+        actual_ids = []
+        for partition_id in range(nb_partitions):
+            next_page_token = None
+            while True:
+                actual_result = storage.content_mimetype_get_partition(
+                    indexer_configuration_id,
+                    partition_id,
+                    nb_partitions,
+                    limit=2,
+                    page_token=next_page_token,
+                )
+                actual_ids.extend(actual_result.results)
+                next_page_token = actual_result.next_page_token
+                if next_page_token is None:
+                    break
+
+        assert len(set(actual_ids)) == len(set(expected_ids))
+        for actual_id in actual_ids:
+            assert actual_id in expected_ids
 
 
 class TestIndexerStorageContentLanguage(StorageETypeTester):
@@ -907,135 +949,161 @@ class TestIndexerStorageContentFossologyLicence:
         # license did not change as the v2 was dropped.
         assert actual_licenses == [expected_license]
 
-    def test_generate_content_fossology_license_get_range_limit_none(
+    def test_generate_content_fossology_license_get_partition_failure(
         self, swh_indexer_storage_with_data
     ):
+        """get_partition call with wrong limit input should fail"""
         storage, data = swh_indexer_storage_with_data
-        """license_get_range call with wrong limit input should fail"""
-        with pytest.raises(IndexerStorageArgumentException) as e:
-            storage.content_fossology_license_get_range(
-                start=None, end=None, indexer_configuration_id=None, limit=None
+        indexer_configuration_id = None
+        with pytest.raises(
+            IndexerStorageArgumentException, match="limit should not be None"
+        ):
+            storage.content_fossology_license_get_partition(
+                indexer_configuration_id, 0, 3, limit=None,
             )
 
-        assert e.value.args == ("limit should not be None",)
-
-    def test_generate_content_fossology_license_get_range_no_limit(
+    def test_generate_content_fossology_license_get_partition_no_limit(
         self, swh_indexer_storage_with_data
     ):
-        """license_get_range returns licenses within range provided"""
+        """get_partition should return results"""
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
         mimetypes = prepare_mimetypes_from(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        content_ids = sorted([c["id"] for c in fossology_licenses])
+        expected_ids = set([c["id"] for c in fossology_licenses])
 
-        start = content_ids[0]
-        end = content_ids[-1]
+        assert len(fossology_licenses) == 10
+        assert len(mimetypes) == 10
+        nb_partitions = 4
 
-        # retrieve fossology_licenses
-        tool_id = fossology_licenses[0]["indexer_configuration_id"]
-        actual_result = storage.content_fossology_license_get_range(
-            start, end, indexer_configuration_id=tool_id
-        )
+        actual_ids = []
+        for partition_id in range(nb_partitions):
 
-        actual_ids = actual_result["ids"]
-        actual_next = actual_result["next"]
+            actual_result = storage.content_fossology_license_get_partition(
+                indexer_configuration_id, partition_id, nb_partitions
+            )
+            assert actual_result.next_page_token is None
+            actual_ids.extend(actual_result.results)
 
-        assert len(fossology_licenses) == len(actual_ids)
-        assert actual_next is None
-        assert content_ids == actual_ids
+        assert len(set(actual_ids)) == len(expected_ids)
+        for actual_id in actual_ids:
+            assert actual_id in expected_ids
 
-    def test_generate_content_fossology_license_get_range_no_limit_with_filter(
+    def test_generate_content_fossology_license_get_partition_full(
         self, swh_indexer_storage_with_data
     ):
-        """This filters non textual, then returns results within range"""
+        """get_partition for a single partition should return available ids
+
+        """
         storage, data = swh_indexer_storage_with_data
-        fossology_licenses = data.fossology_licenses
-        mimetypes = data.mimetypes
-
         # craft some consistent mimetypes
-        _mimetypes = prepare_mimetypes_from(fossology_licenses)
-        # add binary mimetypes which will get filtered out in results
-        for m in mimetypes:
-            _mimetypes.append(
-                {"mimetype": "binary", **m,}
-            )
+        fossology_licenses = data.fossology_licenses
+        mimetypes = prepare_mimetypes_from(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
 
-        storage.content_mimetype_add(_mimetypes, conflict_update=True)
+        storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        content_ids = sorted([c["id"] for c in fossology_licenses])
+        expected_ids = set([c["id"] for c in fossology_licenses])
 
-        start = content_ids[0]
-        end = content_ids[-1]
-
-        # retrieve fossology_licenses
-        tool_id = fossology_licenses[0]["indexer_configuration_id"]
-        actual_result = storage.content_fossology_license_get_range(
-            start, end, indexer_configuration_id=tool_id
+        actual_result = storage.content_fossology_license_get_partition(
+            indexer_configuration_id, 0, 1
         )
+        assert actual_result.next_page_token is None
+        actual_ids = actual_result.results
+        assert len(set(actual_ids)) == len(expected_ids)
+        for actual_id in actual_ids:
+            assert actual_id in expected_ids
 
-        actual_ids = actual_result["ids"]
-        actual_next = actual_result["next"]
-
-        assert len(fossology_licenses) == len(actual_ids)
-        assert actual_next is None
-        assert content_ids == actual_ids
-
-    def test_generate_fossology_license_get_range_limit(
+    def test_generate_content_fossology_license_get_partition_empty(
         self, swh_indexer_storage_with_data
     ):
-        """fossology_license_get_range paginates results if limit exceeded"""
+        """get_partition when at least one of the partitions is empty"""
         storage, data = swh_indexer_storage_with_data
-        fossology_licenses = data.fossology_licenses
-
         # craft some consistent mimetypes
+        fossology_licenses = data.fossology_licenses
         mimetypes = prepare_mimetypes_from(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
 
-        # add fossology_licenses to storage
         storage.content_mimetype_add(mimetypes, conflict_update=True)
+        # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
-        # input the list of sha1s we want from storage
-        content_ids = sorted([c["id"] for c in fossology_licenses])
-        start = content_ids[0]
-        end = content_ids[-1]
+        # All ids from the db
+        expected_ids = set([c["id"] for c in fossology_licenses])
 
-        # retrieve fossology_licenses limited to 3 results
-        limited_results = len(fossology_licenses) - 1
-        tool_id = fossology_licenses[0]["indexer_configuration_id"]
-        actual_result = storage.content_fossology_license_get_range(
-            start, end, indexer_configuration_id=tool_id, limit=limited_results
-        )
+        # nb_partitions = smallest power of 2 such that at least one of
+        # the partitions is empty
+        nb_licenses = len(fossology_licenses)
+        nb_partitions = 1 << math.floor(math.log2(nb_licenses) + 1)
 
-        actual_ids = actual_result["ids"]
-        actual_next = actual_result["next"]
+        seen_ids = []
 
-        assert limited_results == len(actual_ids)
-        assert actual_next is not None
-        assert actual_next == content_ids[-1]
+        for partition_id in range(nb_partitions):
+            actual_result = storage.content_fossology_license_get_partition(
+                indexer_configuration_id,
+                partition_id,
+                nb_partitions,
+                limit=nb_licenses + 1,
+            )
 
-        expected_fossology_licenses = content_ids[:-1]
-        assert expected_fossology_licenses == actual_ids
+            for actual_id in actual_result.results:
+                seen_ids.append(actual_id)
 
-        # retrieve next part
-        actual_results2 = storage.content_fossology_license_get_range(
-            start=end, end=end, indexer_configuration_id=tool_id
-        )
-        actual_ids2 = actual_results2["ids"]
-        actual_next2 = actual_results2["next"]
+            # Limit is higher than the max number of results
+            assert actual_result.next_page_token is None
 
-        assert actual_next2 is None
-        expected_fossology_licenses2 = [content_ids[-1]]
-        assert expected_fossology_licenses2 == actual_ids2
+        assert set(seen_ids) == expected_ids
+
+    def test_generate_content_fossology_license_get_partition_with_pagination(
+        self, swh_indexer_storage_with_data
+    ):
+        """get_partition should return ids provided with paginationv
+
+        """
+        storage, data = swh_indexer_storage_with_data
+        # craft some consistent mimetypes
+        fossology_licenses = data.fossology_licenses
+        mimetypes = prepare_mimetypes_from(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+
+        storage.content_mimetype_add(mimetypes, conflict_update=True)
+        # add fossology_licenses to storage
+        storage.content_fossology_license_add(fossology_licenses)
+
+        # All ids from the db
+        expected_ids = [c["id"] for c in fossology_licenses]
+
+        nb_partitions = 4
+
+        actual_ids = []
+        for partition_id in range(nb_partitions):
+            next_page_token = None
+            while True:
+                actual_result = storage.content_fossology_license_get_partition(
+                    indexer_configuration_id,
+                    partition_id,
+                    nb_partitions,
+                    limit=2,
+                    page_token=next_page_token,
+                )
+                actual_ids.extend(actual_result.results)
+                next_page_token = actual_result.next_page_token
+                if next_page_token is None:
+                    break
+
+        assert len(set(actual_ids)) == len(set(expected_ids))
+        for actual_id in actual_ids:
+            assert actual_id in expected_ids
 
 
 class TestIndexerStorageOriginIntrinsicMetadata:

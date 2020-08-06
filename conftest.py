@@ -3,6 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import pytest
+
 from hypothesis import settings
 
 # define tests profile. Full documentation is at:
@@ -17,3 +19,10 @@ collect_ignore = ["swh/indexer/storage/api/wsgi.py"]
 
 # we use the swh_scheduler fixture
 pytest_plugins = ["swh.scheduler.pytest_plugin"]
+
+
+@pytest.fixture(scope="session")
+def swh_scheduler_celery_includes(swh_scheduler_celery_includes):
+    return swh_scheduler_celery_includes + [
+        "swh.indexer.tasks",
+    ]

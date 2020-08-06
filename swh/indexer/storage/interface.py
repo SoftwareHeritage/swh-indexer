@@ -3,9 +3,17 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict, List
+from typing import Dict, List, Optional, TypeVar
 
 from swh.core.api import remote_api_endpoint
+from swh.core.api.classes import PagedResult as CorePagedResult
+
+
+TResult = TypeVar("TResult")
+PagedResult = CorePagedResult[TResult, str]
+
+
+Sha1 = bytes
 
 
 class IndexerStorageInterface:
@@ -31,67 +39,32 @@ class IndexerStorageInterface:
         """
         ...
 
-    def _content_get_range(
-        self,
-        content_type,
-        start,
-        end,
-        indexer_configuration_id,
-        limit=1000,
-        with_textual_data=False,
-    ):
-        """Retrieve ids of type content_type within range [start, end] bound
-           by limit.
-
-        Args:
-            **content_type** (str): content's type (mimetype, language, etc...)
-            **start** (bytes): Starting identifier range (expected smaller
-                           than end)
-            **end** (bytes): Ending identifier range (expected larger
-                             than start)
-            **indexer_configuration_id** (int): The tool used to index data
-            **limit** (int): Limit result (default to 1000)
-            **with_textual_data** (bool): Deal with only textual
-                                          content (True) or all
-                                          content (all contents by
-                                          defaults, False)
-
-        Raises:
-            ValueError for;
-            - limit to None
-            - wrong content_type provided
-
-        Returns:
-            a dict with keys:
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
-
-        """
-        ...
-
     @remote_api_endpoint("content_mimetype/range")
-    def content_mimetype_get_range(
-        self, start, end, indexer_configuration_id, limit=1000
-    ):
-        """Retrieve mimetypes within range [start, end] bound by limit.
+    def content_mimetype_get_partition(
+        self,
+        indexer_configuration_id: int,
+        partition_id: int,
+        nb_partitions: int,
+        page_token: Optional[str] = None,
+        limit: int = 1000,
+    ) -> PagedResult[Sha1]:
+        """Retrieve mimetypes within partition partition_id bound by limit.
 
         Args:
-            **start** (bytes): Starting identifier range (expected smaller
-                           than end)
-            **end** (bytes): Ending identifier range (expected larger
-                             than start)
-            **indexer_configuration_id** (int): The tool used to index data
-            **limit** (int): Limit result (default to 1000)
+            **indexer_configuration_id**: The tool used to index data
+            **partition_id**: index of the partition to fetch
+            **nb_partitions**: total number of partitions to split into
+            **page_token**: opaque token used for pagination
+            **limit**: Limit result (default to 1000)
 
         Raises:
-            ValueError for limit to None
+            IndexerStorageArgumentException for;
+            - limit to None
+            - wrong indexer_type provided
 
         Returns:
-            a dict with keys:
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
+            PagedResult of Sha1. If next_page_token is None, there is no more data
+            to fetch
 
         """
         ...
@@ -307,27 +280,30 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content/fossology_license/range")
-    def content_fossology_license_get_range(
-        self, start, end, indexer_configuration_id, limit=1000
-    ):
-        """Retrieve licenses within range [start, end] bound by limit.
+    def content_fossology_license_get_partition(
+        self,
+        indexer_configuration_id: int,
+        partition_id: int,
+        nb_partitions: int,
+        page_token: Optional[str] = None,
+        limit: int = 1000,
+    ) -> PagedResult[Sha1]:
+        """Retrieve licenses within the partition partition_id bound by limit.
 
         Args:
-            **start** (bytes): Starting identifier range (expected smaller
-                           than end)
-            **end** (bytes): Ending identifier range (expected larger
-                             than start)
-            **indexer_configuration_id** (int): The tool used to index data
-            **limit** (int): Limit result (default to 1000)
+            **indexer_configuration_id**: The tool used to index data
+            **partition_id**: index of the partition to fetch
+            **nb_partitions**: total number of partitions to split into
+            **page_token**: opaque token used for pagination
+            **limit**: Limit result (default to 1000)
 
         Raises:
-            ValueError for limit to None
+            IndexerStorageArgumentException for;
+            - limit to None
+            - wrong indexer_type provided
 
-        Returns:
-            a dict with keys:
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
+        Returns: PagedResult of Sha1. If next_page_token is None, there is no more data
+            to fetch
 
         """
         ...

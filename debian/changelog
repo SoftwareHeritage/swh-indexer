@@ -1,8 +1,18 @@
-swh-indexer (0.1.1-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.2.0-1~swh2) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * Bump dependencies
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 28 Jul 2020 10:49:46 +0000
+ -- Antoine R. Dumont (@ardumont) <ardumont@softwareheritage.org>  Wed, 06 Aug 2020 13:28:00 +0200
+
+swh-indexer (0.2.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.2.0     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-08-06 15:12:44
+    +0200)
+  * Upstream changes:     - v0.2.0     - Make content indexer work on
+    partition of ids
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 06 Aug 2020 13:14:35 +0000
 
 swh-indexer (0.1.1-1~swh1) unstable-swh; urgency=medium
 
