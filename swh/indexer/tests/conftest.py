@@ -3,9 +3,12 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import os
+
 from datetime import timedelta
 from unittest.mock import patch
 
+import yaml
 import pytest
 
 from swh.objstorage import get_objstorage
@@ -72,3 +75,27 @@ def obj_storage():
         "swh.objstorage.factory._STORAGE_CLASSES", {"memory": lambda: objstorage}
     ):
         yield objstorage
+
+
+@pytest.fixture
+def swh_indexer_config():
+    return {
+        "storage": {"cls": "memory"},
+        "objstorage": {"cls": "memory", "args": {},},
+        "indexer_storage": {"cls": "memory", "args": {},},
+        "tools": {
+            "name": "file",
+            "version": "1:5.30-1+deb9u1",
+            "configuration": {"type": "library", "debian-package": "python3-magic"},
+        },
+        "compute_checksums": ["blake2b512"],  # for rehash indexer
+    }
+
+
+@pytest.fixture
+def swh_config(swh_indexer_config, monkeypatch, tmp_path):
+    conffile = os.path.join(str(tmp_path), "indexer.yml")
+    with open(conffile, "w") as f:
+        f.write(yaml.dump(swh_indexer_config))
+    monkeypatch.setenv("SWH_CONFIG_FILENAME", conffile)
+    return conffile

@@ -4,7 +4,7 @@
 # See top-level LICENSE file for more information
 
 
-from celery import current_app as app
+from celery import shared_task
 
 from .mimetype import MimetypeIndexer, MimetypePartitionIndexer
 from .ctags import CtagsIndexer
@@ -13,36 +13,36 @@ from .rehash import RecomputeChecksums
 from .metadata import OriginMetadataIndexer
 
 
-@app.task(name=__name__ + ".OriginMetadata")
+@shared_task(name=__name__ + ".OriginMetadata")
 def origin_metadata(*args, **kwargs):
     return OriginMetadataIndexer().run(*args, **kwargs)
 
 
-@app.task(name=__name__ + ".Ctags")
+@shared_task(name=__name__ + ".Ctags")
 def ctags(*args, **kwargs):
     return CtagsIndexer().run(*args, **kwargs)
 
 
-@app.task(name=__name__ + ".ContentFossologyLicense")
+@shared_task(name=__name__ + ".ContentFossologyLicense")
 def fossology_license(*args, **kwargs):
     return FossologyLicenseIndexer().run(*args, **kwargs)
 
 
-@app.task(name=__name__ + ".RecomputeChecksums")
+@shared_task(name=__name__ + ".RecomputeChecksums")
 def recompute_checksums(*args, **kwargs):
     return RecomputeChecksums().run(*args, **kwargs)
 
 
-@app.task(name=__name__ + ".ContentMimetype")
+@shared_task(name=__name__ + ".ContentMimetype")
 def mimetype(*args, **kwargs):
     return MimetypeIndexer().run(*args, **kwargs)
 
 
-@app.task(name=__name__ + ".ContentRangeMimetype")
+@shared_task(name=__name__ + ".ContentRangeMimetype")
 def range_mimetype(*args, **kwargs):
     return MimetypePartitionIndexer().run(*args, **kwargs)
 
 
-@app.task(name=__name__ + ".ContentRangeFossologyLicense")
+@shared_task(name=__name__ + ".ContentRangeFossologyLicense")
 def range_license(*args, **kwargs):
     return FossologyLicensePartitionIndexer().run(*args, **kwargs)
