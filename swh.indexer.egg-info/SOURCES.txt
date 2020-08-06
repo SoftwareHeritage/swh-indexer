@@ -121,6 +121,7 @@ swh/indexer/tests/test_metadata.py
 swh/indexer/tests/test_mimetype.py
 swh/indexer/tests/test_origin_head.py
 swh/indexer/tests/test_origin_metadata.py
+swh/indexer/tests/test_tasks.py
 swh/indexer/tests/utils.py
 swh/indexer/tests/storage/__init__.py
 swh/indexer/tests/storage/conftest.py

@@ -110,14 +110,19 @@ class RecomputeChecksums(SWHConfig):
         for contents in utils.grouper(content_ids, self.batch_size_retrieve_content):
             contents_iter = itertools.tee(contents, 2)
             try:
-                content_metadata = self.storage.content_get_metadata(
+                content_metadata: Dict[
+                    bytes, List[Dict]
+                ] = self.storage.content_get_metadata(  # noqa
                     [s for s in contents_iter[0]]
                 )
             except Exception:
                 self.log.exception("Problem when reading contents metadata.")
                 continue
 
-            for content in content_metadata:
+            for sha1, content_dicts in content_metadata.items():
+                if not content_dicts:
+                    continue
+                content: Dict = content_dicts[0]
                 # Recompute checksums provided in compute_checksums options
                 if self.recompute_checksums:
                     checksums_to_compute = list(self.compute_checksums)
@@ -132,11 +137,9 @@ class RecomputeChecksums(SWHConfig):
                     continue
 
                 try:
-                    raw_content = self.objstorage.get(content["sha1"])
+                    raw_content = self.objstorage.get(sha1)
                 except ObjNotFoundError:
-                    self.log.warning(
-                        "Content %s not found in objstorage!" % content["sha1"]
-                    )
+                    self.log.warning("Content %s not found in objstorage!", sha1)
                     continue
 
                 content_hashes = hashutil.MultiHash.from_data(
@@ -170,11 +173,11 @@ class RecomputeChecksums(SWHConfig):
 
             groups: Dict[str, List[Any]] = defaultdict(list)
             for content, keys_to_update in data:
-                keys = ",".join(keys_to_update)
-                groups[keys].append(content)
+                keys_str = ",".join(keys_to_update)
+                groups[keys_str].append(content)
 
             for keys_to_update, contents in groups.items():
-                keys = keys_to_update.split(",")
+                keys: List[str] = keys_to_update.split(",")
                 try:
                     self.storage.content_update(contents, keys=keys)
                     count += len(contents)
