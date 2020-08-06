@@ -3,16 +3,17 @@ click
 python-magic>=0.4.13
 pyld
 xmltodict
-swh.core[db,http]>=0.0.87
+swh.core[db,http]>=0.2.2
 swh.model>=0.0.15
 swh.objstorage>=0.0.43
-swh.scheduler>=0.0.47
-swh.storage>=0.8.0
+swh.scheduler>=0.5.2
+swh.storage>=0.12.0
 swh.journal>=0.1.0
 
 [testing]
 confluent-kafka
 pytest
+pytest-mock
 hypothesis>=3.11.0
 swh.scheduler[testing]>=0.5.0
 swh.storage[testing]>=0.10.0

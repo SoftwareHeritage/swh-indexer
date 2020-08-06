@@ -3,17 +3,24 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import bisect
-from collections import defaultdict, Counter
 import itertools
 import json
 import operator
 import math
 import re
-from typing import Any, Dict, List
+
+from collections import defaultdict, Counter
+from typing import Any, Dict, List, Optional
+
+from swh.model.model import SHA1_SIZE
+from swh.model.hashutil import hash_to_hex, hash_to_bytes
+from swh.storage.utils import get_partition_bounds_bytes
+from swh.storage.in_memory import SortedList
 
 from . import MAPPING_NAMES, check_id_duplicates
 from .exc import IndexerStorageArgumentException
+
+from .interface import PagedResult, Sha1
 
 SHA1_DIGEST_SIZE = 160
 
@@ -38,7 +45,7 @@ class SubStorage:
 
     def __init__(self, tools):
         self._tools = tools
-        self._sorted_ids = []
+        self._sorted_ids = SortedList[bytes, bytes]()
         self._data = {}  # map (id_, tool_id) -> metadata_dict
         self._tools_per_id = defaultdict(set)  # map id_ -> Set[tool_id]
 
@@ -88,41 +95,61 @@ class SubStorage:
     def get_all(self):
         yield from self.get(self._sorted_ids)
 
-    def get_range(self, start, end, indexer_configuration_id, limit):
-        """Retrieve data within range [start, end] bound by limit.
+    def get_partition(
+        self,
+        indexer_configuration_id: int,
+        partition_id: int,
+        nb_partitions: int,
+        page_token: Optional[str] = None,
+        limit: int = 1000,
+    ) -> PagedResult[Sha1]:
+        """Retrieve ids of content with `indexer_type` within partition partition_id
+        bound by limit.
 
         Args:
-            **start** (bytes): Starting identifier range (expected smaller
-                           than end)
-            **end** (bytes): Ending identifier range (expected larger
-                             than start)
-            **indexer_configuration_id** (int): The tool used to index data
-            **limit** (int): Limit result
+            **indexer_type**: Type of data content to index (mimetype, language, etc...)
+            **indexer_configuration_id**: The tool used to index data
+            **partition_id**: index of the partition to fetch
+            **nb_partitions**: total number of partitions to split into
+            **page_token**: opaque token used for pagination
+            **limit**: Limit result (default to 1000)
+            **with_textual_data** (bool): Deal with only textual content (True) or all
+                content (all contents by defaults, False)
 
         Raises:
-            IndexerStorageArgumentException for limit to None
+            IndexerStorageArgumentException for;
+            - limit to None
+            - wrong indexer_type provided
 
         Returns:
-            a dict with keys:
-            - **ids** [bytes]: iterable of content ids within the range.
-            - **next** (Optional[bytes]): The next range of sha1 starts at
-                                          this sha1 if any
+            PagedResult of Sha1. If next_page_token is None, there is no more data to
+            fetch
 
         """
         if limit is None:
             raise IndexerStorageArgumentException("limit should not be None")
-        from_index = bisect.bisect_left(self._sorted_ids, start)
-        to_index = bisect.bisect_right(self._sorted_ids, end, lo=from_index)
-        if to_index - from_index >= limit:
-            return {
-                "ids": self._sorted_ids[from_index : from_index + limit],
-                "next": self._sorted_ids[from_index + limit],
-            }
-        else:
-            return {
-                "ids": self._sorted_ids[from_index:to_index],
-                "next": None,
-            }
+        (start, end) = get_partition_bounds_bytes(
+            partition_id, nb_partitions, SHA1_SIZE
+        )
+
+        if page_token:
+            start = hash_to_bytes(page_token)
+        if end is None:
+            end = b"\xff" * SHA1_SIZE
+
+        next_page_token: Optional[str] = None
+        ids: List[Sha1] = []
+        sha1s = (sha1 for sha1 in self._sorted_ids.iter_from(start))
+        for counter, sha1 in enumerate(sha1s):
+            if sha1 > end:
+                break
+            if counter >= limit:
+                next_page_token = hash_to_hex(sha1)
+                break
+            ids.append(sha1)
+
+        assert len(ids) <= limit
+        return PagedResult(results=ids, next_page_token=next_page_token)
 
     def add(self, data: List[Dict], conflict_update: bool) -> int:
         """Add data not present in storage.
@@ -155,7 +182,7 @@ class SubStorage:
             self._tools_per_id[id_].add(tool_id)
             count += 1
             if id_ not in self._sorted_ids:
-                bisect.insort(self._sorted_ids, id_)
+                self._sorted_ids.add(id_)
         return count
 
     def add_merge(
@@ -190,7 +217,7 @@ class SubStorage:
                 conflict_update=True,
             )
             if id_ not in self._sorted_ids:
-                bisect.insort(self._sorted_ids, id_)
+                self._sorted_ids.add(id_)
         return added
 
     def delete(self, entries: List[Dict]) -> int:
@@ -228,10 +255,17 @@ class IndexerStorage:
     def content_mimetype_missing(self, mimetypes):
         yield from self._mimetypes.missing(mimetypes)
 
-    def content_mimetype_get_range(
-        self, start, end, indexer_configuration_id, limit=1000
-    ):
-        return self._mimetypes.get_range(start, end, indexer_configuration_id, limit)
+    def content_mimetype_get_partition(
+        self,
+        indexer_configuration_id: int,
+        partition_id: int,
+        nb_partitions: int,
+        page_token: Optional[str] = None,
+        limit: int = 1000,
+    ) -> PagedResult[Sha1]:
+        return self._mimetypes.get_partition(
+            indexer_configuration_id, partition_id, nb_partitions, page_token, limit
+        )
 
     def content_mimetype_add(
         self, mimetypes: List[Dict], conflict_update: bool = False
@@ -306,10 +340,17 @@ class IndexerStorage:
         added = self._licenses.add_merge(licenses, conflict_update, "licenses")
         return {"fossology_license_add:add": added}
 
-    def content_fossology_license_get_range(
-        self, start, end, indexer_configuration_id, limit=1000
-    ):
-        return self._licenses.get_range(start, end, indexer_configuration_id, limit)
+    def content_fossology_license_get_partition(
+        self,
+        indexer_configuration_id: int,
+        partition_id: int,
+        nb_partitions: int,
+        page_token: Optional[str] = None,
+        limit: int = 1000,
+    ) -> PagedResult[Sha1]:
+        return self._licenses.get_partition(
+            indexer_configuration_id, partition_id, nb_partitions, page_token, limit
+        )
 
     def content_metadata_missing(self, metadata):
         yield from self._content_metadata.missing(metadata)

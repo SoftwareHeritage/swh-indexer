@@ -3,10 +3,13 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Optional, Dict, Any, List
 import magic
 
-from .indexer import ContentIndexer, ContentRangeIndexer
+from typing import Any, Optional, Dict, List, Union
+
+from swh.indexer.storage.interface import PagedResult, Sha1
+
+from .indexer import ContentIndexer, ContentPartitionIndexer
 
 if not hasattr(magic.Magic, "from_buffer"):
     raise ImportError(
@@ -40,7 +43,7 @@ def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
 class MixinMimetypeIndexer:
     """Mixin mimetype indexer.
 
-    See :class:`MimetypeIndexer` and :class:`MimetypeRangeIndexer`
+    See :class:`MimetypeIndexer` and :class:`MimetypePartitionIndexer`
 
     """
 
@@ -61,7 +64,7 @@ class MixinMimetypeIndexer:
     CONFIG_BASE_FILENAME = "indexer/mimetype"  # type: Optional[str]
 
     def index(
-        self, id: bytes, data: Optional[bytes] = None, **kwargs
+        self, id: Union[bytes, Dict], data: Optional[bytes] = None, **kwargs
     ) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
@@ -79,6 +82,7 @@ class MixinMimetypeIndexer:
         """
         assert data is not None
         properties = compute_mimetype_encoding(data)
+        assert isinstance(id, bytes)
         properties.update(
             {"id": id, "indexer_configuration_id": self.tool["id"],}
         )
@@ -124,34 +128,34 @@ class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
         )
 
 
-class MimetypeRangeIndexer(MixinMimetypeIndexer, ContentRangeIndexer):
+class MimetypePartitionIndexer(MixinMimetypeIndexer, ContentPartitionIndexer):
     """Mimetype Range Indexer working on range of content identifiers.
 
     It:
 
     - (optionally) filters out content already indexed (cf
-      :meth:`.indexed_contents_in_range`)
+      :meth:`.indexed_contents_in_partition`)
     - reads content from objstorage per the content's id (sha1)
     - computes {mimetype, encoding} from that content
     - stores result in storage
 
     """
 
-    def indexed_contents_in_range(
-        self, start: bytes, end: bytes
-    ) -> Dict[str, Optional[bytes]]:
-        """Retrieve indexed content id within range [start, end].
+    def indexed_contents_in_partition(
+        self, partition_id: int, nb_partitions: int, page_token: Optional[str] = None,
+    ) -> PagedResult[Sha1]:
+        """Retrieve indexed content ids within partition_id.
 
         Args:
-            start: Starting bound from range identifier
-            end: End range identifier
+            partition_id: Index of the partition to fetch
+            nb_partitions: Total number of partitions to split into
+            page_token: opaque token used for pagination
 
         Returns:
-            dict: a dict with keys:
-
-            - ids: iterable of content ids within the range.
-            - next: The next range of sha1 starts at
-              this sha1 if any
+            PagedResult of Sha1. If next_page_token is None, there is no more data
+            to fetch
 
         """
-        return self.idx_storage.content_mimetype_get_range(start, end, self.tool["id"])
+        return self.idx_storage.content_mimetype_get_partition(
+            self.tool["id"], partition_id, nb_partitions, page_token=page_token
+        )
