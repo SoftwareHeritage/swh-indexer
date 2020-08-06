@@ -38,11 +38,11 @@ def mimetype(*args, **kwargs):
     return MimetypeIndexer().run(*args, **kwargs)
 
 
-@shared_task(name=__name__ + ".ContentRangeMimetype")
-def range_mimetype(*args, **kwargs):
+@shared_task(name=__name__ + ".ContentMimetypePartition")
+def mimetype_partition(*args, **kwargs):
     return MimetypePartitionIndexer().run(*args, **kwargs)
 
 
-@shared_task(name=__name__ + ".ContentRangeFossologyLicense")
-def range_license(*args, **kwargs):
+@shared_task(name=__name__ + ".ContentFossologyLicensePartition")
+def license_partition(*args, **kwargs):
     return FossologyLicensePartitionIndexer().run(*args, **kwargs)

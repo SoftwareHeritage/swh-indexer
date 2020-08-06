@@ -186,7 +186,3 @@ class FossologyLicensePartitionIndexer(
         return self.idx_storage.content_fossology_license_get_partition(
             self.tool["id"], partition_id, nb_partitions, page_token=page_token
         )
-
-
-# alias for retrocompatibility
-FossologyLicenseRangeIndexer = FossologyLicensePartitionIndexer

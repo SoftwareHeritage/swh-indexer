@@ -159,7 +159,3 @@ class MimetypePartitionIndexer(MixinMimetypeIndexer, ContentPartitionIndexer):
         return self.idx_storage.content_mimetype_get_partition(
             self.tool["id"], partition_id, nb_partitions, page_token=page_token
         )
-
-
-# alias for retrocompatibility
-MimetypeRangeIndexer = MimetypePartitionIndexer

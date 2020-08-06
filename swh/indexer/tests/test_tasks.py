@@ -87,7 +87,7 @@ def test_task_mimetype(
     assert res.result == {"status": "eventful"}
 
 
-def test_task_range_mimetype(
+def test_task_mimetype_partition(
     mocker, swh_scheduler_celery_app, swh_scheduler_celery_worker, swh_config
 ):
 
@@ -95,7 +95,7 @@ def test_task_range_mimetype(
     mock_indexer.return_value = {"status": "eventful"}
 
     res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.ContentRangeMimetype", args=[0, 4],
+        "swh.indexer.tasks.ContentMimetypePartition", args=[0, 4],
     )
     assert res
     res.wait()
@@ -104,7 +104,7 @@ def test_task_range_mimetype(
     assert res.result == {"status": "eventful"}
 
 
-def test_task_range_license(
+def test_task_license_partition(
     mocker, swh_scheduler_celery_app, swh_scheduler_celery_worker, swh_config
 ):
 
@@ -114,7 +114,7 @@ def test_task_range_license(
     mock_indexer.return_value = {"status": "eventful"}
 
     res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.ContentRangeFossologyLicense", args=[0, 4],
+        "swh.indexer.tasks.ContentFossologyLicensePartition", args=[0, 4],
     )
     assert res
     res.wait()

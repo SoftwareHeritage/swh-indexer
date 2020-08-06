@@ -344,7 +344,7 @@ class ContentIndexer(BaseIndexer):
 
 
 class ContentPartitionIndexer(BaseIndexer):
-    """A content range indexer.
+    """A content partition indexer.
 
     This expects as input a partition_id and a nb_partitions. This will then index the
     contents within that partition.
@@ -519,10 +519,6 @@ class ContentPartitionIndexer(BaseIndexer):
             if count > 0 and count_object_added_key:
                 summary[count_object_added_key] = count
             return summary
-
-
-# alias for retrocompatibility
-ContentRangeIndexer = ContentPartitionIndexer
 
 
 class OriginIndexer(BaseIndexer):
