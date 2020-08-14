@@ -12,10 +12,10 @@ import re
 from collections import defaultdict, Counter
 from typing import Any, Dict, List, Optional
 
+from swh.core.collections import SortedList
 from swh.model.model import SHA1_SIZE
 from swh.model.hashutil import hash_to_hex, hash_to_bytes
 from swh.storage.utils import get_partition_bounds_bytes
-from swh.storage.in_memory import SortedList
 
 from . import MAPPING_NAMES, check_id_duplicates
 from .exc import IndexerStorageArgumentException
