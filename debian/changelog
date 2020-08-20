@@ -1,3 +1,15 @@
+swh-indexer (0.2.1-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.2.1     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2020-08-20 12:59:53 +0200)
+  * Upstream changes:     - v0.2.1     - * indexer.rehash: Adapt
+    content_get_metadata call to content_get     - * origin_head: Use
+    snapshot_get_all_branches instead of snapshot_get.     - * Import
+    SortedList, db_transaction_generator, and db_transaction from swh-
+    core instead of swh-storage.     - * tests: remove invalid assertion
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 20 Aug 2020 11:03:58 +0000
+
 swh-indexer (0.2.0-1~swh2) unstable-swh; urgency=medium
 
   * Bump dependencies
