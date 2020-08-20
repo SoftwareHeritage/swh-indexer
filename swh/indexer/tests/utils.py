@@ -23,14 +23,13 @@ from swh.model.model import (
     Person,
     Revision,
     RevisionType,
-    SHA1_SIZE,
     Snapshot,
     SnapshotBranch,
     TargetType,
     Timestamp,
     TimestampWithTimezone,
 )
-from swh.storage.utils import now, get_partition_bounds_bytes
+from swh.storage.utils import now
 
 from swh.indexer.storage import INDEXER_CFG_KEY
 
@@ -697,17 +696,11 @@ class CommonContentIndexerPartitionTest:
             )
         ]
 
-        start, end = get_partition_bounds_bytes(partition_id, nb_partitions, SHA1_SIZE)
-
         actual_results = list(actual_results)
         for indexed_data in actual_results:
             _id = indexed_data["id"]
             assert isinstance(_id, bytes)
             assert _id in expected_ids
-
-            assert start <= _id
-            if end:
-                assert _id <= end
 
             _tool_id = indexed_data["indexer_configuration_id"]
             assert _tool_id == self.indexer.tool["id"]
