@@ -11,9 +11,9 @@ import psycopg2.pool
 from collections import defaultdict, Counter
 from typing import Dict, List, Optional
 
+from swh.core.db.common import db_transaction_generator, db_transaction
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import SHA1_SIZE
-from swh.storage.common import db_transaction_generator, db_transaction
 from swh.storage.exc import StorageDBError
 from swh.storage.utils import get_partition_bounds_bytes
 
