@@ -8,6 +8,7 @@ import magic
 from typing import Any, Optional, Dict, List, Union
 
 from swh.indexer.storage.interface import PagedResult, Sha1
+from swh.model.model import Revision
 
 from .indexer import ContentIndexer, ContentPartitionIndexer
 
@@ -64,7 +65,7 @@ class MixinMimetypeIndexer:
     CONFIG_BASE_FILENAME = "indexer/mimetype"  # type: Optional[str]
 
     def index(
-        self, id: Union[bytes, Dict], data: Optional[bytes] = None, **kwargs
+        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
     ) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
