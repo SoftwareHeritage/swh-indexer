@@ -147,7 +147,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         - if multiple file detected -> translation needed at revision level
 
         Args:
-          rev (dict): revision artifact from storage
+          rev: revision model object from storage
 
         Returns:
             dict: dictionary representing a revision_intrinsic_metadata, with
@@ -159,14 +159,14 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
         """
         result = {
-            "id": rev["id"],
+            "id": rev.id,
             "indexer_configuration_id": self.tool["id"],
             "mappings": None,
             "metadata": None,
         }
 
         try:
-            root_dir = rev["directory"]
+            root_dir = rev.directory
             dir_ls = list(self.storage.directory_ls(root_dir, recursive=False))
             if [entry["type"] for entry in dir_ls] == ["dir"]:
                 # If the root is just a single directory, recurse into it
@@ -176,8 +176,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
             files = [entry for entry in dir_ls if entry["type"] == "file"]
             detected_files = detect_metadata(files)
             (mappings, metadata) = self.translate_revision_intrinsic_metadata(
-                detected_files,
-                log_suffix="revision=%s" % hashutil.hash_to_hex(rev["id"]),
+                detected_files, log_suffix="revision=%s" % hashutil.hash_to_hex(rev.id),
             )
             result["mappings"] = mappings
             result["metadata"] = metadata
