@@ -1,3 +1,14 @@
+swh-indexer (0.2.2-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.2.2     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-09-04 13:21:19
+    +0200)
+  * Upstream changes:     - v0.2.2     - metadata: Adapt to latest
+    storage revision_get change     - Tell pytest not to recurse in
+    dotdirs.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 04 Sep 2020 11:33:41 +0000
+
 swh-indexer (0.2.1-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.2.1     - (tagged by Valentin Lorentz
