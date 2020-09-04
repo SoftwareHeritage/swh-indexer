@@ -20,6 +20,7 @@ from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
 from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY, PagedResult, Sha1
 from swh.model import hashutil
+from swh.model.model import Revision
 from swh.core import utils
 
 
@@ -233,7 +234,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
             return []
 
     def index(
-        self, id: Union[bytes, Dict], data: Optional[bytes] = None, **kwargs
+        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
     ) -> Dict[str, Any]:
         """Index computation for the id and associated raw data.
 

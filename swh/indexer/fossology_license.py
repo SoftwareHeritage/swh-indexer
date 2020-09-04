@@ -9,6 +9,7 @@ import subprocess
 from typing import Any, Dict, List, Optional, Union
 
 from swh.model import hashutil
+from swh.model.model import Revision
 from .indexer import ContentIndexer, ContentPartitionIndexer, write_to_temp
 
 from swh.indexer.storage.interface import PagedResult, Sha1
@@ -83,7 +84,7 @@ class MixinFossologyLicenseIndexer:
         self.working_directory = self.config["workdir"]
 
     def index(
-        self, id: Union[bytes, Dict], data: Optional[bytes] = None, **kwargs
+        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
     ) -> Dict[str, Any]:
         """Index sha1s' content and store result.
 
