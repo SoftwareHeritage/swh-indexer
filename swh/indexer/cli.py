@@ -3,22 +3,12 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import functools
-import json
 
+# WARNING: do not import unnecessary things here to keep cli startup time under
+# control
 import click
 
-from swh.core import config
 from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup
-from swh.journal.client import get_journal_client
-from swh.scheduler import get_scheduler
-from swh.scheduler.cli_utils import schedule_origin_batches
-from swh.storage import get_storage
-
-from swh.indexer import metadata_dictionary
-from swh.indexer.journal_client import process_journal_objects
-from swh.indexer.storage import get_indexer_storage
-from swh.indexer.storage.api.server import load_and_check_config, app
 
 
 @click.group(name="indexer", context_settings=CONTEXT_SETTINGS, cls=AliasedGroup)
@@ -37,8 +27,9 @@ def cli(ctx, config_file):
     information from archive source code artifacts.
 
     """
-    ctx.ensure_object(dict)
+    from swh.core import config
 
+    ctx.ensure_object(dict)
     conf = config.read(config_file)
     ctx.obj["config"] = conf
 
@@ -60,6 +51,8 @@ def mapping():
 @mapping.command("list")
 def mapping_list():
     """Prints the list of known mappings."""
+    from swh.indexer import metadata_dictionary
+
     mapping_names = [mapping.name for mapping in metadata_dictionary.MAPPINGS.values()]
     mapping_names.sort()
     for mapping_name in mapping_names:
@@ -79,6 +72,8 @@ def mapping_list():
 def mapping_list_terms(concise, exclude_mapping):
     """Prints the list of known CodeMeta terms, and which mappings
     support them."""
+    from swh.indexer import metadata_dictionary
+
     properties = metadata_dictionary.list_terms()
     for (property_name, supported_mappings) in sorted(properties.items()):
         supported_mappings = {m.name for m in supported_mappings}
@@ -96,6 +91,10 @@ def mapping_list_terms(concise, exclude_mapping):
 @click.argument("file", type=click.File("rb"))
 def mapping_translate(mapping_name, file):
     """Prints the list of known mappings."""
+    import json
+
+    from swh.indexer import metadata_dictionary
+
     mapping_cls = [
         cls for cls in metadata_dictionary.MAPPINGS.values() if cls.name == mapping_name
     ]
@@ -127,6 +126,10 @@ def schedule(ctx, scheduler_url, storage_url, indexer_storage_url, dry_run):
     """Manipulate Software Heritage Indexer tasks.
 
     Via SWH Scheduler's API."""
+    from swh.scheduler import get_scheduler
+    from swh.storage import get_storage
+    from swh.indexer.storage import get_indexer_storage
+
     ctx.obj["indexer_storage"] = _get_api(
         get_indexer_storage, ctx.obj["config"], "indexer_storage", indexer_storage_url
     )
@@ -191,6 +194,8 @@ def schedule_origin_metadata_reindex(
     ctx, origin_batch_size, tool_ids, mappings, task_type
 ):
     """Schedules indexing tasks for origins that were already indexed."""
+    from swh.scheduler.cli_utils import schedule_origin_batches
+
     idx_storage = ctx.obj["indexer_storage"]
     scheduler = ctx.obj["scheduler"]
 
@@ -234,6 +239,12 @@ def journal_client(
     """Listens for new objects from the SWH Journal, and schedules tasks
     to run relevant indexers (currently, only origin-intrinsic-metadata)
     on these new objects."""
+    import functools
+
+    from swh.journal.client import get_journal_client
+    from swh.scheduler import get_scheduler
+    from swh.indexer.journal_client import process_journal_objects
+
     scheduler = _get_api(get_scheduler, ctx.obj["config"], "scheduler", scheduler_url)
 
     client = get_journal_client(
@@ -271,6 +282,8 @@ def journal_client(
 )
 def rpc_server(config_path, host, port, debug):
     """Starts a Software Heritage Indexer RPC HTTP server."""
+    from swh.indexer.storage.api.server import load_and_check_config, app
+
     api_cfg = load_and_check_config(config_path, type="any")
     app.config.update(api_cfg)
     app.run(host, port=int(port), debug=bool(debug))

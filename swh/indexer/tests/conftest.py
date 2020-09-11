@@ -11,7 +11,7 @@ from unittest.mock import patch
 import yaml
 import pytest
 
-from swh.objstorage import get_objstorage
+from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
 from swh.indexer.storage import get_indexer_storage
 
