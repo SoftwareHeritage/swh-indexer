@@ -82,7 +82,7 @@ def _assert_tasks_for_origins(tasks, origins):
 def invoke(scheduler, catch_exceptions, args):
     runner = CliRunner()
     with patch(
-        "swh.indexer.cli.get_scheduler"
+        "swh.scheduler.get_scheduler"
     ) as get_scheduler_mock, tempfile.NamedTemporaryFile(
         "a", suffix=".yml"
     ) as config_fd:

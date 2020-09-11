@@ -16,8 +16,8 @@ from swh.scheduler import CONFIG as SWH_CONFIG
 
 from swh.storage import get_storage
 from swh.core.config import SWHConfig
-from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
+from swh.objstorage.factory import get_objstorage
 from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY, PagedResult, Sha1
 from swh.model import hashutil
 from swh.model.model import Revision
