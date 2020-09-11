@@ -13,8 +13,8 @@ from swh.core import utils
 from swh.core.config import SWHConfig
 from swh.model import hashutil
 from swh.model.model import Content
-from swh.objstorage import get_objstorage
 from swh.objstorage.exc import ObjNotFoundError
+from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
 
 
