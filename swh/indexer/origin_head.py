@@ -3,11 +3,11 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import List, Tuple, Any, Dict, Union
-
-import re
-import click
 import logging
+import re
+from typing import Any, Dict, List, Tuple, Union
+
+import click
 
 from swh.indexer.indexer import OriginIndexer
 from swh.model.model import SnapshotBranch, TargetType

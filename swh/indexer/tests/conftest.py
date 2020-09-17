@@ -3,20 +3,18 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import os
-
 from datetime import timedelta
+import os
 from unittest.mock import patch
 
-import yaml
 import pytest
+import yaml
 
+from swh.indexer.storage import get_indexer_storage
 from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
-from swh.indexer.storage import get_indexer_storage
 
-from .utils import fill_storage, fill_obj_storage
-
+from .utils import fill_obj_storage, fill_storage
 
 TASK_NAMES = ["revision_intrinsic_metadata", "origin_intrinsic_metadata"]
 

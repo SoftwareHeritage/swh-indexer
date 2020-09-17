@@ -4,24 +4,22 @@
 # See top-level LICENSE file for more information
 
 import abc
-import os
+from contextlib import contextmanager
 import logging
+import os
 import shutil
 import tempfile
-
-from contextlib import contextmanager
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
-from swh.scheduler import CONFIG as SWH_CONFIG
-
-from swh.storage import get_storage
+from swh.core import utils
 from swh.core.config import SWHConfig
-from swh.objstorage.exc import ObjNotFoundError
-from swh.objstorage.factory import get_objstorage
-from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY, PagedResult, Sha1
+from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
 from swh.model import hashutil
 from swh.model.model import Revision
-from swh.core import utils
+from swh.objstorage.exc import ObjNotFoundError
+from swh.objstorage.factory import get_objstorage
+from swh.scheduler import CONFIG as SWH_CONFIG
+from swh.storage import get_storage
 
 
 @contextmanager

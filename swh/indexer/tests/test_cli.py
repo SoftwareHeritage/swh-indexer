@@ -11,11 +11,9 @@ from unittest.mock import patch
 from click.testing import CliRunner
 from confluent_kafka import Consumer, Producer
 
+from swh.indexer.cli import cli
 from swh.journal.serializers import value_to_kafka
 from swh.model.hashutil import hash_to_bytes
-
-from swh.indexer.cli import cli
-
 
 CLI_CONFIG = """
 scheduler:

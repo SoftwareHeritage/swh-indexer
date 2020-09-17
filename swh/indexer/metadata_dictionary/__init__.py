@@ -2,7 +2,7 @@ import collections
 
 import click
 
-from . import maven, npm, codemeta, python, ruby
+from . import codemeta, maven, npm, python, ruby
 
 MAPPINGS = {
     "CodemetaMapping": codemeta.CodemetaMapping,

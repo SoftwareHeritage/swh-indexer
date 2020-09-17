@@ -5,12 +5,13 @@
 
 import abc
 import functools
-from typing import Dict, Any
+from typing import Any, Dict
 import unittest
 
 from hypothesis import strategies
 
 from swh.core.api.classes import stream_results
+from swh.indexer.storage import INDEXER_CFG_KEY
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes
 from swh.model.model import (
@@ -30,9 +31,6 @@ from swh.model.model import (
     TimestampWithTimezone,
 )
 from swh.storage.utils import now
-
-from swh.indexer.storage import INDEXER_CFG_KEY
-
 
 BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
     "storage": {"cls": "memory"},

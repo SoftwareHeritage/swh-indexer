@@ -11,14 +11,13 @@ import pytest
 
 import swh.indexer.ctags
 from swh.indexer.ctags import CtagsIndexer, run_ctags
-
 from swh.indexer.tests.utils import (
-    CommonContentIndexerTest,
-    SHA1_TO_CTAGS,
     BASE_TEST_CONFIG,
     OBJ_STORAGE_DATA,
-    fill_storage,
+    SHA1_TO_CTAGS,
+    CommonContentIndexerTest,
     fill_obj_storage,
+    fill_storage,
     filter_dict,
 )
 

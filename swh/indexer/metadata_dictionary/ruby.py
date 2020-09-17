@@ -8,6 +8,7 @@ import itertools
 import re
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+
 from .base import DictMapping
 
 

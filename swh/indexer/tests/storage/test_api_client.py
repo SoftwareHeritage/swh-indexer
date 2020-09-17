@@ -5,10 +5,9 @@
 
 import pytest
 
+from swh.indexer.storage import get_indexer_storage
 from swh.indexer.storage.api.client import RemoteStorage
 import swh.indexer.storage.api.server as server
-
-from swh.indexer.storage import get_indexer_storage
 
 from .test_storage import *  # noqa
 

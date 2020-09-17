@@ -3,12 +3,14 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import os
 import logging
+import os
 
 from swh.core import config
-from swh.core.api import RPCServerApp, error_handler, encode_data_server as encode_data
-from swh.indexer.storage import get_indexer_storage, INDEXER_CFG_KEY
+from swh.core.api import RPCServerApp
+from swh.core.api import encode_data_server as encode_data
+from swh.core.api import error_handler
+from swh.indexer.storage import INDEXER_CFG_KEY, get_indexer_storage
 from swh.indexer.storage.exc import IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
 

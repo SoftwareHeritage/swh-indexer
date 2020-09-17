@@ -126,9 +126,9 @@ def schedule(ctx, scheduler_url, storage_url, indexer_storage_url, dry_run):
     """Manipulate Software Heritage Indexer tasks.
 
     Via SWH Scheduler's API."""
+    from swh.indexer.storage import get_indexer_storage
     from swh.scheduler import get_scheduler
     from swh.storage import get_storage
-    from swh.indexer.storage import get_indexer_storage
 
     ctx.obj["indexer_storage"] = _get_api(
         get_indexer_storage, ctx.obj["config"], "indexer_storage", indexer_storage_url
@@ -241,9 +241,9 @@ def journal_client(
     on these new objects."""
     import functools
 
+    from swh.indexer.journal_client import process_journal_objects
     from swh.journal.client import get_journal_client
     from swh.scheduler import get_scheduler
-    from swh.indexer.journal_client import process_journal_objects
 
     scheduler = _get_api(get_scheduler, ctx.obj["config"], "scheduler", scheduler_url)
 
@@ -282,7 +282,7 @@ def journal_client(
 )
 def rpc_server(config_path, host, port, debug):
     """Starts a Software Heritage Indexer RPC HTTP server."""
-    from swh.indexer.storage.api.server import load_and_check_config, app
+    from swh.indexer.storage.api.server import app, load_and_check_config
 
     api_cfg = load_and_check_config(config_path, type="any")
     app.config.update(api_cfg)

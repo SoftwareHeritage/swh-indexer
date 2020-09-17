@@ -3,23 +3,22 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import pytest
+from typing import Any, Dict
 import unittest
 
-from typing import Any, Dict
+import pytest
 
 from swh.indexer.mimetype import (
     MimetypeIndexer,
     MimetypePartitionIndexer,
     compute_mimetype_encoding,
 )
-
 from swh.indexer.tests.utils import (
-    CommonContentIndexerTest,
-    CommonContentIndexerPartitionTest,
     BASE_TEST_CONFIG,
-    fill_storage,
+    CommonContentIndexerPartitionTest,
+    CommonContentIndexerTest,
     fill_obj_storage,
+    fill_storage,
     filter_dict,
 )
 

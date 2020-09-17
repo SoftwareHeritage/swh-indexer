@@ -5,8 +5,7 @@
 
 import pytest
 
-from swh.indexer.codemeta import merge_documents, merge_values
-from swh.indexer.codemeta import CROSSWALK_TABLE
+from swh.indexer.codemeta import CROSSWALK_TABLE, merge_documents, merge_values
 
 
 def test_crosstable():
