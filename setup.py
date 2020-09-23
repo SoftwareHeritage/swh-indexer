@@ -52,10 +52,8 @@ setup(
     extras_require={"testing": parse_requirements("test")},
     include_package_data=True,
     entry_points="""
-        [console_scripts]
-        swh-indexer=swh.indexer.cli:main
         [swh.cli.subcommands]
-        indexer=swh.indexer.cli:cli
+        indexer=swh.indexer.cli
     """,
     classifiers=[
         "Programming Language :: Python :: 3",
