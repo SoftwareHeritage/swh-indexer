@@ -1,8 +1,9 @@
 from celery import current_app as app
 
 from swh.indexer.metadata import OriginMetadataIndexer, RevisionMetadataIndexer
-from .test_origin_head import OriginHeadTestIndexer
+
 from .test_metadata import ContentMetadataTestIndexer
+from .test_origin_head import OriginHeadTestIndexer
 from .utils import BASE_TEST_CONFIG
 
 

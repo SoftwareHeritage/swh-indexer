@@ -5,8 +5,9 @@
 
 from uuid import uuid1
 
+from hypothesis.strategies import composite, one_of, sampled_from, sets, tuples, uuids
+
 from swh.model.hashutil import MultiHash
-from hypothesis.strategies import composite, sets, one_of, uuids, tuples, sampled_from
 
 MIMETYPES = [
     b"application/json",

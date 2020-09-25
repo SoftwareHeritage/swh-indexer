@@ -3,9 +3,9 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import magic
+from typing import Any, Dict, List, Optional, Union
 
-from typing import Any, Optional, Dict, List, Union
+import magic
 
 from swh.indexer.storage.interface import PagedResult, Sha1
 from swh.model.model import Revision

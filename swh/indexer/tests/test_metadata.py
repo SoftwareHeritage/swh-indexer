@@ -6,30 +6,27 @@
 import json
 import unittest
 
-from hypothesis import given, strategies, settings, HealthCheck
-
-from swh.model.hashutil import hash_to_bytes
-from swh.model.model import Directory, DirectoryEntry, Revision
+from hypothesis import HealthCheck, given, settings, strategies
 
 from swh.indexer.codemeta import CODEMETA_TERMS
+from swh.indexer.metadata import ContentMetadataIndexer, RevisionMetadataIndexer
+from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_dictionary.maven import MavenMapping
 from swh.indexer.metadata_dictionary.npm import NpmMapping
 from swh.indexer.metadata_dictionary.ruby import GemspecMapping
-from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata import ContentMetadataIndexer, RevisionMetadataIndexer
-
-from swh.indexer.tests.utils import REVISION, DIRECTORY2
+from swh.indexer.tests.utils import DIRECTORY2, REVISION
+from swh.model.hashutil import hash_to_bytes
+from swh.model.model import Directory, DirectoryEntry, Revision
 
 from .utils import (
     BASE_TEST_CONFIG,
+    YARN_PARSER_METADATA,
     fill_obj_storage,
     fill_storage,
-    YARN_PARSER_METADATA,
     json_document_strategy,
     xml_document_strategy,
 )
-
 
 TRANSLATOR_TOOL = {
     "name": "swh-metadata-translator",

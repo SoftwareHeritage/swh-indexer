@@ -6,11 +6,11 @@
 
 from celery import shared_task
 
-from .mimetype import MimetypeIndexer, MimetypePartitionIndexer
 from .ctags import CtagsIndexer
 from .fossology_license import FossologyLicenseIndexer, FossologyLicensePartitionIndexer
-from .rehash import RecomputeChecksums
 from .metadata import OriginMetadataIndexer
+from .mimetype import MimetypeIndexer, MimetypePartitionIndexer
+from .rehash import RecomputeChecksums
 
 
 @shared_task(name=__name__ + ".OriginMetadata")

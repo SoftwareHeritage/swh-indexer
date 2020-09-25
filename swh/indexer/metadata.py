@@ -4,20 +4,16 @@
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
-
 from typing import Any, Callable, Dict, Iterator, List, Tuple
 
 from swh.core.utils import grouper
-
 from swh.indexer.codemeta import merge_documents
-from swh.indexer.indexer import ContentIndexer, RevisionIndexer, OriginIndexer
-from swh.indexer.origin_head import OriginHeadIndexer
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.indexer import ContentIndexer, OriginIndexer, RevisionIndexer
 from swh.indexer.metadata_detector import detect_metadata
+from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.storage import INDEXER_CFG_KEY
-
 from swh.model import hashutil
-
 
 REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10

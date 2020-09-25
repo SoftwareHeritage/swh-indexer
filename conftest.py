@@ -3,9 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import pytest
-
 from hypothesis import settings
+import pytest
 
 # define tests profile. Full documentation is at:
 # https://hypothesis.readthedocs.io/en/latest/settings.html#settings-profiles

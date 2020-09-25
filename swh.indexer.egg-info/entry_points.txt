@@ -1,6 +1,4 @@
 
-        [console_scripts]
-        swh-indexer=swh.indexer.cli:main
         [swh.cli.subcommands]
-        indexer=swh.indexer.cli:cli
+        indexer=swh.indexer.cli
     

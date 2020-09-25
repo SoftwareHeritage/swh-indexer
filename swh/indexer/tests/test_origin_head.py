@@ -3,15 +3,20 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import unittest
 from datetime import datetime, timezone
+import unittest
 
-from swh.model.model import OriginVisit, OriginVisitStatus
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.tests.utils import BASE_TEST_CONFIG, fill_storage
+from swh.model.model import (
+    Origin,
+    OriginVisit,
+    OriginVisitStatus,
+    Snapshot,
+    SnapshotBranch,
+    TargetType,
+)
 from swh.storage.utils import now
-from swh.model.model import Origin, Snapshot, SnapshotBranch, TargetType
-
 
 ORIGIN_HEAD_CONFIG = {
     **BASE_TEST_CONFIG,

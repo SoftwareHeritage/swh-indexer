@@ -9,6 +9,7 @@ import xml.parsers.expat
 import xmltodict
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+
 from .base import DictMapping, SingleFileMapping
 
 
