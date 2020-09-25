@@ -3,23 +3,21 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from collections import Counter, defaultdict
 import itertools
 import json
-import operator
 import math
+import operator
 import re
-
-from collections import defaultdict, Counter
 from typing import Any, Dict, List, Optional
 
 from swh.core.collections import SortedList
+from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import SHA1_SIZE
-from swh.model.hashutil import hash_to_hex, hash_to_bytes
 from swh.storage.utils import get_partition_bounds_bytes
 
 from . import MAPPING_NAMES, check_id_duplicates
 from .exc import IndexerStorageArgumentException
-
 from .interface import PagedResult, Sha1
 
 SHA1_DIGEST_SIZE = 160

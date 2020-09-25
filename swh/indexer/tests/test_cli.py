@@ -11,11 +11,9 @@ from unittest.mock import patch
 from click.testing import CliRunner
 from confluent_kafka import Consumer, Producer
 
+from swh.indexer.cli import indexer_cli_group
 from swh.journal.serializers import value_to_kafka
 from swh.model.hashutil import hash_to_bytes
-
-from swh.indexer.cli import cli
-
 
 CLI_CONFIG = """
 scheduler:
@@ -89,7 +87,7 @@ def invoke(scheduler, catch_exceptions, args):
         config_fd.write(CLI_CONFIG)
         config_fd.seek(0)
         get_scheduler_mock.return_value = scheduler
-        result = runner.invoke(cli, ["-C" + config_fd.name] + args)
+        result = runner.invoke(indexer_cli_group, ["-C" + config_fd.name] + args)
     if not catch_exceptions and result.exception:
         print(result.output)
         raise result.exception

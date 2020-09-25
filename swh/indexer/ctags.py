@@ -3,15 +3,13 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import subprocess
 import json
-
+import subprocess
 from typing import Dict, List
 
 from swh.model import hashutil
 
 from .indexer import ContentIndexer, write_to_temp
-
 
 # Options used to compute tags
 __FLAGS = [

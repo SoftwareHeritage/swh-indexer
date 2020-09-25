@@ -6,18 +6,13 @@
 import inspect
 import math
 import threading
-
 from typing import Dict
 
 import pytest
 
-from swh.model.hashutil import hash_to_bytes
-
-from swh.indexer.storage.exc import (
-    IndexerStorageArgumentException,
-    DuplicateId,
-)
+from swh.indexer.storage.exc import DuplicateId, IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
+from swh.model.hashutil import hash_to_bytes
 
 
 def prepare_mimetypes_from(fossology_licenses):

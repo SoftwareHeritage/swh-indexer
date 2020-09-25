@@ -4,10 +4,10 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from setuptools import setup, find_packages
-
-from os import path
 from io import open
+from os import path
+
+from setuptools import find_packages, setup
 
 here = path.abspath(path.dirname(__file__))
 
@@ -52,10 +52,8 @@ setup(
     extras_require={"testing": parse_requirements("test")},
     include_package_data=True,
     entry_points="""
-        [console_scripts]
-        swh-indexer=swh.indexer.cli:main
         [swh.cli.subcommands]
-        indexer=swh.indexer.cli:cli
+        indexer=swh.indexer.cli
     """,
     classifiers=[
         "Programming Language :: Python :: 3",

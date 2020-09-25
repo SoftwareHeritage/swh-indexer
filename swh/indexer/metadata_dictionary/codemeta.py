@@ -5,8 +5,8 @@
 
 import json
 
-from swh.indexer.codemeta import CODEMETA_TERMS
-from swh.indexer.codemeta import expand
+from swh.indexer.codemeta import CODEMETA_TERMS, expand
+
 from .base import SingleFileMapping
 
 

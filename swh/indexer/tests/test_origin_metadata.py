@@ -6,11 +6,10 @@
 from unittest.mock import patch
 
 from swh.indexer.metadata import OriginMetadataIndexer
-
 from swh.model.model import Origin
 
-from .utils import YARN_PARSER_METADATA, REVISION
 from .test_metadata import REVISION_METADATA_CONFIG
+from .utils import REVISION, YARN_PARSER_METADATA
 
 
 def test_origin_metadata_indexer(idx_storage, storage, obj_storage):

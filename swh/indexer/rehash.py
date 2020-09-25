@@ -3,10 +3,9 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import logging
-import itertools
-
 from collections import defaultdict
+import itertools
+import logging
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from swh.core import utils

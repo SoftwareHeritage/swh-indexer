@@ -8,8 +8,8 @@ import email.policy
 import itertools
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
-from .base import DictMapping, SingleFileMapping
 
+from .base import DictMapping, SingleFileMapping
 
 _normalize_pkginfo_key = str.lower
 
