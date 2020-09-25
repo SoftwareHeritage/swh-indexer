@@ -6,11 +6,9 @@
 import abc
 import json
 import logging
-
 from typing import List
 
-from swh.indexer.codemeta import SCHEMA_URI
-from swh.indexer.codemeta import compact, merge_values
+from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
 
 
 class BaseMapping(metaclass=abc.ABCMeta):

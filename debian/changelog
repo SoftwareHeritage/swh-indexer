@@ -1,8 +1,10 @@
-swh-indexer (0.2.3-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.2.4-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.2.4     - (tagged by David Douard
+    <david.douard@sdfa3.org> on 2020-09-25 12:49:04 +0200)
+  * Upstream changes:     - v0.2.4
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 11 Sep 2020 13:21:33 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 25 Sep 2020 10:51:28 +0000
 
 swh-indexer (0.2.3-1~swh1) unstable-swh; urgency=medium
 

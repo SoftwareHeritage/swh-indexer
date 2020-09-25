@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 from os import path
+
 import swh.storage
 
 SQL_DIR = path.join(path.dirname(swh.indexer.__file__), "sql")

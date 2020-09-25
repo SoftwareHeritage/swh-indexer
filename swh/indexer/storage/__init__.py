@@ -4,26 +4,24 @@
 # See top-level LICENSE file for more information
 
 
+from collections import Counter, defaultdict
 import json
+from typing import Dict, List, Optional
+
 import psycopg2
 import psycopg2.pool
 
-from collections import defaultdict, Counter
-from typing import Dict, List, Optional
-
-from swh.core.db.common import db_transaction_generator, db_transaction
+from swh.core.db.common import db_transaction, db_transaction_generator
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import SHA1_SIZE
 from swh.storage.exc import StorageDBError
 from swh.storage.utils import get_partition_bounds_bytes
 
-
-from .interface import PagedResult, Sha1
 from . import converters
 from .db import Db
-from .exc import IndexerStorageArgumentException, DuplicateId
+from .exc import DuplicateId, IndexerStorageArgumentException
+from .interface import PagedResult, Sha1
 from .metrics import process_metrics, send_metric, timed
-
 
 INDEXER_CFG_KEY = "indexer_storage"
 

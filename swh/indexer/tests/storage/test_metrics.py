@@ -6,9 +6,9 @@
 from unittest.mock import patch
 
 from swh.indexer.storage.metrics import (
-    send_metric,
     OPERATIONS_METRIC,
     OPERATIONS_UNIT_METRIC,
+    send_metric,
 )
 
 

@@ -10,8 +10,9 @@ import json
 import os.path
 import re
 
-import swh.indexer
 from pyld import jsonld
+
+import swh.indexer
 
 _DATA_DIR = os.path.join(os.path.dirname(swh.indexer.__file__), "data")
 

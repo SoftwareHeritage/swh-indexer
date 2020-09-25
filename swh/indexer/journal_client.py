@@ -8,7 +8,6 @@ import logging
 from swh.core.utils import grouper
 from swh.scheduler.utils import create_task_dict
 
-
 MAX_ORIGINS_PER_TASK = 100
 
 

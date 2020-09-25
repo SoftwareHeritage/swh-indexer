@@ -4,11 +4,10 @@
 # See top-level LICENSE file for more information
 
 from swh.core.api import RPCClient
-
 from swh.indexer.storage.exc import (
+    DuplicateId,
     IndexerStorageAPIError,
     IndexerStorageArgumentException,
-    DuplicateId,
 )
 
 from ..interface import IndexerStorageInterface

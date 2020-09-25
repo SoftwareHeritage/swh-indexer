@@ -3,10 +3,9 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from swh.model import hashutil
-
 from swh.core.db import BaseDb
 from swh.core.db.db_utils import execute_values_generator, stored_procedure
+from swh.model import hashutil
 
 
 class Db(BaseDb):

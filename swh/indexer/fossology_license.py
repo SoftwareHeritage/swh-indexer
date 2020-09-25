@@ -5,14 +5,13 @@
 
 import logging
 import subprocess
-
 from typing import Any, Dict, List, Optional, Union
 
+from swh.indexer.storage.interface import PagedResult, Sha1
 from swh.model import hashutil
 from swh.model.model import Revision
-from .indexer import ContentIndexer, ContentPartitionIndexer, write_to_temp
 
-from swh.indexer.storage.interface import PagedResult, Sha1
+from .indexer import ContentIndexer, ContentPartitionIndexer, write_to_temp
 
 logger = logging.getLogger(__name__)
 

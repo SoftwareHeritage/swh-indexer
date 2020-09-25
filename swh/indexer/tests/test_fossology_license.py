@@ -3,11 +3,11 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import unittest
-import pytest
-
-from unittest.mock import patch
 from typing import Any, Dict
+import unittest
+from unittest.mock import patch
+
+import pytest
 
 from swh.indexer import fossology_license
 from swh.indexer.fossology_license import (
@@ -15,14 +15,13 @@ from swh.indexer.fossology_license import (
     FossologyLicensePartitionIndexer,
     compute_license,
 )
-
 from swh.indexer.tests.utils import (
-    SHA1_TO_LICENSES,
-    CommonContentIndexerTest,
-    CommonContentIndexerPartitionTest,
     BASE_TEST_CONFIG,
-    fill_storage,
+    SHA1_TO_LICENSES,
+    CommonContentIndexerPartitionTest,
+    CommonContentIndexerTest,
     fill_obj_storage,
+    fill_storage,
     filter_dict,
 )
 

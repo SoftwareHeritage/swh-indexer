@@ -8,10 +8,12 @@
 # control
 import click
 
-from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup
+from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup, swh as swh_cli_group
 
 
-@click.group(name="indexer", context_settings=CONTEXT_SETTINGS, cls=AliasedGroup)
+@swh_cli_group.group(
+    name="indexer", context_settings=CONTEXT_SETTINGS, cls=AliasedGroup
+)
 @click.option(
     "--config-file",
     "-C",
@@ -20,7 +22,7 @@ from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup
     help="Configuration file.",
 )
 @click.pass_context
-def cli(ctx, config_file):
+def indexer_cli_group(ctx, config_file):
     """Software Heritage Indexer tools.
 
     The Indexer is used to mine the content of the archive and extract derived
@@ -42,7 +44,7 @@ def _get_api(getter, config, config_key, url):
     return getter(**config[config_key])
 
 
-@cli.group("mapping")
+@indexer_cli_group.group("mapping")
 def mapping():
     """Manage Software Heritage Indexer mappings."""
     pass
@@ -107,7 +109,7 @@ def mapping_translate(mapping_name, file):
     click.echo(json.dumps(codemeta_doc, indent=4))
 
 
-@cli.group("schedule")
+@indexer_cli_group.group("schedule")
 @click.option("--scheduler-url", "-s", default=None, help="URL of the scheduler API")
 @click.option(
     "--indexer-storage-url", "-i", default=None, help="URL of the indexer storage API"
@@ -126,9 +128,9 @@ def schedule(ctx, scheduler_url, storage_url, indexer_storage_url, dry_run):
     """Manipulate Software Heritage Indexer tasks.
 
     Via SWH Scheduler's API."""
+    from swh.indexer.storage import get_indexer_storage
     from swh.scheduler import get_scheduler
     from swh.storage import get_storage
-    from swh.indexer.storage import get_indexer_storage
 
     ctx.obj["indexer_storage"] = _get_api(
         get_indexer_storage, ctx.obj["config"], "indexer_storage", indexer_storage_url
@@ -205,7 +207,7 @@ def schedule_origin_metadata_reindex(
     schedule_origin_batches(scheduler, task_type, origins, origin_batch_size, kwargs)
 
 
-@cli.command("journal-client")
+@indexer_cli_group.command("journal-client")
 @click.option("--scheduler-url", "-s", default=None, help="URL of the scheduler API")
 @click.option(
     "--origin-metadata-task-type",
@@ -241,9 +243,9 @@ def journal_client(
     on these new objects."""
     import functools
 
+    from swh.indexer.journal_client import process_journal_objects
     from swh.journal.client import get_journal_client
     from swh.scheduler import get_scheduler
-    from swh.indexer.journal_client import process_journal_objects
 
     scheduler = _get_api(get_scheduler, ctx.obj["config"], "scheduler", scheduler_url)
 
@@ -271,7 +273,7 @@ def journal_client(
         client.close()
 
 
-@cli.command("rpc-serve")
+@indexer_cli_group.command("rpc-serve")
 @click.argument("config-path", required=True)
 @click.option("--host", default="0.0.0.0", help="Host to run the server")
 @click.option("--port", default=5007, type=click.INT, help="Binding port of the server")
@@ -282,7 +284,7 @@ def journal_client(
 )
 def rpc_server(config_path, host, port, debug):
     """Starts a Software Heritage Indexer RPC HTTP server."""
-    from swh.indexer.storage.api.server import load_and_check_config, app
+    from swh.indexer.storage.api.server import app, load_and_check_config
 
     api_cfg = load_and_check_config(config_path, type="any")
     app.config.update(api_cfg)
@@ -290,7 +292,7 @@ def rpc_server(config_path, host, port, debug):
 
 
 def main():
-    return cli(auto_envvar_prefix="SWH_INDEXER")
+    return indexer_cli_group(auto_envvar_prefix="SWH_INDEXER")
 
 
 if __name__ == "__main__":
