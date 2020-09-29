@@ -314,12 +314,15 @@ class StorageETypeTester:
         ]
         assert actual_data == expected_data
 
-    def test_get(
+    def test_add(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
+
+        # conftest fills it with mimetypes
+        storage.journal_writer.journal.objects = []  # type: ignore
 
         query = [data.sha1_2, data.sha1_1]
         data1 = self.row_class.from_dict(
@@ -345,6 +348,12 @@ class StorageETypeTester:
         ]
 
         assert actual_data == expected_data
+
+        journal_objects = storage.journal_writer.journal.objects  # type: ignore
+        actual_journal_data = [
+            obj for (obj_type, obj) in journal_objects if obj_type == self.endpoint_type
+        ]
+        assert list(sorted(actual_journal_data)) == list(sorted(expected_data))
 
 
 class TestIndexerStorageContentMimetypes(StorageETypeTester):
@@ -1018,7 +1027,7 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
 
 
 class TestIndexerStorageOriginIntrinsicMetadata:
-    def test_origin_intrinsic_metadata_get(
+    def test_origin_intrinsic_metadata_add(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
         storage, data = swh_indexer_storage_with_data
@@ -1063,6 +1072,14 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         ]
 
         assert actual_metadata == expected_metadata
+
+        journal_objects = storage.journal_writer.journal.objects  # type: ignore
+        actual_journal_metadata = [
+            obj
+            for (obj_type, obj) in journal_objects
+            if obj_type == "origin_intrinsic_metadata"
+        ]
+        assert list(sorted(actual_journal_metadata)) == list(sorted(expected_metadata))
 
     def test_origin_intrinsic_metadata_add_update_in_place_duplicate(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
