@@ -812,6 +812,28 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
         ]
         assert actual_ctags == expected_ctags
 
+    def test_add_empty(self, swh_indexer_storage_with_data):
+        (storage, data) = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+        tool = data.tools[self.tool_name]
+
+        summary = endpoint(storage, etype, "add")(
+            [{"id": data.sha1_2, "indexer_configuration_id": tool["id"], "ctags": [],}]
+        )
+        assert summary == {"content_ctags:add": 0}
+
+        actual_ctags = list(endpoint(storage, etype, "get")([data.sha1_2]))
+
+        assert actual_ctags == []
+
+    def test_get_unknown(self, swh_indexer_storage_with_data):
+        (storage, data) = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+
+        actual_ctags = list(endpoint(storage, etype, "get")([data.sha1_2]))
+
+        assert actual_ctags == []
+
 
 class TestIndexerStorageContentMetadata(StorageETypeTester):
     """Test Indexer Storage content_metadata related methods
@@ -900,7 +922,10 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
         )
 
 
-class TestIndexerStorageContentFossologyLicence:
+class TestIndexerStorageContentFossologyLicense:
+    endpoint_type = "content_fossology_license"
+    tool_name = "nomos"
+
     def test_content_fossology_license_add__new_license_added(
         self, swh_indexer_storage_with_data
     ):
@@ -1099,6 +1124,34 @@ class TestIndexerStorageContentFossologyLicence:
         assert len(set(actual_ids)) == len(set(expected_ids))
         for actual_id in actual_ids:
             assert actual_id in expected_ids
+
+    def test_add_empty(self, swh_indexer_storage_with_data):
+        (storage, data) = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+        tool = data.tools[self.tool_name]
+
+        summary = endpoint(storage, etype, "add")(
+            [
+                {
+                    "id": data.sha1_2,
+                    "indexer_configuration_id": tool["id"],
+                    "licenses": [],
+                }
+            ]
+        )
+        assert summary == {"content_fossology_license:add": 0}
+
+        actual_license = list(endpoint(storage, etype, "get")([data.sha1_2]))
+
+        assert actual_license == []
+
+    def test_get_unknown(self, swh_indexer_storage_with_data):
+        (storage, data) = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+
+        actual_license = list(endpoint(storage, etype, "get")([data.sha1_2]))
+
+        assert actual_license == []
 
 
 class TestIndexerStorageOriginIntrinsicMetadata:

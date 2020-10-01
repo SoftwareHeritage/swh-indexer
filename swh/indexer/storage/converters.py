@@ -42,6 +42,18 @@ def ctags_to_db(ctags):
         }
 
 
+def fossology_license_to_db(licenses):
+    """Similar to ctags_to_db, but for licenses."""
+    id = licenses["id"]
+    tool_id = licenses["indexer_configuration_id"]
+    for license in licenses["licenses"]:
+        yield {
+            "id": id,
+            "indexer_configuration_id": tool_id,
+            "license": license,
+        }
+
+
 def db_to_ctags(ctag):
     """Convert a ctags entry into a ready ctags entry.
 

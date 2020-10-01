@@ -631,15 +631,18 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
             expected_results = self.expected_results
 
         self.assertEqual(
-            len(expected_results),
-            len(actual_results),
+            sum(res is not None for res in expected_results.values()),
+            sum(sum(map(len, res.values())) for res in actual_results),
             (expected_results, actual_results),
         )
         for indexed_data in actual_results:
             (_id, indexed_data) = list(indexed_data.items())[0]
-            expected_data = expected_results[hashutil.hash_to_hex(_id)].copy()
-            expected_data = [expected_data]
-            self.assertEqual(indexed_data, expected_data)
+            if expected_results.get(hashutil.hash_to_hex(_id)) is None:
+                self.assertEqual(indexed_data, [])
+            else:
+                expected_data = expected_results[hashutil.hash_to_hex(_id)].copy()
+                expected_data = [expected_data]
+                self.assertEqual(indexed_data, expected_data)
 
     def test_index(self):
         """Known sha1 have their data indexed

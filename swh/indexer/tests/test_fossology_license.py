@@ -100,7 +100,7 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         self.expected_results = {
             self.id0: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id0],},
             self.id1: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id1],},
-            self.id2: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id2],},
+            self.id2: None,
         }
 
     def tearDown(self):

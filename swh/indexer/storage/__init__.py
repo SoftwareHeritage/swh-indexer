@@ -5,6 +5,7 @@
 
 
 from collections import Counter, defaultdict
+import itertools
 import json
 from typing import Dict, List, Optional
 
@@ -22,6 +23,15 @@ from .db import Db
 from .exc import DuplicateId, IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
 from .metrics import process_metrics, send_metric, timed
+from .model import (
+    ContentCtagsRow,
+    ContentLanguageRow,
+    ContentLicenseRow,
+    ContentMetadataRow,
+    ContentMimetypeRow,
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 
 INDEXER_CFG_KEY = "indexer_storage"
 
@@ -59,7 +69,7 @@ def get_indexer_storage(cls, args):
 
 def check_id_duplicates(data):
     """
-    If any two dictionaries in `data` have the same id, raises
+    If any two row models in `data` have the same unique key, raises
     a `ValueError`.
 
     Values associated to the key must be hashable.
@@ -68,21 +78,21 @@ def check_id_duplicates(data):
         data (List[dict]): List of dictionaries to be inserted
 
     >>> check_id_duplicates([
-    ...     {'id': 'foo', 'data': 'spam'},
-    ...     {'id': 'bar', 'data': 'egg'},
+    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
+    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=32, lang="python"),
     ... ])
     >>> check_id_duplicates([
-    ...     {'id': 'foo', 'data': 'spam'},
-    ...     {'id': 'foo', 'data': 'egg'},
+    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
+    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
     ... ])
     Traceback (most recent call last):
       ...
-    swh.indexer.storage.exc.DuplicateId: ['foo']
-    """
-    counter = Counter(item["id"] for item in data)
+    swh.indexer.storage.exc.DuplicateId: [{'id': b'foo', 'indexer_configuration_id': 42}]
+    """  # noqa
+    counter = Counter(tuple(sorted(item.unique_key().items())) for item in data)
     duplicates = [id_ for (id_, count) in counter.items() if count >= 2]
     if duplicates:
-        raise DuplicateId(duplicates)
+        raise DuplicateId(list(map(dict, duplicates)))
 
 
 class IndexerStorage:
@@ -244,7 +254,7 @@ class IndexerStorage:
             A dict with the number of new elements added to the storage.
 
         """
-        check_id_duplicates(mimetypes)
+        check_id_duplicates(map(ContentMimetypeRow.from_dict, mimetypes))
         mimetypes.sort(key=lambda m: m["id"])
         db.mktemp_content_mimetype(cur)
         db.copy_to(
@@ -280,7 +290,7 @@ class IndexerStorage:
     def content_language_add(
         self, languages: List[Dict], conflict_update: bool = False, db=None, cur=None
     ) -> Dict[str, int]:
-        check_id_duplicates(languages)
+        check_id_duplicates(map(ContentLanguageRow.from_dict, languages))
         languages.sort(key=lambda m: m["id"])
         db.mktemp_content_language(cur)
         # empty language is mapped to 'unknown'
@@ -319,19 +329,13 @@ class IndexerStorage:
     def content_ctags_add(
         self, ctags: List[Dict], conflict_update: bool = False, db=None, cur=None
     ) -> Dict[str, int]:
-        check_id_duplicates(ctags)
+        rows = list(itertools.chain.from_iterable(map(converters.ctags_to_db, ctags)))
+        check_id_duplicates(map(ContentCtagsRow.from_dict, rows))
         ctags.sort(key=lambda m: m["id"])
-
-        def _convert_ctags(__ctags):
-            """Convert ctags dict to list of ctags.
-
-            """
-            for ctags in __ctags:
-                yield from converters.ctags_to_db(ctags)
 
         db.mktemp_content_ctags(cur)
         db.copy_to(
-            list(_convert_ctags(ctags)),
+            rows,
             tblname="tmp_content_ctags",
             columns=["id", "name", "kind", "line", "lang", "indexer_configuration_id"],
             cur=cur,
@@ -367,19 +371,16 @@ class IndexerStorage:
     def content_fossology_license_add(
         self, licenses: List[Dict], conflict_update: bool = False, db=None, cur=None
     ) -> Dict[str, int]:
-        check_id_duplicates(licenses)
+        rows = list(
+            itertools.chain.from_iterable(
+                map(converters.fossology_license_to_db, licenses)
+            )
+        )
+        check_id_duplicates(map(ContentLicenseRow.from_dict, rows))
         licenses.sort(key=lambda m: m["id"])
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
-            (
-                {
-                    "id": sha1["id"],
-                    "indexer_configuration_id": sha1["indexer_configuration_id"],
-                    "license": license,
-                }
-                for sha1 in licenses
-                for license in sha1["licenses"]
-            ),
+            rows,
             tblname="tmp_content_fossology_license",
             columns=["id", "license", "indexer_configuration_id"],
             cur=cur,
@@ -429,7 +430,7 @@ class IndexerStorage:
     def content_metadata_add(
         self, metadata: List[Dict], conflict_update: bool = False, db=None, cur=None
     ) -> Dict[str, int]:
-        check_id_duplicates(metadata)
+        check_id_duplicates(map(ContentMetadataRow.from_dict, metadata))
         metadata.sort(key=lambda m: m["id"])
 
         db.mktemp_content_metadata(cur)
@@ -465,7 +466,7 @@ class IndexerStorage:
     def revision_intrinsic_metadata_add(
         self, metadata: List[Dict], conflict_update: bool = False, db=None, cur=None
     ) -> Dict[str, int]:
-        check_id_duplicates(metadata)
+        check_id_duplicates(map(RevisionIntrinsicMetadataRow.from_dict, metadata))
         metadata.sort(key=lambda m: m["id"])
 
         db.mktemp_revision_intrinsic_metadata(cur)
@@ -504,7 +505,7 @@ class IndexerStorage:
     def origin_intrinsic_metadata_add(
         self, metadata: List[Dict], conflict_update: bool = False, db=None, cur=None
     ) -> Dict[str, int]:
-        check_id_duplicates(metadata)
+        check_id_duplicates(map(OriginIntrinsicMetadataRow.from_dict, metadata))
         metadata.sort(key=lambda m: m["id"])
 
         db.mktemp_origin_intrinsic_metadata(cur)

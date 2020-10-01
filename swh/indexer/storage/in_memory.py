@@ -25,20 +25,19 @@ from typing import (
 
 from swh.core.collections import SortedList
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
-from swh.model.model import SHA1_SIZE
+from swh.model.model import SHA1_SIZE, Sha1Git
 from swh.storage.utils import get_partition_bounds_bytes
 
-from . import MAPPING_NAMES, check_id_duplicates
+from . import MAPPING_NAMES, check_id_duplicates, converters
 from .exc import IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
 from .model import (
     BaseRow,
     ContentCtagsRow,
     ContentLanguageRow,
-    ContentLicensesRow,
+    ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
-    KeyDict,
     OriginIntrinsicMetadataRow,
     RevisionIntrinsicMetadataRow,
 )
@@ -61,6 +60,10 @@ def check_id_types(data: List[Dict[str, Any]]):
         raise IndexerStorageArgumentException("identifiers must be bytes.")
 
 
+def _key_from_dict(d):
+    return tuple(sorted(d.items()))
+
+
 ToolId = int
 TValue = TypeVar("TValue", bound=BaseRow)
 
@@ -68,17 +71,22 @@ TValue = TypeVar("TValue", bound=BaseRow)
 class SubStorage(Generic[TValue]):
     """Implements common missing/get/add logic for each indexer type."""
 
-    _data: Dict[Tuple[Sha1, ToolId], Dict[str, Any]]
+    _data: Dict[Sha1, Dict[Tuple, Dict[str, Any]]]
     _tools_per_id: Dict[Sha1, Set[ToolId]]
 
     def __init__(self, row_class: Type[TValue], tools):
         self.row_class = row_class
         self._tools = tools
         self._sorted_ids = SortedList[bytes, Sha1]()
-        self._data = {}
+        self._data = defaultdict(dict)
         self._tools_per_id = defaultdict(set)
 
-    def missing(self, keys: Iterable[KeyDict]) -> Iterator[Sha1]:
+    def _key_from_dict(self, d) -> Tuple:
+        """Like the global _key_from_dict, but filters out dict keys that don't
+        belong in the unique key."""
+        return _key_from_dict({k: d[k] for k in self.row_class.UNIQUE_KEY_FIELDS})
+
+    def missing(self, keys: Iterable[Dict]) -> Iterator[Sha1]:
         """List data missing from storage.
 
         Args:
@@ -113,12 +121,11 @@ class SubStorage(Generic[TValue]):
 
         """
         for id_ in ids:
-            for tool_id in self._tools_per_id.get(id_, set()):
-                key = (id_, tool_id)
+            for entry in self._data[id_].values():
+                entry = entry.copy()
+                tool_id = entry.pop("indexer_configuration_id")
                 yield self.row_class(
-                    id=id_,
-                    tool=_transform_tool(self._tools[tool_id]),
-                    **self._data[key],
+                    id=id_, tool=_transform_tool(self._tools[tool_id]), **entry,
                 )
 
     def get_all(self) -> Iterator[TValue]:
@@ -196,73 +203,37 @@ class SubStorage(Generic[TValue]):
 
         """
         data = list(data)
-        check_id_duplicates(obj.to_dict() for obj in data)
+        check_id_duplicates(data)
         count = 0
         for obj in data:
             item = obj.to_dict()
-            tool_id = item.pop("indexer_configuration_id")
             id_ = item.pop("id")
-            data_item = item
-            if not conflict_update and tool_id in self._tools_per_id.get(id_, set()):
+            tool_id = item["indexer_configuration_id"]
+            key = _key_from_dict(obj.unique_key())
+            if not conflict_update and key in self._data[id_]:
                 # Duplicate, should not be updated
                 continue
-            key = (id_, tool_id)
-            self._data[key] = data_item
+            self._data[id_][key] = item
             self._tools_per_id[id_].add(tool_id)
             count += 1
             if id_ not in self._sorted_ids:
                 self._sorted_ids.add(id_)
         return count
 
-    def add_merge(
-        self, new_data: Iterable[TValue], conflict_update: bool, merged_key: str
-    ) -> int:
-        added = 0
-        all_subitems: List
-        for new_obj in new_data:
-            new_item = new_obj.to_dict()
-            id_ = new_item["id"]
-            tool_id = new_item["indexer_configuration_id"]
-            if conflict_update:
-                all_subitems = []
-            else:
-                existing = list(self.get([id_]))
-                all_subitems = [
-                    old_subitem
-                    for existing_item in existing
-                    if existing_item.tool["id"] == tool_id  # type: ignore
-                    for old_subitem in getattr(existing_item, merged_key)
-                ]
-            for new_subitem in new_item[merged_key]:
-                if new_subitem not in all_subitems:
-                    all_subitems.append(new_subitem)
-            added += self.add(
-                [
-                    self.row_class(
-                        id=id_,
-                        indexer_configuration_id=tool_id,
-                        **{merged_key: all_subitems},  # type: ignore
-                    )  # FIXME: this only works for classes with three attributes
-                ],
-                conflict_update=True,
-            )
-            if id_ not in self._sorted_ids:
-                self._sorted_ids.add(id_)
-        return added
-
-    def delete(self, entries: List[KeyDict]) -> int:
+    def delete(self, entries: List[Dict]) -> int:
         """Delete entries and return the number of entries deleted.
 
         """
         deleted = 0
         for entry in entries:
             (id_, tool_id) = (entry["id"], entry["indexer_configuration_id"])
-            key = (id_, tool_id)
             if tool_id in self._tools_per_id[id_]:
                 self._tools_per_id[id_].remove(tool_id)
-            if key in self._data:
-                deleted += 1
-                del self._data[key]
+            if id_ in self._data:
+                key = self._key_from_dict(entry)
+                if key in self._data[id_]:
+                    deleted += 1
+                    del self._data[id_][key]
         return deleted
 
 
@@ -274,7 +245,7 @@ class IndexerStorage:
         self._mimetypes = SubStorage(ContentMimetypeRow, self._tools)
         self._languages = SubStorage(ContentLanguageRow, self._tools)
         self._content_ctags = SubStorage(ContentCtagsRow, self._tools)
-        self._licenses = SubStorage(ContentLicensesRow, self._tools)
+        self._licenses = SubStorage(ContentLicenseRow, self._tools)
         self._content_metadata = SubStorage(ContentMetadataRow, self._tools)
         self._revision_intrinsic_metadata = SubStorage(
             RevisionIntrinsicMetadataRow, self._tools
@@ -333,55 +304,79 @@ class IndexerStorage:
 
     def content_ctags_get(self, ids):
         for item in self._content_ctags.get(ids):
-            for item_ctags_item in item.ctags:
-                yield {"id": item.id, "tool": item.tool, **item_ctags_item.to_dict()}
+            yield {"id": item.id, "tool": item.tool, **item.to_dict()}
 
     def content_ctags_add(
         self, ctags: List[Dict], conflict_update: bool = False
     ) -> Dict[str, int]:
         check_id_types(ctags)
-        added = self._content_ctags.add_merge(
-            map(ContentCtagsRow.from_dict, ctags), conflict_update, "ctags"
+        added = self._content_ctags.add(
+            map(
+                ContentCtagsRow.from_dict,
+                itertools.chain.from_iterable(map(converters.ctags_to_db, ctags)),
+            ),
+            conflict_update,
         )
         return {"content_ctags:add": added}
 
     def content_ctags_search(self, expression, limit=10, last_sha1=None):
         nb_matches = 0
+        items_per_id: Dict[Tuple[Sha1Git, ToolId], List[ContentCtagsRow]] = {}
         for item in sorted(self._content_ctags.get_all()):
             if item.id <= (last_sha1 or bytes(0 for _ in range(SHA1_DIGEST_SIZE))):
                 continue
-            for ctags_item in item.ctags:
-                if ctags_item.name != expression:
+            items_per_id.setdefault(
+                (item.id, item.indexer_configuration_id), []
+            ).append(item)
+
+        for items in items_per_id.values():
+            ctags = []
+            for item in items:
+                if item.name != expression:
                     continue
                 nb_matches += 1
-                yield {
-                    "id": item.id,
-                    "tool": item.tool,
-                    **ctags_item.to_dict(),
-                }
-                if nb_matches >= limit:
-                    return
+                if nb_matches > limit:
+                    break
+                item_dict = item.to_dict()
+                id_ = item_dict.pop("id")
+                tool = item_dict.pop("tool")
+                ctags.append(item_dict)
+
+            if ctags:
+                for ctag in ctags:
+                    yield {"id": id_, "tool": tool, **ctag}
 
     def content_fossology_license_get(self, ids):
         # Rewrites the output of SubStorage.get from the old format to
         # the new one. SubStorage.get should be updated once all other
         # *_get methods use the new format.
         # See: https://forge.softwareheritage.org/T1433
-        res = {}
-        for obj in self._licenses.get(ids):
-            d = obj.to_dict()
-            res.setdefault(d.pop("id"), []).append(d)
-        for (id_, facts) in res.items():
-            yield {id_: facts}
+        for id_ in ids:
+            items = {}
+            for obj in self._licenses.get([id_]):
+                items.setdefault(obj.tool["id"], (obj.tool, []))[1].append(obj.license)
+            if items:
+                yield {
+                    id_: [
+                        {"tool": tool, "licenses": licenses}
+                        for (tool, licenses) in items.values()
+                    ]
+                }
 
     def content_fossology_license_add(
         self, licenses: List[Dict], conflict_update: bool = False
     ) -> Dict[str, int]:
         check_id_types(licenses)
-        added = self._licenses.add_merge(
-            map(ContentLicensesRow.from_dict, licenses), conflict_update, "licenses"
+        added = self._licenses.add(
+            map(
+                ContentLicenseRow.from_dict,
+                itertools.chain.from_iterable(
+                    map(converters.fossology_license_to_db, licenses)
+                ),
+            ),
+            conflict_update,
         )
-        return {"fossology_license_add:add": added}
+        return {"content_fossology_license:add": added}
 
     def content_fossology_license_get_partition(
         self,

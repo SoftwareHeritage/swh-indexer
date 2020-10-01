@@ -8,24 +8,19 @@ used for the interface of the idx-storage in the near future."""
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 import attr
-from typing_extensions import TypedDict
 
 from swh.model.model import Sha1Git, dictify
-
-
-class KeyDict(TypedDict):
-    id: Sha1Git
-    indexer_configuration_id: int
-
 
 TSelf = TypeVar("TSelf")
 
 
 @attr.s
 class BaseRow:
+    UNIQUE_KEY_FIELDS: Tuple = ("id", "indexer_configuration_id")
+
     id = attr.ib(type=Sha1Git)
     indexer_configuration_id = attr.ib(type=Optional[int], default=None, kw_only=True)
     tool = attr.ib(type=Optional[Dict], default=None, kw_only=True)
@@ -58,6 +53,13 @@ class BaseRow:
     def from_dict(cls: Type[TSelf], d) -> TSelf:
         return cls(**d)  # type: ignore
 
+    def unique_key(self) -> Dict:
+        if self.indexer_configuration_id is None:
+            raise ValueError(
+                "Can only call unique_key() on objects with indexer_configuration_id."
+            )
+        return {key: getattr(self, key) for key in self.UNIQUE_KEY_FIELDS}
+
 
 @attr.s
 class ContentMimetypeRow(BaseRow):
@@ -71,34 +73,27 @@ class ContentLanguageRow(BaseRow):
 
 
 @attr.s
-class ContentCtagsEntry:
+class ContentCtagsRow(BaseRow):
+    UNIQUE_KEY_FIELDS = (
+        "id",
+        "indexer_configuration_id",
+        "name",
+        "kind",
+        "line",
+        "lang",
+    )
+
     name = attr.ib(type=str)
     kind = attr.ib(type=str)
     line = attr.ib(type=int)
     lang = attr.ib(type=str)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return dictify(attr.asdict(self, recurse=False))
-
-    @classmethod
-    def from_dict(cls, d) -> ContentCtagsEntry:
-        return cls(**d)
-
 
 @attr.s
-class ContentCtagsRow(BaseRow):
-    ctags = attr.ib(type=List[ContentCtagsEntry])
+class ContentLicenseRow(BaseRow):
+    UNIQUE_KEY_FIELDS = ("id", "indexer_configuration_id", "license")
 
-    @classmethod
-    def from_dict(cls, d) -> ContentCtagsRow:
-        d = d.copy()
-        items = d.pop("ctags")
-        return cls(ctags=[ContentCtagsEntry.from_dict(item) for item in items], **d,)
-
-
-@attr.s
-class ContentLicensesRow(BaseRow):
-    licenses = attr.ib(type=List[str])
+    license = attr.ib(type=str)
 
 
 @attr.s
