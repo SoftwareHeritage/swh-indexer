@@ -7,6 +7,7 @@ import logging
 import subprocess
 from typing import Any, Dict, List, Optional, Union
 
+from swh.core.config import merge_configs
 from swh.indexer.storage.interface import PagedResult, Sha1
 from swh.model import hashutil
 from swh.model.model import Revision
@@ -53,6 +54,17 @@ def compute_license(path):
         }
 
 
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "workdir": "/tmp/swh/indexer.fossology.license",
+    "tools": {
+        "name": "nomos",
+        "version": "3.1.0rc2-31-ga2cbb8c",
+        "configuration": {"command_line": "nomossa <filepath>",},
+    },
+    "write_batch_size": 1000,
+}
+
+
 class MixinFossologyLicenseIndexer:
     """Mixin fossology license indexer.
 
@@ -61,25 +73,12 @@ class MixinFossologyLicenseIndexer:
 
     """
 
-    ADDITIONAL_CONFIG = {
-        "workdir": ("str", "/tmp/swh/indexer.fossology.license"),
-        "tools": (
-            "dict",
-            {
-                "name": "nomos",
-                "version": "3.1.0rc2-31-ga2cbb8c",
-                "configuration": {"command_line": "nomossa <filepath>",},
-            },
-        ),
-        "write_batch_size": ("int", 1000),
-    }
-
-    CONFIG_BASE_FILENAME = "indexer/fossology_license"  # type: Optional[str]
     tool: Any
     idx_storage: Any
 
-    def prepare(self):
-        super().prepare()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
         self.working_directory = self.config["workdir"]
 
     def index(

@@ -9,10 +9,10 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Set, Union
 
 from swh.core import utils
-from swh.core.config import SWHConfig
+from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
 from swh.model import hashutil
 from swh.model.model import Revision
@@ -49,7 +49,14 @@ def write_to_temp(filename: str, data: bytes, working_directory: str) -> Iterato
     shutil.rmtree(temp_dir)
 
 
-class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
+DEFAULT_CONFIG = {
+    INDEXER_CFG_KEY: {"cls": "memory"},
+    "storage": {"cls": "memory"},
+    "objstorage": {"cls": "memory"},
+}
+
+
+class BaseIndexer(metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
 
     The main entry point is the :func:`run` function which is in
@@ -104,25 +111,6 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
     results: List[Dict]
 
-    CONFIG = "indexer/base"
-
-    DEFAULT_CONFIG = {
-        INDEXER_CFG_KEY: (
-            "dict",
-            {"cls": "remote", "args": {"url": "http://localhost:5007/"}},
-        ),
-        "storage": (
-            "dict",
-            {"cls": "remote", "args": {"url": "http://localhost:5002/",}},
-        ),
-        "objstorage": (
-            "dict",
-            {"cls": "remote", "args": {"url": "http://localhost:5003/",}},
-        ),
-    }
-
-    ADDITIONAL_CONFIG = {}  # type: Dict[str, Tuple[str, Any]]
-
     USE_TOOLS = True
 
     catch_exceptions = True
@@ -141,18 +129,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         elif SWH_CONFIG:
             self.config = SWH_CONFIG.copy()
         else:
-            config_keys = (
-                "base_filename",
-                "config_filename",
-                "additional_configs",
-                "global_config",
-            )
-            config_args = {k: v for k, v in kw.items() if k in config_keys}
-            if self.ADDITIONAL_CONFIG:
-                config_args.setdefault("additional_configs", []).append(
-                    self.ADDITIONAL_CONFIG
-                )
-            self.config = self.parse_config_file(**config_args)
+            self.config = load_from_envvar()
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
         self.prepare()
         self.check()
         self.log.debug("%s: config=%s", self, self.config)

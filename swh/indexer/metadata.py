@@ -6,6 +6,7 @@
 from copy import deepcopy
 from typing import Any, Callable, Dict, Iterator, List, Tuple
 
+from swh.core.config import merge_configs
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
 from swh.indexer.indexer import ContentIndexer, OriginIndexer, RevisionIndexer
@@ -101,6 +102,15 @@ class ContentMetadataIndexer(ContentIndexer):
         )
 
 
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "tools": {
+        "name": "swh-metadata-detector",
+        "version": "0.0.2",
+        "configuration": {},
+    },
+}
+
+
 class RevisionMetadataIndexer(RevisionIndexer):
     """Revision-level indexer
 
@@ -116,12 +126,9 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
     """
 
-    ADDITIONAL_CONFIG = {
-        "tools": (
-            "dict",
-            {"name": "swh-metadata-detector", "version": "0.0.2", "configuration": {},},
-        ),
-    }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
 
     def filter(self, sha1_gits):
         """Filter out known sha1s and return only missing ones.
@@ -272,8 +279,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
 
 class OriginMetadataIndexer(OriginIndexer):
-    ADDITIONAL_CONFIG = RevisionMetadataIndexer.ADDITIONAL_CONFIG
-
     USE_TOOLS = False
 
     def __init__(self, config=None, **kwargs) -> None:

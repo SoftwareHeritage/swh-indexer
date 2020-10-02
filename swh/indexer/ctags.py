@@ -5,8 +5,9 @@
 
 import json
 import subprocess
-from typing import Dict, List
+from typing import Any, Dict, List
 
+from swh.core.config import merge_configs
 from swh.model import hashutil
 
 from .indexer import ContentIndexer, write_to_temp
@@ -59,35 +60,24 @@ def run_ctags(path, lang=None, ctags_command="ctags"):
         }
 
 
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "workdir": "/tmp/swh/indexer.ctags",
+    "tools": {
+        "name": "universal-ctags",
+        "version": "~git7859817b",
+        "configuration": {
+            "command_line": """ctags --fields=+lnz --sort=no --links=no """
+            """--output-format=json <filepath>"""
+        },
+    },
+    "languages": {},
+}
+
+
 class CtagsIndexer(ContentIndexer):
-    CONFIG_BASE_FILENAME = "indexer/ctags"
-
-    ADDITIONAL_CONFIG = {
-        "workdir": ("str", "/tmp/swh/indexer.ctags"),
-        "tools": (
-            "dict",
-            {
-                "name": "universal-ctags",
-                "version": "~git7859817b",
-                "configuration": {
-                    "command_line": """ctags --fields=+lnz --sort=no --links=no """
-                    """--output-format=json <filepath>"""
-                },
-            },
-        ),
-        "languages": (
-            "dict",
-            {
-                "ada": "Ada",
-                "adl": None,
-                "agda": None,
-                # ...
-            },
-        ),
-    }
-
-    def prepare(self):
-        super().prepare()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
         self.working_directory = self.config["workdir"]
         self.language_map = self.config["languages"]
 

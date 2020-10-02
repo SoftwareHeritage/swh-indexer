@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import magic
 
+from swh.core.config import merge_configs
 from swh.indexer.storage.interface import PagedResult, Sha1
 from swh.model.model import Revision
 
@@ -41,6 +42,16 @@ def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
     }
 
 
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "tools": {
+        "name": "file",
+        "version": "1:5.30-1+deb9u1",
+        "configuration": {"type": "library", "debian-package": "python3-magic"},
+    },
+    "write_batch_size": 1000,
+}
+
+
 class MixinMimetypeIndexer:
     """Mixin mimetype indexer.
 
@@ -50,19 +61,10 @@ class MixinMimetypeIndexer:
 
     tool: Any
     idx_storage: Any
-    ADDITIONAL_CONFIG = {
-        "tools": (
-            "dict",
-            {
-                "name": "file",
-                "version": "1:5.30-1+deb9u1",
-                "configuration": {"type": "library", "debian-package": "python3-magic"},
-            },
-        ),
-        "write_batch_size": ("int", 1000),
-    }
 
-    CONFIG_BASE_FILENAME = "indexer/mimetype"  # type: Optional[str]
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
 
     def index(
         self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
