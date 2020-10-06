@@ -257,7 +257,9 @@ class IndexerStorage:
     def check_config(self, *, check_write):
         return True
 
-    def content_mimetype_missing(self, mimetypes):
+    def content_mimetype_missing(
+        self, mimetypes: Iterable[Dict]
+    ) -> Iterator[Tuple[Sha1, int]]:
         yield from self._mimetypes.missing(mimetypes)
 
     def content_mimetype_get_partition(
@@ -273,16 +275,13 @@ class IndexerStorage:
         )
 
     def content_mimetype_add(
-        self, mimetypes: List[Dict], conflict_update: bool = False
+        self, mimetypes: List[ContentMimetypeRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(mimetypes)
-        added = self._mimetypes.add(
-            map(ContentMimetypeRow.from_dict, mimetypes), conflict_update
-        )
+        added = self._mimetypes.add(mimetypes, conflict_update)
         return {"content_mimetype:add": added}
 
-    def content_mimetype_get(self, ids):
-        yield from (obj.to_dict() for obj in self._mimetypes.get(ids))
+    def content_mimetype_get(self, ids: Iterable[Sha1]) -> Iterator[ContentMimetypeRow]:
+        yield from self._mimetypes.get(ids)
 
     def content_language_missing(self, languages):
         yield from self._languages.missing(languages)

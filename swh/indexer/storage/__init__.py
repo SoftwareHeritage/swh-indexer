@@ -7,7 +7,7 @@
 from collections import Counter, defaultdict
 import itertools
 import json
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple
 
 import psycopg2
 import psycopg2.pool
@@ -144,7 +144,9 @@ class IndexerStorage:
 
     @timed
     @db_transaction_generator()
-    def content_mimetype_missing(self, mimetypes, db=None, cur=None):
+    def content_mimetype_missing(
+        self, mimetypes: Iterable[Dict], db=None, cur=None
+    ) -> Iterator[Tuple[Sha1, int]]:
         for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
             yield obj[0]
 
@@ -245,7 +247,11 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_mimetype_add(
-        self, mimetypes: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        mimetypes: List[ContentMimetypeRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         """Add mimetypes to the storage (if conflict_update is True, this will
            override existing data if any).
@@ -254,11 +260,11 @@ class IndexerStorage:
             A dict with the number of new elements added to the storage.
 
         """
-        check_id_duplicates(map(ContentMimetypeRow.from_dict, mimetypes))
-        mimetypes.sort(key=lambda m: m["id"])
+        check_id_duplicates(mimetypes)
+        mimetypes.sort(key=lambda m: m.id)
         db.mktemp_content_mimetype(cur)
         db.copy_to(
-            mimetypes,
+            [m.to_dict() for m in mimetypes],
             "tmp_content_mimetype",
             ["id", "mimetype", "encoding", "indexer_configuration_id"],
             cur,
@@ -268,9 +274,13 @@ class IndexerStorage:
 
     @timed
     @db_transaction_generator()
-    def content_mimetype_get(self, ids, db=None, cur=None):
+    def content_mimetype_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> Iterator[ContentMimetypeRow]:
         for c in db.content_mimetype_get_from_list(ids, cur):
-            yield converters.db_to_mimetype(dict(zip(db.content_mimetype_cols, c)))
+            yield ContentMimetypeRow.from_dict(
+                converters.db_to_mimetype(dict(zip(db.content_mimetype_cols, c)))
+            )
 
     @timed
     @db_transaction_generator()

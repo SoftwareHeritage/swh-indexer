@@ -268,6 +268,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
                     )
                     # on the fly possibility:
                     for result in c_metadata_indexer.results:
+                        assert isinstance(result, dict)  # TODO: remove this
                         local_metadata = result["metadata"]
                         metadata.append(local_metadata)
 

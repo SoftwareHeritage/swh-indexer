@@ -15,6 +15,7 @@ from swh.indexer.fossology_license import (
     FossologyLicensePartitionIndexer,
     compute_license,
 )
+from swh.indexer.storage.model import ContentLicenseRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
     SHA1_TO_LICENSES,
@@ -135,6 +136,21 @@ class TestFossologyLicensePartitionIndexer(
     def tearDown(self):
         super().tearDown()
         fossology_license.compute_license = self.orig_compute_license
+
+    def assert_results_ok(self, partition_id, nb_partitions, actual_results):
+        # TODO: remove this method when fossology_license endpoints moved away
+        # from dicts.
+        actual_result_rows = []
+        for res in actual_results:
+            for license in res["licenses"]:
+                actual_result_rows.append(
+                    ContentLicenseRow(
+                        id=res["id"],
+                        indexer_configuration_id=res["indexer_configuration_id"],
+                        license=license,
+                    )
+                )
+        super().assert_results_ok(partition_id, nb_partitions, actual_result_rows)
 
 
 def test_fossology_w_no_tool():

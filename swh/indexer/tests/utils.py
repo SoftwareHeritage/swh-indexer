@@ -5,13 +5,14 @@
 
 import abc
 import functools
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Union
 import unittest
 
 from hypothesis import strategies
 
 from swh.core.api.classes import stream_results
 from swh.indexer.storage import INDEXER_CFG_KEY
+from swh.indexer.storage.model import BaseRow
 from swh.model import hashutil
 from swh.model.hashutil import hash_to_bytes
 from swh.model.model import (
@@ -684,6 +685,9 @@ class CommonContentIndexerPartitionTest:
 
     """
 
+    # TODO: remove this when all endpoints moved away from dicts
+    row_from_dict: Callable[[Union[Dict, BaseRow]], BaseRow]
+
     def setUp(self):
         self.contents = sorted(OBJ_STORAGE_DATA)
 
@@ -699,11 +703,10 @@ class CommonContentIndexerPartitionTest:
 
         actual_results = list(actual_results)
         for indexed_data in actual_results:
-            _id = indexed_data["id"]
-            assert isinstance(_id, bytes)
+            _id = indexed_data.id
             assert _id in expected_ids
 
-            _tool_id = indexed_data["indexer_configuration_id"]
+            _tool_id = indexed_data.indexer_configuration_id
             assert _tool_id == self.indexer.tool["id"]
 
     def test__index_contents(self):
@@ -728,12 +731,13 @@ class CommonContentIndexerPartitionTest:
 
         # first pass
         actual_results = list(
-            self.indexer._index_contents(partition_id, nb_partitions, indexed={})
+            self.indexer._index_contents(partition_id, nb_partitions, indexed={}),
         )
 
         self.assert_results_ok(partition_id, nb_partitions, actual_results)
 
-        indexed_ids = set(res["id"] for res in actual_results)
+        # TODO: unconditionally use res.id when all endpoints moved away from dicts
+        indexed_ids = {getattr(res, "id", None) or res["id"] for res in actual_results}
 
         actual_results = list(
             self.indexer._index_contents(

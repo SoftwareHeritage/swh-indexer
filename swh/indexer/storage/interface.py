@@ -3,10 +3,11 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict, List, Optional, TypeVar
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple, TypeVar
 
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
+from swh.indexer.storage.model import ContentMimetypeRow
 
 TResult = TypeVar("TResult")
 PagedResult = CorePagedResult[TResult, str]
@@ -22,7 +23,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_mimetype/missing")
-    def content_mimetype_missing(self, mimetypes):
+    def content_mimetype_missing(
+        self, mimetypes: Iterable[Dict]
+    ) -> Iterator[Tuple[Sha1, int]]:
         """Generate mimetypes missing from storage.
 
         Args:
@@ -70,21 +73,15 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint("content_mimetype/add")
     def content_mimetype_add(
-        self, mimetypes: List[Dict], conflict_update: bool = False
+        self, mimetypes: List[ContentMimetypeRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add mimetypes not present in storage.
 
         Args:
-            mimetypes (iterable): dictionaries with keys:
-
-              - **id** (bytes): sha1 identifier
-              - **mimetype** (bytes): raw content's mimetype
-              - **encoding** (bytes): raw content's encoding
-              - **indexer_configuration_id** (int): tool's id used to
-                compute the results
-              - **conflict_update** (bool): Flag to determine if we want to
-                overwrite (``True``) or skip duplicates (``False``, the
-                default)
+            mimetypes: mimetype rows to be added
+            conflict_update: Flag to determine if we want to
+            overwrite (``True``) or skip duplicates (``False``, the
+            default)
 
         Returns:
             Dict summary of number of rows added
@@ -93,7 +90,7 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_mimetype")
-    def content_mimetype_get(self, ids):
+    def content_mimetype_get(self, ids: Iterable[Sha1]) -> Iterator[ContentMimetypeRow]:
         """Retrieve full content mimetype per ids.
 
         Args:

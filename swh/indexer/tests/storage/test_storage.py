@@ -6,12 +6,13 @@
 import inspect
 import math
 import threading
-from typing import Dict
+from typing import Callable, Dict, Union
 
 import pytest
 
 from swh.indexer.storage.exc import DuplicateId, IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
+from swh.indexer.storage.model import BaseRow, ContentMimetypeRow
 from swh.model.hashutil import hash_to_bytes
 
 
@@ -22,12 +23,12 @@ def prepare_mimetypes_from(fossology_licenses):
     mimetypes = []
     for c in fossology_licenses:
         mimetypes.append(
-            {
-                "id": c["id"],
-                "mimetype": "text/plain",  # for filtering on textual data to work
-                "encoding": "utf-8",
-                "indexer_configuration_id": c["indexer_configuration_id"],
-            }
+            ContentMimetypeRow(
+                id=c["id"],
+                mimetype="text/plain",  # for filtering on textual data to work
+                encoding="utf-8",
+                indexer_configuration_id=c["indexer_configuration_id"],
+            )
         )
     return mimetypes
 
@@ -110,6 +111,18 @@ class StorageETypeTester:
     See below for example usage.
     """
 
+    # For old endpoints (which use dicts), this is just the identity function.
+    # For new endpoints, it returns a BaseRow instance.
+    row_from_dict: Callable[[Dict], Union[Dict, BaseRow]] = (
+        staticmethod(lambda x: x)  # type: ignore
+    )
+
+    # Inverse function of row_from_dict
+    # TODO: remove this once all endpoints are migrated to rows
+    dict_from_row: Callable[[Union[Dict, BaseRow]], Dict] = (
+        staticmethod(lambda x: x)  # type: ignore
+    )
+
     def test_missing(self, swh_indexer_storage_with_data):
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
@@ -131,11 +144,13 @@ class StorageETypeTester:
         # now, when we add one of them
         summary = endpoint(storage, etype, "add")(
             [
-                {
-                    "id": data.sha1_2,
-                    **self.example_data[0],
-                    "indexer_configuration_id": tool_id,
-                }
+                self.row_from_dict(
+                    {
+                        "id": data.sha1_2,
+                        **self.example_data[0],
+                        "indexer_configuration_id": tool_id,
+                    }
+                )
             ]
         )
 
@@ -156,24 +171,26 @@ class StorageETypeTester:
             **self.example_data[0],
             "indexer_configuration_id": tool_id,
         }
-        summary = endpoint(storage, etype, "add")([data_v1])
+        summary = endpoint(storage, etype, "add")([self.row_from_dict(data_v1)])
         assert summary == expected_summary(1, etype)
 
         # should be able to retrieve it
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
         expected_data_v1 = [
-            {
-                "id": data.sha1_2,
-                **self.example_data[0],
-                "tool": data.tools[self.tool_name],
-            }
+            self.row_from_dict(
+                {
+                    "id": data.sha1_2,
+                    **self.example_data[0],
+                    "tool": data.tools[self.tool_name],
+                }
+            )
         ]
         assert actual_data == expected_data_v1
 
         # now if we add a modified version of the same object (same id)
         data_v2 = data_v1.copy()
         data_v2.update(self.example_data[1])
-        summary2 = endpoint(storage, etype, "add")([data_v2])
+        summary2 = endpoint(storage, etype, "add")([self.row_from_dict(data_v2)])
         assert summary2 == expected_summary(0, etype)  # not added
 
         # we expect to retrieve the original data, not the modified one
@@ -192,13 +209,17 @@ class StorageETypeTester:
         }
 
         # given
-        summary = endpoint(storage, etype, "add")([data_v1])
+        summary = endpoint(storage, etype, "add")([self.row_from_dict(data_v1)])
         assert summary == expected_summary(1, etype)  # not added
 
         # when
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
 
-        expected_data_v1 = [{"id": data.sha1_2, **self.example_data[0], "tool": tool,}]
+        expected_data_v1 = [
+            self.row_from_dict(
+                {"id": data.sha1_2, **self.example_data[0], "tool": tool}
+            )
+        ]
 
         # then
         assert actual_data == expected_data_v1
@@ -207,12 +228,18 @@ class StorageETypeTester:
         data_v2 = data_v1.copy()
         data_v2.update(self.example_data[1])
 
-        endpoint(storage, etype, "add")([data_v2], conflict_update=True)
+        endpoint(storage, etype, "add")(
+            [self.row_from_dict(data_v2)], conflict_update=True
+        )
         assert summary == expected_summary(1, etype)  # modified so counted
 
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
 
-        expected_data_v2 = [{"id": data.sha1_2, **self.example_data[1], "tool": tool,}]
+        expected_data_v2 = [
+            self.row_from_dict(
+                {"id": data.sha1_2, **self.example_data[1], "tool": tool,}
+            )
+        ]
 
         # data did change as the v2 was used to overwrite v1
         assert actual_data == expected_data_v2
@@ -228,19 +255,23 @@ class StorageETypeTester:
         ]
 
         data_v1 = [
-            {
-                "id": hash_,
-                **self.example_data[0],
-                "indexer_configuration_id": tool["id"],
-            }
+            self.row_from_dict(
+                {
+                    "id": hash_,
+                    **self.example_data[0],
+                    "indexer_configuration_id": tool["id"],
+                }
+            )
             for hash_ in hashes
         ]
         data_v2 = [
-            {
-                "id": hash_,
-                **self.example_data[1],
-                "indexer_configuration_id": tool["id"],
-            }
+            self.row_from_dict(
+                {
+                    "id": hash_,
+                    **self.example_data[1],
+                    "indexer_configuration_id": tool["id"],
+                }
+            )
             for hash_ in hashes
         ]
 
@@ -256,7 +287,8 @@ class StorageETypeTester:
         actual_data = list(endpoint(storage, etype, "get")(hashes))
 
         expected_data_v1 = [
-            {"id": hash_, **self.example_data[0], "tool": tool,} for hash_ in hashes
+            self.row_from_dict({"id": hash_, **self.example_data[0], "tool": tool})
+            for hash_ in hashes
         ]
 
         # then
@@ -278,11 +310,12 @@ class StorageETypeTester:
         t2.join()
 
         actual_data = sorted(
-            endpoint(storage, etype, "get")(hashes), key=lambda x: x["id"]
+            map(self.dict_from_row, endpoint(storage, etype, "get")(hashes)),
+            key=lambda x: x["id"],
         )
 
         expected_data_v2 = [
-            {"id": hash_, **self.example_data[1], "tool": tool,} for hash_ in hashes
+            {"id": hash_, **self.example_data[1], "tool": tool} for hash_ in hashes
         ]
 
         assert actual_data == expected_data_v2
@@ -292,17 +325,21 @@ class StorageETypeTester:
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
 
-        data_rev1 = {
-            "id": data.revision_id_2,
-            **self.example_data[0],
-            "indexer_configuration_id": tool["id"],
-        }
+        data_rev1 = self.row_from_dict(
+            {
+                "id": data.revision_id_2,
+                **self.example_data[0],
+                "indexer_configuration_id": tool["id"],
+            }
+        )
 
-        data_rev2 = {
-            "id": data.revision_id_2,
-            **self.example_data[1],
-            "indexer_configuration_id": tool["id"],
-        }
+        data_rev2 = self.row_from_dict(
+            {
+                "id": data.revision_id_2,
+                **self.example_data[1],
+                "indexer_configuration_id": tool["id"],
+            }
+        )
 
         # when
         summary = endpoint(storage, etype, "add")([data_rev1])
@@ -319,7 +356,9 @@ class StorageETypeTester:
         )
 
         expected_data = [
-            {"id": data.revision_id_2, **self.example_data[0], "tool": tool,}
+            self.row_from_dict(
+                {"id": data.revision_id_2, **self.example_data[0], "tool": tool}
+            )
         ]
         assert actual_data == expected_data
 
@@ -329,11 +368,13 @@ class StorageETypeTester:
         tool = data.tools[self.tool_name]
 
         query = [data.sha1_2, data.sha1_1]
-        data1 = {
-            "id": data.sha1_2,
-            **self.example_data[0],
-            "indexer_configuration_id": tool["id"],
-        }
+        data1 = self.row_from_dict(
+            {
+                "id": data.sha1_2,
+                **self.example_data[0],
+                "indexer_configuration_id": tool["id"],
+            }
+        )
 
         # when
         summary = endpoint(storage, etype, "add")([data1])
@@ -343,7 +384,11 @@ class StorageETypeTester:
         actual_data = list(endpoint(storage, etype, "get")(query))
 
         # then
-        expected_data = [{"id": data.sha1_2, **self.example_data[0], "tool": tool,}]
+        expected_data = [
+            self.row_from_dict(
+                {"id": data.sha1_2, **self.example_data[0], "tool": tool}
+            )
+        ]
 
         assert actual_data == expected_data
 
@@ -358,6 +403,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         {"mimetype": "text/plain", "encoding": "utf-8",},
         {"mimetype": "text/html", "encoding": "us-ascii",},
     ]
+    row_from_dict = ContentMimetypeRow.from_dict
+    dict_from_row = staticmethod(lambda x: x.to_dict())  # type: ignore
 
     def test_generate_content_mimetype_get_partition_failure(self, swh_indexer_storage):
         """get_partition call with wrong limit input should fail"""
@@ -377,8 +424,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
 
-        expected_ids = set([c["id"] for c in mimetypes])
-        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+        expected_ids = set([c.id for c in mimetypes])
+        indexer_configuration_id = mimetypes[0].indexer_configuration_id
 
         assert len(mimetypes) == 16
         nb_partitions = 16
@@ -403,8 +450,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         """
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
-        expected_ids = set([c["id"] for c in mimetypes])
-        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+        expected_ids = set([c.id for c in mimetypes])
+        indexer_configuration_id = mimetypes[0].indexer_configuration_id
 
         actual_result = storage.content_mimetype_get_partition(
             indexer_configuration_id, 0, 1
@@ -421,8 +468,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         """get_partition when at least one of the partitions is empty"""
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
-        expected_ids = set([c["id"] for c in mimetypes])
-        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+        expected_ids = set([c.id for c in mimetypes])
+        indexer_configuration_id = mimetypes[0].indexer_configuration_id
 
         # nb_partitions = smallest power of 2 such that at least one of
         # the partitions is empty
@@ -455,8 +502,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         """
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
-        expected_ids = set([c["id"] for c in mimetypes])
-        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+        expected_ids = set([c.id for c in mimetypes])
+        indexer_configuration_id = mimetypes[0].indexer_configuration_id
 
         nb_partitions = 4
 

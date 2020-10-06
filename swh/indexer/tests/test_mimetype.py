@@ -55,7 +55,7 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
     legacy_get_format = True
 
     def get_indexer_results(self, ids):
-        yield from self.idx_storage.content_mimetype_get(ids)
+        yield from (x.to_dict() for x in self.idx_storage.content_mimetype_get(ids))
 
     def setUp(self):
         self.indexer = MimetypeIndexer(config=CONFIG)
@@ -106,6 +106,8 @@ class TestMimetypePartitionIndexer(
     - without filtering existing indexed data prior to compute new index
 
     """
+
+    row_from_dict = staticmethod(lambda x: x)  # type: ignore
 
     def setUp(self):
         super().setUp()

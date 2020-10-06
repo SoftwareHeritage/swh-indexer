@@ -9,6 +9,7 @@ import magic
 
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import PagedResult, Sha1
+from swh.indexer.storage.model import ContentMimetypeRow
 from swh.model.model import Revision
 
 from .indexer import ContentIndexer, ContentPartitionIndexer
@@ -20,7 +21,7 @@ if not hasattr(magic.Magic, "from_buffer"):
     )
 
 
-def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
+def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, str]:
     """Determine mimetype and encoding from the raw content.
 
     Args:
@@ -68,7 +69,7 @@ class MixinMimetypeIndexer:
 
     def index(
         self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> ContentMimetypeRow:
         """Index sha1s' content and store result.
 
         Args:
@@ -83,13 +84,15 @@ class MixinMimetypeIndexer:
             - encoding: encoding in bytes
 
         """
+        assert isinstance(id, bytes)
         assert data is not None
         properties = compute_mimetype_encoding(data)
-        assert isinstance(id, bytes)
-        properties.update(
-            {"id": id, "indexer_configuration_id": self.tool["id"],}
+        return ContentMimetypeRow(
+            id=id,
+            indexer_configuration_id=self.tool["id"],
+            mimetype=properties["mimetype"],
+            encoding=properties["encoding"],
         )
-        return properties
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str

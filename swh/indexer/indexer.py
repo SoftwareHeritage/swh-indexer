@@ -14,6 +14,7 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Union
 from swh.core import utils
 from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
+from swh.indexer.storage.model import BaseRow
 from swh.model import hashutil
 from swh.model.model import Revision
 from swh.objstorage.exc import ObjNotFoundError
@@ -109,7 +110,7 @@ class BaseIndexer(metaclass=abc.ABCMeta):
 
     """
 
-    results: List[Dict]
+    results: List[Union[Dict, BaseRow]]
 
     USE_TOOLS = True
 
@@ -211,7 +212,7 @@ class BaseIndexer(metaclass=abc.ABCMeta):
 
     def index(
         self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> Union[Dict[str, Any], BaseRow]:
         """Index computation for the id and associated raw data.
 
         Args:
@@ -385,7 +386,7 @@ class ContentPartitionIndexer(BaseIndexer):
 
     def _index_contents(
         self, partition_id: int, nb_partitions: int, indexed: Set[Sha1], **kwargs: Any
-    ) -> Iterator[Dict]:
+    ) -> Iterator[Union[BaseRow, Dict]]:
         """Index the contents within the partition_id.
 
         Args:
@@ -405,7 +406,8 @@ class ContentPartitionIndexer(BaseIndexer):
                 continue
             res = self.index(sha1, raw_content, **kwargs)
             if res:
-                if not isinstance(res["id"], bytes):
+                # TODO: remove this check when all endpoints moved away from dicts.
+                if isinstance(res, dict) and not isinstance(res["id"], bytes):
                     raise TypeError(
                         "%r.index should return ids as bytes, not %r"
                         % (self.__class__.__name__, res["id"])
@@ -414,7 +416,7 @@ class ContentPartitionIndexer(BaseIndexer):
 
     def _index_with_skipping_already_done(
         self, partition_id: int, nb_partitions: int
-    ) -> Iterator[Dict]:
+    ) -> Iterator[Union[BaseRow, Dict]]:
         """Index not already indexed contents within the partition partition_id
 
         Args:
@@ -538,7 +540,9 @@ class OriginIndexer(BaseIndexer):
             summary.update(summary_persist)
         return summary
 
-    def index_list(self, origins: List[Any], **kwargs: Any) -> List[Dict]:
+    def index_list(
+        self, origins: List[Any], **kwargs: Any
+    ) -> List[Union[Dict, BaseRow]]:
         results = []
         for origin in origins:
             try:
