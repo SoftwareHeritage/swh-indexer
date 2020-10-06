@@ -749,13 +749,13 @@ class CommonContentIndexerPartitionTest:
 
         """
         partition_id = 0
-        nb_partitions = 4
+        nb_partitions = 1
 
         actual_results = self.indexer.run(
             partition_id, nb_partitions, skip_existing=False
         )
 
-        assert actual_results == {"status": "uneventful"}  # why?
+        assert actual_results["status"] == "eventful", actual_results
 
     def test_generate_content_get_no_result(self):
         """No result indexed returns False"""

@@ -461,8 +461,7 @@ class ContentPartitionIndexer(BaseIndexer):
             dict with the indexing task status
 
         """
-        status = "uneventful"
-        summary: Dict[str, Any] = {}
+        summary: Dict[str, Any] = {"status": "uneventful"}
         count = 0
         try:
             if skip_existing:
@@ -476,23 +475,22 @@ class ContentPartitionIndexer(BaseIndexer):
 
             for contents in utils.grouper(gen, n=self.config["write_batch_size"]):
                 res = self.persist_index_computations(
-                    contents, policy_update="update-dups"
+                    list(contents), policy_update="update-dups"
                 )
                 if not count_object_added_key:
                     count_object_added_key = list(res.keys())[0]
                 count += res[count_object_added_key]
                 if count > 0:
-                    status = "eventful"
+                    summary["status"] = "eventful"
         except Exception:
             if not self.catch_exceptions:
                 raise
             self.log.exception("Problem when computing metadata.")
-            status = "failed"
-        finally:
-            summary["status"] = status
-            if count > 0 and count_object_added_key:
-                summary[count_object_added_key] = count
-            return summary
+            summary["status"] = "failed"
+
+        if count > 0 and count_object_added_key:
+            summary[count_object_added_key] = count
+        return summary
 
 
 class OriginIndexer(BaseIndexer):
@@ -522,17 +520,22 @@ class OriginIndexer(BaseIndexer):
             **kwargs: passed to the `index` method
 
         """
-        summary: Dict[str, Any] = {}
-        status = "uneventful"
-        results = self.index_list(origin_urls, **kwargs)
+        summary: Dict[str, Any] = {"status": "uneventful"}
+        try:
+            results = self.index_list(origin_urls, **kwargs)
+        except Exception:
+            if not self.catch_exceptions:
+                raise
+            summary["status"] = "failed"
+            return summary
+
         summary_persist = self.persist_index_computations(results, policy_update)
         self.results = results
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
-                    status = "eventful"
+                    summary["status"] = "eventful"
             summary.update(summary_persist)
-        summary["status"] = status
         return summary
 
     def index_list(self, origins: List[Any], **kwargs: Any) -> List[Dict]:
@@ -543,9 +546,8 @@ class OriginIndexer(BaseIndexer):
                 if res:  # If no results, skip it
                     results.append(res)
             except Exception:
-                if not self.catch_exceptions:
-                    raise
-                self.log.exception("Problem when processing origin %s", origin["id"])
+                self.log.exception("Problem when processing origin %s", origin)
+                raise
         return results
 
 
@@ -573,8 +575,7 @@ class RevisionIndexer(BaseIndexer):
               respectively update duplicates or ignore them
 
         """
-        summary: Dict[str, Any] = {}
-        status = "uneventful"
+        summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
 
         revision_ids = [
@@ -595,13 +596,14 @@ class RevisionIndexer(BaseIndexer):
                 if not self.catch_exceptions:
                     raise
                 self.log.exception("Problem when processing revision")
-                status = "failed"
+                summary["status"] = "failed"
+                return summary
+
         summary_persist = self.persist_index_computations(results, policy_update)
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
-                    status = "eventful"
+                    summary["status"] = "eventful"
             summary.update(summary_persist)
         self.results = results
-        summary["status"] = status
         return summary
