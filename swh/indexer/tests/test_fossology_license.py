@@ -52,7 +52,7 @@ def mock_compute_license(path):
         path = path.decode("utf-8")
     # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
     path = path.split("/")[-1]
-    return {"licenses": SHA1_TO_LICENSES.get(path)}
+    return {"licenses": SHA1_TO_LICENSES.get(path, [])}
 
 
 CONFIG = {
