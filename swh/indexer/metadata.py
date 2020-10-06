@@ -32,7 +32,7 @@ def call_with_batches(
         yield from f(list(group))
 
 
-class ContentMetadataIndexer(ContentIndexer):
+class ContentMetadataIndexer(ContentIndexer[Dict]):
     """Content-level indexer
 
     This indexer is in charge of:
@@ -111,7 +111,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 }
 
 
-class RevisionMetadataIndexer(RevisionIndexer):
+class RevisionMetadataIndexer(RevisionIndexer[Dict]):
     """Revision-level indexer
 
     This indexer is in charge of:
@@ -268,7 +268,6 @@ class RevisionMetadataIndexer(RevisionIndexer):
                     )
                     # on the fly possibility:
                     for result in c_metadata_indexer.results:
-                        assert isinstance(result, dict)  # TODO: remove this
                         local_metadata = result["metadata"]
                         metadata.append(local_metadata)
 
@@ -279,7 +278,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
         return (used_mappings, metadata)
 
 
-class OriginMetadataIndexer(OriginIndexer):
+class OriginMetadataIndexer(OriginIndexer[Dict]):
     USE_TOOLS = False
 
     def __init__(self, config=None, **kwargs) -> None:

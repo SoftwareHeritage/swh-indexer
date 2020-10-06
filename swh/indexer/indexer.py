@@ -9,7 +9,7 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Any, Dict, Iterator, List, Optional, Set, Union
+from typing import Any, Dict, Generic, Iterator, List, Optional, Set, TypeVar, Union
 
 from swh.core import utils
 from swh.core.config import load_from_envvar, merge_configs
@@ -57,7 +57,11 @@ DEFAULT_CONFIG = {
 }
 
 
-class BaseIndexer(metaclass=abc.ABCMeta):
+# TODO: should be bound=Optional[BaseRow] when all endpoints move away from dicts
+TResult = TypeVar("TResult", bound=Union[None, Dict, BaseRow])
+
+
+class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
 
     The main entry point is the :func:`run` function which is in
@@ -110,7 +114,7 @@ class BaseIndexer(metaclass=abc.ABCMeta):
 
     """
 
-    results: List[Union[Dict, BaseRow]]
+    results: List[TResult]
 
     USE_TOOLS = True
 
@@ -212,7 +216,7 @@ class BaseIndexer(metaclass=abc.ABCMeta):
 
     def index(
         self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> Union[Dict[str, Any], BaseRow]:
+    ) -> TResult:
         """Index computation for the id and associated raw data.
 
         Args:
@@ -257,7 +261,7 @@ class BaseIndexer(metaclass=abc.ABCMeta):
         return {}
 
 
-class ContentIndexer(BaseIndexer):
+class ContentIndexer(BaseIndexer[TResult], Generic[TResult]):
     """A content indexer working on a list of ids directly.
 
     To work on indexer partition, use the :class:`ContentPartitionIndexer`
@@ -318,7 +322,7 @@ class ContentIndexer(BaseIndexer):
         return summary
 
 
-class ContentPartitionIndexer(BaseIndexer):
+class ContentPartitionIndexer(BaseIndexer[TResult], Generic[TResult]):
     """A content partition indexer.
 
     This expects as input a partition_id and a nb_partitions. This will then index the
@@ -386,7 +390,7 @@ class ContentPartitionIndexer(BaseIndexer):
 
     def _index_contents(
         self, partition_id: int, nb_partitions: int, indexed: Set[Sha1], **kwargs: Any
-    ) -> Iterator[Union[BaseRow, Dict]]:
+    ) -> Iterator[TResult]:
         """Index the contents within the partition_id.
 
         Args:
@@ -416,7 +420,7 @@ class ContentPartitionIndexer(BaseIndexer):
 
     def _index_with_skipping_already_done(
         self, partition_id: int, nb_partitions: int
-    ) -> Iterator[Union[BaseRow, Dict]]:
+    ) -> Iterator[TResult]:
         """Index not already indexed contents within the partition partition_id
 
         Args:
@@ -495,7 +499,7 @@ class ContentPartitionIndexer(BaseIndexer):
         return summary
 
 
-class OriginIndexer(BaseIndexer):
+class OriginIndexer(BaseIndexer[TResult], Generic[TResult]):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
     implements Origin indexing using the run method
 
@@ -540,9 +544,7 @@ class OriginIndexer(BaseIndexer):
             summary.update(summary_persist)
         return summary
 
-    def index_list(
-        self, origins: List[Any], **kwargs: Any
-    ) -> List[Union[Dict, BaseRow]]:
+    def index_list(self, origins: List[Any], **kwargs: Any) -> List[TResult]:
         results = []
         for origin in origins:
             try:
@@ -555,7 +557,7 @@ class OriginIndexer(BaseIndexer):
         return results
 
 
-class RevisionIndexer(BaseIndexer):
+class RevisionIndexer(BaseIndexer[TResult], Generic[TResult]):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
     implements Revision indexing using the run method
 

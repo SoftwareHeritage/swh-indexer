@@ -112,7 +112,7 @@ class MixinMimetypeIndexer:
         )
 
 
-class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
+class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer[ContentMimetypeRow]):
     """Mimetype Indexer working on list of content identifiers.
 
     It:
@@ -134,7 +134,9 @@ class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
         )
 
 
-class MimetypePartitionIndexer(MixinMimetypeIndexer, ContentPartitionIndexer):
+class MimetypePartitionIndexer(
+    MixinMimetypeIndexer, ContentPartitionIndexer[ContentMimetypeRow]
+):
     """Mimetype Range Indexer working on range of content identifiers.
 
     It:

@@ -5,7 +5,7 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import click
 
@@ -15,7 +15,7 @@ from swh.storage.algos.origin import origin_get_latest_visit_status
 from swh.storage.algos.snapshot import snapshot_get_all_branches
 
 
-class OriginHeadIndexer(OriginIndexer):
+class OriginHeadIndexer(OriginIndexer[Optional[Dict]]):
     """Origin-level indexer.
 
     This indexer is in charge of looking up the revision that acts as the

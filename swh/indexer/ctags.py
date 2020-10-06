@@ -74,7 +74,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 }
 
 
-class CtagsIndexer(ContentIndexer):
+class CtagsIndexer(ContentIndexer[Dict]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = merge_configs(DEFAULT_CONFIG, self.config)

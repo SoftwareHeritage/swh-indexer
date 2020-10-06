@@ -134,7 +134,7 @@ class MixinFossologyLicenseIndexer:
         )
 
 
-class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer):
+class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer[Dict]):
     """Indexer in charge of:
 
     - filtering out content already indexed
@@ -154,7 +154,7 @@ class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer):
 
 
 class FossologyLicensePartitionIndexer(
-    MixinFossologyLicenseIndexer, ContentPartitionIndexer
+    MixinFossologyLicenseIndexer, ContentPartitionIndexer[Dict]
 ):
     """FossologyLicense Range Indexer working on range/partition of content identifiers.
 
