@@ -759,6 +759,6 @@ class CommonContentIndexerPartitionTest:
 
     def test_generate_content_get_no_result(self):
         """No result indexed returns False"""
-        actual_results = self.indexer.run(0, 0, incremental=False)
+        actual_results = self.indexer.run(1, 2 ** 512, incremental=False)
 
         assert actual_results == {"status": "uneventful"}
