@@ -288,12 +288,11 @@ class ContentIndexer(BaseIndexer):
             A summary Dict of the task's status
 
         """
-        status = "uneventful"
         sha1s = [
             hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
         ]
         results = []
-        summary: Dict = {}
+        summary: Dict = {"status": "uneventful"}
         try:
             for sha1 in sha1s:
                 try:
@@ -307,17 +306,15 @@ class ContentIndexer(BaseIndexer):
                 res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
                     results.append(res)
-                    status = "eventful"
+                    summary["status"] = "eventful"
             summary = self.persist_index_computations(results, policy_update)
             self.results = results
         except Exception:
             if not self.catch_exceptions:
                 raise
             self.log.exception("Problem when reading contents metadata.")
-            status = "failed"
-        finally:
-            summary["status"] = status
-            return summary
+            summary["status"] = "failed"
+        return summary
 
 
 class ContentPartitionIndexer(BaseIndexer):
