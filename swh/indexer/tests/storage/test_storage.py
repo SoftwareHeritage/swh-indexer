@@ -6,7 +6,7 @@
 import inspect
 import math
 import threading
-from typing import Callable, Dict, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import pytest
 
@@ -16,7 +16,7 @@ from swh.indexer.storage.model import BaseRow, ContentMimetypeRow
 from swh.model.hashutil import hash_to_bytes
 
 
-def prepare_mimetypes_from(fossology_licenses):
+def prepare_mimetypes_from(fossology_licenses: List[Dict]) -> List[ContentMimetypeRow]:
     """Fossology license needs some consistent data in db to run.
 
     """
@@ -65,12 +65,12 @@ def expected_summary(count: int, etype: str, ename: str = "add") -> Dict[str, in
     return {key: count}
 
 
-def test_check_config(swh_indexer_storage):
+def test_check_config(swh_indexer_storage) -> None:
     assert swh_indexer_storage.check_config(check_write=True)
     assert swh_indexer_storage.check_config(check_write=False)
 
 
-def test_types(swh_indexer_storage):
+def test_types(swh_indexer_storage) -> None:
     """Checks all methods of StorageInterface are implemented by this
     backend, and that they have the same signature."""
     # Create an instance of the protocol (which cannot be instantiated
@@ -111,19 +111,26 @@ class StorageETypeTester:
     See below for example usage.
     """
 
+    endpoint_type: str
+    tool_name: str
+    example_data: List[Dict]
+
     # For old endpoints (which use dicts), this is just the identity function.
     # For new endpoints, it returns a BaseRow instance.
-    row_from_dict: Callable[[Dict], Union[Dict, BaseRow]] = (
-        staticmethod(lambda x: x)  # type: ignore
-    )
+    @staticmethod
+    def row_from_dict(d: Dict) -> Union[Dict, BaseRow]:
+        return d
 
     # Inverse function of row_from_dict
     # TODO: remove this once all endpoints are migrated to rows
-    dict_from_row: Callable[[Union[Dict, BaseRow]], Dict] = (
-        staticmethod(lambda x: x)  # type: ignore
-    )
+    @staticmethod
+    def dict_from_row(r: Union[Dict, BaseRow]) -> Dict:
+        assert isinstance(r, Dict)
+        return r
 
-    def test_missing(self, swh_indexer_storage_with_data):
+    def test_missing(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool_id = data.tools[self.tool_name]["id"]
@@ -160,7 +167,9 @@ class StorageETypeTester:
         actual_missing = endpoint(storage, etype, "missing")(query)
         assert list(actual_missing) == [data.sha1_1]
 
-    def test_add__drop_duplicate(self, swh_indexer_storage_with_data):
+    def test_add__drop_duplicate(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool_id = data.tools[self.tool_name]["id"]
@@ -197,7 +206,9 @@ class StorageETypeTester:
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
         assert actual_data == expected_data_v1
 
-    def test_add__update_in_place_duplicate(self, swh_indexer_storage_with_data):
+    def test_add__update_in_place_duplicate(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -244,7 +255,9 @@ class StorageETypeTester:
         # data did change as the v2 was used to overwrite v1
         assert actual_data == expected_data_v2
 
-    def test_add__update_in_place_deadlock(self, swh_indexer_storage_with_data):
+    def test_add__update_in_place_deadlock(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -295,10 +308,10 @@ class StorageETypeTester:
         assert actual_data == expected_data_v1
 
         # given
-        def f1():
+        def f1() -> None:
             endpoint(storage, etype, "add")(data_v2a, conflict_update=True)
 
-        def f2():
+        def f2() -> None:
             endpoint(storage, etype, "add")(data_v2b, conflict_update=True)
 
         t1 = threading.Thread(target=f1)
@@ -320,7 +333,9 @@ class StorageETypeTester:
 
         assert actual_data == expected_data_v2
 
-    def test_add__duplicate_twice(self, swh_indexer_storage_with_data):
+    def test_add__duplicate_twice(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -362,7 +377,9 @@ class StorageETypeTester:
         ]
         assert actual_data == expected_data
 
-    def test_get(self, swh_indexer_storage_with_data):
+    def test_get(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -406,20 +423,22 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
     row_from_dict = ContentMimetypeRow.from_dict
     dict_from_row = staticmethod(lambda x: x.to_dict())  # type: ignore
 
-    def test_generate_content_mimetype_get_partition_failure(self, swh_indexer_storage):
+    def test_generate_content_mimetype_get_partition_failure(
+        self, swh_indexer_storage: IndexerStorageInterface
+    ) -> None:
         """get_partition call with wrong limit input should fail"""
         storage = swh_indexer_storage
-        indexer_configuration_id = None
+        indexer_configuration_id = 42
         with pytest.raises(
             IndexerStorageArgumentException, match="limit should not be None"
         ):
             storage.content_mimetype_get_partition(
-                indexer_configuration_id, 0, 3, limit=None
+                indexer_configuration_id, 0, 3, limit=None  # type: ignore
             )
 
     def test_generate_content_mimetype_get_partition_no_limit(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition should return result"""
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
@@ -443,8 +462,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
             assert actual_id in expected_ids
 
     def test_generate_content_mimetype_get_partition_full(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition for a single partition should return available ids
 
         """
@@ -463,8 +482,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
             assert actual_id in expected_ids
 
     def test_generate_content_mimetype_get_partition_empty(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition when at least one of the partitions is empty"""
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
@@ -495,8 +514,8 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         assert set(seen_ids) == expected_ids
 
     def test_generate_content_mimetype_get_partition_with_pagination(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition should return ids provided with pagination
 
         """
@@ -581,7 +600,9 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
     def test_get(self):
         pass
 
-    def test_content_ctags_search(self, swh_indexer_storage_with_data):
+    def test_content_ctags_search(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # 1. given
         tool = data.tools["universal-ctags"]
@@ -701,15 +722,17 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
             }
         ]
 
-    def test_content_ctags_search_no_result(self, swh_indexer_storage):
+    def test_content_ctags_search_no_result(
+        self, swh_indexer_storage: IndexerStorageInterface
+    ) -> None:
         storage = swh_indexer_storage
         actual_ctags = list(storage.content_ctags_search("counter"))
 
         assert not actual_ctags
 
     def test_content_ctags_add__add_new_ctags_added(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
 
         # given
@@ -780,7 +803,9 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
 
         assert actual_ctags == expected_ctags
 
-    def test_content_ctags_add__update_in_place(self, swh_indexer_storage_with_data):
+    def test_content_ctags_add__update_in_place(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool = data.tools["universal-ctags"]
@@ -859,7 +884,9 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
         ]
         assert actual_ctags == expected_ctags
 
-    def test_add_empty(self, swh_indexer_storage_with_data):
+    def test_add_empty(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         (storage, data) = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -873,7 +900,9 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
 
         assert actual_ctags == []
 
-    def test_get_unknown(self, swh_indexer_storage_with_data):
+    def test_get_unknown(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         (storage, data) = swh_indexer_storage_with_data
         etype = self.endpoint_type
 
@@ -931,7 +960,9 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
         },
     ]
 
-    def test_revision_intrinsic_metadata_delete(self, swh_indexer_storage_with_data):
+    def test_revision_intrinsic_metadata_delete(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -959,8 +990,8 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
         assert not actual_data
 
     def test_revision_intrinsic_metadata_delete_nonexisting(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -974,8 +1005,8 @@ class TestIndexerStorageContentFossologyLicense:
     tool_name = "nomos"
 
     def test_content_fossology_license_add__new_license_added(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool = data.tools["nomos"]
@@ -1017,21 +1048,21 @@ class TestIndexerStorageContentFossologyLicense:
         assert actual_licenses == [expected_license]
 
     def test_generate_content_fossology_license_get_partition_failure(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition call with wrong limit input should fail"""
         storage, data = swh_indexer_storage_with_data
-        indexer_configuration_id = None
+        indexer_configuration_id = 42
         with pytest.raises(
             IndexerStorageArgumentException, match="limit should not be None"
         ):
             storage.content_fossology_license_get_partition(
-                indexer_configuration_id, 0, 3, limit=None,
+                indexer_configuration_id, 0, 3, limit=None,  # type: ignore
             )
 
     def test_generate_content_fossology_license_get_partition_no_limit(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition should return results"""
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
@@ -1064,8 +1095,8 @@ class TestIndexerStorageContentFossologyLicense:
             assert actual_id in expected_ids
 
     def test_generate_content_fossology_license_get_partition_full(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition for a single partition should return available ids
 
         """
@@ -1092,8 +1123,8 @@ class TestIndexerStorageContentFossologyLicense:
             assert actual_id in expected_ids
 
     def test_generate_content_fossology_license_get_partition_empty(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition when at least one of the partitions is empty"""
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
@@ -1132,8 +1163,8 @@ class TestIndexerStorageContentFossologyLicense:
         assert set(seen_ids) == expected_ids
 
     def test_generate_content_fossology_license_get_partition_with_pagination(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition should return ids provided with paginationv
 
         """
@@ -1172,7 +1203,9 @@ class TestIndexerStorageContentFossologyLicense:
         for actual_id in actual_ids:
             assert actual_id in expected_ids
 
-    def test_add_empty(self, swh_indexer_storage_with_data):
+    def test_add_empty(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         (storage, data) = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -1192,7 +1225,9 @@ class TestIndexerStorageContentFossologyLicense:
 
         assert actual_license == []
 
-    def test_get_unknown(self, swh_indexer_storage_with_data):
+    def test_get_unknown(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         (storage, data) = swh_indexer_storage_with_data
         etype = self.endpoint_type
 
@@ -1202,7 +1237,9 @@ class TestIndexerStorageContentFossologyLicense:
 
 
 class TestIndexerStorageOriginIntrinsicMetadata:
-    def test_origin_intrinsic_metadata_get(self, swh_indexer_storage_with_data):
+    def test_origin_intrinsic_metadata_get(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1246,7 +1283,9 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         assert actual_metadata == expected_metadata
 
-    def test_origin_intrinsic_metadata_delete(self, swh_indexer_storage_with_data):
+    def test_origin_intrinsic_metadata_delete(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1290,8 +1329,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         assert actual_metadata == [metadata_origin2]
 
     def test_origin_intrinsic_metadata_delete_nonexisting(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool_id = data.tools["swh-metadata-detector"]["id"]
         storage.origin_intrinsic_metadata_delete(
@@ -1299,13 +1338,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
     def test_origin_intrinsic_metadata_add_drop_duplicate(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
 
-        metadata_v1 = {
+        metadata_v1: Dict[str, Any] = {
             "version": None,
             "name": None,
         }
@@ -1366,13 +1405,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         assert actual_metadata == expected_metadata_v1
 
     def test_origin_intrinsic_metadata_add_update_in_place_duplicate(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
 
-        metadata_v1 = {
+        metadata_v1: Dict[str, Any] = {
             "version": None,
             "name": None,
         }
@@ -1450,8 +1489,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         assert actual_metadata == expected_metadata_v2
 
     def test_origin_intrinsic_metadata_add__update_in_place_deadlock(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1520,10 +1559,10 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         assert actual_data == expected_data_v1
 
         # given
-        def f1():
+        def f1() -> None:
             storage.origin_intrinsic_metadata_add(data_v2a, conflict_update=True)
 
-        def f2():
+        def f2() -> None:
             storage.origin_intrinsic_metadata_add(data_v2b, conflict_update=True)
 
         t1 = threading.Thread(target=f1)
@@ -1550,8 +1589,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         assert sorted(actual_data, key=lambda x: x["id"]) == expected_data_v2
 
     def test_origin_intrinsic_metadata_add__duplicate_twice(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1581,8 +1620,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             storage.origin_intrinsic_metadata_add([metadata_origin, metadata_origin])
 
     def test_origin_intrinsic_metadata_search_fulltext(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1636,8 +1675,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         assert not list(search(["John", "Jane"]))
 
     def test_origin_intrinsic_metadata_search_fulltext_rank(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1695,7 +1734,9 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         ]
         assert [res["id"] for res in search(["John", "Jane"])] == [data.origin_url_1]
 
-    def _fill_origin_intrinsic_metadata(self, swh_indexer_storage_with_data):
+    def _fill_origin_intrinsic_metadata(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool1_id = data.tools["swh-metadata-detector"]["id"]
         tool2_id = data.tools["swh-metadata-detector2"]["id"]
@@ -1759,8 +1800,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         storage.origin_intrinsic_metadata_add([metadata3_origin])
 
     def test_origin_intrinsic_metadata_search_by_producer(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         self._fill_origin_intrinsic_metadata(swh_indexer_storage_with_data)
         tool1 = data.tools["swh-metadata-detector"]
@@ -1858,7 +1899,9 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             }
         ]
 
-    def test_origin_intrinsic_metadata_stats(self, swh_indexer_storage_with_data):
+    def test_origin_intrinsic_metadata_stats(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         self._fill_origin_intrinsic_metadata(swh_indexer_storage_with_data)
 
@@ -1877,7 +1920,9 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
 
 class TestIndexerStorageIndexerCondifuration:
-    def test_indexer_configuration_add(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_add(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "some-unknown-tool",
@@ -1905,7 +1950,9 @@ class TestIndexerStorageIndexerCondifuration:
         assert new_id == new_id2
         assert actual_tool == actual_tool2
 
-    def test_indexer_configuration_add_multiple(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_add_multiple(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "some-unknown-tool",
@@ -1934,7 +1981,9 @@ class TestIndexerStorageIndexerCondifuration:
             assert _id is not None
             assert tool in new_tools
 
-    def test_indexer_configuration_get_missing(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_get_missing(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "unknown-tool",
@@ -1946,7 +1995,9 @@ class TestIndexerStorageIndexerCondifuration:
 
         assert actual_tool is None
 
-    def test_indexer_configuration_get(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_get(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "nomos",
@@ -1963,8 +2014,8 @@ class TestIndexerStorageIndexerCondifuration:
         assert expected_tool == actual_tool
 
     def test_indexer_configuration_metadata_get_missing_context(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "swh-metadata-translator",
@@ -1976,7 +2027,9 @@ class TestIndexerStorageIndexerCondifuration:
 
         assert actual_tool is None
 
-    def test_indexer_configuration_metadata_get(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_metadata_get(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "swh-metadata-translator",

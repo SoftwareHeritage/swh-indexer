@@ -6,7 +6,7 @@
 from swh.indexer.storage import converters
 
 
-def test_ctags_to_db():
+def test_ctags_to_db() -> None:
     input_ctag = {
         "id": b"some-id",
         "indexer_configuration_id": 100,
@@ -42,7 +42,7 @@ def test_ctags_to_db():
     assert actual_ctags == expected_ctags
 
 
-def test_db_to_ctags():
+def test_db_to_ctags() -> None:
     input_ctags = {
         "id": b"some-id",
         "name": "some-name",
@@ -75,7 +75,7 @@ def test_db_to_ctags():
     assert actual_ctags == expected_ctags
 
 
-def test_db_to_mimetype():
+def test_db_to_mimetype() -> None:
     input_mimetype = {
         "id": b"some-id",
         "tool_id": 10,
@@ -103,7 +103,7 @@ def test_db_to_mimetype():
     assert actual_mimetype == expected_mimetype
 
 
-def test_db_to_language():
+def test_db_to_language() -> None:
     input_language = {
         "id": b"some-id",
         "tool_id": 20,
@@ -129,7 +129,7 @@ def test_db_to_language():
     assert actual_language == expected_language
 
 
-def test_db_to_fossology_license():
+def test_db_to_fossology_license() -> None:
     input_license = {
         "id": b"some-id",
         "tool_id": 20,
@@ -149,7 +149,7 @@ def test_db_to_fossology_license():
     assert actual_license == expected_license
 
 
-def test_db_to_metadata():
+def test_db_to_metadata() -> None:
     input_metadata = {
         "id": b"some-id",
         "tool_id": 20,
