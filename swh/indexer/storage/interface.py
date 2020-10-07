@@ -78,7 +78,8 @@ class IndexerStorageInterface:
         """Add mimetypes not present in storage.
 
         Args:
-            mimetypes: mimetype rows to be added
+            mimetypes: mimetype rows to be added, with their `tool` attribute set to
+            not None.
             conflict_update: Flag to determine if we want to
             overwrite (``True``) or skip duplicates (``False``, the
             default)
@@ -94,15 +95,10 @@ class IndexerStorageInterface:
         """Retrieve full content mimetype per ids.
 
         Args:
-            ids (iterable): sha1 identifier
+            ids: sha1 identifiers
 
         Yields:
-            mimetypes (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **mimetype** (bytes): raw content's mimetype
-                - **encoding** (bytes): raw content's encoding
-                - **tool** (dict): Tool used to compute the language
+            mimetype row objects
 
         """
         ...

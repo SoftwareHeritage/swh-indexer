@@ -253,13 +253,6 @@ class IndexerStorage:
         db=None,
         cur=None,
     ) -> Dict[str, int]:
-        """Add mimetypes to the storage (if conflict_update is True, this will
-           override existing data if any).
-
-        Returns:
-            A dict with the number of new elements added to the storage.
-
-        """
         check_id_duplicates(mimetypes)
         mimetypes.sort(key=lambda m: m.id)
         db.mktemp_content_mimetype(cur)
