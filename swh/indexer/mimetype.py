@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Union
 import magic
 
 from swh.core.config import merge_configs
-from swh.indexer.storage.interface import PagedResult, Sha1
+from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult, Sha1
 from swh.indexer.storage.model import ContentMimetypeRow
 from swh.model.model import Revision
 
@@ -61,7 +61,7 @@ class MixinMimetypeIndexer:
     """
 
     tool: Any
-    idx_storage: Any
+    idx_storage: IndexerStorageInterface
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -95,7 +95,7 @@ class MixinMimetypeIndexer:
         )
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[ContentMimetypeRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 

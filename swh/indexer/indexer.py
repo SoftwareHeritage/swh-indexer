@@ -14,6 +14,7 @@ from typing import Any, Dict, Generic, Iterator, List, Optional, Set, TypeVar, U
 from swh.core import utils
 from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
+from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import BaseRow
 from swh.model import hashutil
 from swh.model.model import Revision
@@ -21,6 +22,7 @@ from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
 from swh.scheduler import CONFIG as SWH_CONFIG
 from swh.storage import get_storage
+from swh.storage.interface import StorageInterface
 
 
 @contextmanager
@@ -123,6 +125,9 @@ class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
     in tests to properly catch all exceptions."""
 
     scheduler: Any
+    storage: StorageInterface
+    objstorage: Any
+    idx_storage: IndexerStorageInterface
 
     def __init__(self, config=None, **kw) -> None:
         """Prepare and check that the indexer is ready to run.
@@ -244,14 +249,16 @@ class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
         yield from ids
 
     @abc.abstractmethod
-    def persist_index_computations(self, results, policy_update) -> Dict[str, int]:
+    def persist_index_computations(
+        self, results: List[TResult], policy_update: str
+    ) -> Dict[str, int]:
         """Persist the computation resulting from the index.
 
         Args:
 
-            results ([result]): List of results. One result is the
+            results: List of results. One result is the
               result of the index function.
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates or ignore them
 
         Returns:

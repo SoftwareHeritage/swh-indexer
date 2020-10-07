@@ -8,7 +8,7 @@ import subprocess
 from typing import Any, Dict, List, Optional, Union
 
 from swh.core.config import merge_configs
-from swh.indexer.storage.interface import PagedResult, Sha1
+from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult, Sha1
 from swh.model import hashutil
 from swh.model.model import Revision
 
@@ -74,7 +74,7 @@ class MixinFossologyLicenseIndexer:
     """
 
     tool: Any
-    idx_storage: Any
+    idx_storage: IndexerStorageInterface
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
