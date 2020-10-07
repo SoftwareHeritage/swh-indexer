@@ -107,8 +107,6 @@ class TestMimetypePartitionIndexer(
 
     """
 
-    row_from_dict = staticmethod(lambda x: x)  # type: ignore
-
     def setUp(self):
         super().setUp()
         self.indexer = MimetypePartitionIndexer(config=RANGE_CONFIG)

@@ -57,7 +57,6 @@ DEFAULT_CONFIG = {
 }
 
 
-# TODO: should be bound=Optional[BaseRow] when all endpoints move away from dicts
 TResult = TypeVar("TResult")
 
 
@@ -411,15 +410,7 @@ class ContentPartitionIndexer(BaseIndexer[TResult], Generic[TResult]):
             except ObjNotFoundError:
                 self.log.warning(f"Content {sha1.hex()} not found in objstorage")
                 continue
-            results = self.index(sha1, raw_content, **kwargs)
-            for res in results:
-                # TODO: remove this check when all endpoints moved away from dicts.
-                if isinstance(res, dict) and not isinstance(res["id"], bytes):
-                    raise TypeError(
-                        "%r.index should return ids as bytes, not %r"
-                        % (self.__class__.__name__, res["id"])
-                    )
-                yield res
+            yield from self.index(sha1, raw_content, **kwargs)
 
     def _index_with_skipping_already_done(
         self, partition_id: int, nb_partitions: int
