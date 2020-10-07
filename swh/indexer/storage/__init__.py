@@ -6,7 +6,7 @@
 
 from collections import Counter
 import json
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import psycopg2
 import psycopg2.pool
@@ -551,25 +551,35 @@ class IndexerStorage:
 
     @timed
     @db_transaction()
-    def origin_intrinsic_metadata_get(self, ids, db=None, cur=None):
+    def origin_intrinsic_metadata_get(
+        self, urls: Iterable[str], db=None, cur=None
+    ) -> List[OriginIntrinsicMetadataRow]:
         return [
-            converters.db_to_metadata(dict(zip(db.origin_intrinsic_metadata_cols, c)))
-            for c in db.origin_intrinsic_metadata_get_from_list(ids, cur)
+            OriginIntrinsicMetadataRow.from_dict(
+                converters.db_to_metadata(
+                    dict(zip(db.origin_intrinsic_metadata_cols, c))
+                )
+            )
+            for c in db.origin_intrinsic_metadata_get_from_list(urls, cur)
         ]
 
     @timed
     @process_metrics
     @db_transaction()
     def origin_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        metadata: List[OriginIntrinsicMetadataRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(map(OriginIntrinsicMetadataRow.from_dict, metadata))
-        metadata.sort(key=lambda m: m["id"])
+        check_id_duplicates(metadata)
+        metadata.sort(key=lambda m: m.id)
 
         db.mktemp_origin_intrinsic_metadata(cur)
 
         db.copy_to(
-            metadata,
+            [m.to_dict() for m in metadata],
             "tmp_origin_intrinsic_metadata",
             ["id", "metadata", "indexer_configuration_id", "from_revision", "mappings"],
             cur,
@@ -593,10 +603,14 @@ class IndexerStorage:
     @timed
     @db_transaction()
     def origin_intrinsic_metadata_search_fulltext(
-        self, conjunction, limit=100, db=None, cur=None
-    ):
+        self, conjunction: List[str], limit: int = 100, db=None, cur=None
+    ) -> List[OriginIntrinsicMetadataRow]:
         return [
-            converters.db_to_metadata(dict(zip(db.origin_intrinsic_metadata_cols, c)))
+            OriginIntrinsicMetadataRow.from_dict(
+                converters.db_to_metadata(
+                    dict(zip(db.origin_intrinsic_metadata_cols, c))
+                )
+            )
             for c in db.origin_intrinsic_metadata_search_fulltext(
                 conjunction, limit=limit, cur=cur
             )
@@ -606,37 +620,40 @@ class IndexerStorage:
     @db_transaction()
     def origin_intrinsic_metadata_search_by_producer(
         self,
-        page_token="",
-        limit=100,
-        ids_only=False,
-        mappings=None,
-        tool_ids=None,
+        page_token: str = "",
+        limit: int = 100,
+        ids_only: bool = False,
+        mappings: Optional[List[str]] = None,
+        tool_ids: Optional[List[int]] = None,
         db=None,
         cur=None,
-    ):
+    ) -> PagedResult[Union[str, OriginIntrinsicMetadataRow]]:
         assert isinstance(page_token, str)
         # we go to limit+1 to check whether we should add next_page_token in
         # the response
-        res = db.origin_intrinsic_metadata_search_by_producer(
+        rows = db.origin_intrinsic_metadata_search_by_producer(
             page_token, limit + 1, ids_only, mappings, tool_ids, cur
         )
-        result = {}
+        next_page_token = None
         if ids_only:
-            result["origins"] = [origin for (origin,) in res]
-            if len(result["origins"]) > limit:
-                result["origins"][limit:] = []
-                result["next_page_token"] = result["origins"][-1]
+            results = [origin for (origin,) in rows]
+            if len(results) > limit:
+                results[limit:] = []
+                next_page_token = results[-1]
         else:
-            result["origins"] = [
-                converters.db_to_metadata(
-                    dict(zip(db.origin_intrinsic_metadata_cols, c))
+            results = [
+                OriginIntrinsicMetadataRow.from_dict(
+                    converters.db_to_metadata(
+                        dict(zip(db.origin_intrinsic_metadata_cols, row))
+                    )
                 )
-                for c in res
+                for row in rows
             ]
-            if len(result["origins"]) > limit:
-                result["origins"][limit:] = []
-                result["next_page_token"] = result["origins"][-1]["id"]
-        return result
+            if len(results) > limit:
+                results[limit:] = []
+                next_page_token = results[-1].id
+
+        return PagedResult(results=results, next_page_token=next_page_token,)
 
     @timed
     @db_transaction()

@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from typing import Iterator
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
 # control
@@ -146,7 +147,7 @@ def schedule(ctx, scheduler_url, storage_url, indexer_storage_url, dry_run):
         ctx.obj["scheduler"] = None
 
 
-def list_origins_by_producer(idx_storage, mappings, tool_ids):
+def list_origins_by_producer(idx_storage, mappings, tool_ids) -> Iterator[str]:
     next_page_token = ""
     limit = 10000
     while next_page_token is not None:
@@ -157,8 +158,8 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids):
             mappings=mappings or None,
             tool_ids=tool_ids or None,
         )
-        next_page_token = result.get("next_page_token")
-        yield from result["origins"]
+        next_page_token = result.next_page_token
+        yield from result.results
 
 
 @schedule.command("reindex_origin_metadata")

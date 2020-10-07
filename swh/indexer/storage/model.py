@@ -21,7 +21,7 @@ TSelf = TypeVar("TSelf")
 class BaseRow:
     UNIQUE_KEY_FIELDS: Tuple = ("id", "indexer_configuration_id")
 
-    id = attr.ib(type=Sha1Git)
+    id = attr.ib(type=Any)
     indexer_configuration_id = attr.ib(type=Optional[int], default=None, kw_only=True)
     tool = attr.ib(type=Optional[Dict], default=None, kw_only=True)
 
@@ -64,12 +64,14 @@ class BaseRow:
 
 @attr.s
 class ContentMimetypeRow(BaseRow):
+    id = attr.ib(type=Sha1Git)
     mimetype = attr.ib(type=str)
     encoding = attr.ib(type=str)
 
 
 @attr.s
 class ContentLanguageRow(BaseRow):
+    id = attr.ib(type=Sha1Git)
     lang = attr.ib(type=str)
 
 
@@ -84,6 +86,7 @@ class ContentCtagsRow(BaseRow):
         "lang",
     )
 
+    id = attr.ib(type=Sha1Git)
     name = attr.ib(type=str)
     kind = attr.ib(type=str)
     line = attr.ib(type=int)
@@ -94,22 +97,26 @@ class ContentCtagsRow(BaseRow):
 class ContentLicenseRow(BaseRow):
     UNIQUE_KEY_FIELDS = ("id", "indexer_configuration_id", "license")
 
+    id = attr.ib(type=Sha1Git)
     license = attr.ib(type=str)
 
 
 @attr.s
 class ContentMetadataRow(BaseRow):
+    id = attr.ib(type=Sha1Git)
     metadata = attr.ib(type=Dict[str, Any])
 
 
 @attr.s
 class RevisionIntrinsicMetadataRow(BaseRow):
+    id = attr.ib(type=Sha1Git)
     metadata = attr.ib(type=Dict[str, Any])
     mappings = attr.ib(type=List[str])
 
 
 @attr.s
 class OriginIntrinsicMetadataRow(BaseRow):
+    id = attr.ib(type=str)
     metadata = attr.ib(type=Dict[str, Any])
     from_revision = attr.ib(type=Sha1Git)
     mappings = attr.ib(type=List[str])

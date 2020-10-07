@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict, Iterable, List, Optional, Tuple, TypeVar
+from typing import Dict, Iterable, List, Optional, Tuple, TypeVar, Union
 
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
@@ -13,6 +13,7 @@ from swh.indexer.storage.model import (
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
+    OriginIntrinsicMetadataRow,
     RevisionIntrinsicMetadataRow,
 )
 
@@ -421,42 +422,26 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("origin_intrinsic_metadata")
-    def origin_intrinsic_metadata_get(self, ids):
+    def origin_intrinsic_metadata_get(
+        self, urls: Iterable[str]
+    ) -> List[OriginIntrinsicMetadataRow]:
         """Retrieve origin metadata per id.
 
         Args:
-            ids (iterable): origin identifiers
+            urls (iterable): origin URLs
 
-        Yields:
-            list: dictionaries with the following keys:
-
-                - **id** (str): origin url
-                - **from_revision** (bytes): which revision this metadata
-                  was extracted from
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
-
+        Returns: list of OriginIntrinsicMetadataRow
         """
         ...
 
     @remote_api_endpoint("origin_intrinsic_metadata/add")
     def origin_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self, metadata: List[OriginIntrinsicMetadataRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add origin metadata not present in storage.
 
         Args:
-            metadata (iterable): dictionaries with keys:
-
-                - **id**: origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+            metadata: list of OriginIntrinsicMetadataRow objects
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -484,31 +469,30 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("origin_intrinsic_metadata/search/fulltext")
-    def origin_intrinsic_metadata_search_fulltext(self, conjunction, limit=100):
+    def origin_intrinsic_metadata_search_fulltext(
+        self, conjunction: List[str], limit: int = 100
+    ) -> List[OriginIntrinsicMetadataRow]:
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
-            conjunction (List[str]): List of terms to be searched for.
-            limit (int): The maximum number of results to return
+            conjunction: List of terms to be searched for.
+            limit: The maximum number of results to return
 
-        Yields:
-            list: dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+        Returns:
+            list of OriginIntrinsicMetadataRow
 
         """
         ...
 
     @remote_api_endpoint("origin_intrinsic_metadata/search/by_producer")
     def origin_intrinsic_metadata_search_by_producer(
-        self, page_token="", limit=100, ids_only=False, mappings=None, tool_ids=None
-    ):
+        self,
+        page_token: str = "",
+        limit: int = 100,
+        ids_only: bool = False,
+        mappings: Optional[List[str]] = None,
+        tool_ids: Optional[List[int]] = None,
+    ) -> PagedResult[Union[str, OriginIntrinsicMetadataRow]]:
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
@@ -520,20 +504,7 @@ class IndexerStorageInterface:
                 were generated using at least one of these mappings.
 
         Returns:
-            dict: dict with the following keys:
-              - **next_page_token** (str, optional): opaque token to be used as
-                `page_token` for retrieving the next page. If absent, there is
-                no more pages to gather.
-              - **origins** (list): list of origin url (str) if `ids_only=True`
-                else dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+            OriginIntrinsicMetadataRow objects
 
         """
         ...

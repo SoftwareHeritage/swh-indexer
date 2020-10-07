@@ -4,7 +4,17 @@
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+)
 
 from swh.core.config import merge_configs
 from swh.core.utils import grouper
@@ -14,7 +24,11 @@ from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.storage import INDEXER_CFG_KEY
-from swh.indexer.storage.model import ContentMetadataRow, RevisionIntrinsicMetadataRow
+from swh.indexer.storage.model import (
+    ContentMetadataRow,
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 from swh.model import hashutil
 from swh.model.model import Revision
 
@@ -22,11 +36,13 @@ REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
 
 
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
+
+
 def call_with_batches(
-    f: Callable[[List[Dict[str, Any]]], Dict["str", Any]],
-    args: List[Dict[str, str]],
-    batch_size: int,
-) -> Iterator[str]:
+    f: Callable[[List[T1]], Iterable[T2]], args: List[T1], batch_size: int,
+) -> Iterator[T2]:
     """Calls a function with batches of args, and concatenates the results.
     """
     groups = grouper(args, batch_size)
@@ -285,7 +301,9 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
         return (used_mappings, metadata)
 
 
-class OriginMetadataIndexer(OriginIndexer[Tuple[Dict, RevisionIntrinsicMetadataRow]]):
+class OriginMetadataIndexer(
+    OriginIndexer[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]]
+):
     USE_TOOLS = False
 
     def __init__(self, config=None, **kwargs) -> None:
@@ -293,7 +311,9 @@ class OriginMetadataIndexer(OriginIndexer[Tuple[Dict, RevisionIntrinsicMetadataR
         self.origin_head_indexer = OriginHeadIndexer(config=config)
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
-    def index_list(self, origin_urls, **kwargs):
+    def index_list(
+        self, origin_urls: List[str], **kwargs
+    ) -> List[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]]:
         head_rev_ids = []
         origins_with_head = []
         origins = list(
@@ -325,31 +345,31 @@ class OriginMetadataIndexer(OriginIndexer[Tuple[Dict, RevisionIntrinsicMetadataR
 
             for rev_metadata in self.revision_metadata_indexer.index(rev):
                 # There is at most one rev_metadata
-                orig_metadata = {
-                    "from_revision": rev_metadata.id,
-                    "id": origin.url,
-                    "metadata": rev_metadata.metadata,
-                    "mappings": rev_metadata.mappings,
-                    "indexer_configuration_id": rev_metadata.indexer_configuration_id,
-                }
+                orig_metadata = OriginIntrinsicMetadataRow(
+                    from_revision=rev_metadata.id,
+                    id=origin.url,
+                    metadata=rev_metadata.metadata,
+                    mappings=rev_metadata.mappings,
+                    indexer_configuration_id=rev_metadata.indexer_configuration_id,
+                )
                 results.append((orig_metadata, rev_metadata))
         return results
 
     def persist_index_computations(
         self,
-        results: List[Tuple[Dict, RevisionIntrinsicMetadataRow]],
+        results: List[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]],
         policy_update: str,
     ) -> Dict[str, int]:
         conflict_update = policy_update == "update-dups"
 
         # Deduplicate revisions
         rev_metadata: List[RevisionIntrinsicMetadataRow] = []
-        orig_metadata: List[Dict] = []
+        orig_metadata: List[OriginIntrinsicMetadataRow] = []
         revs_to_delete: List[Dict] = []
         origs_to_delete: List[Dict] = []
         summary: Dict = {}
         for (orig_item, rev_item) in results:
-            assert rev_item.metadata == orig_item["metadata"]
+            assert rev_item.metadata == orig_item.metadata
             if not rev_item.metadata or rev_item.metadata.keys() <= {"@context"}:
                 # If we didn't find any metadata, don't store a DB record
                 # (and delete existing ones, if any)
@@ -363,7 +383,14 @@ class OriginMetadataIndexer(OriginIndexer[Tuple[Dict, RevisionIntrinsicMetadataR
                         }
                     )
                 if orig_item not in origs_to_delete:
-                    origs_to_delete.append(orig_item)
+                    origs_to_delete.append(
+                        {
+                            "id": orig_item.id,
+                            "indexer_configuration_id": (
+                                orig_item.indexer_configuration_id
+                            ),
+                        }
+                    )
             else:
                 if rev_item not in rev_metadata:
                     rev_metadata.append(rev_item)

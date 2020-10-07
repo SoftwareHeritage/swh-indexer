@@ -20,6 +20,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    Union,
 )
 
 from swh.core.collections import SortedList
@@ -397,22 +398,24 @@ class IndexerStorage:
         deleted = self._revision_intrinsic_metadata.delete(entries)
         return {"revision_intrinsic_metadata:del": deleted}
 
-    def origin_intrinsic_metadata_get(self, ids):
-        return [obj.to_dict() for obj in self._origin_intrinsic_metadata.get(ids)]
+    def origin_intrinsic_metadata_get(
+        self, urls: Iterable[str]
+    ) -> List[OriginIntrinsicMetadataRow]:
+        return self._origin_intrinsic_metadata.get(urls)
 
     def origin_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self, metadata: List[OriginIntrinsicMetadataRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        added = self._origin_intrinsic_metadata.add(
-            map(OriginIntrinsicMetadataRow.from_dict, metadata), conflict_update
-        )
+        added = self._origin_intrinsic_metadata.add(metadata, conflict_update)
         return {"origin_intrinsic_metadata:add": added}
 
     def origin_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
         deleted = self._origin_intrinsic_metadata.delete(entries)
         return {"origin_intrinsic_metadata:del": deleted}
 
-    def origin_intrinsic_metadata_search_fulltext(self, conjunction, limit=100):
+    def origin_intrinsic_metadata_search_fulltext(
+        self, conjunction: List[str], limit: int = 100
+    ) -> List[OriginIntrinsicMetadataRow]:
         # A very crude fulltext search implementation, but that's enough
         # to work on English metadata
         tokens_re = re.compile("[a-zA-Z0-9]+")
@@ -442,18 +445,23 @@ class IndexerStorage:
         results.sort(
             key=operator.itemgetter(0), reverse=True  # Don't try to order 'data'
         )
-        return [result.to_dict() for (rank_, result) in results[:limit]]
+        return [result for (rank_, result) in results[:limit]]
 
     def origin_intrinsic_metadata_search_by_producer(
-        self, page_token="", limit=100, ids_only=False, mappings=None, tool_ids=None
-    ):
+        self,
+        page_token: str = "",
+        limit: int = 100,
+        ids_only: bool = False,
+        mappings: Optional[List[str]] = None,
+        tool_ids: Optional[List[int]] = None,
+    ) -> PagedResult[Union[str, OriginIntrinsicMetadataRow]]:
         assert isinstance(page_token, str)
         nb_results = 0
         if mappings is not None:
-            mappings = frozenset(mappings)
+            mapping_set = frozenset(mappings)
         if tool_ids is not None:
-            tool_ids = frozenset(tool_ids)
-        origins = []
+            tool_id_set = frozenset(tool_ids)
+        rows = []
 
         # we go to limit+1 to check whether we should add next_page_token in
         # the response
@@ -462,21 +470,21 @@ class IndexerStorage:
                 continue
             if nb_results >= (limit + 1):
                 break
-            if mappings is not None and mappings.isdisjoint(entry.mappings):
+            if mappings and mapping_set.isdisjoint(entry.mappings):
                 continue
-            if tool_ids is not None and entry.tool["id"] not in tool_ids:
+            if tool_ids and entry.tool["id"] not in tool_id_set:
                 continue
-            origins.append(entry.to_dict())
+            rows.append(entry)
             nb_results += 1
 
-        result = {}
-        if len(origins) > limit:
-            origins = origins[:limit]
-            result["next_page_token"] = origins[-1]["id"]
+        if len(rows) > limit:
+            rows = rows[:limit]
+            next_page_token = rows[-1].id
+        else:
+            next_page_token = None
         if ids_only:
-            origins = [origin["id"] for origin in origins]
-        result["origins"] = origins
-        return result
+            rows = [row.id for row in rows]
+        return PagedResult(results=rows, next_page_token=next_page_token,)
 
     def origin_intrinsic_metadata_stats(self):
         mapping_count = {m: 0 for m in MAPPING_NAMES}

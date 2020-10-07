@@ -6,13 +6,13 @@
 import inspect
 import math
 import threading
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, cast
 
 import attr
 import pytest
 
 from swh.indexer.storage.exc import DuplicateId, IndexerStorageArgumentException
-from swh.indexer.storage.interface import IndexerStorageInterface
+from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult
 from swh.indexer.storage.model import (
     BaseRow,
     ContentCtagsRow,
@@ -20,6 +20,7 @@ from swh.indexer.storage.model import (
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
+    OriginIntrinsicMetadataRow,
     RevisionIntrinsicMetadataRow,
 )
 from swh.model.hashutil import hash_to_bytes
@@ -1148,13 +1149,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=["mapping1"],
             indexer_configuration_id=tool_id,
         )
-        metadata_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata,
-            "indexer_configuration_id": tool_id,
-            "mappings": ["mapping1"],
-            "from_revision": data.revision_id_2,
-        }
+        metadata_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_revision=data.revision_id_2,
+        )
 
         # when
         storage.revision_intrinsic_metadata_add([metadata_rev])
@@ -1166,13 +1167,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
         expected_metadata = [
-            {
-                "id": data.origin_url_1,
-                "metadata": metadata,
-                "tool": data.tools["swh-metadata-detector"],
-                "from_revision": data.revision_id_2,
-                "mappings": ["mapping1"],
-            }
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata,
+                tool=data.tools["swh-metadata-detector"],
+                from_revision=data.revision_id_2,
+                mappings=["mapping1"],
+            )
         ]
 
         assert actual_metadata == expected_metadata
@@ -1194,15 +1195,14 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata,
             mappings=["mapping1"],
         )
-        metadata_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata,
-            "indexer_configuration_id": tool_id,
-            "mappings": ["mapping1"],
-            "from_revision": data.revision_id_2,
-        }
-        metadata_origin2 = metadata_origin.copy()
-        metadata_origin2["id"] = data.origin_url_2
+        metadata_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_revision=data.revision_id_2,
+        )
+        metadata_origin2 = attr.evolve(metadata_origin, id=data.origin_url_2)
 
         # when
         storage.revision_intrinsic_metadata_add([metadata_rev])
@@ -1218,9 +1218,10 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                 [data.origin_url_1, data.origin_url_2, "no://where"]
             )
         )
-        for item in actual_metadata:
-            item["indexer_configuration_id"] = item.pop("tool")["id"]
-        assert actual_metadata == [metadata_origin2]
+        assert [
+            attr.evolve(m, indexer_configuration_id=cast(Dict, m.tool)["id"], tool=None)
+            for m in actual_metadata
+        ] == [metadata_origin2]
 
     def test_origin_intrinsic_metadata_delete_nonexisting(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
@@ -1248,13 +1249,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=[],
             indexer_configuration_id=tool_id,
         )
-        metadata_origin_v1 = {
-            "id": data.origin_url_1,
-            "metadata": metadata_v1.copy(),
-            "indexer_configuration_id": tool_id,
-            "mappings": [],
-            "from_revision": data.revision_id_1,
-        }
+        metadata_origin_v1 = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata_v1.copy(),
+            indexer_configuration_id=tool_id,
+            mappings=[],
+            from_revision=data.revision_id_1,
+        )
 
         # given
         storage.revision_intrinsic_metadata_add([metadata_rev_v1])
@@ -1266,13 +1267,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
         expected_metadata_v1 = [
-            {
-                "id": data.origin_url_1,
-                "metadata": metadata_v1,
-                "tool": data.tools["swh-metadata-detector"],
-                "from_revision": data.revision_id_1,
-                "mappings": [],
-            }
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata_v1,
+                tool=data.tools["swh-metadata-detector"],
+                from_revision=data.revision_id_1,
+                mappings=[],
+            )
         ]
 
         assert actual_metadata == expected_metadata_v1
@@ -1283,8 +1284,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             {"name": "test_metadata", "author": "MG",}
         )
         metadata_rev_v2 = attr.evolve(metadata_rev_v1, metadata=metadata_v2)
-        metadata_origin_v2 = metadata_origin_v1.copy()
-        metadata_origin_v2["metadata"] = metadata_v2
+        metadata_origin_v2 = attr.evolve(metadata_origin_v1, metadata=metadata_v2)
 
         storage.revision_intrinsic_metadata_add([metadata_rev_v2])
         storage.origin_intrinsic_metadata_add([metadata_origin_v2])
@@ -1314,13 +1314,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=[],
             indexer_configuration_id=tool_id,
         )
-        metadata_origin_v1 = {
-            "id": data.origin_url_1,
-            "metadata": metadata_v1.copy(),
-            "indexer_configuration_id": tool_id,
-            "mappings": [],
-            "from_revision": data.revision_id_2,
-        }
+        metadata_origin_v1 = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata_v1.copy(),
+            indexer_configuration_id=tool_id,
+            mappings=[],
+            from_revision=data.revision_id_2,
+        )
 
         # given
         storage.revision_intrinsic_metadata_add([metadata_rev_v1])
@@ -1333,13 +1333,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         # then
         expected_metadata_v1 = [
-            {
-                "id": data.origin_url_1,
-                "metadata": metadata_v1,
-                "tool": data.tools["swh-metadata-detector"],
-                "from_revision": data.revision_id_2,
-                "mappings": [],
-            }
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata_v1,
+                tool=data.tools["swh-metadata-detector"],
+                from_revision=data.revision_id_2,
+                mappings=[],
+            )
         ]
         assert actual_metadata == expected_metadata_v1
 
@@ -1349,14 +1349,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             {"name": "test_update_duplicated_metadata", "author": "MG",}
         )
         metadata_rev_v2 = attr.evolve(metadata_rev_v1, metadata=metadata_v2)
-        metadata_origin_v2 = metadata_origin_v1.copy()
-        metadata_origin_v2 = {
-            "id": data.origin_url_1,
-            "metadata": metadata_v2.copy(),
-            "indexer_configuration_id": tool_id,
-            "mappings": ["npm"],
-            "from_revision": data.revision_id_1,
-        }
+        metadata_origin_v2 = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata_v2.copy(),
+            indexer_configuration_id=tool_id,
+            mappings=["npm"],
+            from_revision=data.revision_id_1,
+        )
 
         storage.revision_intrinsic_metadata_add([metadata_rev_v2], conflict_update=True)
         storage.origin_intrinsic_metadata_add(
@@ -1368,13 +1367,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
         expected_metadata_v2 = [
-            {
-                "id": data.origin_url_1,
-                "metadata": metadata_v2,
-                "tool": data.tools["swh-metadata-detector"],
-                "from_revision": data.revision_id_1,
-                "mappings": ["npm"],
-            }
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata_v2,
+                tool=data.tools["swh-metadata-detector"],
+                from_revision=data.revision_id_1,
+                mappings=["npm"],
+            )
         ]
 
         # metadata did change as the v2 was used to overwrite v1
@@ -1389,11 +1388,11 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         ids = list(range(10))
 
-        example_data1 = {
+        example_data1: Dict[str, Any] = {
             "metadata": {"version": None, "name": None,},
             "mappings": [],
         }
-        example_data2 = {
+        example_data2: Dict[str, Any] = {
             "metadata": {"version": "v1.1.1", "name": "foo",},
             "mappings": [],
         }
@@ -1406,21 +1405,21 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
         data_v1 = [
-            {
-                "id": "file:///tmp/origin%d" % id_,
-                "from_revision": data.revision_id_2,
+            OriginIntrinsicMetadataRow(
+                id="file:///tmp/origin%d" % id_,
+                from_revision=data.revision_id_2,
+                indexer_configuration_id=tool_id,
                 **example_data1,
-                "indexer_configuration_id": tool_id,
-            }
+            )
             for id_ in ids
         ]
         data_v2 = [
-            {
-                "id": "file:///tmp/origin%d" % id_,
-                "from_revision": data.revision_id_2,
+            OriginIntrinsicMetadataRow(
+                id="file:///tmp/origin%d" % id_,
+                from_revision=data.revision_id_2,
+                indexer_configuration_id=tool_id,
                 **example_data2,
-                "indexer_configuration_id": tool_id,
-            }
+            )
             for id_ in ids
         ]
 
@@ -1438,12 +1437,12 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         actual_data = list(storage.origin_intrinsic_metadata_get(origins))
 
         expected_data_v1 = [
-            {
-                "id": "file:///tmp/origin%d" % id_,
-                "from_revision": data.revision_id_2,
+            OriginIntrinsicMetadataRow(
+                id="file:///tmp/origin%d" % id_,
+                from_revision=data.revision_id_2,
+                tool=data.tools["swh-metadata-detector"],
                 **example_data1,
-                "tool": data.tools["swh-metadata-detector"],
-            }
+            )
             for id_ in ids
         ]
 
@@ -1468,17 +1467,17 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         actual_data = list(storage.origin_intrinsic_metadata_get(origins))
 
         expected_data_v2 = [
-            {
-                "id": "file:///tmp/origin%d" % id_,
-                "from_revision": data.revision_id_2,
+            OriginIntrinsicMetadataRow(
+                id="file:///tmp/origin%d" % id_,
+                from_revision=data.revision_id_2,
+                tool=data.tools["swh-metadata-detector"],
                 **example_data2,
-                "tool": data.tools["swh-metadata-detector"],
-            }
+            )
             for id_ in ids
         ]
 
         assert len(actual_data) == len(expected_data_v2)
-        assert sorted(actual_data, key=lambda x: x["id"]) == expected_data_v2
+        assert sorted(actual_data, key=lambda x: x.id) == expected_data_v2
 
     def test_origin_intrinsic_metadata_add__duplicate_twice(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
@@ -1497,13 +1496,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=["mapping1"],
             indexer_configuration_id=tool_id,
         )
-        metadata_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata,
-            "indexer_configuration_id": tool_id,
-            "mappings": ["mapping1"],
-            "from_revision": data.revision_id_2,
-        }
+        metadata_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_revision=data.revision_id_2,
+        )
 
         # when
         storage.revision_intrinsic_metadata_add([metadata_rev])
@@ -1527,13 +1526,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=[],
             indexer_configuration_id=tool_id,
         )
-        metadata1_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata1,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-            "from_revision": data.revision_id_1,
-        }
+        metadata1_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata1,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+            from_revision=data.revision_id_1,
+        )
         metadata2 = {
             "author": "Jane Doe",
         }
@@ -1543,13 +1542,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=[],
             indexer_configuration_id=tool_id,
         )
-        metadata2_origin = {
-            "id": data.origin_url_2,
-            "metadata": metadata2,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-            "from_revision": data.revision_id_2,
-        }
+        metadata2_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_2,
+            metadata=metadata2,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+            from_revision=data.revision_id_2,
+        )
 
         # when
         storage.revision_intrinsic_metadata_add([metadata1_rev])
@@ -1559,11 +1558,11 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         # then
         search = storage.origin_intrinsic_metadata_search_fulltext
-        assert set([res["id"] for res in search(["Doe"])]) == set(
+        assert set([res.id for res in search(["Doe"])]) == set(
             [data.origin_url_1, data.origin_url_2]
         )
-        assert [res["id"] for res in search(["John", "Doe"])] == [data.origin_url_1]
-        assert [res["id"] for res in search(["John"])] == [data.origin_url_1]
+        assert [res.id for res in search(["John", "Doe"])] == [data.origin_url_1]
+        assert [res.id for res in search(["John"])] == [data.origin_url_1]
         assert not list(search(["John", "Jane"]))
 
     def test_origin_intrinsic_metadata_search_fulltext_rank(
@@ -1584,13 +1583,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=[],
             indexer_configuration_id=tool_id,
         )
-        metadata1_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata1,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-            "from_revision": data.revision_id_1,
-        }
+        metadata1_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata1,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+            from_revision=data.revision_id_1,
+        )
         metadata2 = {"author": ["Random Person", "Jane Doe",]}
         metadata2_rev = RevisionIntrinsicMetadataRow(
             id=data.revision_id_2,
@@ -1598,13 +1597,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=[],
             indexer_configuration_id=tool_id,
         )
-        metadata2_origin = {
-            "id": data.origin_url_2,
-            "metadata": metadata2,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-            "from_revision": data.revision_id_2,
-        }
+        metadata2_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_2,
+            metadata=metadata2,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+            from_revision=data.revision_id_2,
+        )
 
         # when
         storage.revision_intrinsic_metadata_add([metadata1_rev])
@@ -1614,17 +1613,17 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         # then
         search = storage.origin_intrinsic_metadata_search_fulltext
-        assert [res["id"] for res in search(["Doe"])] == [
+        assert [res.id for res in search(["Doe"])] == [
             data.origin_url_1,
             data.origin_url_2,
         ]
-        assert [res["id"] for res in search(["Doe"], limit=1)] == [data.origin_url_1]
-        assert [res["id"] for res in search(["John"])] == [data.origin_url_1]
-        assert [res["id"] for res in search(["Jane"])] == [
+        assert [res.id for res in search(["Doe"], limit=1)] == [data.origin_url_1]
+        assert [res.id for res in search(["John"])] == [data.origin_url_1]
+        assert [res.id for res in search(["Jane"])] == [
             data.origin_url_2,
             data.origin_url_1,
         ]
-        assert [res["id"] for res in search(["John", "Jane"])] == [data.origin_url_1]
+        assert [res.id for res in search(["John", "Jane"])] == [data.origin_url_1]
 
     def _fill_origin_intrinsic_metadata(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
@@ -1643,13 +1642,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=["npm"],
             indexer_configuration_id=tool1_id,
         )
-        metadata1_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata1,
-            "mappings": ["npm"],
-            "indexer_configuration_id": tool1_id,
-            "from_revision": data.revision_id_1,
-        }
+        metadata1_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata1,
+            mappings=["npm"],
+            indexer_configuration_id=tool1_id,
+            from_revision=data.revision_id_1,
+        )
         metadata2 = {
             "@context": "foo",
             "author": "Jane Doe",
@@ -1660,13 +1659,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=["npm", "gemspec"],
             indexer_configuration_id=tool2_id,
         )
-        metadata2_origin = {
-            "id": data.origin_url_2,
-            "metadata": metadata2,
-            "mappings": ["npm", "gemspec"],
-            "indexer_configuration_id": tool2_id,
-            "from_revision": data.revision_id_2,
-        }
+        metadata2_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_2,
+            metadata=metadata2,
+            mappings=["npm", "gemspec"],
+            indexer_configuration_id=tool2_id,
+            from_revision=data.revision_id_2,
+        )
         metadata3 = {
             "@context": "foo",
         }
@@ -1676,13 +1675,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             mappings=["npm", "gemspec"],
             indexer_configuration_id=tool2_id,
         )
-        metadata3_origin = {
-            "id": data.origin_url_3,
-            "metadata": metadata3,
-            "mappings": ["pkg-info"],
-            "indexer_configuration_id": tool2_id,
-            "from_revision": data.revision_id_3,
-        }
+        metadata3_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_3,
+            metadata=metadata3,
+            mappings=["pkg-info"],
+            indexer_configuration_id=tool2_id,
+            from_revision=data.revision_id_3,
+        )
 
         storage.revision_intrinsic_metadata_add([metadata1_rev])
         storage.origin_intrinsic_metadata_add([metadata1_origin])
@@ -1703,93 +1702,92 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # test pagination
         # no 'page_token' param, return all origins
         result = endpoint(ids_only=True)
-        assert result["origins"] == [
-            data.origin_url_1,
-            data.origin_url_2,
-            data.origin_url_3,
-        ]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2, data.origin_url_3,],
+            next_page_token=None,
+        )
 
         # 'page_token' is < than origin_1, return everything
         result = endpoint(page_token=data.origin_url_1[:-1], ids_only=True)
-        assert result["origins"] == [
-            data.origin_url_1,
-            data.origin_url_2,
-            data.origin_url_3,
-        ]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2, data.origin_url_3,],
+            next_page_token=None,
+        )
 
         # 'page_token' is origin_3, return nothing
         result = endpoint(page_token=data.origin_url_3, ids_only=True)
-        assert not result["origins"]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[], next_page_token=None)
 
         # test limit argument
         result = endpoint(page_token=data.origin_url_1[:-1], limit=2, ids_only=True)
-        assert result["origins"] == [data.origin_url_1, data.origin_url_2]
-        assert result["next_page_token"] == result["origins"][-1]
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2],
+            next_page_token=data.origin_url_2,
+        )
 
         result = endpoint(page_token=data.origin_url_1, limit=2, ids_only=True)
-        assert result["origins"] == [data.origin_url_2, data.origin_url_3]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_2, data.origin_url_3], next_page_token=None,
+        )
 
         result = endpoint(page_token=data.origin_url_2, limit=2, ids_only=True)
-        assert result["origins"] == [data.origin_url_3]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[data.origin_url_3], next_page_token=None,)
 
         # test mappings filtering
         result = endpoint(mappings=["npm"], ids_only=True)
-        assert result["origins"] == [data.origin_url_1, data.origin_url_2]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2], next_page_token=None,
+        )
 
         result = endpoint(mappings=["npm", "gemspec"], ids_only=True)
-        assert result["origins"] == [data.origin_url_1, data.origin_url_2]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2], next_page_token=None,
+        )
 
         result = endpoint(mappings=["gemspec"], ids_only=True)
-        assert result["origins"] == [data.origin_url_2]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[data.origin_url_2], next_page_token=None,)
 
         result = endpoint(mappings=["pkg-info"], ids_only=True)
-        assert result["origins"] == [data.origin_url_3]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[data.origin_url_3], next_page_token=None,)
 
         result = endpoint(mappings=["foobar"], ids_only=True)
-        assert not result["origins"]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[], next_page_token=None,)
 
         # test pagination + mappings
         result = endpoint(mappings=["npm"], limit=1, ids_only=True)
-        assert result["origins"] == [data.origin_url_1]
-        assert result["next_page_token"] == result["origins"][-1]
+        assert result == PagedResult(
+            results=[data.origin_url_1], next_page_token=data.origin_url_1,
+        )
 
         # test tool filtering
         result = endpoint(tool_ids=[tool1["id"]], ids_only=True)
-        assert result["origins"] == [data.origin_url_1]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[data.origin_url_1], next_page_token=None,)
 
         result = endpoint(tool_ids=[tool2["id"]], ids_only=True)
-        assert sorted(result["origins"]) == [data.origin_url_2, data.origin_url_3]
-        assert "next_page_token" not in result
+        assert sorted(result.results) == [data.origin_url_2, data.origin_url_3]
+        assert result.next_page_token is None
 
         result = endpoint(tool_ids=[tool1["id"], tool2["id"]], ids_only=True)
-        assert sorted(result["origins"]) == [
+        assert sorted(result.results) == [
             data.origin_url_1,
             data.origin_url_2,
             data.origin_url_3,
         ]
-        assert "next_page_token" not in result
+        assert result.next_page_token is None
 
         # test ids_only=False
-        assert endpoint(mappings=["gemspec"])["origins"] == [
-            {
-                "id": data.origin_url_2,
-                "metadata": {"@context": "foo", "author": "Jane Doe",},
-                "mappings": ["npm", "gemspec"],
-                "tool": tool2,
-                "from_revision": data.revision_id_2,
-            }
-        ]
+        assert endpoint(mappings=["gemspec"]) == PagedResult(
+            results=[
+                OriginIntrinsicMetadataRow(
+                    id=data.origin_url_2,
+                    metadata={"@context": "foo", "author": "Jane Doe",},
+                    mappings=["npm", "gemspec"],
+                    tool=tool2,
+                    from_revision=data.revision_id_2,
+                )
+            ],
+            next_page_token=None,
+        )
 
     def test_origin_intrinsic_metadata_stats(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]

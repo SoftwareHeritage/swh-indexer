@@ -7,7 +7,10 @@ from unittest.mock import patch
 
 from swh.indexer.metadata import OriginMetadataIndexer
 from swh.indexer.storage.interface import IndexerStorageInterface
-from swh.indexer.storage.model import RevisionIntrinsicMetadataRow
+from swh.indexer.storage.model import (
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 from swh.model.model import Origin
 from swh.storage.interface import StorageInterface
 
@@ -33,13 +36,13 @@ def test_origin_metadata_indexer(
     rev_metadata = RevisionIntrinsicMetadataRow(
         id=rev_id, tool=tool, metadata=YARN_PARSER_METADATA, mappings=["npm"],
     )
-    origin_metadata = {
-        "id": origin,
-        "tool": tool,
-        "from_revision": rev_id,
-        "metadata": YARN_PARSER_METADATA,
-        "mappings": ["npm"],
-    }
+    origin_metadata = OriginIntrinsicMetadataRow(
+        id=origin,
+        tool=tool,
+        from_revision=rev_id,
+        metadata=YARN_PARSER_METADATA,
+        mappings=["npm"],
+    )
 
     rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
     for rev_result in rev_results:
@@ -49,7 +52,8 @@ def test_origin_metadata_indexer(
 
     orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
     for orig_result in orig_results:
-        del orig_result["tool"]["id"]
+        assert orig_result.tool
+        del orig_result.tool["id"]
     assert orig_results == [origin_metadata]
 
 
@@ -65,11 +69,11 @@ def test_origin_metadata_indexer_duplicate_origin(
     origin = "https://github.com/librariesio/yarn-parser"
     rev_id = REVISION.id
 
-    results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert len(results) == 1
+    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
+    assert len(rev_results) == 1
 
-    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
-    assert len(results) == 1
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert len(orig_results) == 1
 
 
 def test_origin_metadata_indexer_missing_head(
@@ -112,14 +116,14 @@ def test_origin_metadata_indexer_partial_missing_head(
         indexer.idx_storage.origin_intrinsic_metadata_get([origin1, origin2])
     )
     for orig_result in orig_results:
-        del orig_result["tool"]
         assert orig_results == [
-            {
-                "id": origin2,
-                "from_revision": rev_id,
-                "metadata": YARN_PARSER_METADATA,
-                "mappings": ["npm"],
-            }
+            OriginIntrinsicMetadataRow(
+                id=origin2,
+                from_revision=rev_id,
+                metadata=YARN_PARSER_METADATA,
+                mappings=["npm"],
+                tool=orig_results[0].tool,
+            )
         ]
 
 
@@ -136,13 +140,13 @@ def test_origin_metadata_indexer_duplicate_revision(
 
     rev_id = REVISION.id
 
-    results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert len(results) == 1
+    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
+    assert len(rev_results) == 1
 
-    results = list(
+    orig_results = list(
         indexer.idx_storage.origin_intrinsic_metadata_get([origin1, origin2])
     )
-    assert len(results) == 2
+    assert len(orig_results) == 2
 
 
 def test_origin_metadata_indexer_no_metadata_file(
@@ -156,11 +160,11 @@ def test_origin_metadata_indexer_no_metadata_file(
 
     rev_id = REVISION.id
 
-    results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert results == []
+    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
+    assert rev_results == []
 
-    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
-    assert results == []
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert orig_results == []
 
 
 def test_origin_metadata_indexer_no_metadata(
@@ -178,11 +182,11 @@ def test_origin_metadata_indexer_no_metadata(
 
     rev_id = REVISION.id
 
-    results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert results == []
+    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
+    assert rev_results == []
 
-    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
-    assert results == []
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert orig_results == []
 
 
 def test_origin_metadata_indexer_error(
@@ -200,11 +204,11 @@ def test_origin_metadata_indexer_error(
 
     rev_id = REVISION.id
 
-    results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert results == []
+    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
+    assert rev_results == []
 
-    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
-    assert results == []
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert orig_results == []
 
 
 def test_origin_metadata_indexer_delete_metadata(
@@ -217,20 +221,20 @@ def test_origin_metadata_indexer_delete_metadata(
 
     rev_id = REVISION.id
 
-    results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert results != []
+    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
+    assert rev_results != []
 
-    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
-    assert results != []
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert orig_results != []
 
     with patch("swh.indexer.metadata_dictionary.npm.NpmMapping.filename", b"foo.json"):
         indexer.run([origin])
 
-    results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert results == []
+    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
+    assert rev_results == []
 
-    results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
-    assert results == []
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert orig_results == []
 
 
 def test_origin_metadata_indexer_unknown_origin(

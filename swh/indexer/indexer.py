@@ -16,7 +16,6 @@ from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model import hashutil
-from swh.model.model import Revision
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
 from swh.scheduler import CONFIG as SWH_CONFIG
@@ -218,9 +217,7 @@ class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
         else:
             return []
 
-    def index(
-        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> List[TResult]:
+    def index(self, id, data: Optional[bytes] = None, **kwargs) -> List[TResult]:
         """Index computation for the id and associated raw data.
 
         Args:
@@ -550,13 +547,13 @@ class OriginIndexer(BaseIndexer[TResult], Generic[TResult]):
             summary.update(summary_persist)
         return summary
 
-    def index_list(self, origins: List[Any], **kwargs: Any) -> List[TResult]:
+    def index_list(self, origin_urls: List[str], **kwargs) -> List[TResult]:
         results = []
-        for origin in origins:
+        for origin_url in origin_urls:
             try:
-                results.extend(self.index(origin, **kwargs))
+                results.extend(self.index(origin_url, **kwargs))
             except Exception:
-                self.log.exception("Problem when processing origin %s", origin)
+                self.log.exception("Problem when processing origin %s", origin_url)
                 raise
         return results
 

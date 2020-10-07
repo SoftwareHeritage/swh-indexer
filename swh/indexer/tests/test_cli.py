@@ -14,7 +14,10 @@ from confluent_kafka import Consumer, Producer
 
 from swh.indexer.cli import indexer_cli_group
 from swh.indexer.storage.interface import IndexerStorageInterface
-from swh.indexer.storage.model import RevisionIntrinsicMetadataRow
+from swh.indexer.storage.model import (
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 from swh.journal.serializers import value_to_kafka
 from swh.model.hashutil import hash_to_bytes
 
@@ -38,13 +41,13 @@ def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List
     tools = idx_storage.indexer_configuration_add(tools)
 
     origin_metadata = [
-        {
-            "id": "file://dev/%04d" % origin_id,
-            "from_revision": hash_to_bytes("abcd{:0>4}".format(origin_id)),
-            "indexer_configuration_id": tools[origin_id % 2]["id"],
-            "metadata": {"name": "origin %d" % origin_id},
-            "mappings": ["mapping%d" % (origin_id % 10)],
-        }
+        OriginIntrinsicMetadataRow(
+            id="file://dev/%04d" % origin_id,
+            from_revision=hash_to_bytes("abcd{:0>4}".format(origin_id)),
+            indexer_configuration_id=tools[origin_id % 2]["id"],
+            metadata={"name": "origin %d" % origin_id},
+            mappings=["mapping%d" % (origin_id % 10)],
+        )
         for origin_id in range(nb_rows)
     ]
     revision_metadata = [
