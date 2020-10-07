@@ -5,7 +5,6 @@
 
 
 from collections import Counter
-import itertools
 import json
 from typing import Dict, Iterable, List, Optional, Tuple
 
@@ -328,14 +327,20 @@ class IndexerStorage:
 
     @timed
     @db_transaction()
-    def content_ctags_missing(self, ctags, db=None, cur=None):
+    def content_ctags_missing(
+        self, ctags: Iterable[Dict], db=None, cur=None
+    ) -> List[Tuple[Sha1, int]]:
         return [obj[0] for obj in db.content_ctags_missing_from_list(ctags, cur)]
 
     @timed
     @db_transaction()
-    def content_ctags_get(self, ids, db=None, cur=None):
+    def content_ctags_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[ContentCtagsRow]:
         return [
-            converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
+            ContentCtagsRow.from_dict(
+                converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
+            )
             for c in db.content_ctags_get_from_list(ids, cur)
         ]
 
@@ -343,15 +348,18 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_ctags_add(
-        self, ctags: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        ctags: List[ContentCtagsRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
-        rows = list(itertools.chain.from_iterable(map(converters.ctags_to_db, ctags)))
-        check_id_duplicates(map(ContentCtagsRow.from_dict, rows))
-        ctags.sort(key=lambda m: m["id"])
+        check_id_duplicates(ctags)
+        ctags.sort(key=lambda m: m.id)
 
         db.mktemp_content_ctags(cur)
         db.copy_to(
-            rows,
+            [ctag.to_dict() for ctag in ctags],
             tblname="tmp_content_ctags",
             columns=["id", "name", "kind", "line", "lang", "indexer_configuration_id"],
             cur=cur,
@@ -363,10 +371,17 @@ class IndexerStorage:
     @timed
     @db_transaction()
     def content_ctags_search(
-        self, expression, limit=10, last_sha1=None, db=None, cur=None
-    ):
+        self,
+        expression: str,
+        limit: int = 10,
+        last_sha1: Optional[Sha1] = None,
+        db=None,
+        cur=None,
+    ) -> List[ContentCtagsRow]:
         return [
-            converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
+            ContentCtagsRow.from_dict(
+                converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
+            )
             for obj in db.content_ctags_search(expression, last_sha1, limit, cur=cur)
         ]
 

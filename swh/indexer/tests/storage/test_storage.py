@@ -8,12 +8,14 @@ import math
 import threading
 from typing import Any, Dict, List, Tuple, Union
 
+import attr
 import pytest
 
 from swh.indexer.storage.exc import DuplicateId, IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import (
     BaseRow,
+    ContentCtagsRow,
     ContentLanguageRow,
     ContentLicenseRow,
     ContentMimetypeRow,
@@ -575,18 +577,12 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
     endpoint_type = "content_ctags"
     tool_name = "universal-ctags"
     example_data = [
-        {
-            "ctags": [
-                {"name": "done", "kind": "variable", "line": 119, "lang": "OCaml",}
-            ]
-        },
-        {
-            "ctags": [
-                {"name": "done", "kind": "variable", "line": 100, "lang": "Python",},
-                {"name": "main", "kind": "function", "line": 119, "lang": "Python",},
-            ]
-        },
+        {"name": "done", "kind": "variable", "line": 119, "lang": "OCaml",},
+        {"name": "done", "kind": "variable", "line": 100, "lang": "Python",},
+        {"name": "main", "kind": "function", "line": 119, "lang": "Python",},
     ]
+    row_from_dict = ContentCtagsRow.from_dict
+    dict_from_row = staticmethod(lambda x: x.to_dict())  # type: ignore
 
     # the following tests are disabled because CTAGS behaves differently
     @pytest.mark.skip
@@ -617,119 +613,76 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
         tool = data.tools["universal-ctags"]
         tool_id = tool["id"]
 
-        ctag1 = {
-            "id": data.sha1_1,
-            "indexer_configuration_id": tool_id,
-            "ctags": [
+        ctags1 = [
+            ContentCtagsRow(
+                id=data.sha1_1,
+                indexer_configuration_id=tool_id,
+                **kwargs,  # type: ignore
+            )
+            for kwargs in [
                 {"name": "hello", "kind": "function", "line": 133, "lang": "Python",},
                 {"name": "counter", "kind": "variable", "line": 119, "lang": "Python",},
                 {"name": "hello", "kind": "variable", "line": 210, "lang": "Python",},
-            ],
-        }
+            ]
+        ]
+        ctags1_with_tool = [
+            attr.evolve(ctag, indexer_configuration_id=None, tool=tool)
+            for ctag in ctags1
+        ]
 
-        ctag2 = {
-            "id": data.sha1_2,
-            "indexer_configuration_id": tool_id,
-            "ctags": [
+        ctags2 = [
+            ContentCtagsRow(
+                id=data.sha1_2,
+                indexer_configuration_id=tool_id,
+                **kwargs,  # type: ignore
+            )
+            for kwargs in [
                 {"name": "hello", "kind": "variable", "line": 100, "lang": "C",},
                 {"name": "result", "kind": "variable", "line": 120, "lang": "C",},
-            ],
-        }
+            ]
+        ]
+        ctags2_with_tool = [
+            attr.evolve(ctag, indexer_configuration_id=None, tool=tool)
+            for ctag in ctags2
+        ]
 
-        storage.content_ctags_add([ctag1, ctag2])
+        storage.content_ctags_add(ctags1 + ctags2)
 
         # 1. when
         actual_ctags = list(storage.content_ctags_search("hello", limit=1))
 
         # 1. then
-        assert actual_ctags == [
-            {
-                "id": ctag1["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "function",
-                "line": 133,
-                "lang": "Python",
-            }
-        ]
+        assert actual_ctags == [ctags1_with_tool[0]]
 
         # 2. when
         actual_ctags = list(
-            storage.content_ctags_search("hello", limit=1, last_sha1=ctag1["id"])
+            storage.content_ctags_search("hello", limit=1, last_sha1=data.sha1_1)
         )
 
         # 2. then
-        assert actual_ctags == [
-            {
-                "id": ctag2["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "variable",
-                "line": 100,
-                "lang": "C",
-            }
-        ]
+        assert actual_ctags == [ctags2_with_tool[0]]
 
         # 3. when
         actual_ctags = list(storage.content_ctags_search("hello"))
 
         # 3. then
         assert actual_ctags == [
-            {
-                "id": ctag1["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "function",
-                "line": 133,
-                "lang": "Python",
-            },
-            {
-                "id": ctag1["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "variable",
-                "line": 210,
-                "lang": "Python",
-            },
-            {
-                "id": ctag2["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "variable",
-                "line": 100,
-                "lang": "C",
-            },
+            ctags1_with_tool[0],
+            ctags1_with_tool[2],
+            ctags2_with_tool[0],
         ]
 
         # 4. when
         actual_ctags = list(storage.content_ctags_search("counter"))
 
         # then
-        assert actual_ctags == [
-            {
-                "id": ctag1["id"],
-                "tool": tool,
-                "name": "counter",
-                "kind": "variable",
-                "line": 119,
-                "lang": "Python",
-            }
-        ]
+        assert actual_ctags == [ctags1_with_tool[1]]
 
         # 5. when
         actual_ctags = list(storage.content_ctags_search("result", limit=1))
 
         # then
-        assert actual_ctags == [
-            {
-                "id": ctag2["id"],
-                "tool": tool,
-                "name": "result",
-                "kind": "variable",
-                "line": 120,
-                "lang": "C",
-            }
-        ]
+        assert actual_ctags == [ctags2_with_tool[1]]
 
     def test_content_ctags_search_no_result(
         self, swh_indexer_storage: IndexerStorageInterface
@@ -748,69 +701,42 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
         tool = data.tools["universal-ctags"]
         tool_id = tool["id"]
 
-        ctag_v1 = {
-            "id": data.sha1_2,
-            "indexer_configuration_id": tool_id,
-            "ctags": [
-                {"name": "done", "kind": "variable", "line": 100, "lang": "Scheme",}
-            ],
-        }
+        ctag1 = ContentCtagsRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool_id,
+            name="done",
+            kind="variable",
+            line=100,
+            lang="Scheme",
+        )
+        ctag1_with_tool = attr.evolve(ctag1, indexer_configuration_id=None, tool=tool)
 
         # given
-        storage.content_ctags_add([ctag_v1])
-        storage.content_ctags_add([ctag_v1])  # conflict does nothing
+        storage.content_ctags_add([ctag1])
+        storage.content_ctags_add([ctag1])  # conflict does nothing
 
         # when
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
         # then
-        expected_ctags = [
-            {
-                "id": data.sha1_2,
-                "name": "done",
-                "kind": "variable",
-                "line": 100,
-                "lang": "Scheme",
-                "tool": tool,
-            }
-        ]
-
-        assert actual_ctags == expected_ctags
+        assert actual_ctags == [ctag1_with_tool]
 
         # given
-        ctag_v2 = ctag_v1.copy()
-        ctag_v2.update(
-            {
-                "ctags": [
-                    {"name": "defn", "kind": "function", "line": 120, "lang": "Scheme",}
-                ]
-            }
+        ctag2 = ContentCtagsRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool_id,
+            name="defn",
+            kind="function",
+            line=120,
+            lang="Scheme",
         )
+        ctag2_with_tool = attr.evolve(ctag2, indexer_configuration_id=None, tool=tool)
 
-        storage.content_ctags_add([ctag_v2])
-
-        expected_ctags = [
-            {
-                "id": data.sha1_2,
-                "name": "done",
-                "kind": "variable",
-                "line": 100,
-                "lang": "Scheme",
-                "tool": tool,
-            },
-            {
-                "id": data.sha1_2,
-                "name": "defn",
-                "kind": "function",
-                "line": 120,
-                "lang": "Scheme",
-                "tool": tool,
-            },
-        ]
+        storage.content_ctags_add([ctag2])
 
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
-        assert actual_ctags == expected_ctags
+        assert actual_ctags == [ctag1_with_tool, ctag2_with_tool]
 
     def test_content_ctags_add__update_in_place(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
@@ -820,89 +746,49 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
         tool = data.tools["universal-ctags"]
         tool_id = tool["id"]
 
-        ctag_v1 = {
-            "id": data.sha1_2,
-            "indexer_configuration_id": tool_id,
-            "ctags": [
-                {"name": "done", "kind": "variable", "line": 100, "lang": "Scheme",}
-            ],
-        }
+        ctag1 = ContentCtagsRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool_id,
+            name="done",
+            kind="variable",
+            line=100,
+            lang="Scheme",
+        )
+        ctag1_with_tool = attr.evolve(ctag1, indexer_configuration_id=None, tool=tool)
 
         # given
-        storage.content_ctags_add([ctag_v1])
+        storage.content_ctags_add([ctag1])
 
         # when
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
         # then
-        expected_ctags = [
-            {
-                "id": data.sha1_2,
-                "name": "done",
-                "kind": "variable",
-                "line": 100,
-                "lang": "Scheme",
-                "tool": tool,
-            }
-        ]
-        assert actual_ctags == expected_ctags
+        assert actual_ctags == [ctag1_with_tool]
 
         # given
-        ctag_v2 = ctag_v1.copy()
-        ctag_v2.update(
-            {
-                "ctags": [
-                    {
-                        "name": "done",
-                        "kind": "variable",
-                        "line": 100,
-                        "lang": "Scheme",
-                    },
-                    {
-                        "name": "defn",
-                        "kind": "function",
-                        "line": 120,
-                        "lang": "Scheme",
-                    },
-                ]
-            }
+        ctag2 = ContentCtagsRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool_id,
+            name="defn",
+            kind="function",
+            line=120,
+            lang="Scheme",
         )
+        ctag2_with_tool = attr.evolve(ctag2, indexer_configuration_id=None, tool=tool)
 
-        storage.content_ctags_add([ctag_v2], conflict_update=True)
+        storage.content_ctags_add([ctag1, ctag2], conflict_update=True)
 
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
-        # ctag did change as the v2 was used to overwrite v1
-        expected_ctags = [
-            {
-                "id": data.sha1_2,
-                "name": "done",
-                "kind": "variable",
-                "line": 100,
-                "lang": "Scheme",
-                "tool": tool,
-            },
-            {
-                "id": data.sha1_2,
-                "name": "defn",
-                "kind": "function",
-                "line": 120,
-                "lang": "Scheme",
-                "tool": tool,
-            },
-        ]
-        assert actual_ctags == expected_ctags
+        assert actual_ctags == [ctag1_with_tool, ctag2_with_tool]
 
     def test_add_empty(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
         (storage, data) = swh_indexer_storage_with_data
         etype = self.endpoint_type
-        tool = data.tools[self.tool_name]
 
-        summary = endpoint(storage, etype, "add")(
-            [{"id": data.sha1_2, "indexer_configuration_id": tool["id"], "ctags": [],}]
-        )
+        summary = endpoint(storage, etype, "add")([])
         assert summary == {"content_ctags:add": 0}
 
         actual_ctags = list(endpoint(storage, etype, "get")([data.sha1_2]))

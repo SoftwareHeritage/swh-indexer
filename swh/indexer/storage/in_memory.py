@@ -27,7 +27,7 @@ from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import SHA1_SIZE, Sha1Git
 from swh.storage.utils import get_partition_bounds_bytes
 
-from . import MAPPING_NAMES, check_id_duplicates, converters
+from . import MAPPING_NAMES, check_id_duplicates
 from .exc import IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
 from .model import (
@@ -302,29 +302,21 @@ class IndexerStorage:
         added = self._languages.add(languages, conflict_update)
         return {"content_language:add": added}
 
-    def content_ctags_missing(self, ctags):
+    def content_ctags_missing(self, ctags: Iterable[Dict]) -> List[Tuple[Sha1, int]]:
         return self._content_ctags.missing(ctags)
 
-    def content_ctags_get(self, ids):
-        results = []
-        for item in self._content_ctags.get(ids):
-            results.append({"id": item.id, "tool": item.tool, **item.to_dict()})
-        return results
+    def content_ctags_get(self, ids: Iterable[Sha1]) -> List[ContentCtagsRow]:
+        return self._content_ctags.get(ids)
 
     def content_ctags_add(
-        self, ctags: List[Dict], conflict_update: bool = False
+        self, ctags: List[ContentCtagsRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(ctags)
-        added = self._content_ctags.add(
-            map(
-                ContentCtagsRow.from_dict,
-                itertools.chain.from_iterable(map(converters.ctags_to_db, ctags)),
-            ),
-            conflict_update,
-        )
+        added = self._content_ctags.add(ctags, conflict_update,)
         return {"content_ctags:add": added}
 
-    def content_ctags_search(self, expression, limit=10, last_sha1=None):
+    def content_ctags_search(
+        self, expression: str, limit: int = 10, last_sha1: Optional[Sha1] = None
+    ) -> List[ContentCtagsRow]:
         nb_matches = 0
         items_per_id: Dict[Tuple[Sha1Git, ToolId], List[ContentCtagsRow]] = {}
         for item in sorted(self._content_ctags.get_all()):
@@ -336,21 +328,14 @@ class IndexerStorage:
 
         results = []
         for items in items_per_id.values():
-            ctags = []
             for item in items:
                 if item.name != expression:
                     continue
                 nb_matches += 1
                 if nb_matches > limit:
                     break
-                item_dict = item.to_dict()
-                id_ = item_dict.pop("id")
-                tool = item_dict.pop("tool")
-                ctags.append(item_dict)
+                results.append(item)
 
-            if ctags:
-                for ctag in ctags:
-                    results.append({"id": id_, "tool": tool, **ctag})
         return results
 
     def content_fossology_license_get(

@@ -8,6 +8,7 @@ from typing import Dict, Iterable, List, Optional, Tuple, TypeVar
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
 from swh.indexer.storage.model import (
+    ContentCtagsRow,
     ContentLanguageRow,
     ContentLicenseRow,
     ContentMimetypeRow,
@@ -159,7 +160,7 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content/ctags/missing")
-    def content_ctags_missing(self, ctags):
+    def content_ctags_missing(self, ctags: Iterable[Dict]) -> List[Tuple[Sha1, int]]:
         """List ctags missing from storage.
 
         Args:
@@ -169,28 +170,22 @@ class IndexerStorageInterface:
                 - **indexer_configuration_id** (int): tool used to compute
                   the results
 
-        Yields:
-            an iterable of missing id for the tuple (id,
+        Returns:
+            list of missing id for the tuple (id,
             indexer_configuration_id)
 
         """
         ...
 
     @remote_api_endpoint("content/ctags")
-    def content_ctags_get(self, ids):
+    def content_ctags_get(self, ids: Iterable[Sha1]) -> List[ContentCtagsRow]:
         """Retrieve ctags per id.
 
         Args:
             ids (iterable): sha1 checksums
 
-        Yields:
-            Dictionaries with keys:
-
-                - **id** (bytes): content's identifier
-                - **name** (str): symbol's name
-                - **kind** (str): symbol's kind
-                - **lang** (str): language for that content
-                - **tool** (dict): tool used to compute the ctags' info
+        Returns:
+            list of language rows
 
 
         """
@@ -198,7 +193,7 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint("content/ctags/add")
     def content_ctags_add(
-        self, ctags: List[Dict], conflict_update: bool = False
+        self, ctags: List[ContentCtagsRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add ctags not present in storage
 
@@ -216,7 +211,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content/ctags/search")
-    def content_ctags_search(self, expression, limit=10, last_sha1=None):
+    def content_ctags_search(
+        self, expression: str, limit: int = 10, last_sha1: Optional[Sha1] = None
+    ) -> List[ContentCtagsRow]:
         """Search through content's raw ctags symbols.
 
         Args:
@@ -224,7 +221,7 @@ class IndexerStorageInterface:
             limit (int): Number of rows to return (default to 10).
             last_sha1 (str): Offset from which retrieving data (default to '').
 
-        Yields:
+        Returns:
             rows of ctags including id, name, lang, kind, line, etc...
 
         """

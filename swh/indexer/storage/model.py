@@ -56,7 +56,8 @@ class BaseRow:
     def unique_key(self) -> Dict:
         if self.indexer_configuration_id is None:
             raise ValueError(
-                "Can only call unique_key() on objects with indexer_configuration_id."
+                "Can only call unique_key() on objects without "
+                "indexer_configuration_id."
             )
         return {key: getattr(self, key) for key in self.UNIQUE_KEY_FIELDS}
 
