@@ -278,14 +278,20 @@ class IndexerStorage:
 
     @timed
     @db_transaction()
-    def content_language_missing(self, languages, db=None, cur=None):
+    def content_language_missing(
+        self, languages: Iterable[Dict], db=None, cur=None
+    ) -> List[Tuple[Sha1, int]]:
         return [obj[0] for obj in db.content_language_missing_from_list(languages, cur)]
 
     @timed
     @db_transaction()
-    def content_language_get(self, ids, db=None, cur=None):
+    def content_language_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[ContentLanguageRow]:
         return [
-            converters.db_to_language(dict(zip(db.content_language_cols, c)))
+            ContentLanguageRow.from_dict(
+                converters.db_to_language(dict(zip(db.content_language_cols, c)))
+            )
             for c in db.content_language_get_from_list(ids, cur)
         ]
 
@@ -293,18 +299,22 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_language_add(
-        self, languages: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        languages: List[ContentLanguageRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(map(ContentLanguageRow.from_dict, languages))
-        languages.sort(key=lambda m: m["id"])
+        check_id_duplicates(languages)
+        languages.sort(key=lambda m: m.id)
         db.mktemp_content_language(cur)
         # empty language is mapped to 'unknown'
         db.copy_to(
             (
                 {
-                    "id": lang["id"],
-                    "lang": "unknown" if not lang["lang"] else lang["lang"],
-                    "indexer_configuration_id": lang["indexer_configuration_id"],
+                    "id": lang.id,
+                    "lang": lang.lang or "unknown",
+                    "indexer_configuration_id": lang.indexer_configuration_id,
                 }
                 for lang in languages
             ),

@@ -12,7 +12,12 @@ import pytest
 
 from swh.indexer.storage.exc import DuplicateId, IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
-from swh.indexer.storage.model import BaseRow, ContentLicenseRow, ContentMimetypeRow
+from swh.indexer.storage.model import (
+    BaseRow,
+    ContentLanguageRow,
+    ContentLicenseRow,
+    ContentMimetypeRow,
+)
 from swh.model.hashutil import hash_to_bytes
 
 
@@ -559,6 +564,8 @@ class TestIndexerStorageContentLanguage(StorageETypeTester):
         {"lang": "haskell",},
         {"lang": "common-lisp",},
     ]
+    row_from_dict = ContentLanguageRow.from_dict
+    dict_from_row = staticmethod(lambda x: x.to_dict())  # type: ignore
 
 
 class TestIndexerStorageContentCTags(StorageETypeTester):

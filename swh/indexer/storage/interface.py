@@ -7,7 +7,11 @@ from typing import Dict, Iterable, List, Optional, Tuple, TypeVar
 
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
-from swh.indexer.storage.model import ContentLicenseRow, ContentMimetypeRow
+from swh.indexer.storage.model import (
+    ContentLanguageRow,
+    ContentLicenseRow,
+    ContentMimetypeRow,
+)
 
 TResult = TypeVar("TResult")
 PagedResult = CorePagedResult[TResult, str]
@@ -35,8 +39,8 @@ class IndexerStorageInterface:
               - **indexer_configuration_id** (int): tool used to compute the
                 results
 
-        Yields:
-            tuple (id, indexer_configuration_id): missing id
+        Returns:
+            list of tuple (id, indexer_configuration_id) missing
 
         """
         ...
@@ -97,14 +101,16 @@ class IndexerStorageInterface:
         Args:
             ids: sha1 identifiers
 
-        Yields:
+        Returns:
             mimetype row objects
 
         """
         ...
 
     @remote_api_endpoint("content_language/missing")
-    def content_language_missing(self, languages):
+    def content_language_missing(
+        self, languages: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         """List languages missing from storage.
 
         Args:
@@ -114,41 +120,33 @@ class IndexerStorageInterface:
                 - **indexer_configuration_id** (int): tool used to compute
                   the results
 
-        Yields:
-            an iterable of missing id for the tuple (id,
-            indexer_configuration_id)
+        Returns:
+            list of tuple (id, indexer_configuration_id) missing
 
         """
         ...
 
     @remote_api_endpoint("content_language")
-    def content_language_get(self, ids):
+    def content_language_get(self, ids: Iterable[Sha1]) -> List[ContentLanguageRow]:
         """Retrieve full content language per ids.
 
         Args:
             ids (iterable): sha1 identifier
 
-        Yields:
-            languages (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **lang** (bytes): raw content's language
-                - **tool** (dict): Tool used to compute the language
+        Returns:
+            language row objects
 
         """
         ...
 
     @remote_api_endpoint("content_language/add")
     def content_language_add(
-        self, languages: List[Dict], conflict_update: bool = False
+        self, languages: List[ContentLanguageRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add languages not present in storage.
 
         Args:
-            languages (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1
-                - **lang** (bytes): language detected
+            languages: language row objects
 
             conflict_update (bool): Flag to determine if we want to
                 overwrite (true) or skip duplicates (false, the

@@ -288,19 +288,18 @@ class IndexerStorage:
     def content_mimetype_get(self, ids: Iterable[Sha1]) -> List[ContentMimetypeRow]:
         return self._mimetypes.get(ids)
 
-    def content_language_missing(self, languages):
+    def content_language_missing(
+        self, languages: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         return self._languages.missing(languages)
 
-    def content_language_get(self, ids):
-        return [obj.to_dict() for obj in self._languages.get(ids)]
+    def content_language_get(self, ids: Iterable[Sha1]) -> List[ContentLanguageRow]:
+        return self._languages.get(ids)
 
     def content_language_add(
-        self, languages: List[Dict], conflict_update: bool = False
+        self, languages: List[ContentLanguageRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(languages)
-        added = self._languages.add(
-            map(ContentLanguageRow.from_dict, languages), conflict_update
-        )
+        added = self._languages.add(languages, conflict_update)
         return {"content_language:add": added}
 
     def content_ctags_missing(self, ctags):
