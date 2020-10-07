@@ -3,14 +3,13 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import magic
 
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult, Sha1
 from swh.indexer.storage.model import ContentMimetypeRow
-from swh.model.model import Revision
 
 from .indexer import ContentIndexer, ContentPartitionIndexer
 
@@ -68,7 +67,7 @@ class MixinMimetypeIndexer:
         self.config = merge_configs(DEFAULT_CONFIG, self.config)
 
     def index(
-        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
+        self, id: Sha1, data: Optional[bytes] = None, **kwargs
     ) -> List[ContentMimetypeRow]:
         """Index sha1s' content and store result.
 
@@ -84,7 +83,6 @@ class MixinMimetypeIndexer:
             - encoding: encoding in bytes
 
         """
-        assert isinstance(id, bytes)
         assert data is not None
         properties = compute_mimetype_encoding(data)
         return [

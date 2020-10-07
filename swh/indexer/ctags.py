@@ -5,12 +5,12 @@
 
 import json
 import subprocess
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional
 
 from swh.core.config import merge_configs
+from swh.indexer.storage import Sha1
 from swh.indexer.storage.model import ContentCtagsRow
 from swh.model import hashutil
-from swh.model.model import Revision
 
 from .indexer import ContentIndexer, write_to_temp
 
@@ -92,7 +92,7 @@ class CtagsIndexer(ContentIndexer[ContentCtagsRow]):
         )
 
     def index(
-        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
+        self, id: Sha1, data: Optional[bytes] = None, **kwargs
     ) -> List[ContentCtagsRow]:
         """Index sha1s' content and store result.
 

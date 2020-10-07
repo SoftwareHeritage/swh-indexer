@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from unittest.mock import Mock
 
 import pytest
@@ -15,7 +15,6 @@ from swh.indexer.indexer import (
     RevisionIndexer,
 )
 from swh.indexer.storage import PagedResult, Sha1
-from swh.model.model import Revision
 
 from .utils import BASE_TEST_CONFIG
 
@@ -28,7 +27,7 @@ class CrashingIndexerMixin:
     USE_TOOLS = False
 
     def index(
-        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
+        self, id: Any, data: Optional[Any] = None, **kwargs
     ) -> List[Dict[str, Any]]:
         raise _TestException()
 

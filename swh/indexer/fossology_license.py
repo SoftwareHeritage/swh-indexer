@@ -5,13 +5,12 @@
 
 import logging
 import subprocess
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult, Sha1
 from swh.indexer.storage.model import ContentLicenseRow
 from swh.model import hashutil
-from swh.model.model import Revision
 
 from .indexer import ContentIndexer, ContentPartitionIndexer, write_to_temp
 
@@ -83,7 +82,7 @@ class MixinFossologyLicenseIndexer:
         self.working_directory = self.config["workdir"]
 
     def index(
-        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
+        self, id: Sha1, data: Optional[bytes] = None, **kwargs
     ) -> List[ContentLicenseRow]:
         """Index sha1s' content and store result.
 
@@ -100,7 +99,6 @@ class MixinFossologyLicenseIndexer:
             - indexer_configuration_id (int): tool used to compute the output
 
         """
-        assert isinstance(id, bytes)
         assert data is not None
         with write_to_temp(
             filename=hashutil.hash_to_hex(id),  # use the id as pathname

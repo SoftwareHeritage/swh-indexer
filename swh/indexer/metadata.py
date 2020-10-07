@@ -23,14 +23,14 @@ from swh.indexer.indexer import ContentIndexer, OriginIndexer, RevisionIndexer
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.origin_head import OriginHeadIndexer
-from swh.indexer.storage import INDEXER_CFG_KEY
+from swh.indexer.storage import INDEXER_CFG_KEY, Sha1
 from swh.indexer.storage.model import (
     ContentMetadataRow,
     OriginIntrinsicMetadataRow,
     RevisionIntrinsicMetadataRow,
 )
 from swh.model import hashutil
-from swh.model.model import Revision
+from swh.model.model import Revision, Sha1Git
 
 REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
@@ -71,7 +71,11 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         )
 
     def index(
-        self, id, data: Optional[bytes] = None, log_suffix="unknown revision", **kwargs
+        self,
+        id: Sha1,
+        data: Optional[bytes] = None,
+        log_suffix="unknown revision",
+        **kwargs,
     ) -> List[ContentMetadataRow]:
         """Index sha1s' content and store result.
 
@@ -162,7 +166,9 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
             )
         )
 
-    def index(self, id, data=None, **kwargs) -> List[RevisionIntrinsicMetadataRow]:
+    def index(
+        self, id: Sha1Git, data: Optional[Revision], **kwargs
+    ) -> List[RevisionIntrinsicMetadataRow]:
         """Index rev by processing it and organizing result.
 
         use metadata_detector to iterate on filenames
@@ -171,7 +177,8 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
         - if multiple file detected -> translation needed at revision level
 
         Args:
-          rev: revision model object from storage
+          id: sha1_git of the revision
+          data: revision model object from storage
 
         Returns:
             dict: dictionary representing a revision_intrinsic_metadata, with
@@ -182,9 +189,8 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
             - metadata: dict of retrieved metadata
 
         """
-        rev = id
+        rev = data
         assert isinstance(rev, Revision)
-        assert data is None
 
         try:
             root_dir = rev.directory
@@ -343,7 +349,7 @@ class OriginMetadataIndexer(
                 self.log.warning("Missing head revision of origin %r", origin.url)
                 continue
 
-            for rev_metadata in self.revision_metadata_indexer.index(rev):
+            for rev_metadata in self.revision_metadata_indexer.index(rev.id, rev):
                 # There is at most one rev_metadata
                 orig_metadata = OriginIntrinsicMetadataRow(
                     from_revision=rev_metadata.id,

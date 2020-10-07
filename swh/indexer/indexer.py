@@ -16,6 +16,7 @@ from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model import hashutil
+from swh.model.model import Revision, Sha1Git
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
 from swh.scheduler import CONFIG as SWH_CONFIG
@@ -57,10 +58,15 @@ DEFAULT_CONFIG = {
 }
 
 
+TId = TypeVar("TId")
+"""type of the ids of index()ed objects."""
+TData = TypeVar("TData")
+"""type of the objects passed to index()."""
 TResult = TypeVar("TResult")
+"""return type of index()"""
 
 
-class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
+class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
 
     The main entry point is the :func:`run` function which is in
@@ -216,7 +222,7 @@ class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
         else:
             return []
 
-    def index(self, id, data: Optional[bytes] = None, **kwargs) -> List[TResult]:
+    def index(self, id: TId, data: Optional[TData], **kwargs) -> List[TResult]:
         """Index computation for the id and associated raw data.
 
         Args:
@@ -231,7 +237,7 @@ class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
         """
         raise NotImplementedError()
 
-    def filter(self, ids: List[bytes]) -> Iterator[bytes]:
+    def filter(self, ids: List[TId]) -> Iterator[TId]:
         """Filter missing ids for that particular indexer.
 
         Args:
@@ -263,7 +269,7 @@ class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
         return {}
 
 
-class ContentIndexer(BaseIndexer[TResult], Generic[TResult]):
+class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
     """A content indexer working on a list of ids directly.
 
     To work on indexer partition, use the :class:`ContentPartitionIndexer`
@@ -275,9 +281,7 @@ class ContentIndexer(BaseIndexer[TResult], Generic[TResult]):
 
     """
 
-    def run(
-        self, ids: Union[List[bytes], bytes, str], policy_update: str, **kwargs
-    ) -> Dict:
+    def run(self, ids: List[Sha1], policy_update: str, **kwargs) -> Dict:
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -324,7 +328,7 @@ class ContentIndexer(BaseIndexer[TResult], Generic[TResult]):
         return summary
 
 
-class ContentPartitionIndexer(BaseIndexer[TResult], Generic[TResult]):
+class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
     """A content partition indexer.
 
     This expects as input a partition_id and a nb_partitions. This will then index the
@@ -493,7 +497,7 @@ class ContentPartitionIndexer(BaseIndexer[TResult], Generic[TResult]):
         return summary
 
 
-class OriginIndexer(BaseIndexer[TResult], Generic[TResult]):
+class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
     implements Origin indexing using the run method
 
@@ -549,7 +553,7 @@ class OriginIndexer(BaseIndexer[TResult], Generic[TResult]):
         return results
 
 
-class RevisionIndexer(BaseIndexer[TResult], Generic[TResult]):
+class RevisionIndexer(BaseIndexer[Sha1Git, Revision, TResult], Generic[TResult]):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
     implements Revision indexing using the run method
 
@@ -560,7 +564,7 @@ class RevisionIndexer(BaseIndexer[TResult], Generic[TResult]):
 
     """
 
-    def run(self, ids: Union[str, bytes], policy_update: str) -> Dict:
+    def run(self, ids: List[Sha1Git], policy_update: str) -> Dict:
         """Given a list of sha1_gits:
 
         - retrieve revisions from storage
@@ -579,15 +583,15 @@ class RevisionIndexer(BaseIndexer[TResult], Generic[TResult]):
         revision_ids = [
             hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
         ]
-        for rev in self.storage.revision_get(revision_ids):
+        for (rev_id, rev) in zip(revision_ids, self.storage.revision_get(revision_ids)):
             if not rev:
+                # TODO: call self.index() with rev=None?
                 self.log.warning(
-                    "Revisions %s not found in storage"
-                    % list(map(hashutil.hash_to_hex, ids))
+                    "Revision %s not found in storage", hashutil.hash_to_hex(rev_id)
                 )
                 continue
             try:
-                results.extend(self.index(rev))
+                results.extend(self.index(rev_id, rev))
             except Exception:
                 if not self.catch_exceptions:
                     raise
