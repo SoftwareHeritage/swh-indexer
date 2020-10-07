@@ -107,10 +107,7 @@ class MixinFossologyLicenseIndexer:
             working_directory=self.working_directory,
         ) as content_path:
             properties = compute_license(path=content_path)
-            properties.update(
-                {"id": id, "indexer_configuration_id": self.tool["id"],}
-            )
-        return properties
+        return [properties]
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str

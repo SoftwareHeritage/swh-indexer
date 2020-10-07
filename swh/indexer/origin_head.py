@@ -39,24 +39,21 @@ class OriginHeadIndexer(OriginIndexer[Optional[Dict]]):
             self.storage, origin_url, allowed_statuses=["full"], require_snapshot=True
         )
         if not visit_and_status:
-            return None
+            return []
         visit, visit_status = visit_and_status
         snapshot = snapshot_get_all_branches(self.storage, visit_status.snapshot)
         if snapshot is None:
-            return None
+            return []
         method = getattr(
             self, "_try_get_%s_head" % visit.type, self._try_get_head_generic
         )
 
         rev_id = method(snapshot.branches)
         if rev_id is not None:
-            return {
-                "origin_url": origin_url,
-                "revision_id": rev_id,
-            }
+            return [{"origin_url": origin_url, "revision_id": rev_id,}]
 
         # could not find a head revision
-        return None
+        return []
 
     # Tarballs
 

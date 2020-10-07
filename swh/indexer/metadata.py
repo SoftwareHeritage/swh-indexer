@@ -80,8 +80,8 @@ class ContentMetadataIndexer(ContentIndexer[Dict]):
                 "for content %s" % hashutil.hash_to_hex(id)
             )
         if result["metadata"] is None:
-            return None
-        return result
+            return []
+        return [result]
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
@@ -185,7 +185,7 @@ class RevisionMetadataIndexer(RevisionIndexer[Dict]):
             result["metadata"] = metadata
         except Exception as e:
             self.log.exception("Problem when indexing rev: %r", e)
-        return result
+        return [result]
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
@@ -297,8 +297,9 @@ class OriginMetadataIndexer(OriginIndexer[Dict]):
         for origin in origins:
             if origin is None:
                 continue
-            head_result = self.origin_head_indexer.index(origin.url)
-            if head_result:
+            head_results = self.origin_head_indexer.index(origin.url)
+            if head_results:
+                (head_result,) = head_results
                 origins_with_head.append(origin)
                 head_rev_ids.append(head_result["revision_id"])
 
@@ -315,15 +316,18 @@ class OriginMetadataIndexer(OriginIndexer[Dict]):
                 self.log.warning("Missing head revision of origin %r", origin.url)
                 continue
 
-            rev_metadata = self.revision_metadata_indexer.index(rev)
-            orig_metadata = {
-                "from_revision": rev_metadata["id"],
-                "id": origin.url,
-                "metadata": rev_metadata["metadata"],
-                "mappings": rev_metadata["mappings"],
-                "indexer_configuration_id": rev_metadata["indexer_configuration_id"],
-            }
-            results.append((orig_metadata, rev_metadata))
+            for rev_metadata in self.revision_metadata_indexer.index(rev):
+                # There is at most one rev_metadata
+                orig_metadata = {
+                    "from_revision": rev_metadata["id"],
+                    "id": origin.url,
+                    "metadata": rev_metadata["metadata"],
+                    "mappings": rev_metadata["mappings"],
+                    "indexer_configuration_id": rev_metadata[
+                        "indexer_configuration_id"
+                    ],
+                }
+                results.append((orig_metadata, rev_metadata))
         return results
 
     def persist_index_computations(

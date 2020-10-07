@@ -221,7 +221,7 @@ class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):
 
     def index(
         self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> TResult:
+    ) -> List[TResult]:
         """Index computation for the id and associated raw data.
 
         Args:
@@ -317,7 +317,7 @@ class ContentIndexer(BaseIndexer[TResult], Generic[TResult]):
                     continue
                 res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
-                    results.append(res)
+                    results.extend(res)
                     summary["status"] = "eventful"
             summary = self.persist_index_computations(results, policy_update)
             self.results = results
@@ -415,8 +415,8 @@ class ContentPartitionIndexer(BaseIndexer[TResult], Generic[TResult]):
             except ObjNotFoundError:
                 self.log.warning(f"Content {sha1.hex()} not found in objstorage")
                 continue
-            res = self.index(sha1, raw_content, **kwargs)
-            if res:
+            results = self.index(sha1, raw_content, **kwargs)
+            for res in results:
                 # TODO: remove this check when all endpoints moved away from dicts.
                 if isinstance(res, dict) and not isinstance(res["id"], bytes):
                     raise TypeError(
@@ -555,9 +555,7 @@ class OriginIndexer(BaseIndexer[TResult], Generic[TResult]):
         results = []
         for origin in origins:
             try:
-                res = self.index(origin, **kwargs)
-                if res:  # If no results, skip it
-                    results.append(res)
+                results.extend(self.index(origin, **kwargs))
             except Exception:
                 self.log.exception("Problem when processing origin %s", origin)
                 raise
@@ -602,9 +600,7 @@ class RevisionIndexer(BaseIndexer[TResult], Generic[TResult]):
                 )
                 continue
             try:
-                res = self.index(rev)
-                if res:  # If no results, skip it
-                    results.append(res)
+                results.extend(self.index(rev))
             except Exception:
                 if not self.catch_exceptions:
                     raise

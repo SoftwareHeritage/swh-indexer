@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from unittest.mock import Mock
 
 import pytest
@@ -29,7 +29,7 @@ class CrashingIndexerMixin:
 
     def index(
         self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> List[Dict[str, Any]]:
         raise _TestException()
 
     def persist_index_computations(self, results, policy_update) -> Dict[str, int]:

@@ -69,7 +69,7 @@ class MixinMimetypeIndexer:
 
     def index(
         self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> ContentMimetypeRow:
+    ) -> List[ContentMimetypeRow]:
         """Index sha1s' content and store result.
 
         Args:
@@ -87,12 +87,14 @@ class MixinMimetypeIndexer:
         assert isinstance(id, bytes)
         assert data is not None
         properties = compute_mimetype_encoding(data)
-        return ContentMimetypeRow(
-            id=id,
-            indexer_configuration_id=self.tool["id"],
-            mimetype=properties["mimetype"],
-            encoding=properties["encoding"],
-        )
+        return [
+            ContentMimetypeRow(
+                id=id,
+                indexer_configuration_id=self.tool["id"],
+                mimetype=properties["mimetype"],
+                encoding=properties["encoding"],
+            )
+        ]
 
     def persist_index_computations(
         self, results: List[ContentMimetypeRow], policy_update: str

@@ -126,7 +126,7 @@ class CtagsIndexer(ContentIndexer[Dict]):
                 {"ctags": list(result), "indexer_configuration_id": self.tool["id"],}
             )
 
-        return ctags
+        return [ctags]
 
     def persist_index_computations(
         self, results: List[Dict], policy_update: str
