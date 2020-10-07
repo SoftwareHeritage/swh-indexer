@@ -7,7 +7,7 @@ from typing import Dict, Iterable, List, Optional, Tuple, TypeVar
 
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
-from swh.indexer.storage.model import ContentMimetypeRow
+from swh.indexer.storage.model import ContentLicenseRow, ContentMimetypeRow
 
 TResult = TypeVar("TResult")
 PagedResult = CorePagedResult[TResult, str]
@@ -79,7 +79,7 @@ class IndexerStorageInterface:
 
         Args:
             mimetypes: mimetype rows to be added, with their `tool` attribute set to
-            not None.
+            None.
             conflict_update: Flag to determine if we want to
             overwrite (``True``) or skip duplicates (``False``, the
             default)
@@ -233,34 +233,30 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content/fossology_license")
-    def content_fossology_license_get(self, ids):
+    def content_fossology_license_get(
+        self, ids: Iterable[Sha1]
+    ) -> Iterable[ContentLicenseRow]:
         """Retrieve licenses per id.
 
         Args:
-            ids (iterable): sha1 checksums
+            ids: sha1 identifiers
 
         Yields:
-            dict: ``{id: facts}`` where ``facts`` is a dict with the
-            following keys:
-
-                - **licenses** ([str]): associated licenses for that content
-                - **tool** (dict): Tool used to compute the license
+            license rows; possibly more than one per (sha1, tool_id) if there
+            are multiple licenses.
 
         """
         ...
 
     @remote_api_endpoint("content/fossology_license/add")
     def content_fossology_license_add(
-        self, licenses: List[Dict], conflict_update: bool = False
+        self, licenses: List[ContentLicenseRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add licenses not present in storage.
 
         Args:
-            licenses (iterable): dictionaries with keys:
-
-                - **id**: sha1
-                - **licenses** ([bytes]): List of licenses associated to sha1
-                - **tool** (str): nomossa
+            license: license rows to be added, with their `tool` attribute set to
+            None.
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)

@@ -98,13 +98,15 @@ class Db(BaseDb):
             return "%s.id" % main_table
         elif key == "tool_id":
             return "i.id as tool_id"
-        elif key == "licenses":
+        elif key == "license":
             return (
                 """
-                array(select name
-                      from fossology_license
-                      where id = ANY(
-                         array_agg(%s.license_id))) as licenses"""
+                (
+                    select name
+                    from fossology_license
+                    where id = %s.license_id
+                )
+                as licenses"""
                 % main_table
             )
         return key
@@ -294,7 +296,7 @@ class Db(BaseDb):
         "tool_name",
         "tool_version",
         "tool_configuration",
-        "licenses",
+        "license",
     ]
 
     @stored_procedure("swh_mktemp_content_fossology_license")
@@ -325,8 +327,6 @@ class Db(BaseDb):
             inner join content_fossology_license c on t.id=c.id
             inner join indexer_configuration i
                 on i.id=c.indexer_configuration_id
-            group by c.id, i.id, i.tool_name, i.tool_version,
-                     i.tool_configuration;
             """
             % ", ".join(keys),
             ((_id,) for _id in ids),

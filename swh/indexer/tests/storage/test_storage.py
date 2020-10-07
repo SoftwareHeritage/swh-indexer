@@ -12,11 +12,13 @@ import pytest
 
 from swh.indexer.storage.exc import DuplicateId, IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
-from swh.indexer.storage.model import BaseRow, ContentMimetypeRow
+from swh.indexer.storage.model import BaseRow, ContentLicenseRow, ContentMimetypeRow
 from swh.model.hashutil import hash_to_bytes
 
 
-def prepare_mimetypes_from(fossology_licenses: List[Dict]) -> List[ContentMimetypeRow]:
+def prepare_mimetypes_from_licenses(
+    fossology_licenses: List[ContentLicenseRow],
+) -> List[ContentMimetypeRow]:
     """Fossology license needs some consistent data in db to run.
 
     """
@@ -24,10 +26,10 @@ def prepare_mimetypes_from(fossology_licenses: List[Dict]) -> List[ContentMimety
     for c in fossology_licenses:
         mimetypes.append(
             ContentMimetypeRow(
-                id=c["id"],
+                id=c.id,
                 mimetype="text/plain",  # for filtering on textual data to work
                 encoding="utf-8",
-                indexer_configuration_id=c["indexer_configuration_id"],
+                indexer_configuration_id=c.indexer_configuration_id,
             )
         )
     return mimetypes
@@ -1004,6 +1006,9 @@ class TestIndexerStorageContentFossologyLicense:
     endpoint_type = "content_fossology_license"
     tool_name = "nomos"
 
+    row_from_dict = ContentLicenseRow.from_dict
+    dict_from_row = staticmethod(lambda x: x.to_dict())
+
     def test_content_fossology_license_add__new_license_added(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
@@ -1012,40 +1017,39 @@ class TestIndexerStorageContentFossologyLicense:
         tool = data.tools["nomos"]
         tool_id = tool["id"]
 
-        license_v1 = {
-            "id": data.sha1_1,
-            "licenses": ["Apache-2.0"],
-            "indexer_configuration_id": tool_id,
-        }
+        license1 = ContentLicenseRow(
+            id=data.sha1_1, license="Apache-2.0", indexer_configuration_id=tool_id,
+        )
 
         # given
-        storage.content_fossology_license_add([license_v1])
+        storage.content_fossology_license_add([license1])
         # conflict does nothing
-        storage.content_fossology_license_add([license_v1])
+        storage.content_fossology_license_add([license1])
 
         # when
         actual_licenses = list(storage.content_fossology_license_get([data.sha1_1]))
 
         # then
-        expected_license = {data.sha1_1: [{"licenses": ["Apache-2.0"], "tool": tool,}]}
-        assert actual_licenses == [expected_license]
+        expected_licenses = [
+            ContentLicenseRow(id=data.sha1_1, license="Apache-2.0", tool=tool,)
+        ]
+        assert actual_licenses == expected_licenses
 
         # given
-        license_v2 = license_v1.copy()
-        license_v2.update(
-            {"licenses": ["BSD-2-Clause"],}
+        license2 = ContentLicenseRow(
+            id=data.sha1_1, license="BSD-2-Clause", indexer_configuration_id=tool_id,
         )
 
-        storage.content_fossology_license_add([license_v2])
+        storage.content_fossology_license_add([license2])
 
         actual_licenses = list(storage.content_fossology_license_get([data.sha1_1]))
 
-        expected_license = {
-            data.sha1_1: [{"licenses": ["Apache-2.0", "BSD-2-Clause"], "tool": tool}]
-        }
+        expected_licenses.append(
+            ContentLicenseRow(id=data.sha1_1, license="BSD-2-Clause", tool=tool,)
+        )
 
-        # license did not change as the v2 was dropped.
-        assert actual_licenses == [expected_license]
+        # first license was not removed when the second one was added
+        assert sorted(actual_licenses) == sorted(expected_licenses)
 
     def test_generate_content_fossology_license_get_partition_failure(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
@@ -1067,15 +1071,15 @@ class TestIndexerStorageContentFossologyLicense:
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
-        mimetypes = prepare_mimetypes_from(fossology_licenses)
-        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+        mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        expected_ids = set([c["id"] for c in fossology_licenses])
+        expected_ids = set([c.id for c in fossology_licenses])
 
         assert len(fossology_licenses) == 10
         assert len(mimetypes) == 10
@@ -1103,15 +1107,15 @@ class TestIndexerStorageContentFossologyLicense:
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
-        mimetypes = prepare_mimetypes_from(fossology_licenses)
-        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+        mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        expected_ids = set([c["id"] for c in fossology_licenses])
+        expected_ids = set([c.id for c in fossology_licenses])
 
         actual_result = storage.content_fossology_license_get_partition(
             indexer_configuration_id, 0, 1
@@ -1129,15 +1133,15 @@ class TestIndexerStorageContentFossologyLicense:
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
-        mimetypes = prepare_mimetypes_from(fossology_licenses)
-        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+        mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        expected_ids = set([c["id"] for c in fossology_licenses])
+        expected_ids = set([c.id for c in fossology_licenses])
 
         # nb_partitions = smallest power of 2 such that at least one of
         # the partitions is empty
@@ -1171,15 +1175,15 @@ class TestIndexerStorageContentFossologyLicense:
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
-        mimetypes = prepare_mimetypes_from(fossology_licenses)
-        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+        mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        expected_ids = [c["id"] for c in fossology_licenses]
+        expected_ids = [c.id for c in fossology_licenses]
 
         nb_partitions = 4
 
@@ -1208,17 +1212,8 @@ class TestIndexerStorageContentFossologyLicense:
     ) -> None:
         (storage, data) = swh_indexer_storage_with_data
         etype = self.endpoint_type
-        tool = data.tools[self.tool_name]
 
-        summary = endpoint(storage, etype, "add")(
-            [
-                {
-                    "id": data.sha1_2,
-                    "indexer_configuration_id": tool["id"],
-                    "licenses": [],
-                }
-            ]
-        )
+        summary = endpoint(storage, etype, "add")([])
         assert summary == {"content_fossology_license:add": 0}
 
         actual_license = list(endpoint(storage, etype, "get")([data.sha1_2]))

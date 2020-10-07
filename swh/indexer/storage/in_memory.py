@@ -345,36 +345,15 @@ class IndexerStorage:
                 for ctag in ctags:
                     yield {"id": id_, "tool": tool, **ctag}
 
-    def content_fossology_license_get(self, ids):
-        # Rewrites the output of SubStorage.get from the old format to
-        # the new one. SubStorage.get should be updated once all other
-        # *_get methods use the new format.
-        # See: https://forge.softwareheritage.org/T1433
-        for id_ in ids:
-            items = {}
-            for obj in self._licenses.get([id_]):
-                items.setdefault(obj.tool["id"], (obj.tool, []))[1].append(obj.license)
-            if items:
-                yield {
-                    id_: [
-                        {"tool": tool, "licenses": licenses}
-                        for (tool, licenses) in items.values()
-                    ]
-                }
+    def content_fossology_license_get(
+        self, ids: Iterable[Sha1]
+    ) -> Iterable[ContentLicenseRow]:
+        return self._licenses.get(ids)
 
     def content_fossology_license_add(
-        self, licenses: List[Dict], conflict_update: bool = False
+        self, licenses: List[ContentLicenseRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(licenses)
-        added = self._licenses.add(
-            map(
-                ContentLicenseRow.from_dict,
-                itertools.chain.from_iterable(
-                    map(converters.fossology_license_to_db, licenses)
-                ),
-            ),
-            conflict_update,
-        )
+        added = self._licenses.add(licenses, conflict_update)
         return {"content_fossology_license:add": added}
 
     def content_fossology_license_get_partition(

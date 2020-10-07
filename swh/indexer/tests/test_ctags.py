@@ -20,6 +20,7 @@ from swh.indexer.tests.utils import (
     fill_storage,
     filter_dict,
 )
+from swh.model.hashutil import hash_to_bytes
 
 
 class BasicTest(unittest.TestCase):
@@ -87,8 +88,6 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     """
 
-    legacy_get_format = True
-
     def get_indexer_results(self, ids):
         yield from self.idx_storage.content_ctags_get(ids)
 
@@ -107,11 +106,23 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
 
-        self.expected_results = {
-            self.id0: {"id": self.id0, "tool": tool, **SHA1_TO_CTAGS[self.id0][0],},
-            self.id1: {"id": self.id1, "tool": tool, **SHA1_TO_CTAGS[self.id1][0],},
-            self.id2: {"id": self.id2, "tool": tool, **SHA1_TO_CTAGS[self.id2][0],},
-        }
+        self.expected_results = [
+            {
+                "id": hash_to_bytes(self.id0),
+                "tool": tool,
+                **SHA1_TO_CTAGS[self.id0][0],
+            },
+            {
+                "id": hash_to_bytes(self.id1),
+                "tool": tool,
+                **SHA1_TO_CTAGS[self.id1][0],
+            },
+            {
+                "id": hash_to_bytes(self.id2),
+                "tool": tool,
+                **SHA1_TO_CTAGS[self.id2][0],
+            },
+        ]
 
         self._set_mocks()
 

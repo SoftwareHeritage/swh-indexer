@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult, Sha1
+from swh.indexer.storage.model import ContentLicenseRow
 from swh.model import hashutil
 from swh.model.model import Revision
 
@@ -17,7 +18,7 @@ from .indexer import ContentIndexer, ContentPartitionIndexer, write_to_temp
 logger = logging.getLogger(__name__)
 
 
-def compute_license(path):
+def compute_license(path) -> Dict:
     """Determine license from file at path.
 
     Args:
@@ -83,7 +84,7 @@ class MixinFossologyLicenseIndexer:
 
     def index(
         self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> List[ContentLicenseRow]:
         """Index sha1s' content and store result.
 
         Args:
@@ -107,10 +108,15 @@ class MixinFossologyLicenseIndexer:
             working_directory=self.working_directory,
         ) as content_path:
             properties = compute_license(path=content_path)
-        return [properties]
+        return [
+            ContentLicenseRow(
+                id=id, indexer_configuration_id=self.tool["id"], license=license,
+            )
+            for license in properties["licenses"]
+        ]
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[ContentLicenseRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -131,7 +137,9 @@ class MixinFossologyLicenseIndexer:
         )
 
 
-class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer[Dict]):
+class FossologyLicenseIndexer(
+    MixinFossologyLicenseIndexer, ContentIndexer[ContentLicenseRow]
+):
     """Indexer in charge of:
 
     - filtering out content already indexed
@@ -151,7 +159,7 @@ class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer[Dict]
 
 
 class FossologyLicensePartitionIndexer(
-    MixinFossologyLicenseIndexer, ContentPartitionIndexer[Dict]
+    MixinFossologyLicenseIndexer, ContentPartitionIndexer[ContentLicenseRow]
 ):
     """FossologyLicense Range Indexer working on range/partition of content identifiers.
 

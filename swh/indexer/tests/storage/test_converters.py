@@ -136,11 +136,12 @@ def test_db_to_fossology_license() -> None:
         "tool_name": "nomossa",
         "tool_version": "5.22",
         "tool_configuration": {},
-        "licenses": ["GPL2.0"],
+        "license": "GPL2.0",
     }
 
     expected_license = {
-        "licenses": ["GPL2.0"],
+        "id": b"some-id",
+        "license": "GPL2.0",
         "tool": {"id": 20, "name": "nomossa", "version": "5.22", "configuration": {},},
     }
 

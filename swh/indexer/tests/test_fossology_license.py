@@ -25,6 +25,7 @@ from swh.indexer.tests.utils import (
     fill_storage,
     filter_dict,
 )
+from swh.model.hashutil import hash_to_bytes
 
 
 class BasicTest(unittest.TestCase):
@@ -98,11 +99,21 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
         # then
-        self.expected_results = {
-            self.id0: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id0],},
-            self.id1: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id1],},
-            self.id2: None,
-        }
+        self.expected_results = [
+            *[
+                ContentLicenseRow(
+                    id=hash_to_bytes(self.id0), tool=tool, license=license
+                )
+                for license in SHA1_TO_LICENSES[self.id0]
+            ],
+            *[
+                ContentLicenseRow(
+                    id=hash_to_bytes(self.id1), tool=tool, license=license
+                )
+                for license in SHA1_TO_LICENSES[self.id1]
+            ],
+            *[],  # self.id2
+        ]
 
     def tearDown(self):
         super().tearDown()
@@ -136,21 +147,6 @@ class TestFossologyLicensePartitionIndexer(
     def tearDown(self):
         super().tearDown()
         fossology_license.compute_license = self.orig_compute_license
-
-    def assert_results_ok(self, partition_id, nb_partitions, actual_results):
-        # TODO: remove this method when fossology_license endpoints moved away
-        # from dicts.
-        actual_result_rows = []
-        for res in actual_results:
-            for license in res["licenses"]:
-                actual_result_rows.append(
-                    ContentLicenseRow(
-                        id=res["id"],
-                        indexer_configuration_id=res["indexer_configuration_id"],
-                        license=license,
-                    )
-                )
-        super().assert_results_ok(partition_id, nb_partitions, actual_result_rows)
 
 
 def test_fossology_w_no_tool():

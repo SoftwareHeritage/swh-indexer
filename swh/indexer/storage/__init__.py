@@ -4,7 +4,7 @@
 # See top-level LICENSE file for more information
 
 
-from collections import Counter, defaultdict
+from collections import Counter
 import itertools
 import json
 from typing import Dict, Iterable, List, Optional, Tuple
@@ -357,33 +357,31 @@ class IndexerStorage:
 
     @timed
     @db_transaction_generator()
-    def content_fossology_license_get(self, ids, db=None, cur=None):
-        d = defaultdict(list)
+    def content_fossology_license_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> Iterable[ContentLicenseRow]:
         for c in db.content_fossology_license_get_from_list(ids, cur):
-            license = dict(zip(db.content_fossology_license_cols, c))
-
-            id_ = license["id"]
-            d[id_].append(converters.db_to_fossology_license(license))
-
-        for id_, facts in d.items():
-            yield {id_: facts}
+            yield ContentLicenseRow.from_dict(
+                converters.db_to_fossology_license(
+                    dict(zip(db.content_fossology_license_cols, c))
+                )
+            )
 
     @timed
     @process_metrics
     @db_transaction()
     def content_fossology_license_add(
-        self, licenses: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        licenses: List[ContentLicenseRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
-        rows = list(
-            itertools.chain.from_iterable(
-                map(converters.fossology_license_to_db, licenses)
-            )
-        )
-        check_id_duplicates(map(ContentLicenseRow.from_dict, rows))
-        licenses.sort(key=lambda m: m["id"])
+        check_id_duplicates(licenses)
+        licenses.sort(key=lambda m: m.id)
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
-            rows,
+            [license.to_dict() for license in licenses],
             tblname="tmp_content_fossology_license",
             columns=["id", "license", "indexer_configuration_id"],
             cur=cur,
