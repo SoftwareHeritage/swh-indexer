@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple, TypeVar
+from typing import Dict, Iterable, List, Optional, Tuple, TypeVar
 
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
@@ -25,7 +25,7 @@ class IndexerStorageInterface:
     @remote_api_endpoint("content_mimetype/missing")
     def content_mimetype_missing(
         self, mimetypes: Iterable[Dict]
-    ) -> Iterator[Tuple[Sha1, int]]:
+    ) -> Iterable[Tuple[Sha1, int]]:
         """Generate mimetypes missing from storage.
 
         Args:
@@ -90,7 +90,7 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_mimetype")
-    def content_mimetype_get(self, ids: Iterable[Sha1]) -> Iterator[ContentMimetypeRow]:
+    def content_mimetype_get(self, ids: Iterable[Sha1]) -> Iterable[ContentMimetypeRow]:
         """Retrieve full content mimetype per ids.
 
         Args:

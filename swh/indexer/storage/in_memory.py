@@ -259,7 +259,7 @@ class IndexerStorage:
 
     def content_mimetype_missing(
         self, mimetypes: Iterable[Dict]
-    ) -> Iterator[Tuple[Sha1, int]]:
+    ) -> Iterable[Tuple[Sha1, int]]:
         yield from self._mimetypes.missing(mimetypes)
 
     def content_mimetype_get_partition(
@@ -280,7 +280,7 @@ class IndexerStorage:
         added = self._mimetypes.add(mimetypes, conflict_update)
         return {"content_mimetype:add": added}
 
-    def content_mimetype_get(self, ids: Iterable[Sha1]) -> Iterator[ContentMimetypeRow]:
+    def content_mimetype_get(self, ids: Iterable[Sha1]) -> Iterable[ContentMimetypeRow]:
         yield from self._mimetypes.get(ids)
 
     def content_language_missing(self, languages):

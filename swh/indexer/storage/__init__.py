@@ -7,7 +7,7 @@
 from collections import Counter, defaultdict
 import itertools
 import json
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import psycopg2
 import psycopg2.pool
@@ -146,7 +146,7 @@ class IndexerStorage:
     @db_transaction_generator()
     def content_mimetype_missing(
         self, mimetypes: Iterable[Dict], db=None, cur=None
-    ) -> Iterator[Tuple[Sha1, int]]:
+    ) -> Iterable[Tuple[Sha1, int]]:
         for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
             yield obj[0]
 
@@ -276,7 +276,7 @@ class IndexerStorage:
     @db_transaction_generator()
     def content_mimetype_get(
         self, ids: Iterable[Sha1], db=None, cur=None
-    ) -> Iterator[ContentMimetypeRow]:
+    ) -> Iterable[ContentMimetypeRow]:
         for c in db.content_mimetype_get_from_list(ids, cur):
             yield ContentMimetypeRow.from_dict(
                 converters.db_to_mimetype(dict(zip(db.content_mimetype_cols, c)))
