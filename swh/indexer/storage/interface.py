@@ -25,7 +25,7 @@ class IndexerStorageInterface:
     @remote_api_endpoint("content_mimetype/missing")
     def content_mimetype_missing(
         self, mimetypes: Iterable[Dict]
-    ) -> Iterable[Tuple[Sha1, int]]:
+    ) -> List[Tuple[Sha1, int]]:
         """Generate mimetypes missing from storage.
 
         Args:
@@ -91,7 +91,7 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_mimetype")
-    def content_mimetype_get(self, ids: Iterable[Sha1]) -> Iterable[ContentMimetypeRow]:
+    def content_mimetype_get(self, ids: Iterable[Sha1]) -> List[ContentMimetypeRow]:
         """Retrieve full content mimetype per ids.
 
         Args:
@@ -235,7 +235,7 @@ class IndexerStorageInterface:
     @remote_api_endpoint("content/fossology_license")
     def content_fossology_license_get(
         self, ids: Iterable[Sha1]
-    ) -> Iterable[ContentLicenseRow]:
+    ) -> List[ContentLicenseRow]:
         """Retrieve licenses per id.
 
         Args:

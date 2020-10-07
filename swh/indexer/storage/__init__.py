@@ -12,7 +12,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import psycopg2
 import psycopg2.pool
 
-from swh.core.db.common import db_transaction, db_transaction_generator
+from swh.core.db.common import db_transaction
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import SHA1_SIZE
 from swh.storage.exc import StorageDBError
@@ -143,12 +143,11 @@ class IndexerStorage:
         return cur.fetchone()[0]
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_mimetype_missing(
         self, mimetypes: Iterable[Dict], db=None, cur=None
-    ) -> Iterable[Tuple[Sha1, int]]:
-        for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
-            yield obj[0]
+    ) -> List[Tuple[Sha1, int]]:
+        return [obj[0] for obj in db.content_mimetype_missing_from_list(mimetypes, cur)]
 
     @timed
     @db_transaction()
@@ -266,26 +265,29 @@ class IndexerStorage:
         return {"content_mimetype:add": count}
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_mimetype_get(
         self, ids: Iterable[Sha1], db=None, cur=None
-    ) -> Iterable[ContentMimetypeRow]:
-        for c in db.content_mimetype_get_from_list(ids, cur):
-            yield ContentMimetypeRow.from_dict(
+    ) -> List[ContentMimetypeRow]:
+        return [
+            ContentMimetypeRow.from_dict(
                 converters.db_to_mimetype(dict(zip(db.content_mimetype_cols, c)))
             )
+            for c in db.content_mimetype_get_from_list(ids, cur)
+        ]
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_language_missing(self, languages, db=None, cur=None):
-        for obj in db.content_language_missing_from_list(languages, cur):
-            yield obj[0]
+        return [obj[0] for obj in db.content_language_missing_from_list(languages, cur)]
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_language_get(self, ids, db=None, cur=None):
-        for c in db.content_language_get_from_list(ids, cur):
-            yield converters.db_to_language(dict(zip(db.content_language_cols, c)))
+        return [
+            converters.db_to_language(dict(zip(db.content_language_cols, c)))
+            for c in db.content_language_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
@@ -315,16 +317,17 @@ class IndexerStorage:
         return {"content_language:add": count}
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_ctags_missing(self, ctags, db=None, cur=None):
-        for obj in db.content_ctags_missing_from_list(ctags, cur):
-            yield obj[0]
+        return [obj[0] for obj in db.content_ctags_missing_from_list(ctags, cur)]
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_ctags_get(self, ids, db=None, cur=None):
-        for c in db.content_ctags_get_from_list(ids, cur):
-            yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
+        return [
+            converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
+            for c in db.content_ctags_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
@@ -348,24 +351,28 @@ class IndexerStorage:
         return {"content_ctags:add": count}
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_ctags_search(
         self, expression, limit=10, last_sha1=None, db=None, cur=None
     ):
-        for obj in db.content_ctags_search(expression, last_sha1, limit, cur=cur):
-            yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
+        return [
+            converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
+            for obj in db.content_ctags_search(expression, last_sha1, limit, cur=cur)
+        ]
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_fossology_license_get(
         self, ids: Iterable[Sha1], db=None, cur=None
-    ) -> Iterable[ContentLicenseRow]:
-        for c in db.content_fossology_license_get_from_list(ids, cur):
-            yield ContentLicenseRow.from_dict(
+    ) -> List[ContentLicenseRow]:
+        return [
+            ContentLicenseRow.from_dict(
                 converters.db_to_fossology_license(
                     dict(zip(db.content_fossology_license_cols, c))
                 )
             )
+            for c in db.content_fossology_license_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
@@ -414,16 +421,17 @@ class IndexerStorage:
         )
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_metadata_missing(self, metadata, db=None, cur=None):
-        for obj in db.content_metadata_missing_from_list(metadata, cur):
-            yield obj[0]
+        return [obj[0] for obj in db.content_metadata_missing_from_list(metadata, cur)]
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_metadata_get(self, ids, db=None, cur=None):
-        for c in db.content_metadata_get_from_list(ids, cur):
-            yield converters.db_to_metadata(dict(zip(db.content_metadata_cols, c)))
+        return [
+            converters.db_to_metadata(dict(zip(db.content_metadata_cols, c)))
+            for c in db.content_metadata_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
@@ -448,18 +456,20 @@ class IndexerStorage:
         }
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def revision_intrinsic_metadata_missing(self, metadata, db=None, cur=None):
-        for obj in db.revision_intrinsic_metadata_missing_from_list(metadata, cur):
-            yield obj[0]
+        return [
+            obj[0]
+            for obj in db.revision_intrinsic_metadata_missing_from_list(metadata, cur)
+        ]
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def revision_intrinsic_metadata_get(self, ids, db=None, cur=None):
-        for c in db.revision_intrinsic_metadata_get_from_list(ids, cur):
-            yield converters.db_to_metadata(
-                dict(zip(db.revision_intrinsic_metadata_cols, c))
-            )
+        return [
+            converters.db_to_metadata(dict(zip(db.revision_intrinsic_metadata_cols, c)))
+            for c in db.revision_intrinsic_metadata_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
@@ -493,12 +503,12 @@ class IndexerStorage:
         return {"revision_intrinsic_metadata:del": count}
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def origin_intrinsic_metadata_get(self, ids, db=None, cur=None):
-        for c in db.origin_intrinsic_metadata_get_from_list(ids, cur):
-            yield converters.db_to_metadata(
-                dict(zip(db.origin_intrinsic_metadata_cols, c))
-            )
+        return [
+            converters.db_to_metadata(dict(zip(db.origin_intrinsic_metadata_cols, c)))
+            for c in db.origin_intrinsic_metadata_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
@@ -534,16 +544,16 @@ class IndexerStorage:
         }
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def origin_intrinsic_metadata_search_fulltext(
         self, conjunction, limit=100, db=None, cur=None
     ):
-        for c in db.origin_intrinsic_metadata_search_fulltext(
-            conjunction, limit=limit, cur=cur
-        ):
-            yield converters.db_to_metadata(
-                dict(zip(db.origin_intrinsic_metadata_cols, c))
+        return [
+            converters.db_to_metadata(dict(zip(db.origin_intrinsic_metadata_cols, c)))
+            for c in db.origin_intrinsic_metadata_search_fulltext(
+                conjunction, limit=limit, cur=cur
             )
+        ]
 
     @timed
     @db_transaction()
@@ -616,7 +626,7 @@ class IndexerStorage:
         }
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def indexer_configuration_add(self, tools, db=None, cur=None):
         db.mktemp_indexer_configuration(cur)
         db.copy_to(
@@ -627,13 +637,13 @@ class IndexerStorage:
         )
 
         tools = db.indexer_configuration_add_from_temp(cur)
-        count = 0
-        for line in tools:
-            yield dict(zip(db.indexer_configuration_cols, line))
-            count += 1
+        results = [dict(zip(db.indexer_configuration_cols, line)) for line in tools]
         send_metric(
-            "indexer_configuration:add", count, method_name="indexer_configuration_add"
+            "indexer_configuration:add",
+            len(results),
+            method_name="indexer_configuration_add",
         )
+        return results
 
     @timed
     @db_transaction()

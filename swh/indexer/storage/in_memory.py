@@ -14,7 +14,6 @@ from typing import (
     Dict,
     Generic,
     Iterable,
-    Iterator,
     List,
     Optional,
     Set,
@@ -86,7 +85,7 @@ class SubStorage(Generic[TValue]):
         belong in the unique key."""
         return _key_from_dict({k: d[k] for k in self.row_class.UNIQUE_KEY_FIELDS})
 
-    def missing(self, keys: Iterable[Dict]) -> Iterator[Sha1]:
+    def missing(self, keys: Iterable[Dict]) -> List[Sha1]:
         """List data missing from storage.
 
         Args:
@@ -100,13 +99,15 @@ class SubStorage(Generic[TValue]):
             missing sha1s
 
         """
+        results = []
         for key in keys:
             tool_id = key["indexer_configuration_id"]
             id_ = key["id"]
             if tool_id not in self._tools_per_id.get(id_, set()):
-                yield id_
+                results.append(id_)
+        return results
 
-    def get(self, ids: Iterable[Sha1]) -> Iterator[TValue]:
+    def get(self, ids: Iterable[Sha1]) -> List[TValue]:
         """Retrieve data per id.
 
         Args:
@@ -120,16 +121,20 @@ class SubStorage(Generic[TValue]):
               - arbitrary data (as provided to `add`)
 
         """
+        results = []
         for id_ in ids:
             for entry in self._data[id_].values():
                 entry = entry.copy()
                 tool_id = entry.pop("indexer_configuration_id")
-                yield self.row_class(
-                    id=id_, tool=_transform_tool(self._tools[tool_id]), **entry,
+                results.append(
+                    self.row_class(
+                        id=id_, tool=_transform_tool(self._tools[tool_id]), **entry,
+                    )
                 )
+        return results
 
-    def get_all(self) -> Iterator[TValue]:
-        yield from self.get(self._sorted_ids)
+    def get_all(self) -> List[TValue]:
+        return self.get(self._sorted_ids)
 
     def get_partition(
         self,
@@ -259,8 +264,8 @@ class IndexerStorage:
 
     def content_mimetype_missing(
         self, mimetypes: Iterable[Dict]
-    ) -> Iterable[Tuple[Sha1, int]]:
-        yield from self._mimetypes.missing(mimetypes)
+    ) -> List[Tuple[Sha1, int]]:
+        return self._mimetypes.missing(mimetypes)
 
     def content_mimetype_get_partition(
         self,
@@ -280,14 +285,14 @@ class IndexerStorage:
         added = self._mimetypes.add(mimetypes, conflict_update)
         return {"content_mimetype:add": added}
 
-    def content_mimetype_get(self, ids: Iterable[Sha1]) -> Iterable[ContentMimetypeRow]:
-        yield from self._mimetypes.get(ids)
+    def content_mimetype_get(self, ids: Iterable[Sha1]) -> List[ContentMimetypeRow]:
+        return self._mimetypes.get(ids)
 
     def content_language_missing(self, languages):
-        yield from self._languages.missing(languages)
+        return self._languages.missing(languages)
 
     def content_language_get(self, ids):
-        yield from (obj.to_dict() for obj in self._languages.get(ids))
+        return [obj.to_dict() for obj in self._languages.get(ids)]
 
     def content_language_add(
         self, languages: List[Dict], conflict_update: bool = False
@@ -299,11 +304,13 @@ class IndexerStorage:
         return {"content_language:add": added}
 
     def content_ctags_missing(self, ctags):
-        yield from self._content_ctags.missing(ctags)
+        return self._content_ctags.missing(ctags)
 
     def content_ctags_get(self, ids):
+        results = []
         for item in self._content_ctags.get(ids):
-            yield {"id": item.id, "tool": item.tool, **item.to_dict()}
+            results.append({"id": item.id, "tool": item.tool, **item.to_dict()})
+        return results
 
     def content_ctags_add(
         self, ctags: List[Dict], conflict_update: bool = False
@@ -328,6 +335,7 @@ class IndexerStorage:
                 (item.id, item.indexer_configuration_id), []
             ).append(item)
 
+        results = []
         for items in items_per_id.values():
             ctags = []
             for item in items:
@@ -343,11 +351,12 @@ class IndexerStorage:
 
             if ctags:
                 for ctag in ctags:
-                    yield {"id": id_, "tool": tool, **ctag}
+                    results.append({"id": id_, "tool": tool, **ctag})
+        return results
 
     def content_fossology_license_get(
         self, ids: Iterable[Sha1]
-    ) -> Iterable[ContentLicenseRow]:
+    ) -> List[ContentLicenseRow]:
         return self._licenses.get(ids)
 
     def content_fossology_license_add(
@@ -369,10 +378,10 @@ class IndexerStorage:
         )
 
     def content_metadata_missing(self, metadata):
-        yield from self._content_metadata.missing(metadata)
+        return self._content_metadata.missing(metadata)
 
     def content_metadata_get(self, ids):
-        yield from (obj.to_dict() for obj in self._content_metadata.get(ids))
+        return [obj.to_dict() for obj in self._content_metadata.get(ids)]
 
     def content_metadata_add(
         self, metadata: List[Dict], conflict_update: bool = False
@@ -384,10 +393,10 @@ class IndexerStorage:
         return {"content_metadata:add": added}
 
     def revision_intrinsic_metadata_missing(self, metadata):
-        yield from self._revision_intrinsic_metadata.missing(metadata)
+        return self._revision_intrinsic_metadata.missing(metadata)
 
     def revision_intrinsic_metadata_get(self, ids):
-        yield from (obj.to_dict() for obj in self._revision_intrinsic_metadata.get(ids))
+        return [obj.to_dict() for obj in self._revision_intrinsic_metadata.get(ids)]
 
     def revision_intrinsic_metadata_add(
         self, metadata: List[Dict], conflict_update: bool = False
@@ -403,7 +412,7 @@ class IndexerStorage:
         return {"revision_intrinsic_metadata:del": deleted}
 
     def origin_intrinsic_metadata_get(self, ids):
-        yield from (obj.to_dict() for obj in self._origin_intrinsic_metadata.get(ids))
+        return [obj.to_dict() for obj in self._origin_intrinsic_metadata.get(ids)]
 
     def origin_intrinsic_metadata_add(
         self, metadata: List[Dict], conflict_update: bool = False
@@ -447,8 +456,7 @@ class IndexerStorage:
         results.sort(
             key=operator.itemgetter(0), reverse=True  # Don't try to order 'data'
         )
-        for (rank_, result) in results[:limit]:
-            yield result.to_dict()
+        return [result.to_dict() for (rank_, result) in results[:limit]]
 
     def origin_intrinsic_metadata_search_by_producer(
         self, page_token="", limit=100, ids_only=False, mappings=None, tool_ids=None
