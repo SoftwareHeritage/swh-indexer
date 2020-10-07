@@ -3,7 +3,6 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import abc
 import json
 import logging
 from typing import List
@@ -11,7 +10,7 @@ from typing import List
 from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
 
 
-class BaseMapping(metaclass=abc.ABCMeta):
+class BaseMapping:
     """Base class for mappings to inherit from
 
     To implement a new mapping:
@@ -27,14 +26,12 @@ class BaseMapping(metaclass=abc.ABCMeta):
         )
 
     @property
-    @abc.abstractmethod
     def name(self):
         """A name of this mapping, used as an identifier in the
         indexer storage."""
-        pass
+        raise NotImplementedError(f"{self.__class__.__name__}.name")
 
     @classmethod
-    @abc.abstractmethod
     def detect_metadata_files(cls, files):
         """
         Detects files potentially containing metadata
@@ -45,11 +42,10 @@ class BaseMapping(metaclass=abc.ABCMeta):
         Returns:
             list: list of sha1 (possibly empty)
         """
-        pass
+        raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
 
-    @abc.abstractmethod
     def translate(self, file_content):
-        pass
+        raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
     def normalize_translation(self, metadata):
         return compact(metadata)
@@ -59,10 +55,9 @@ class SingleFileMapping(BaseMapping):
     """Base class for all mappings that use a single file as input."""
 
     @property
-    @abc.abstractmethod
     def filename(self):
         """The .json file to extract metadata from."""
-        pass
+        raise NotImplementedError(f"{self.__class__.__name__}.filename")
 
     @classmethod
     def detect_metadata_files(cls, file_entries):
@@ -81,10 +76,9 @@ class DictMapping(BaseMapping):
     normalization."""
 
     @property
-    @abc.abstractmethod
     def mapping(self):
         """A translation dict to map dict keys into a canonical name."""
-        pass
+        raise NotImplementedError(f"{self.__class__.__name__}.mapping")
 
     @staticmethod
     def _normalize_method_name(name):

@@ -18,6 +18,7 @@ from swh.indexer.storage.model import (
     ContentCtagsRow,
     ContentLanguageRow,
     ContentLicenseRow,
+    ContentMetadataRow,
     ContentMimetypeRow,
 )
 from swh.model.hashutil import hash_to_bytes
@@ -827,6 +828,8 @@ class TestIndexerStorageContentMetadata(StorageETypeTester):
         },
         {"metadata": {"other": {}, "name": "test_metadata", "version": "0.0.1"},},
     ]
+    row_from_dict = ContentMetadataRow.from_dict
+    dict_from_row = staticmethod(lambda x: x.to_dict())  # type: ignore
 
 
 class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):

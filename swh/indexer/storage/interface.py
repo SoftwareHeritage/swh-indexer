@@ -11,6 +11,7 @@ from swh.indexer.storage.model import (
     ContentCtagsRow,
     ContentLanguageRow,
     ContentLicenseRow,
+    ContentMetadataRow,
     ContentMimetypeRow,
 )
 
@@ -292,7 +293,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_metadata/missing")
-    def content_metadata_missing(self, metadata):
+    def content_metadata_missing(
+        self, metadata: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         """List metadata missing from storage.
 
         Args:
@@ -309,7 +312,7 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_metadata")
-    def content_metadata_get(self, ids):
+    def content_metadata_get(self, ids: Iterable[Sha1]) -> List[ContentMetadataRow]:
         """Retrieve metadata per id.
 
         Args:
@@ -327,7 +330,7 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint("content_metadata/add")
     def content_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self, metadata: List[ContentMetadataRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add metadata not present in storage.
 

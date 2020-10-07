@@ -447,14 +447,20 @@ class IndexerStorage:
 
     @timed
     @db_transaction()
-    def content_metadata_missing(self, metadata, db=None, cur=None):
+    def content_metadata_missing(
+        self, metadata: Iterable[Dict], db=None, cur=None
+    ) -> List[Tuple[Sha1, int]]:
         return [obj[0] for obj in db.content_metadata_missing_from_list(metadata, cur)]
 
     @timed
     @db_transaction()
-    def content_metadata_get(self, ids, db=None, cur=None):
+    def content_metadata_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[ContentMetadataRow]:
         return [
-            converters.db_to_metadata(dict(zip(db.content_metadata_cols, c)))
+            ContentMetadataRow.from_dict(
+                converters.db_to_metadata(dict(zip(db.content_metadata_cols, c)))
+            )
             for c in db.content_metadata_get_from_list(ids, cur)
         ]
 
@@ -462,15 +468,19 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        metadata: List[ContentMetadataRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(map(ContentMetadataRow.from_dict, metadata))
-        metadata.sort(key=lambda m: m["id"])
+        check_id_duplicates(metadata)
+        metadata.sort(key=lambda m: m.id)
 
         db.mktemp_content_metadata(cur)
 
         db.copy_to(
-            metadata,
+            [m.to_dict() for m in metadata],
             "tmp_content_metadata",
             ["id", "metadata", "indexer_configuration_id"],
             cur,

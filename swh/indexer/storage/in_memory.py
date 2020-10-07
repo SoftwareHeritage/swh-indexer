@@ -361,19 +361,18 @@ class IndexerStorage:
             indexer_configuration_id, partition_id, nb_partitions, page_token, limit
         )
 
-    def content_metadata_missing(self, metadata):
+    def content_metadata_missing(
+        self, metadata: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         return self._content_metadata.missing(metadata)
 
-    def content_metadata_get(self, ids):
-        return [obj.to_dict() for obj in self._content_metadata.get(ids)]
+    def content_metadata_get(self, ids: Iterable[Sha1]) -> List[ContentMetadataRow]:
+        return self._content_metadata.get(ids)
 
     def content_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self, metadata: List[ContentMetadataRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(metadata)
-        added = self._content_metadata.add(
-            map(ContentMetadataRow.from_dict, metadata), conflict_update
-        )
+        added = self._content_metadata.add(metadata, conflict_update)
         return {"content_metadata:add": added}
 
     def revision_intrinsic_metadata_missing(self, metadata):

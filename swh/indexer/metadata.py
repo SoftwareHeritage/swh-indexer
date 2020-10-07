@@ -4,7 +4,7 @@
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
-from typing import Any, Callable, Dict, Iterator, List, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from swh.core.config import merge_configs
 from swh.core.utils import grouper
@@ -14,6 +14,7 @@ from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.storage import INDEXER_CFG_KEY
+from swh.indexer.storage.model import ContentMetadataRow
 from swh.model import hashutil
 
 REVISION_GET_BATCH_SIZE = 10
@@ -32,7 +33,7 @@ def call_with_batches(
         yield from f(list(group))
 
 
-class ContentMetadataIndexer(ContentIndexer[Dict]):
+class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
     """Content-level indexer
 
     This indexer is in charge of:
@@ -52,7 +53,9 @@ class ContentMetadataIndexer(ContentIndexer[Dict]):
             ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
         )
 
-    def index(self, id, data, log_suffix="unknown revision"):
+    def index(
+        self, id, data: Optional[bytes] = None, log_suffix="unknown revision", **kwargs
+    ) -> List[ContentMetadataRow]:
         """Index sha1s' content and store result.
 
         Args:
@@ -65,26 +68,27 @@ class ContentMetadataIndexer(ContentIndexer[Dict]):
             be returned as None
 
         """
-        result = {
-            "id": id,
-            "indexer_configuration_id": self.tool["id"],
-            "metadata": None,
-        }
+        assert isinstance(id, bytes)
+        assert data is not None
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
             log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id)
-            result["metadata"] = MAPPINGS[mapping_name](log_suffix).translate(data)
+            metadata = MAPPINGS[mapping_name](log_suffix).translate(data)
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
                 "for content %s" % hashutil.hash_to_hex(id)
             )
-        if result["metadata"] is None:
+        if metadata is None:
             return []
-        return [result]
+        return [
+            ContentMetadataRow(
+                id=id, indexer_configuration_id=self.tool["id"], metadata=metadata,
+            )
+        ]
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[ContentMetadataRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -247,9 +251,9 @@ class RevisionMetadataIndexer(RevisionIndexer[Dict]):
             )
             for c in metadata_generator:
                 # extracting metadata
-                sha1 = c["id"]
+                sha1 = c.id
                 sha1s_in_storage.append(sha1)
-                local_metadata = c["metadata"]
+                local_metadata = c.metadata
                 # local metadata is aggregated
                 if local_metadata:
                     metadata.append(local_metadata)
@@ -268,7 +272,7 @@ class RevisionMetadataIndexer(RevisionIndexer[Dict]):
                     )
                     # on the fly possibility:
                     for result in c_metadata_indexer.results:
-                        local_metadata = result["metadata"]
+                        local_metadata = result.metadata
                         metadata.append(local_metadata)
 
                 except Exception:
