@@ -15,7 +15,6 @@ from swh.core import utils
 from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
-from swh.indexer.storage.model import BaseRow
 from swh.model import hashutil
 from swh.model.model import Revision
 from swh.objstorage.exc import ObjNotFoundError
@@ -60,7 +59,7 @@ DEFAULT_CONFIG = {
 
 
 # TODO: should be bound=Optional[BaseRow] when all endpoints move away from dicts
-TResult = TypeVar("TResult", bound=Union[None, Dict, BaseRow])
+TResult = TypeVar("TResult")
 
 
 class BaseIndexer(Generic[TResult], metaclass=abc.ABCMeta):

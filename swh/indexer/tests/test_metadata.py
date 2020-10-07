@@ -15,7 +15,7 @@ from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_dictionary.maven import MavenMapping
 from swh.indexer.metadata_dictionary.npm import NpmMapping
 from swh.indexer.metadata_dictionary.ruby import GemspecMapping
-from swh.indexer.storage.model import ContentMetadataRow
+from swh.indexer.storage.model import ContentMetadataRow, RevisionIntrinsicMetadataRow
 from swh.indexer.tests.utils import DIRECTORY2, REVISION
 from swh.model.hashutil import hash_to_bytes
 from swh.model.model import Directory, DirectoryEntry, Revision
@@ -1129,16 +1129,16 @@ Gem::Specification.new { |s|
         )
 
         expected_results = [
-            {
-                "id": rev.id,
-                "tool": TRANSLATOR_TOOL,
-                "metadata": YARN_PARSER_METADATA,
-                "mappings": ["npm"],
-            }
+            RevisionIntrinsicMetadataRow(
+                id=rev.id,
+                tool=TRANSLATOR_TOOL,
+                metadata=YARN_PARSER_METADATA,
+                mappings=["npm"],
+            )
         ]
 
         for result in results:
-            del result["tool"]["id"]
+            del result.tool["id"]
 
         # then
         self.assertEqual(results, expected_results)
@@ -1190,16 +1190,16 @@ Gem::Specification.new { |s|
         )
 
         expected_results = [
-            {
-                "id": new_rev.id,
-                "tool": TRANSLATOR_TOOL,
-                "metadata": YARN_PARSER_METADATA,
-                "mappings": ["npm"],
-            }
+            RevisionIntrinsicMetadataRow(
+                id=new_rev.id,
+                tool=TRANSLATOR_TOOL,
+                metadata=YARN_PARSER_METADATA,
+                mappings=["npm"],
+            )
         ]
 
         for result in results:
-            del result["tool"]["id"]
+            del result.tool["id"]
 
         # then
         self.assertEqual(results, expected_results)

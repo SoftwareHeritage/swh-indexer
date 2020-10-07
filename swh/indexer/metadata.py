@@ -14,8 +14,9 @@ from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.origin_head import OriginHeadIndexer
 from swh.indexer.storage import INDEXER_CFG_KEY
-from swh.indexer.storage.model import ContentMetadataRow
+from swh.indexer.storage.model import ContentMetadataRow, RevisionIntrinsicMetadataRow
 from swh.model import hashutil
+from swh.model.model import Revision
 
 REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
@@ -115,7 +116,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 }
 
 
-class RevisionMetadataIndexer(RevisionIndexer[Dict]):
+class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
     """Revision-level indexer
 
     This indexer is in charge of:
@@ -145,7 +146,7 @@ class RevisionMetadataIndexer(RevisionIndexer[Dict]):
             )
         )
 
-    def index(self, rev):
+    def index(self, id, data=None, **kwargs) -> List[RevisionIntrinsicMetadataRow]:
         """Index rev by processing it and organizing result.
 
         use metadata_detector to iterate on filenames
@@ -165,12 +166,9 @@ class RevisionMetadataIndexer(RevisionIndexer[Dict]):
             - metadata: dict of retrieved metadata
 
         """
-        result = {
-            "id": rev.id,
-            "indexer_configuration_id": self.tool["id"],
-            "mappings": None,
-            "metadata": None,
-        }
+        rev = id
+        assert isinstance(rev, Revision)
+        assert data is None
 
         try:
             root_dir = rev.directory
@@ -179,20 +177,25 @@ class RevisionMetadataIndexer(RevisionIndexer[Dict]):
                 # If the root is just a single directory, recurse into it
                 # eg. PyPI packages, GNU tarballs
                 subdir = dir_ls[0]["target"]
-                dir_ls = self.storage.directory_ls(subdir, recursive=False)
+                dir_ls = list(self.storage.directory_ls(subdir, recursive=False))
             files = [entry for entry in dir_ls if entry["type"] == "file"]
             detected_files = detect_metadata(files)
             (mappings, metadata) = self.translate_revision_intrinsic_metadata(
                 detected_files, log_suffix="revision=%s" % hashutil.hash_to_hex(rev.id),
             )
-            result["mappings"] = mappings
-            result["metadata"] = metadata
         except Exception as e:
             self.log.exception("Problem when indexing rev: %r", e)
-        return [result]
+        return [
+            RevisionIntrinsicMetadataRow(
+                id=rev.id,
+                indexer_configuration_id=self.tool["id"],
+                mappings=mappings,
+                metadata=metadata,
+            )
+        ]
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[RevisionIntrinsicMetadataRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -214,7 +217,7 @@ class RevisionMetadataIndexer(RevisionIndexer[Dict]):
 
     def translate_revision_intrinsic_metadata(
         self, detected_files: Dict[str, List[Any]], log_suffix: str
-    ) -> Tuple[List[Any], List[Any]]:
+    ) -> Tuple[List[Any], Any]:
         """
         Determine plan of action to translate metadata when containing
         one or multiple detected files:
@@ -282,7 +285,7 @@ class RevisionMetadataIndexer(RevisionIndexer[Dict]):
         return (used_mappings, metadata)
 
 
-class OriginMetadataIndexer(OriginIndexer[Dict]):
+class OriginMetadataIndexer(OriginIndexer[Tuple[Dict, RevisionIntrinsicMetadataRow]]):
     USE_TOOLS = False
 
     def __init__(self, config=None, **kwargs) -> None:
@@ -323,35 +326,42 @@ class OriginMetadataIndexer(OriginIndexer[Dict]):
             for rev_metadata in self.revision_metadata_indexer.index(rev):
                 # There is at most one rev_metadata
                 orig_metadata = {
-                    "from_revision": rev_metadata["id"],
+                    "from_revision": rev_metadata.id,
                     "id": origin.url,
-                    "metadata": rev_metadata["metadata"],
-                    "mappings": rev_metadata["mappings"],
-                    "indexer_configuration_id": rev_metadata[
-                        "indexer_configuration_id"
-                    ],
+                    "metadata": rev_metadata.metadata,
+                    "mappings": rev_metadata.mappings,
+                    "indexer_configuration_id": rev_metadata.indexer_configuration_id,
                 }
                 results.append((orig_metadata, rev_metadata))
         return results
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self,
+        results: List[Tuple[Dict, RevisionIntrinsicMetadataRow]],
+        policy_update: str,
     ) -> Dict[str, int]:
         conflict_update = policy_update == "update-dups"
 
         # Deduplicate revisions
-        rev_metadata: List[Any] = []
-        orig_metadata: List[Any] = []
-        revs_to_delete: List[Any] = []
-        origs_to_delete: List[Any] = []
+        rev_metadata: List[RevisionIntrinsicMetadataRow] = []
+        orig_metadata: List[Dict] = []
+        revs_to_delete: List[Dict] = []
+        origs_to_delete: List[Dict] = []
         summary: Dict = {}
         for (orig_item, rev_item) in results:
-            assert rev_item["metadata"] == orig_item["metadata"]
-            if not rev_item["metadata"] or rev_item["metadata"].keys() <= {"@context"}:
+            assert rev_item.metadata == orig_item["metadata"]
+            if not rev_item.metadata or rev_item.metadata.keys() <= {"@context"}:
                 # If we didn't find any metadata, don't store a DB record
                 # (and delete existing ones, if any)
                 if rev_item not in revs_to_delete:
-                    revs_to_delete.append(rev_item)
+                    revs_to_delete.append(
+                        {
+                            "id": rev_item.id,
+                            "indexer_configuration_id": (
+                                rev_item.indexer_configuration_id
+                            ),
+                        }
+                    )
                 if orig_item not in origs_to_delete:
                     origs_to_delete.append(orig_item)
             else:

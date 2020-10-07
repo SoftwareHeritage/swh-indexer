@@ -375,19 +375,22 @@ class IndexerStorage:
         added = self._content_metadata.add(metadata, conflict_update)
         return {"content_metadata:add": added}
 
-    def revision_intrinsic_metadata_missing(self, metadata):
+    def revision_intrinsic_metadata_missing(
+        self, metadata: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         return self._revision_intrinsic_metadata.missing(metadata)
 
-    def revision_intrinsic_metadata_get(self, ids):
-        return [obj.to_dict() for obj in self._revision_intrinsic_metadata.get(ids)]
+    def revision_intrinsic_metadata_get(
+        self, ids: Iterable[Sha1]
+    ) -> List[RevisionIntrinsicMetadataRow]:
+        return self._revision_intrinsic_metadata.get(ids)
 
     def revision_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self,
+        metadata: List[RevisionIntrinsicMetadataRow],
+        conflict_update: bool = False,
     ) -> Dict[str, int]:
-        check_id_types(metadata)
-        added = self._revision_intrinsic_metadata.add(
-            map(RevisionIntrinsicMetadataRow.from_dict, metadata), conflict_update
-        )
+        added = self._revision_intrinsic_metadata.add(metadata, conflict_update)
         return {"revision_intrinsic_metadata:add": added}
 
     def revision_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:

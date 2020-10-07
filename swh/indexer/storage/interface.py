@@ -13,6 +13,7 @@ from swh.indexer.storage.model import (
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
+    RevisionIntrinsicMetadataRow,
 )
 
 TResult = TypeVar("TResult")
@@ -350,7 +351,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("revision_intrinsic_metadata/missing")
-    def revision_intrinsic_metadata_missing(self, metadata):
+    def revision_intrinsic_metadata_missing(
+        self, metadata: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         """List metadata missing from storage.
 
         Args:
@@ -360,45 +363,37 @@ class IndexerStorageInterface:
                - **indexer_configuration_id** (int): tool used to compute
                  the results
 
-        Yields:
+        Returns:
             missing ids
 
         """
         ...
 
     @remote_api_endpoint("revision_intrinsic_metadata")
-    def revision_intrinsic_metadata_get(self, ids):
+    def revision_intrinsic_metadata_get(
+        self, ids: Iterable[Sha1]
+    ) -> List[RevisionIntrinsicMetadataRow]:
         """Retrieve revision metadata per id.
 
         Args:
             ids (iterable): sha1 checksums
 
-        Yields:
-            : dictionaries with the following keys:
-
-                - **id** (bytes)
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+        Returns:
+            ContentMetadataRow objects
 
         """
         ...
 
     @remote_api_endpoint("revision_intrinsic_metadata/add")
     def revision_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self,
+        metadata: List[RevisionIntrinsicMetadataRow],
+        conflict_update: bool = False,
     ) -> Dict[str, int]:
         """Add metadata not present in storage.
 
         Args:
-            metadata (iterable): dictionaries with keys:
-
-                - **id**: sha1_git of revision
-                - **metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+            metadata: ContentMetadataRow objects
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
