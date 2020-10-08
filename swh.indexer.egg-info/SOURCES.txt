@@ -106,8 +106,10 @@ swh/indexer/storage/exc.py
 swh/indexer/storage/in_memory.py
 swh/indexer/storage/interface.py
 swh/indexer/storage/metrics.py
+swh/indexer/storage/model.py
 swh/indexer/storage/api/__init__.py
 swh/indexer/storage/api/client.py
+swh/indexer/storage/api/serializers.py
 swh/indexer/storage/api/server.py
 swh/indexer/tests/__init__.py
 swh/indexer/tests/conftest.py
@@ -116,6 +118,7 @@ swh/indexer/tests/test_cli.py
 swh/indexer/tests/test_codemeta.py
 swh/indexer/tests/test_ctags.py
 swh/indexer/tests/test_fossology_license.py
+swh/indexer/tests/test_indexer.py
 swh/indexer/tests/test_journal_client.py
 swh/indexer/tests/test_metadata.py
 swh/indexer/tests/test_mimetype.py

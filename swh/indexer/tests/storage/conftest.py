@@ -8,6 +8,7 @@ from os.path import join
 import pytest
 
 from swh.indexer.storage import get_indexer_storage
+from swh.indexer.storage.model import ContentLicenseRow, ContentMimetypeRow
 from swh.model.hashutil import hash_to_bytes
 from swh.storage.pytest_plugin import postgresql_fact
 
@@ -47,13 +48,18 @@ def swh_indexer_storage_with_data(swh_indexer_storage):
     data.origin_url_2 = "file:///dev/1/one"  # 44434342
     data.origin_url_3 = "file:///dev/2/two"  # 54974445
     data.mimetypes = [
-        {**mimetype_obj, "indexer_configuration_id": tools["file"]["id"]}
+        ContentMimetypeRow(indexer_configuration_id=tools["file"]["id"], **mimetype_obj)
         for mimetype_obj in MIMETYPE_OBJECTS
     ]
     swh_indexer_storage.content_mimetype_add(data.mimetypes)
     data.fossology_licenses = [
-        {**fossology_obj, "indexer_configuration_id": tools["nomos"]["id"]}
+        ContentLicenseRow(
+            id=fossology_obj["id"],
+            indexer_configuration_id=tools["nomos"]["id"],
+            license=license,
+        )
         for fossology_obj in FOSSOLOGY_LICENSES
+        for license in fossology_obj["licenses"]
     ]
     swh_indexer_storage._test_data = data
 

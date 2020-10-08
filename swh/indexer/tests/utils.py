@@ -584,44 +584,11 @@ def fill_storage(storage):
 
 
 class CommonContentIndexerTest(metaclass=abc.ABCMeta):
-    legacy_get_format = False
-    """True if and only if the tested indexer uses the legacy format.
-    see: https://forge.softwareheritage.org/T1433
-
-    """
-
     def get_indexer_results(self, ids):
         """Override this for indexers that don't have a mock storage."""
         return self.indexer.idx_storage.state
 
-    def assert_legacy_results_ok(self, sha1s, expected_results=None):
-        # XXX old format, remove this when all endpoints are
-        #     updated to the new one
-        #     see: https://forge.softwareheritage.org/T1433
-        sha1s = [
-            sha1 if isinstance(sha1, bytes) else hash_to_bytes(sha1) for sha1 in sha1s
-        ]
-        actual_results = list(self.get_indexer_results(sha1s))
-
-        if expected_results is None:
-            expected_results = self.expected_results
-
-        self.assertEqual(
-            len(expected_results),
-            len(actual_results),
-            (expected_results, actual_results),
-        )
-        for indexed_data in actual_results:
-            _id = indexed_data["id"]
-            expected_data = expected_results[hashutil.hash_to_hex(_id)].copy()
-            expected_data["id"] = _id
-            self.assertEqual(indexed_data, expected_data)
-
     def assert_results_ok(self, sha1s, expected_results=None):
-        if self.legacy_get_format:
-            self.assert_legacy_results_ok(sha1s, expected_results)
-            return
-
         sha1s = [
             sha1 if isinstance(sha1, bytes) else hash_to_bytes(sha1) for sha1 in sha1s
         ]
@@ -630,16 +597,7 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         if expected_results is None:
             expected_results = self.expected_results
 
-        self.assertEqual(
-            len(expected_results),
-            len(actual_results),
-            (expected_results, actual_results),
-        )
-        for indexed_data in actual_results:
-            (_id, indexed_data) = list(indexed_data.items())[0]
-            expected_data = expected_results[hashutil.hash_to_hex(_id)].copy()
-            expected_data = [expected_data]
-            self.assertEqual(indexed_data, expected_data)
+        self.assertEqual(expected_results, actual_results)
 
     def test_index(self):
         """Known sha1 have their data indexed
@@ -669,9 +627,11 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         self.indexer.run(sha1s, policy_update="update-dups")
 
         # then
-        expected_results = {
-            k: v for k, v in self.expected_results.items() if k in sha1s
-        }
+        expected_results = [
+            res
+            for res in self.expected_results
+            if hashutil.hash_to_hex(res.id) in sha1s
+        ]
 
         self.assert_results_ok(sha1s, expected_results)
 
@@ -696,11 +656,10 @@ class CommonContentIndexerPartitionTest:
 
         actual_results = list(actual_results)
         for indexed_data in actual_results:
-            _id = indexed_data["id"]
-            assert isinstance(_id, bytes)
+            _id = indexed_data.id
             assert _id in expected_ids
 
-            _tool_id = indexed_data["indexer_configuration_id"]
+            _tool_id = indexed_data.indexer_configuration_id
             assert _tool_id == self.indexer.tool["id"]
 
     def test__index_contents(self):
@@ -725,12 +684,12 @@ class CommonContentIndexerPartitionTest:
 
         # first pass
         actual_results = list(
-            self.indexer._index_contents(partition_id, nb_partitions, indexed={})
+            self.indexer._index_contents(partition_id, nb_partitions, indexed={}),
         )
 
         self.assert_results_ok(partition_id, nb_partitions, actual_results)
 
-        indexed_ids = set(res["id"] for res in actual_results)
+        indexed_ids = {res.id for res in actual_results}
 
         actual_results = list(
             self.indexer._index_contents(
@@ -746,16 +705,16 @@ class CommonContentIndexerPartitionTest:
 
         """
         partition_id = 0
-        nb_partitions = 4
+        nb_partitions = 1
 
         actual_results = self.indexer.run(
             partition_id, nb_partitions, skip_existing=False
         )
 
-        assert actual_results == {"status": "uneventful"}  # why?
+        assert actual_results["status"] == "eventful", actual_results
 
     def test_generate_content_get_no_result(self):
         """No result indexed returns False"""
-        actual_results = self.indexer.run(0, 0, incremental=False)
+        actual_results = self.indexer.run(1, 2 ** 512, incremental=False)
 
         assert actual_results == {"status": "uneventful"}

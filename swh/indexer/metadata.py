@@ -4,26 +4,45 @@
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
-from typing import Any, Callable, Dict, Iterator, List, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+)
 
+from swh.core.config import merge_configs
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
 from swh.indexer.indexer import ContentIndexer, OriginIndexer, RevisionIndexer
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.origin_head import OriginHeadIndexer
-from swh.indexer.storage import INDEXER_CFG_KEY
+from swh.indexer.storage import INDEXER_CFG_KEY, Sha1
+from swh.indexer.storage.model import (
+    ContentMetadataRow,
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 from swh.model import hashutil
+from swh.model.model import Revision, Sha1Git
 
 REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
 
 
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
+
+
 def call_with_batches(
-    f: Callable[[List[Dict[str, Any]]], Dict["str", Any]],
-    args: List[Dict[str, str]],
-    batch_size: int,
-) -> Iterator[str]:
+    f: Callable[[List[T1]], Iterable[T2]], args: List[T1], batch_size: int,
+) -> Iterator[T2]:
     """Calls a function with batches of args, and concatenates the results.
     """
     groups = grouper(args, batch_size)
@@ -31,7 +50,7 @@ def call_with_batches(
         yield from f(list(group))
 
 
-class ContentMetadataIndexer(ContentIndexer):
+class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
     """Content-level indexer
 
     This indexer is in charge of:
@@ -51,7 +70,13 @@ class ContentMetadataIndexer(ContentIndexer):
             ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
         )
 
-    def index(self, id, data, log_suffix="unknown revision"):
+    def index(
+        self,
+        id: Sha1,
+        data: Optional[bytes] = None,
+        log_suffix="unknown revision",
+        **kwargs,
+    ) -> List[ContentMetadataRow]:
         """Index sha1s' content and store result.
 
         Args:
@@ -64,26 +89,27 @@ class ContentMetadataIndexer(ContentIndexer):
             be returned as None
 
         """
-        result = {
-            "id": id,
-            "indexer_configuration_id": self.tool["id"],
-            "metadata": None,
-        }
+        assert isinstance(id, bytes)
+        assert data is not None
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
             log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id)
-            result["metadata"] = MAPPINGS[mapping_name](log_suffix).translate(data)
+            metadata = MAPPINGS[mapping_name](log_suffix).translate(data)
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
                 "for content %s" % hashutil.hash_to_hex(id)
             )
-        if result["metadata"] is None:
-            return None
-        return result
+        if metadata is None:
+            return []
+        return [
+            ContentMetadataRow(
+                id=id, indexer_configuration_id=self.tool["id"], metadata=metadata,
+            )
+        ]
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[ContentMetadataRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -101,7 +127,16 @@ class ContentMetadataIndexer(ContentIndexer):
         )
 
 
-class RevisionMetadataIndexer(RevisionIndexer):
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "tools": {
+        "name": "swh-metadata-detector",
+        "version": "0.0.2",
+        "configuration": {},
+    },
+}
+
+
+class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
     """Revision-level indexer
 
     This indexer is in charge of:
@@ -116,12 +151,9 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
     """
 
-    ADDITIONAL_CONFIG = {
-        "tools": (
-            "dict",
-            {"name": "swh-metadata-detector", "version": "0.0.2", "configuration": {},},
-        ),
-    }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
 
     def filter(self, sha1_gits):
         """Filter out known sha1s and return only missing ones.
@@ -134,7 +166,9 @@ class RevisionMetadataIndexer(RevisionIndexer):
             )
         )
 
-    def index(self, rev):
+    def index(
+        self, id: Sha1Git, data: Optional[Revision], **kwargs
+    ) -> List[RevisionIntrinsicMetadataRow]:
         """Index rev by processing it and organizing result.
 
         use metadata_detector to iterate on filenames
@@ -143,7 +177,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
         - if multiple file detected -> translation needed at revision level
 
         Args:
-          rev: revision model object from storage
+          id: sha1_git of the revision
+          data: revision model object from storage
 
         Returns:
             dict: dictionary representing a revision_intrinsic_metadata, with
@@ -154,12 +189,8 @@ class RevisionMetadataIndexer(RevisionIndexer):
             - metadata: dict of retrieved metadata
 
         """
-        result = {
-            "id": rev.id,
-            "indexer_configuration_id": self.tool["id"],
-            "mappings": None,
-            "metadata": None,
-        }
+        rev = data
+        assert isinstance(rev, Revision)
 
         try:
             root_dir = rev.directory
@@ -168,20 +199,25 @@ class RevisionMetadataIndexer(RevisionIndexer):
                 # If the root is just a single directory, recurse into it
                 # eg. PyPI packages, GNU tarballs
                 subdir = dir_ls[0]["target"]
-                dir_ls = self.storage.directory_ls(subdir, recursive=False)
+                dir_ls = list(self.storage.directory_ls(subdir, recursive=False))
             files = [entry for entry in dir_ls if entry["type"] == "file"]
             detected_files = detect_metadata(files)
             (mappings, metadata) = self.translate_revision_intrinsic_metadata(
                 detected_files, log_suffix="revision=%s" % hashutil.hash_to_hex(rev.id),
             )
-            result["mappings"] = mappings
-            result["metadata"] = metadata
         except Exception as e:
             self.log.exception("Problem when indexing rev: %r", e)
-        return result
+        return [
+            RevisionIntrinsicMetadataRow(
+                id=rev.id,
+                indexer_configuration_id=self.tool["id"],
+                mappings=mappings,
+                metadata=metadata,
+            )
+        ]
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[RevisionIntrinsicMetadataRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -203,7 +239,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
 
     def translate_revision_intrinsic_metadata(
         self, detected_files: Dict[str, List[Any]], log_suffix: str
-    ) -> Tuple[List[Any], List[Any]]:
+    ) -> Tuple[List[Any], Any]:
         """
         Determine plan of action to translate metadata when containing
         one or multiple detected files:
@@ -240,9 +276,9 @@ class RevisionMetadataIndexer(RevisionIndexer):
             )
             for c in metadata_generator:
                 # extracting metadata
-                sha1 = c["id"]
+                sha1 = c.id
                 sha1s_in_storage.append(sha1)
-                local_metadata = c["metadata"]
+                local_metadata = c.metadata
                 # local metadata is aggregated
                 if local_metadata:
                     metadata.append(local_metadata)
@@ -261,7 +297,7 @@ class RevisionMetadataIndexer(RevisionIndexer):
                     )
                     # on the fly possibility:
                     for result in c_metadata_indexer.results:
-                        local_metadata = result["metadata"]
+                        local_metadata = result.metadata
                         metadata.append(local_metadata)
 
                 except Exception:
@@ -271,9 +307,9 @@ class RevisionMetadataIndexer(RevisionIndexer):
         return (used_mappings, metadata)
 
 
-class OriginMetadataIndexer(OriginIndexer):
-    ADDITIONAL_CONFIG = RevisionMetadataIndexer.ADDITIONAL_CONFIG
-
+class OriginMetadataIndexer(
+    OriginIndexer[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]]
+):
     USE_TOOLS = False
 
     def __init__(self, config=None, **kwargs) -> None:
@@ -281,7 +317,9 @@ class OriginMetadataIndexer(OriginIndexer):
         self.origin_head_indexer = OriginHeadIndexer(config=config)
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
-    def index_list(self, origin_urls, **kwargs):
+    def index_list(
+        self, origin_urls: List[str], **kwargs
+    ) -> List[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]]:
         head_rev_ids = []
         origins_with_head = []
         origins = list(
@@ -292,8 +330,9 @@ class OriginMetadataIndexer(OriginIndexer):
         for origin in origins:
             if origin is None:
                 continue
-            head_result = self.origin_head_indexer.index(origin.url)
-            if head_result:
+            head_results = self.origin_head_indexer.index(origin.url)
+            if head_results:
+                (head_result,) = head_results
                 origins_with_head.append(origin)
                 head_rev_ids.append(head_result["revision_id"])
 
@@ -310,37 +349,54 @@ class OriginMetadataIndexer(OriginIndexer):
                 self.log.warning("Missing head revision of origin %r", origin.url)
                 continue
 
-            rev_metadata = self.revision_metadata_indexer.index(rev)
-            orig_metadata = {
-                "from_revision": rev_metadata["id"],
-                "id": origin.url,
-                "metadata": rev_metadata["metadata"],
-                "mappings": rev_metadata["mappings"],
-                "indexer_configuration_id": rev_metadata["indexer_configuration_id"],
-            }
-            results.append((orig_metadata, rev_metadata))
+            for rev_metadata in self.revision_metadata_indexer.index(rev.id, rev):
+                # There is at most one rev_metadata
+                orig_metadata = OriginIntrinsicMetadataRow(
+                    from_revision=rev_metadata.id,
+                    id=origin.url,
+                    metadata=rev_metadata.metadata,
+                    mappings=rev_metadata.mappings,
+                    indexer_configuration_id=rev_metadata.indexer_configuration_id,
+                )
+                results.append((orig_metadata, rev_metadata))
         return results
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self,
+        results: List[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]],
+        policy_update: str,
     ) -> Dict[str, int]:
         conflict_update = policy_update == "update-dups"
 
         # Deduplicate revisions
-        rev_metadata: List[Any] = []
-        orig_metadata: List[Any] = []
-        revs_to_delete: List[Any] = []
-        origs_to_delete: List[Any] = []
+        rev_metadata: List[RevisionIntrinsicMetadataRow] = []
+        orig_metadata: List[OriginIntrinsicMetadataRow] = []
+        revs_to_delete: List[Dict] = []
+        origs_to_delete: List[Dict] = []
         summary: Dict = {}
         for (orig_item, rev_item) in results:
-            assert rev_item["metadata"] == orig_item["metadata"]
-            if not rev_item["metadata"] or rev_item["metadata"].keys() <= {"@context"}:
+            assert rev_item.metadata == orig_item.metadata
+            if not rev_item.metadata or rev_item.metadata.keys() <= {"@context"}:
                 # If we didn't find any metadata, don't store a DB record
                 # (and delete existing ones, if any)
                 if rev_item not in revs_to_delete:
-                    revs_to_delete.append(rev_item)
+                    revs_to_delete.append(
+                        {
+                            "id": rev_item.id,
+                            "indexer_configuration_id": (
+                                rev_item.indexer_configuration_id
+                            ),
+                        }
+                    )
                 if orig_item not in origs_to_delete:
-                    origs_to_delete.append(orig_item)
+                    origs_to_delete.append(
+                        {
+                            "id": orig_item.id,
+                            "indexer_configuration_id": (
+                                orig_item.indexer_configuration_id
+                            ),
+                        }
+                    )
             else:
                 if rev_item not in rev_metadata:
                     rev_metadata.append(rev_item)

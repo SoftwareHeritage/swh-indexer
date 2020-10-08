@@ -6,12 +6,18 @@
 from functools import reduce
 import re
 import tempfile
+from typing import Any, Dict, List
 from unittest.mock import patch
 
 from click.testing import CliRunner
 from confluent_kafka import Consumer, Producer
 
 from swh.indexer.cli import indexer_cli_group
+from swh.indexer.storage.interface import IndexerStorageInterface
+from swh.indexer.storage.model import (
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 from swh.journal.serializers import value_to_kafka
 from swh.model.hashutil import hash_to_bytes
 
@@ -27,30 +33,30 @@ indexer_storage:
 """
 
 
-def fill_idx_storage(idx_storage, nb_rows):
-    tools = [
+def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List[int]:
+    tools: List[Dict[str, Any]] = [
         {"tool_name": "tool %d" % i, "tool_version": "0.0.1", "tool_configuration": {},}
         for i in range(2)
     ]
     tools = idx_storage.indexer_configuration_add(tools)
 
     origin_metadata = [
-        {
-            "id": "file://dev/%04d" % origin_id,
-            "from_revision": hash_to_bytes("abcd{:0>4}".format(origin_id)),
-            "indexer_configuration_id": tools[origin_id % 2]["id"],
-            "metadata": {"name": "origin %d" % origin_id},
-            "mappings": ["mapping%d" % (origin_id % 10)],
-        }
+        OriginIntrinsicMetadataRow(
+            id="file://dev/%04d" % origin_id,
+            from_revision=hash_to_bytes("abcd{:0>4}".format(origin_id)),
+            indexer_configuration_id=tools[origin_id % 2]["id"],
+            metadata={"name": "origin %d" % origin_id},
+            mappings=["mapping%d" % (origin_id % 10)],
+        )
         for origin_id in range(nb_rows)
     ]
     revision_metadata = [
-        {
-            "id": hash_to_bytes("abcd{:0>4}".format(origin_id)),
-            "indexer_configuration_id": tools[origin_id % 2]["id"],
-            "metadata": {"name": "origin %d" % origin_id},
-            "mappings": ["mapping%d" % (origin_id % 10)],
-        }
+        RevisionIntrinsicMetadataRow(
+            id=hash_to_bytes("abcd{:0>4}".format(origin_id)),
+            indexer_configuration_id=tools[origin_id % 2]["id"],
+            metadata={"name": "origin %d" % origin_id},
+            mappings=["mapping%d" % (origin_id % 10)],
+        )
         for origin_id in range(nb_rows)
     ]
 

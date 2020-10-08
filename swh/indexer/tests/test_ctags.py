@@ -11,6 +11,7 @@ import pytest
 
 import swh.indexer.ctags
 from swh.indexer.ctags import CtagsIndexer, run_ctags
+from swh.indexer.storage.model import ContentCtagsRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
     OBJ_STORAGE_DATA,
@@ -20,6 +21,7 @@ from swh.indexer.tests.utils import (
     fill_storage,
     filter_dict,
 )
+from swh.model.hashutil import hash_to_bytes
 
 
 class BasicTest(unittest.TestCase):
@@ -87,8 +89,6 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     """
 
-    legacy_get_format = True
-
     def get_indexer_results(self, ids):
         yield from self.idx_storage.content_ctags_get(ids)
 
@@ -107,11 +107,20 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
 
-        self.expected_results = {
-            self.id0: {"id": self.id0, "tool": tool, **SHA1_TO_CTAGS[self.id0][0],},
-            self.id1: {"id": self.id1, "tool": tool, **SHA1_TO_CTAGS[self.id1][0],},
-            self.id2: {"id": self.id2, "tool": tool, **SHA1_TO_CTAGS[self.id2][0],},
-        }
+        self.expected_results = [
+            *[
+                ContentCtagsRow(id=hash_to_bytes(self.id0), tool=tool, **kwargs,)
+                for kwargs in SHA1_TO_CTAGS[self.id0]
+            ],
+            *[
+                ContentCtagsRow(id=hash_to_bytes(self.id1), tool=tool, **kwargs,)
+                for kwargs in SHA1_TO_CTAGS[self.id1]
+            ],
+            *[
+                ContentCtagsRow(id=hash_to_bytes(self.id2), tool=tool, **kwargs,)
+                for kwargs in SHA1_TO_CTAGS[self.id2]
+            ],
+        ]
 
         self._set_mocks()
 

@@ -5,18 +5,19 @@
 
 import logging
 import subprocess
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from swh.indexer.storage.interface import PagedResult, Sha1
+from swh.core.config import merge_configs
+from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult, Sha1
+from swh.indexer.storage.model import ContentLicenseRow
 from swh.model import hashutil
-from swh.model.model import Revision
 
 from .indexer import ContentIndexer, ContentPartitionIndexer, write_to_temp
 
 logger = logging.getLogger(__name__)
 
 
-def compute_license(path):
+def compute_license(path) -> Dict:
     """Determine license from file at path.
 
     Args:
@@ -53,6 +54,17 @@ def compute_license(path):
         }
 
 
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "workdir": "/tmp/swh/indexer.fossology.license",
+    "tools": {
+        "name": "nomos",
+        "version": "3.1.0rc2-31-ga2cbb8c",
+        "configuration": {"command_line": "nomossa <filepath>",},
+    },
+    "write_batch_size": 1000,
+}
+
+
 class MixinFossologyLicenseIndexer:
     """Mixin fossology license indexer.
 
@@ -61,30 +73,17 @@ class MixinFossologyLicenseIndexer:
 
     """
 
-    ADDITIONAL_CONFIG = {
-        "workdir": ("str", "/tmp/swh/indexer.fossology.license"),
-        "tools": (
-            "dict",
-            {
-                "name": "nomos",
-                "version": "3.1.0rc2-31-ga2cbb8c",
-                "configuration": {"command_line": "nomossa <filepath>",},
-            },
-        ),
-        "write_batch_size": ("int", 1000),
-    }
-
-    CONFIG_BASE_FILENAME = "indexer/fossology_license"  # type: Optional[str]
     tool: Any
-    idx_storage: Any
+    idx_storage: IndexerStorageInterface
 
-    def prepare(self):
-        super().prepare()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
         self.working_directory = self.config["workdir"]
 
     def index(
-        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, id: Sha1, data: Optional[bytes] = None, **kwargs
+    ) -> List[ContentLicenseRow]:
         """Index sha1s' content and store result.
 
         Args:
@@ -100,7 +99,6 @@ class MixinFossologyLicenseIndexer:
             - indexer_configuration_id (int): tool used to compute the output
 
         """
-        assert isinstance(id, bytes)
         assert data is not None
         with write_to_temp(
             filename=hashutil.hash_to_hex(id),  # use the id as pathname
@@ -108,13 +106,15 @@ class MixinFossologyLicenseIndexer:
             working_directory=self.working_directory,
         ) as content_path:
             properties = compute_license(path=content_path)
-            properties.update(
-                {"id": id, "indexer_configuration_id": self.tool["id"],}
+        return [
+            ContentLicenseRow(
+                id=id, indexer_configuration_id=self.tool["id"], license=license,
             )
-        return properties
+            for license in properties["licenses"]
+        ]
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[ContentLicenseRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -135,7 +135,9 @@ class MixinFossologyLicenseIndexer:
         )
 
 
-class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer):
+class FossologyLicenseIndexer(
+    MixinFossologyLicenseIndexer, ContentIndexer[ContentLicenseRow]
+):
     """Indexer in charge of:
 
     - filtering out content already indexed
@@ -155,7 +157,7 @@ class FossologyLicenseIndexer(MixinFossologyLicenseIndexer, ContentIndexer):
 
 
 class FossologyLicensePartitionIndexer(
-    MixinFossologyLicenseIndexer, ContentPartitionIndexer
+    MixinFossologyLicenseIndexer, ContentPartitionIndexer[ContentLicenseRow]
 ):
     """FossologyLicense Range Indexer working on range/partition of content identifiers.
 

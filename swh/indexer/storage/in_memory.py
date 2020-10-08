@@ -9,16 +9,38 @@ import json
 import math
 import operator
 import re
-from typing import Any, Dict, List, Optional
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from swh.core.collections import SortedList
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
-from swh.model.model import SHA1_SIZE
+from swh.model.model import SHA1_SIZE, Sha1Git
 from swh.storage.utils import get_partition_bounds_bytes
 
 from . import MAPPING_NAMES, check_id_duplicates
 from .exc import IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
+from .model import (
+    BaseRow,
+    ContentCtagsRow,
+    ContentLanguageRow,
+    ContentLicenseRow,
+    ContentMetadataRow,
+    ContentMimetypeRow,
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 
 SHA1_DIGEST_SIZE = 160
 
@@ -38,16 +60,33 @@ def check_id_types(data: List[Dict[str, Any]]):
         raise IndexerStorageArgumentException("identifiers must be bytes.")
 
 
-class SubStorage:
+def _key_from_dict(d):
+    return tuple(sorted(d.items()))
+
+
+ToolId = int
+TValue = TypeVar("TValue", bound=BaseRow)
+
+
+class SubStorage(Generic[TValue]):
     """Implements common missing/get/add logic for each indexer type."""
 
-    def __init__(self, tools):
-        self._tools = tools
-        self._sorted_ids = SortedList[bytes, bytes]()
-        self._data = {}  # map (id_, tool_id) -> metadata_dict
-        self._tools_per_id = defaultdict(set)  # map id_ -> Set[tool_id]
+    _data: Dict[Sha1, Dict[Tuple, Dict[str, Any]]]
+    _tools_per_id: Dict[Sha1, Set[ToolId]]
 
-    def missing(self, ids):
+    def __init__(self, row_class: Type[TValue], tools):
+        self.row_class = row_class
+        self._tools = tools
+        self._sorted_ids = SortedList[bytes, Sha1]()
+        self._data = defaultdict(dict)
+        self._tools_per_id = defaultdict(set)
+
+    def _key_from_dict(self, d) -> Tuple:
+        """Like the global _key_from_dict, but filters out dict keys that don't
+        belong in the unique key."""
+        return _key_from_dict({k: d[k] for k in self.row_class.UNIQUE_KEY_FIELDS})
+
+    def missing(self, keys: Iterable[Dict]) -> List[Sha1]:
         """List data missing from storage.
 
         Args:
@@ -61,13 +100,15 @@ class SubStorage:
             missing sha1s
 
         """
-        for id_ in ids:
-            tool_id = id_["indexer_configuration_id"]
-            id_ = id_["id"]
+        results = []
+        for key in keys:
+            tool_id = key["indexer_configuration_id"]
+            id_ = key["id"]
             if tool_id not in self._tools_per_id.get(id_, set()):
-                yield id_
+                results.append(id_)
+        return results
 
-    def get(self, ids):
+    def get(self, ids: Iterable[Sha1]) -> List[TValue]:
         """Retrieve data per id.
 
         Args:
@@ -81,17 +122,20 @@ class SubStorage:
               - arbitrary data (as provided to `add`)
 
         """
+        results = []
         for id_ in ids:
-            for tool_id in self._tools_per_id.get(id_, set()):
-                key = (id_, tool_id)
-                yield {
-                    "id": id_,
-                    "tool": _transform_tool(self._tools[tool_id]),
-                    **self._data[key],
-                }
+            for entry in self._data[id_].values():
+                entry = entry.copy()
+                tool_id = entry.pop("indexer_configuration_id")
+                results.append(
+                    self.row_class(
+                        id=id_, tool=_transform_tool(self._tools[tool_id]), **entry,
+                    )
+                )
+        return results
 
-    def get_all(self):
-        yield from self.get(self._sorted_ids)
+    def get_all(self) -> List[TValue]:
+        return self.get(self._sorted_ids)
 
     def get_partition(
         self,
@@ -149,7 +193,7 @@ class SubStorage:
         assert len(ids) <= limit
         return PagedResult(results=ids, next_page_token=next_page_token)
 
-    def add(self, data: List[Dict], conflict_update: bool) -> int:
+    def add(self, data: Iterable[TValue], conflict_update: bool) -> int:
         """Add data not present in storage.
 
         Args:
@@ -167,56 +211,20 @@ class SubStorage:
         data = list(data)
         check_id_duplicates(data)
         count = 0
-        for item in data:
-            item = item.copy()
-            tool_id = item.pop("indexer_configuration_id")
+        for obj in data:
+            item = obj.to_dict()
             id_ = item.pop("id")
-            data_item = item
-            if not conflict_update and tool_id in self._tools_per_id.get(id_, set()):
+            tool_id = item["indexer_configuration_id"]
+            key = _key_from_dict(obj.unique_key())
+            if not conflict_update and key in self._data[id_]:
                 # Duplicate, should not be updated
                 continue
-            key = (id_, tool_id)
-            self._data[key] = data_item
+            self._data[id_][key] = item
             self._tools_per_id[id_].add(tool_id)
             count += 1
             if id_ not in self._sorted_ids:
                 self._sorted_ids.add(id_)
         return count
-
-    def add_merge(
-        self, new_data: List[Dict], conflict_update: bool, merged_key: str
-    ) -> int:
-        added = 0
-        all_subitems: List
-        for new_item in new_data:
-            id_ = new_item["id"]
-            tool_id = new_item["indexer_configuration_id"]
-            if conflict_update:
-                all_subitems = []
-            else:
-                existing = list(self.get([id_]))
-                all_subitems = [
-                    old_subitem
-                    for existing_item in existing
-                    if existing_item["tool"]["id"] == tool_id
-                    for old_subitem in existing_item[merged_key]
-                ]
-            for new_subitem in new_item[merged_key]:
-                if new_subitem not in all_subitems:
-                    all_subitems.append(new_subitem)
-            added += self.add(
-                [
-                    {
-                        "id": id_,
-                        "indexer_configuration_id": tool_id,
-                        merged_key: all_subitems,
-                    }
-                ],
-                conflict_update=True,
-            )
-            if id_ not in self._sorted_ids:
-                self._sorted_ids.add(id_)
-        return added
 
     def delete(self, entries: List[Dict]) -> int:
         """Delete entries and return the number of entries deleted.
@@ -225,12 +233,13 @@ class SubStorage:
         deleted = 0
         for entry in entries:
             (id_, tool_id) = (entry["id"], entry["indexer_configuration_id"])
-            key = (id_, tool_id)
             if tool_id in self._tools_per_id[id_]:
                 self._tools_per_id[id_].remove(tool_id)
-            if key in self._data:
-                deleted += 1
-                del self._data[key]
+            if id_ in self._data:
+                key = self._key_from_dict(entry)
+                if key in self._data[id_]:
+                    deleted += 1
+                    del self._data[id_][key]
         return deleted
 
 
@@ -239,19 +248,25 @@ class IndexerStorage:
 
     def __init__(self):
         self._tools = {}
-        self._mimetypes = SubStorage(self._tools)
-        self._languages = SubStorage(self._tools)
-        self._content_ctags = SubStorage(self._tools)
-        self._licenses = SubStorage(self._tools)
-        self._content_metadata = SubStorage(self._tools)
-        self._revision_intrinsic_metadata = SubStorage(self._tools)
-        self._origin_intrinsic_metadata = SubStorage(self._tools)
+        self._mimetypes = SubStorage(ContentMimetypeRow, self._tools)
+        self._languages = SubStorage(ContentLanguageRow, self._tools)
+        self._content_ctags = SubStorage(ContentCtagsRow, self._tools)
+        self._licenses = SubStorage(ContentLicenseRow, self._tools)
+        self._content_metadata = SubStorage(ContentMetadataRow, self._tools)
+        self._revision_intrinsic_metadata = SubStorage(
+            RevisionIntrinsicMetadataRow, self._tools
+        )
+        self._origin_intrinsic_metadata = SubStorage(
+            OriginIntrinsicMetadataRow, self._tools
+        )
 
     def check_config(self, *, check_write):
         return True
 
-    def content_mimetype_missing(self, mimetypes):
-        yield from self._mimetypes.missing(mimetypes)
+    def content_mimetype_missing(
+        self, mimetypes: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
+        return self._mimetypes.missing(mimetypes)
 
     def content_mimetype_get_partition(
         self,
@@ -266,77 +281,74 @@ class IndexerStorage:
         )
 
     def content_mimetype_add(
-        self, mimetypes: List[Dict], conflict_update: bool = False
+        self, mimetypes: List[ContentMimetypeRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(mimetypes)
         added = self._mimetypes.add(mimetypes, conflict_update)
         return {"content_mimetype:add": added}
 
-    def content_mimetype_get(self, ids):
-        yield from self._mimetypes.get(ids)
+    def content_mimetype_get(self, ids: Iterable[Sha1]) -> List[ContentMimetypeRow]:
+        return self._mimetypes.get(ids)
 
-    def content_language_missing(self, languages):
-        yield from self._languages.missing(languages)
+    def content_language_missing(
+        self, languages: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
+        return self._languages.missing(languages)
 
-    def content_language_get(self, ids):
-        yield from self._languages.get(ids)
+    def content_language_get(self, ids: Iterable[Sha1]) -> List[ContentLanguageRow]:
+        return self._languages.get(ids)
 
     def content_language_add(
-        self, languages: List[Dict], conflict_update: bool = False
+        self, languages: List[ContentLanguageRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(languages)
         added = self._languages.add(languages, conflict_update)
         return {"content_language:add": added}
 
-    def content_ctags_missing(self, ctags):
-        yield from self._content_ctags.missing(ctags)
+    def content_ctags_missing(self, ctags: Iterable[Dict]) -> List[Tuple[Sha1, int]]:
+        return self._content_ctags.missing(ctags)
 
-    def content_ctags_get(self, ids):
-        for item in self._content_ctags.get(ids):
-            for item_ctags_item in item["ctags"]:
-                yield {"id": item["id"], "tool": item["tool"], **item_ctags_item}
+    def content_ctags_get(self, ids: Iterable[Sha1]) -> List[ContentCtagsRow]:
+        return self._content_ctags.get(ids)
 
     def content_ctags_add(
-        self, ctags: List[Dict], conflict_update: bool = False
+        self, ctags: List[ContentCtagsRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(ctags)
-        added = self._content_ctags.add_merge(ctags, conflict_update, "ctags")
+        added = self._content_ctags.add(ctags, conflict_update,)
         return {"content_ctags:add": added}
 
-    def content_ctags_search(self, expression, limit=10, last_sha1=None):
+    def content_ctags_search(
+        self, expression: str, limit: int = 10, last_sha1: Optional[Sha1] = None
+    ) -> List[ContentCtagsRow]:
         nb_matches = 0
-        for ((id_, tool_id), item) in sorted(self._content_ctags._data.items()):
-            if id_ <= (last_sha1 or bytes(0 for _ in range(SHA1_DIGEST_SIZE))):
+        items_per_id: Dict[Tuple[Sha1Git, ToolId], List[ContentCtagsRow]] = {}
+        for item in sorted(self._content_ctags.get_all()):
+            if item.id <= (last_sha1 or bytes(0 for _ in range(SHA1_DIGEST_SIZE))):
                 continue
-            for ctags_item in item["ctags"]:
-                if ctags_item["name"] != expression:
+            items_per_id.setdefault(
+                (item.id, item.indexer_configuration_id), []
+            ).append(item)
+
+        results = []
+        for items in items_per_id.values():
+            for item in items:
+                if item.name != expression:
                     continue
                 nb_matches += 1
-                yield {
-                    "id": id_,
-                    "tool": _transform_tool(self._tools[tool_id]),
-                    **ctags_item,
-                }
-                if nb_matches >= limit:
-                    return
+                if nb_matches > limit:
+                    break
+                results.append(item)
 
-    def content_fossology_license_get(self, ids):
-        # Rewrites the output of SubStorage.get from the old format to
-        # the new one. SubStorage.get should be updated once all other
-        # *_get methods use the new format.
-        # See: https://forge.softwareheritage.org/T1433
-        res = {}
-        for d in self._licenses.get(ids):
-            res.setdefault(d.pop("id"), []).append(d)
-        for (id_, facts) in res.items():
-            yield {id_: facts}
+        return results
+
+    def content_fossology_license_get(
+        self, ids: Iterable[Sha1]
+    ) -> List[ContentLicenseRow]:
+        return self._licenses.get(ids)
 
     def content_fossology_license_add(
-        self, licenses: List[Dict], conflict_update: bool = False
+        self, licenses: List[ContentLicenseRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(licenses)
-        added = self._licenses.add_merge(licenses, conflict_update, "licenses")
-        return {"fossology_license_add:add": added}
+        added = self._licenses.add(licenses, conflict_update)
+        return {"content_fossology_license:add": added}
 
     def content_fossology_license_get_partition(
         self,
@@ -350,29 +362,35 @@ class IndexerStorage:
             indexer_configuration_id, partition_id, nb_partitions, page_token, limit
         )
 
-    def content_metadata_missing(self, metadata):
-        yield from self._content_metadata.missing(metadata)
+    def content_metadata_missing(
+        self, metadata: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
+        return self._content_metadata.missing(metadata)
 
-    def content_metadata_get(self, ids):
-        yield from self._content_metadata.get(ids)
+    def content_metadata_get(self, ids: Iterable[Sha1]) -> List[ContentMetadataRow]:
+        return self._content_metadata.get(ids)
 
     def content_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self, metadata: List[ContentMetadataRow], conflict_update: bool = False
     ) -> Dict[str, int]:
-        check_id_types(metadata)
         added = self._content_metadata.add(metadata, conflict_update)
         return {"content_metadata:add": added}
 
-    def revision_intrinsic_metadata_missing(self, metadata):
-        yield from self._revision_intrinsic_metadata.missing(metadata)
+    def revision_intrinsic_metadata_missing(
+        self, metadata: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
+        return self._revision_intrinsic_metadata.missing(metadata)
 
-    def revision_intrinsic_metadata_get(self, ids):
-        yield from self._revision_intrinsic_metadata.get(ids)
+    def revision_intrinsic_metadata_get(
+        self, ids: Iterable[Sha1]
+    ) -> List[RevisionIntrinsicMetadataRow]:
+        return self._revision_intrinsic_metadata.get(ids)
 
     def revision_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self,
+        metadata: List[RevisionIntrinsicMetadataRow],
+        conflict_update: bool = False,
     ) -> Dict[str, int]:
-        check_id_types(metadata)
         added = self._revision_intrinsic_metadata.add(metadata, conflict_update)
         return {"revision_intrinsic_metadata:add": added}
 
@@ -380,11 +398,13 @@ class IndexerStorage:
         deleted = self._revision_intrinsic_metadata.delete(entries)
         return {"revision_intrinsic_metadata:del": deleted}
 
-    def origin_intrinsic_metadata_get(self, ids):
-        yield from self._origin_intrinsic_metadata.get(ids)
+    def origin_intrinsic_metadata_get(
+        self, urls: Iterable[str]
+    ) -> List[OriginIntrinsicMetadataRow]:
+        return self._origin_intrinsic_metadata.get(urls)
 
     def origin_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self, metadata: List[OriginIntrinsicMetadataRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         added = self._origin_intrinsic_metadata.add(metadata, conflict_update)
         return {"origin_intrinsic_metadata:add": added}
@@ -393,7 +413,9 @@ class IndexerStorage:
         deleted = self._origin_intrinsic_metadata.delete(entries)
         return {"origin_intrinsic_metadata:del": deleted}
 
-    def origin_intrinsic_metadata_search_fulltext(self, conjunction, limit=100):
+    def origin_intrinsic_metadata_search_fulltext(
+        self, conjunction: List[str], limit: int = 100
+    ) -> List[OriginIntrinsicMetadataRow]:
         # A very crude fulltext search implementation, but that's enough
         # to work on English metadata
         tokens_re = re.compile("[a-zA-Z0-9]+")
@@ -401,7 +423,7 @@ class IndexerStorage:
 
         def rank(data):
             # Tokenize the metadata
-            text = json.dumps(data["metadata"])
+            text = json.dumps(data.metadata)
             text_tokens = tokens_re.findall(text)
             text_token_occurences = Counter(text_tokens)
 
@@ -423,51 +445,55 @@ class IndexerStorage:
         results.sort(
             key=operator.itemgetter(0), reverse=True  # Don't try to order 'data'
         )
-        for (rank_, result) in results[:limit]:
-            yield result
+        return [result for (rank_, result) in results[:limit]]
 
     def origin_intrinsic_metadata_search_by_producer(
-        self, page_token="", limit=100, ids_only=False, mappings=None, tool_ids=None
-    ):
+        self,
+        page_token: str = "",
+        limit: int = 100,
+        ids_only: bool = False,
+        mappings: Optional[List[str]] = None,
+        tool_ids: Optional[List[int]] = None,
+    ) -> PagedResult[Union[str, OriginIntrinsicMetadataRow]]:
         assert isinstance(page_token, str)
         nb_results = 0
         if mappings is not None:
-            mappings = frozenset(mappings)
+            mapping_set = frozenset(mappings)
         if tool_ids is not None:
-            tool_ids = frozenset(tool_ids)
-        origins = []
+            tool_id_set = frozenset(tool_ids)
+        rows = []
 
         # we go to limit+1 to check whether we should add next_page_token in
         # the response
         for entry in self._origin_intrinsic_metadata.get_all():
-            if entry["id"] <= page_token:
+            if entry.id <= page_token:
                 continue
             if nb_results >= (limit + 1):
                 break
-            if mappings is not None and mappings.isdisjoint(entry["mappings"]):
+            if mappings and mapping_set.isdisjoint(entry.mappings):
                 continue
-            if tool_ids is not None and entry["tool"]["id"] not in tool_ids:
+            if tool_ids and entry.tool["id"] not in tool_id_set:
                 continue
-            origins.append(entry)
+            rows.append(entry)
             nb_results += 1
 
-        result = {}
-        if len(origins) > limit:
-            origins = origins[:limit]
-            result["next_page_token"] = origins[-1]["id"]
+        if len(rows) > limit:
+            rows = rows[:limit]
+            next_page_token = rows[-1].id
+        else:
+            next_page_token = None
         if ids_only:
-            origins = [origin["id"] for origin in origins]
-        result["origins"] = origins
-        return result
+            rows = [row.id for row in rows]
+        return PagedResult(results=rows, next_page_token=next_page_token,)
 
     def origin_intrinsic_metadata_stats(self):
         mapping_count = {m: 0 for m in MAPPING_NAMES}
         total = non_empty = 0
         for data in self._origin_intrinsic_metadata.get_all():
             total += 1
-            if set(data["metadata"]) - {"@context"}:
+            if set(data.metadata) - {"@context"}:
                 non_empty += 1
-            for mapping in data["mappings"]:
+            for mapping in data.mappings:
                 mapping_count[mapping] += 1
         return {"per_mapping": mapping_count, "total": total, "non_empty": non_empty}
 

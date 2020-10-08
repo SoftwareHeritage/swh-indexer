@@ -14,6 +14,8 @@ from swh.indexer.storage import INDEXER_CFG_KEY, get_indexer_storage
 from swh.indexer.storage.exc import IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface
 
+from .serializers import DECODERS, ENCODERS
+
 
 def get_storage():
     global storage
@@ -23,7 +25,12 @@ def get_storage():
     return storage
 
 
-app = RPCServerApp(
+class IndexerStorageServerApp(RPCServerApp):
+    extra_type_decoders = DECODERS
+    extra_type_encoders = ENCODERS
+
+
+app = IndexerStorageServerApp(
     __name__, backend_class=IndexerStorageInterface, backend_factory=get_storage
 )
 storage = None
