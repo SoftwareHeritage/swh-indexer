@@ -11,6 +11,7 @@ from swh.indexer.storage.exc import (
 )
 
 from ..interface import IndexerStorageInterface
+from .serializers import DECODERS, ENCODERS
 
 
 class RemoteStorage(RPCClient):
@@ -19,3 +20,5 @@ class RemoteStorage(RPCClient):
     backend_class = IndexerStorageInterface
     api_exception = IndexerStorageAPIError
     reraise_exceptions = [IndexerStorageArgumentException, DuplicateId]
+    extra_type_decoders = DECODERS
+    extra_type_encoders = ENCODERS

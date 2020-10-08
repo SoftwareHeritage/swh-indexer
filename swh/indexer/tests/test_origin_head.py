@@ -3,11 +3,14 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import copy
 from datetime import datetime, timezone
 import unittest
 
+import pytest
+
 from swh.indexer.origin_head import OriginHeadIndexer
-from swh.indexer.tests.utils import BASE_TEST_CONFIG, fill_storage
+from swh.indexer.tests.utils import fill_storage
 from swh.model.model import (
     Origin,
     OriginVisit,
@@ -18,11 +21,24 @@ from swh.model.model import (
 )
 from swh.storage.utils import now
 
-ORIGIN_HEAD_CONFIG = {
-    **BASE_TEST_CONFIG,
-    "tools": {"name": "origin-metadata", "version": "0.0.1", "configuration": {},},
-    "tasks": {"revision_intrinsic_metadata": None, "origin_intrinsic_metadata": None,},
-}
+
+@pytest.fixture
+def swh_indexer_config(swh_indexer_config):
+    config = copy.deepcopy(swh_indexer_config)
+    config.update(
+        {
+            "tools": {
+                "name": "origin-metadata",
+                "version": "0.0.1",
+                "configuration": {},
+            },
+            "tasks": {
+                "revision_intrinsic_metadata": None,
+                "origin_intrinsic_metadata": None,
+            },
+        }
+    )
+    return config
 
 
 class OriginHeadTestIndexer(OriginHeadIndexer):
@@ -30,15 +46,14 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
        indexing tests.
     """
 
-    def parse_config_file(self, *args, **kwargs):
-        return ORIGIN_HEAD_CONFIG
-
     def persist_index_computations(self, results, policy_update):
         self.results = results
 
 
 class OriginHead(unittest.TestCase):
-    def setUp(self):
+    @pytest.fixture(autouse=True)
+    def init(self, swh_config):
+        super().setUp()
         self.indexer = OriginHeadTestIndexer()
         self.indexer.catch_exceptions = False
         fill_storage(self.indexer.storage)

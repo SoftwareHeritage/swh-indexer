@@ -6,28 +6,41 @@
 import inspect
 import math
 import threading
-from typing import Dict
+from typing import Any, Dict, List, Tuple, Type, cast
 
+import attr
 import pytest
 
 from swh.indexer.storage.exc import DuplicateId, IndexerStorageArgumentException
-from swh.indexer.storage.interface import IndexerStorageInterface
+from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult
+from swh.indexer.storage.model import (
+    BaseRow,
+    ContentCtagsRow,
+    ContentLanguageRow,
+    ContentLicenseRow,
+    ContentMetadataRow,
+    ContentMimetypeRow,
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 from swh.model.hashutil import hash_to_bytes
 
 
-def prepare_mimetypes_from(fossology_licenses):
+def prepare_mimetypes_from_licenses(
+    fossology_licenses: List[ContentLicenseRow],
+) -> List[ContentMimetypeRow]:
     """Fossology license needs some consistent data in db to run.
 
     """
     mimetypes = []
     for c in fossology_licenses:
         mimetypes.append(
-            {
-                "id": c["id"],
-                "mimetype": "text/plain",  # for filtering on textual data to work
-                "encoding": "utf-8",
-                "indexer_configuration_id": c["indexer_configuration_id"],
-            }
+            ContentMimetypeRow(
+                id=c.id,
+                mimetype="text/plain",  # for filtering on textual data to work
+                encoding="utf-8",
+                indexer_configuration_id=c.indexer_configuration_id,
+            )
         )
     return mimetypes
 
@@ -64,12 +77,12 @@ def expected_summary(count: int, etype: str, ename: str = "add") -> Dict[str, in
     return {key: count}
 
 
-def test_check_config(swh_indexer_storage):
+def test_check_config(swh_indexer_storage) -> None:
     assert swh_indexer_storage.check_config(check_write=True)
     assert swh_indexer_storage.check_config(check_write=False)
 
 
-def test_types(swh_indexer_storage):
+def test_types(swh_indexer_storage) -> None:
     """Checks all methods of StorageInterface are implemented by this
     backend, and that they have the same signature."""
     # Create an instance of the protocol (which cannot be instantiated
@@ -110,7 +123,14 @@ class StorageETypeTester:
     See below for example usage.
     """
 
-    def test_missing(self, swh_indexer_storage_with_data):
+    endpoint_type: str
+    tool_name: str
+    example_data: List[Dict]
+    row_class: Type[BaseRow]
+
+    def test_missing(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool_id = data.tools[self.tool_name]["id"]
@@ -131,11 +151,13 @@ class StorageETypeTester:
         # now, when we add one of them
         summary = endpoint(storage, etype, "add")(
             [
-                {
-                    "id": data.sha1_2,
-                    **self.example_data[0],
-                    "indexer_configuration_id": tool_id,
-                }
+                self.row_class.from_dict(
+                    {
+                        "id": data.sha1_2,
+                        **self.example_data[0],
+                        "indexer_configuration_id": tool_id,
+                    }
+                )
             ]
         )
 
@@ -145,7 +167,9 @@ class StorageETypeTester:
         actual_missing = endpoint(storage, etype, "missing")(query)
         assert list(actual_missing) == [data.sha1_1]
 
-    def test_add__drop_duplicate(self, swh_indexer_storage_with_data):
+    def test_add__drop_duplicate(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool_id = data.tools[self.tool_name]["id"]
@@ -156,31 +180,35 @@ class StorageETypeTester:
             **self.example_data[0],
             "indexer_configuration_id": tool_id,
         }
-        summary = endpoint(storage, etype, "add")([data_v1])
+        summary = endpoint(storage, etype, "add")([self.row_class.from_dict(data_v1)])
         assert summary == expected_summary(1, etype)
 
         # should be able to retrieve it
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
         expected_data_v1 = [
-            {
-                "id": data.sha1_2,
-                **self.example_data[0],
-                "tool": data.tools[self.tool_name],
-            }
+            self.row_class.from_dict(
+                {
+                    "id": data.sha1_2,
+                    **self.example_data[0],
+                    "tool": data.tools[self.tool_name],
+                }
+            )
         ]
         assert actual_data == expected_data_v1
 
         # now if we add a modified version of the same object (same id)
         data_v2 = data_v1.copy()
         data_v2.update(self.example_data[1])
-        summary2 = endpoint(storage, etype, "add")([data_v2])
+        summary2 = endpoint(storage, etype, "add")([self.row_class.from_dict(data_v2)])
         assert summary2 == expected_summary(0, etype)  # not added
 
         # we expect to retrieve the original data, not the modified one
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
         assert actual_data == expected_data_v1
 
-    def test_add__update_in_place_duplicate(self, swh_indexer_storage_with_data):
+    def test_add__update_in_place_duplicate(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -192,13 +220,17 @@ class StorageETypeTester:
         }
 
         # given
-        summary = endpoint(storage, etype, "add")([data_v1])
+        summary = endpoint(storage, etype, "add")([self.row_class.from_dict(data_v1)])
         assert summary == expected_summary(1, etype)  # not added
 
         # when
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
 
-        expected_data_v1 = [{"id": data.sha1_2, **self.example_data[0], "tool": tool,}]
+        expected_data_v1 = [
+            self.row_class.from_dict(
+                {"id": data.sha1_2, **self.example_data[0], "tool": tool}
+            )
+        ]
 
         # then
         assert actual_data == expected_data_v1
@@ -207,17 +239,25 @@ class StorageETypeTester:
         data_v2 = data_v1.copy()
         data_v2.update(self.example_data[1])
 
-        endpoint(storage, etype, "add")([data_v2], conflict_update=True)
+        endpoint(storage, etype, "add")(
+            [self.row_class.from_dict(data_v2)], conflict_update=True
+        )
         assert summary == expected_summary(1, etype)  # modified so counted
 
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
 
-        expected_data_v2 = [{"id": data.sha1_2, **self.example_data[1], "tool": tool,}]
+        expected_data_v2 = [
+            self.row_class.from_dict(
+                {"id": data.sha1_2, **self.example_data[1], "tool": tool,}
+            )
+        ]
 
         # data did change as the v2 was used to overwrite v1
         assert actual_data == expected_data_v2
 
-    def test_add__update_in_place_deadlock(self, swh_indexer_storage_with_data):
+    def test_add__update_in_place_deadlock(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -228,19 +268,23 @@ class StorageETypeTester:
         ]
 
         data_v1 = [
-            {
-                "id": hash_,
-                **self.example_data[0],
-                "indexer_configuration_id": tool["id"],
-            }
+            self.row_class.from_dict(
+                {
+                    "id": hash_,
+                    **self.example_data[0],
+                    "indexer_configuration_id": tool["id"],
+                }
+            )
             for hash_ in hashes
         ]
         data_v2 = [
-            {
-                "id": hash_,
-                **self.example_data[1],
-                "indexer_configuration_id": tool["id"],
-            }
+            self.row_class.from_dict(
+                {
+                    "id": hash_,
+                    **self.example_data[1],
+                    "indexer_configuration_id": tool["id"],
+                }
+            )
             for hash_ in hashes
         ]
 
@@ -256,17 +300,20 @@ class StorageETypeTester:
         actual_data = list(endpoint(storage, etype, "get")(hashes))
 
         expected_data_v1 = [
-            {"id": hash_, **self.example_data[0], "tool": tool,} for hash_ in hashes
+            self.row_class.from_dict(
+                {"id": hash_, **self.example_data[0], "tool": tool}
+            )
+            for hash_ in hashes
         ]
 
         # then
         assert actual_data == expected_data_v1
 
         # given
-        def f1():
+        def f1() -> None:
             endpoint(storage, etype, "add")(data_v2a, conflict_update=True)
 
-        def f2():
+        def f2() -> None:
             endpoint(storage, etype, "add")(data_v2b, conflict_update=True)
 
         t1 = threading.Thread(target=f1)
@@ -278,31 +325,38 @@ class StorageETypeTester:
         t2.join()
 
         actual_data = sorted(
-            endpoint(storage, etype, "get")(hashes), key=lambda x: x["id"]
+            (row.to_dict() for row in endpoint(storage, etype, "get")(hashes)),
+            key=lambda x: x["id"],
         )
 
         expected_data_v2 = [
-            {"id": hash_, **self.example_data[1], "tool": tool,} for hash_ in hashes
+            {"id": hash_, **self.example_data[1], "tool": tool} for hash_ in hashes
         ]
 
         assert actual_data == expected_data_v2
 
-    def test_add__duplicate_twice(self, swh_indexer_storage_with_data):
+    def test_add__duplicate_twice(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
 
-        data_rev1 = {
-            "id": data.revision_id_2,
-            **self.example_data[0],
-            "indexer_configuration_id": tool["id"],
-        }
+        data_rev1 = self.row_class.from_dict(
+            {
+                "id": data.revision_id_2,
+                **self.example_data[0],
+                "indexer_configuration_id": tool["id"],
+            }
+        )
 
-        data_rev2 = {
-            "id": data.revision_id_2,
-            **self.example_data[1],
-            "indexer_configuration_id": tool["id"],
-        }
+        data_rev2 = self.row_class.from_dict(
+            {
+                "id": data.revision_id_2,
+                **self.example_data[1],
+                "indexer_configuration_id": tool["id"],
+            }
+        )
 
         # when
         summary = endpoint(storage, etype, "add")([data_rev1])
@@ -319,21 +373,27 @@ class StorageETypeTester:
         )
 
         expected_data = [
-            {"id": data.revision_id_2, **self.example_data[0], "tool": tool,}
+            self.row_class.from_dict(
+                {"id": data.revision_id_2, **self.example_data[0], "tool": tool}
+            )
         ]
         assert actual_data == expected_data
 
-    def test_get(self, swh_indexer_storage_with_data):
+    def test_get(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
 
         query = [data.sha1_2, data.sha1_1]
-        data1 = {
-            "id": data.sha1_2,
-            **self.example_data[0],
-            "indexer_configuration_id": tool["id"],
-        }
+        data1 = self.row_class.from_dict(
+            {
+                "id": data.sha1_2,
+                **self.example_data[0],
+                "indexer_configuration_id": tool["id"],
+            }
+        )
 
         # when
         summary = endpoint(storage, etype, "add")([data1])
@@ -343,7 +403,11 @@ class StorageETypeTester:
         actual_data = list(endpoint(storage, etype, "get")(query))
 
         # then
-        expected_data = [{"id": data.sha1_2, **self.example_data[0], "tool": tool,}]
+        expected_data = [
+            self.row_class.from_dict(
+                {"id": data.sha1_2, **self.example_data[0], "tool": tool}
+            )
+        ]
 
         assert actual_data == expected_data
 
@@ -358,27 +422,30 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         {"mimetype": "text/plain", "encoding": "utf-8",},
         {"mimetype": "text/html", "encoding": "us-ascii",},
     ]
+    row_class = ContentMimetypeRow
 
-    def test_generate_content_mimetype_get_partition_failure(self, swh_indexer_storage):
+    def test_generate_content_mimetype_get_partition_failure(
+        self, swh_indexer_storage: IndexerStorageInterface
+    ) -> None:
         """get_partition call with wrong limit input should fail"""
         storage = swh_indexer_storage
-        indexer_configuration_id = None
+        indexer_configuration_id = 42
         with pytest.raises(
             IndexerStorageArgumentException, match="limit should not be None"
         ):
             storage.content_mimetype_get_partition(
-                indexer_configuration_id, 0, 3, limit=None
+                indexer_configuration_id, 0, 3, limit=None  # type: ignore
             )
 
     def test_generate_content_mimetype_get_partition_no_limit(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition should return result"""
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
 
-        expected_ids = set([c["id"] for c in mimetypes])
-        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+        expected_ids = set([c.id for c in mimetypes])
+        indexer_configuration_id = mimetypes[0].indexer_configuration_id
 
         assert len(mimetypes) == 16
         nb_partitions = 16
@@ -396,15 +463,15 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
             assert actual_id in expected_ids
 
     def test_generate_content_mimetype_get_partition_full(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition for a single partition should return available ids
 
         """
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
-        expected_ids = set([c["id"] for c in mimetypes])
-        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+        expected_ids = set([c.id for c in mimetypes])
+        indexer_configuration_id = mimetypes[0].indexer_configuration_id
 
         actual_result = storage.content_mimetype_get_partition(
             indexer_configuration_id, 0, 1
@@ -416,13 +483,13 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
             assert actual_id in expected_ids
 
     def test_generate_content_mimetype_get_partition_empty(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition when at least one of the partitions is empty"""
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
-        expected_ids = set([c["id"] for c in mimetypes])
-        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+        expected_ids = set([c.id for c in mimetypes])
+        indexer_configuration_id = mimetypes[0].indexer_configuration_id
 
         # nb_partitions = smallest power of 2 such that at least one of
         # the partitions is empty
@@ -448,15 +515,15 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         assert set(seen_ids) == expected_ids
 
     def test_generate_content_mimetype_get_partition_with_pagination(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition should return ids provided with pagination
 
         """
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
-        expected_ids = set([c["id"] for c in mimetypes])
-        indexer_configuration_id = mimetypes[0]["indexer_configuration_id"]
+        expected_ids = set([c.id for c in mimetypes])
+        indexer_configuration_id = mimetypes[0].indexer_configuration_id
 
         nb_partitions = 4
 
@@ -491,6 +558,7 @@ class TestIndexerStorageContentLanguage(StorageETypeTester):
         {"lang": "haskell",},
         {"lang": "common-lisp",},
     ]
+    row_class = ContentLanguageRow
 
 
 class TestIndexerStorageContentCTags(StorageETypeTester):
@@ -500,18 +568,11 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
     endpoint_type = "content_ctags"
     tool_name = "universal-ctags"
     example_data = [
-        {
-            "ctags": [
-                {"name": "done", "kind": "variable", "line": 119, "lang": "OCaml",}
-            ]
-        },
-        {
-            "ctags": [
-                {"name": "done", "kind": "variable", "line": 100, "lang": "Python",},
-                {"name": "main", "kind": "function", "line": 119, "lang": "Python",},
-            ]
-        },
+        {"name": "done", "kind": "variable", "line": 119, "lang": "OCaml",},
+        {"name": "done", "kind": "variable", "line": 100, "lang": "Python",},
+        {"name": "main", "kind": "function", "line": 119, "lang": "Python",},
     ]
+    row_class = ContentCtagsRow
 
     # the following tests are disabled because CTAGS behaves differently
     @pytest.mark.skip
@@ -534,283 +595,205 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
     def test_get(self):
         pass
 
-    def test_content_ctags_search(self, swh_indexer_storage_with_data):
+    def test_content_ctags_search(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # 1. given
         tool = data.tools["universal-ctags"]
         tool_id = tool["id"]
 
-        ctag1 = {
-            "id": data.sha1_1,
-            "indexer_configuration_id": tool_id,
-            "ctags": [
+        ctags1 = [
+            ContentCtagsRow(
+                id=data.sha1_1,
+                indexer_configuration_id=tool_id,
+                **kwargs,  # type: ignore
+            )
+            for kwargs in [
                 {"name": "hello", "kind": "function", "line": 133, "lang": "Python",},
                 {"name": "counter", "kind": "variable", "line": 119, "lang": "Python",},
                 {"name": "hello", "kind": "variable", "line": 210, "lang": "Python",},
-            ],
-        }
+            ]
+        ]
+        ctags1_with_tool = [
+            attr.evolve(ctag, indexer_configuration_id=None, tool=tool)
+            for ctag in ctags1
+        ]
 
-        ctag2 = {
-            "id": data.sha1_2,
-            "indexer_configuration_id": tool_id,
-            "ctags": [
+        ctags2 = [
+            ContentCtagsRow(
+                id=data.sha1_2,
+                indexer_configuration_id=tool_id,
+                **kwargs,  # type: ignore
+            )
+            for kwargs in [
                 {"name": "hello", "kind": "variable", "line": 100, "lang": "C",},
                 {"name": "result", "kind": "variable", "line": 120, "lang": "C",},
-            ],
-        }
+            ]
+        ]
+        ctags2_with_tool = [
+            attr.evolve(ctag, indexer_configuration_id=None, tool=tool)
+            for ctag in ctags2
+        ]
 
-        storage.content_ctags_add([ctag1, ctag2])
+        storage.content_ctags_add(ctags1 + ctags2)
 
         # 1. when
         actual_ctags = list(storage.content_ctags_search("hello", limit=1))
 
         # 1. then
-        assert actual_ctags == [
-            {
-                "id": ctag1["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "function",
-                "line": 133,
-                "lang": "Python",
-            }
-        ]
+        assert actual_ctags == [ctags1_with_tool[0]]
 
         # 2. when
         actual_ctags = list(
-            storage.content_ctags_search("hello", limit=1, last_sha1=ctag1["id"])
+            storage.content_ctags_search("hello", limit=1, last_sha1=data.sha1_1)
         )
 
         # 2. then
-        assert actual_ctags == [
-            {
-                "id": ctag2["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "variable",
-                "line": 100,
-                "lang": "C",
-            }
-        ]
+        assert actual_ctags == [ctags2_with_tool[0]]
 
         # 3. when
         actual_ctags = list(storage.content_ctags_search("hello"))
 
         # 3. then
         assert actual_ctags == [
-            {
-                "id": ctag1["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "function",
-                "line": 133,
-                "lang": "Python",
-            },
-            {
-                "id": ctag1["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "variable",
-                "line": 210,
-                "lang": "Python",
-            },
-            {
-                "id": ctag2["id"],
-                "tool": tool,
-                "name": "hello",
-                "kind": "variable",
-                "line": 100,
-                "lang": "C",
-            },
+            ctags1_with_tool[0],
+            ctags1_with_tool[2],
+            ctags2_with_tool[0],
         ]
 
         # 4. when
         actual_ctags = list(storage.content_ctags_search("counter"))
 
         # then
-        assert actual_ctags == [
-            {
-                "id": ctag1["id"],
-                "tool": tool,
-                "name": "counter",
-                "kind": "variable",
-                "line": 119,
-                "lang": "Python",
-            }
-        ]
+        assert actual_ctags == [ctags1_with_tool[1]]
 
         # 5. when
         actual_ctags = list(storage.content_ctags_search("result", limit=1))
 
         # then
-        assert actual_ctags == [
-            {
-                "id": ctag2["id"],
-                "tool": tool,
-                "name": "result",
-                "kind": "variable",
-                "line": 120,
-                "lang": "C",
-            }
-        ]
+        assert actual_ctags == [ctags2_with_tool[1]]
 
-    def test_content_ctags_search_no_result(self, swh_indexer_storage):
+    def test_content_ctags_search_no_result(
+        self, swh_indexer_storage: IndexerStorageInterface
+    ) -> None:
         storage = swh_indexer_storage
         actual_ctags = list(storage.content_ctags_search("counter"))
 
         assert not actual_ctags
 
     def test_content_ctags_add__add_new_ctags_added(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
 
         # given
         tool = data.tools["universal-ctags"]
         tool_id = tool["id"]
 
-        ctag_v1 = {
-            "id": data.sha1_2,
-            "indexer_configuration_id": tool_id,
-            "ctags": [
-                {"name": "done", "kind": "variable", "line": 100, "lang": "Scheme",}
-            ],
-        }
+        ctag1 = ContentCtagsRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool_id,
+            name="done",
+            kind="variable",
+            line=100,
+            lang="Scheme",
+        )
+        ctag1_with_tool = attr.evolve(ctag1, indexer_configuration_id=None, tool=tool)
 
         # given
-        storage.content_ctags_add([ctag_v1])
-        storage.content_ctags_add([ctag_v1])  # conflict does nothing
+        storage.content_ctags_add([ctag1])
+        storage.content_ctags_add([ctag1])  # conflict does nothing
 
         # when
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
         # then
-        expected_ctags = [
-            {
-                "id": data.sha1_2,
-                "name": "done",
-                "kind": "variable",
-                "line": 100,
-                "lang": "Scheme",
-                "tool": tool,
-            }
-        ]
-
-        assert actual_ctags == expected_ctags
+        assert actual_ctags == [ctag1_with_tool]
 
         # given
-        ctag_v2 = ctag_v1.copy()
-        ctag_v2.update(
-            {
-                "ctags": [
-                    {"name": "defn", "kind": "function", "line": 120, "lang": "Scheme",}
-                ]
-            }
+        ctag2 = ContentCtagsRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool_id,
+            name="defn",
+            kind="function",
+            line=120,
+            lang="Scheme",
         )
+        ctag2_with_tool = attr.evolve(ctag2, indexer_configuration_id=None, tool=tool)
 
-        storage.content_ctags_add([ctag_v2])
-
-        expected_ctags = [
-            {
-                "id": data.sha1_2,
-                "name": "done",
-                "kind": "variable",
-                "line": 100,
-                "lang": "Scheme",
-                "tool": tool,
-            },
-            {
-                "id": data.sha1_2,
-                "name": "defn",
-                "kind": "function",
-                "line": 120,
-                "lang": "Scheme",
-                "tool": tool,
-            },
-        ]
+        storage.content_ctags_add([ctag2])
 
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
-        assert actual_ctags == expected_ctags
+        assert actual_ctags == [ctag1_with_tool, ctag2_with_tool]
 
-    def test_content_ctags_add__update_in_place(self, swh_indexer_storage_with_data):
+    def test_content_ctags_add__update_in_place(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool = data.tools["universal-ctags"]
         tool_id = tool["id"]
 
-        ctag_v1 = {
-            "id": data.sha1_2,
-            "indexer_configuration_id": tool_id,
-            "ctags": [
-                {"name": "done", "kind": "variable", "line": 100, "lang": "Scheme",}
-            ],
-        }
+        ctag1 = ContentCtagsRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool_id,
+            name="done",
+            kind="variable",
+            line=100,
+            lang="Scheme",
+        )
+        ctag1_with_tool = attr.evolve(ctag1, indexer_configuration_id=None, tool=tool)
 
         # given
-        storage.content_ctags_add([ctag_v1])
+        storage.content_ctags_add([ctag1])
 
         # when
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
         # then
-        expected_ctags = [
-            {
-                "id": data.sha1_2,
-                "name": "done",
-                "kind": "variable",
-                "line": 100,
-                "lang": "Scheme",
-                "tool": tool,
-            }
-        ]
-        assert actual_ctags == expected_ctags
+        assert actual_ctags == [ctag1_with_tool]
 
         # given
-        ctag_v2 = ctag_v1.copy()
-        ctag_v2.update(
-            {
-                "ctags": [
-                    {
-                        "name": "done",
-                        "kind": "variable",
-                        "line": 100,
-                        "lang": "Scheme",
-                    },
-                    {
-                        "name": "defn",
-                        "kind": "function",
-                        "line": 120,
-                        "lang": "Scheme",
-                    },
-                ]
-            }
+        ctag2 = ContentCtagsRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool_id,
+            name="defn",
+            kind="function",
+            line=120,
+            lang="Scheme",
         )
+        ctag2_with_tool = attr.evolve(ctag2, indexer_configuration_id=None, tool=tool)
 
-        storage.content_ctags_add([ctag_v2], conflict_update=True)
+        storage.content_ctags_add([ctag1, ctag2], conflict_update=True)
 
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
-        # ctag did change as the v2 was used to overwrite v1
-        expected_ctags = [
-            {
-                "id": data.sha1_2,
-                "name": "done",
-                "kind": "variable",
-                "line": 100,
-                "lang": "Scheme",
-                "tool": tool,
-            },
-            {
-                "id": data.sha1_2,
-                "name": "defn",
-                "kind": "function",
-                "line": 120,
-                "lang": "Scheme",
-                "tool": tool,
-            },
-        ]
-        assert actual_ctags == expected_ctags
+        assert actual_ctags == [ctag1_with_tool, ctag2_with_tool]
+
+    def test_add_empty(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        (storage, data) = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+
+        summary = endpoint(storage, etype, "add")([])
+        assert summary == {"content_ctags:add": 0}
+
+        actual_ctags = list(endpoint(storage, etype, "get")([data.sha1_2]))
+
+        assert actual_ctags == []
+
+    def test_get_unknown(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        (storage, data) = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+
+        actual_ctags = list(endpoint(storage, etype, "get")([data.sha1_2]))
+
+        assert actual_ctags == []
 
 
 class TestIndexerStorageContentMetadata(StorageETypeTester):
@@ -834,6 +817,7 @@ class TestIndexerStorageContentMetadata(StorageETypeTester):
         },
         {"metadata": {"other": {}, "name": "test_metadata", "version": "0.0.1"},},
     ]
+    row_class = ContentMetadataRow
 
 
 class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
@@ -861,18 +845,21 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
             "mappings": ["mapping2"],
         },
     ]
+    row_class = RevisionIntrinsicMetadataRow
 
-    def test_revision_intrinsic_metadata_delete(self, swh_indexer_storage_with_data):
+    def test_revision_intrinsic_metadata_delete(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
 
         query = [data.sha1_2, data.sha1_1]
-        data1 = {
-            "id": data.sha1_2,
-            **self.example_data[0],
-            "indexer_configuration_id": tool["id"],
-        }
+        data1 = RevisionIntrinsicMetadataRow(
+            id=data.sha1_2,
+            indexer_configuration_id=tool["id"],
+            **self.example_data[0],  # type: ignore
+        )
 
         # when
         summary = endpoint(storage, etype, "add")([data1])
@@ -890,8 +877,8 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
         assert not actual_data
 
     def test_revision_intrinsic_metadata_delete_nonexisting(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
@@ -900,79 +887,83 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
         )
 
 
-class TestIndexerStorageContentFossologyLicence:
+class TestIndexerStorageContentFossologyLicense:
+    endpoint_type = "content_fossology_license"
+    tool_name = "nomos"
+
+    row_class = ContentLicenseRow
+
     def test_content_fossology_license_add__new_license_added(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool = data.tools["nomos"]
         tool_id = tool["id"]
 
-        license_v1 = {
-            "id": data.sha1_1,
-            "licenses": ["Apache-2.0"],
-            "indexer_configuration_id": tool_id,
-        }
+        license1 = ContentLicenseRow(
+            id=data.sha1_1, license="Apache-2.0", indexer_configuration_id=tool_id,
+        )
 
         # given
-        storage.content_fossology_license_add([license_v1])
+        storage.content_fossology_license_add([license1])
         # conflict does nothing
-        storage.content_fossology_license_add([license_v1])
+        storage.content_fossology_license_add([license1])
 
         # when
         actual_licenses = list(storage.content_fossology_license_get([data.sha1_1]))
 
         # then
-        expected_license = {data.sha1_1: [{"licenses": ["Apache-2.0"], "tool": tool,}]}
-        assert actual_licenses == [expected_license]
+        expected_licenses = [
+            ContentLicenseRow(id=data.sha1_1, license="Apache-2.0", tool=tool,)
+        ]
+        assert actual_licenses == expected_licenses
 
         # given
-        license_v2 = license_v1.copy()
-        license_v2.update(
-            {"licenses": ["BSD-2-Clause"],}
+        license2 = ContentLicenseRow(
+            id=data.sha1_1, license="BSD-2-Clause", indexer_configuration_id=tool_id,
         )
 
-        storage.content_fossology_license_add([license_v2])
+        storage.content_fossology_license_add([license2])
 
         actual_licenses = list(storage.content_fossology_license_get([data.sha1_1]))
 
-        expected_license = {
-            data.sha1_1: [{"licenses": ["Apache-2.0", "BSD-2-Clause"], "tool": tool}]
-        }
+        expected_licenses.append(
+            ContentLicenseRow(id=data.sha1_1, license="BSD-2-Clause", tool=tool,)
+        )
 
-        # license did not change as the v2 was dropped.
-        assert actual_licenses == [expected_license]
+        # first license was not removed when the second one was added
+        assert sorted(actual_licenses) == sorted(expected_licenses)
 
     def test_generate_content_fossology_license_get_partition_failure(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition call with wrong limit input should fail"""
         storage, data = swh_indexer_storage_with_data
-        indexer_configuration_id = None
+        indexer_configuration_id = 42
         with pytest.raises(
             IndexerStorageArgumentException, match="limit should not be None"
         ):
             storage.content_fossology_license_get_partition(
-                indexer_configuration_id, 0, 3, limit=None,
+                indexer_configuration_id, 0, 3, limit=None,  # type: ignore
             )
 
     def test_generate_content_fossology_license_get_partition_no_limit(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition should return results"""
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
-        mimetypes = prepare_mimetypes_from(fossology_licenses)
-        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+        mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        expected_ids = set([c["id"] for c in fossology_licenses])
+        expected_ids = set([c.id for c in fossology_licenses])
 
         assert len(fossology_licenses) == 10
         assert len(mimetypes) == 10
@@ -992,23 +983,23 @@ class TestIndexerStorageContentFossologyLicence:
             assert actual_id in expected_ids
 
     def test_generate_content_fossology_license_get_partition_full(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition for a single partition should return available ids
 
         """
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
-        mimetypes = prepare_mimetypes_from(fossology_licenses)
-        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+        mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        expected_ids = set([c["id"] for c in fossology_licenses])
+        expected_ids = set([c.id for c in fossology_licenses])
 
         actual_result = storage.content_fossology_license_get_partition(
             indexer_configuration_id, 0, 1
@@ -1020,21 +1011,21 @@ class TestIndexerStorageContentFossologyLicence:
             assert actual_id in expected_ids
 
     def test_generate_content_fossology_license_get_partition_empty(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition when at least one of the partitions is empty"""
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
-        mimetypes = prepare_mimetypes_from(fossology_licenses)
-        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+        mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        expected_ids = set([c["id"] for c in fossology_licenses])
+        expected_ids = set([c.id for c in fossology_licenses])
 
         # nb_partitions = smallest power of 2 such that at least one of
         # the partitions is empty
@@ -1060,23 +1051,23 @@ class TestIndexerStorageContentFossologyLicence:
         assert set(seen_ids) == expected_ids
 
     def test_generate_content_fossology_license_get_partition_with_pagination(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         """get_partition should return ids provided with paginationv
 
         """
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
-        mimetypes = prepare_mimetypes_from(fossology_licenses)
-        indexer_configuration_id = fossology_licenses[0]["indexer_configuration_id"]
+        mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
+        indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
         storage.content_mimetype_add(mimetypes, conflict_update=True)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
         # All ids from the db
-        expected_ids = [c["id"] for c in fossology_licenses]
+        expected_ids = [c.id for c in fossology_licenses]
 
         nb_partitions = 4
 
@@ -1100,9 +1091,34 @@ class TestIndexerStorageContentFossologyLicence:
         for actual_id in actual_ids:
             assert actual_id in expected_ids
 
+    def test_add_empty(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        (storage, data) = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+
+        summary = endpoint(storage, etype, "add")([])
+        assert summary == {"content_fossology_license:add": 0}
+
+        actual_license = list(endpoint(storage, etype, "get")([data.sha1_2]))
+
+        assert actual_license == []
+
+    def test_get_unknown(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        (storage, data) = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+
+        actual_license = list(endpoint(storage, etype, "get")([data.sha1_2]))
+
+        assert actual_license == []
+
 
 class TestIndexerStorageOriginIntrinsicMetadata:
-    def test_origin_intrinsic_metadata_get(self, swh_indexer_storage_with_data):
+    def test_origin_intrinsic_metadata_get(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1111,19 +1127,19 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "version": None,
             "name": None,
         }
-        metadata_rev = {
-            "id": data.revision_id_2,
-            "metadata": metadata,
-            "mappings": ["mapping1"],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata,
-            "indexer_configuration_id": tool_id,
-            "mappings": ["mapping1"],
-            "from_revision": data.revision_id_2,
-        }
+        metadata_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_2,
+            metadata=metadata,
+            mappings=["mapping1"],
+            indexer_configuration_id=tool_id,
+        )
+        metadata_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_revision=data.revision_id_2,
+        )
 
         # when
         storage.revision_intrinsic_metadata_add([metadata_rev])
@@ -1135,18 +1151,20 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
         expected_metadata = [
-            {
-                "id": data.origin_url_1,
-                "metadata": metadata,
-                "tool": data.tools["swh-metadata-detector"],
-                "from_revision": data.revision_id_2,
-                "mappings": ["mapping1"],
-            }
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata,
+                tool=data.tools["swh-metadata-detector"],
+                from_revision=data.revision_id_2,
+                mappings=["mapping1"],
+            )
         ]
 
         assert actual_metadata == expected_metadata
 
-    def test_origin_intrinsic_metadata_delete(self, swh_indexer_storage_with_data):
+    def test_origin_intrinsic_metadata_delete(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1155,21 +1173,20 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "version": None,
             "name": None,
         }
-        metadata_rev = {
-            "id": data.revision_id_2,
-            "metadata": metadata,
-            "mappings": ["mapping1"],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata,
-            "indexer_configuration_id": tool_id,
-            "mappings": ["mapping1"],
-            "from_revision": data.revision_id_2,
-        }
-        metadata_origin2 = metadata_origin.copy()
-        metadata_origin2["id"] = data.origin_url_2
+        metadata_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_2,
+            indexer_configuration_id=tool_id,
+            metadata=metadata,
+            mappings=["mapping1"],
+        )
+        metadata_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_revision=data.revision_id_2,
+        )
+        metadata_origin2 = attr.evolve(metadata_origin, id=data.origin_url_2)
 
         # when
         storage.revision_intrinsic_metadata_add([metadata_rev])
@@ -1185,13 +1202,14 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                 [data.origin_url_1, data.origin_url_2, "no://where"]
             )
         )
-        for item in actual_metadata:
-            item["indexer_configuration_id"] = item.pop("tool")["id"]
-        assert actual_metadata == [metadata_origin2]
+        assert [
+            attr.evolve(m, indexer_configuration_id=cast(Dict, m.tool)["id"], tool=None)
+            for m in actual_metadata
+        ] == [metadata_origin2]
 
     def test_origin_intrinsic_metadata_delete_nonexisting(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool_id = data.tools["swh-metadata-detector"]["id"]
         storage.origin_intrinsic_metadata_delete(
@@ -1199,29 +1217,29 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
     def test_origin_intrinsic_metadata_add_drop_duplicate(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
 
-        metadata_v1 = {
+        metadata_v1: Dict[str, Any] = {
             "version": None,
             "name": None,
         }
-        metadata_rev_v1 = {
-            "id": data.revision_id_1,
-            "metadata": metadata_v1.copy(),
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata_origin_v1 = {
-            "id": data.origin_url_1,
-            "metadata": metadata_v1.copy(),
-            "indexer_configuration_id": tool_id,
-            "mappings": [],
-            "from_revision": data.revision_id_1,
-        }
+        metadata_rev_v1 = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_1,
+            metadata=metadata_v1.copy(),
+            mappings=[],
+            indexer_configuration_id=tool_id,
+        )
+        metadata_origin_v1 = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata_v1.copy(),
+            indexer_configuration_id=tool_id,
+            mappings=[],
+            from_revision=data.revision_id_1,
+        )
 
         # given
         storage.revision_intrinsic_metadata_add([metadata_rev_v1])
@@ -1233,13 +1251,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
         expected_metadata_v1 = [
-            {
-                "id": data.origin_url_1,
-                "metadata": metadata_v1,
-                "tool": data.tools["swh-metadata-detector"],
-                "from_revision": data.revision_id_1,
-                "mappings": [],
-            }
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata_v1,
+                tool=data.tools["swh-metadata-detector"],
+                from_revision=data.revision_id_1,
+                mappings=[],
+            )
         ]
 
         assert actual_metadata == expected_metadata_v1
@@ -1249,10 +1267,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         metadata_v2.update(
             {"name": "test_metadata", "author": "MG",}
         )
-        metadata_rev_v2 = metadata_rev_v1.copy()
-        metadata_origin_v2 = metadata_origin_v1.copy()
-        metadata_rev_v2["metadata"] = metadata_v2
-        metadata_origin_v2["metadata"] = metadata_v2
+        metadata_rev_v2 = attr.evolve(metadata_rev_v1, metadata=metadata_v2)
+        metadata_origin_v2 = attr.evolve(metadata_origin_v1, metadata=metadata_v2)
 
         storage.revision_intrinsic_metadata_add([metadata_rev_v2])
         storage.origin_intrinsic_metadata_add([metadata_origin_v2])
@@ -1266,29 +1282,29 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         assert actual_metadata == expected_metadata_v1
 
     def test_origin_intrinsic_metadata_add_update_in_place_duplicate(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
 
-        metadata_v1 = {
+        metadata_v1: Dict[str, Any] = {
             "version": None,
             "name": None,
         }
-        metadata_rev_v1 = {
-            "id": data.revision_id_2,
-            "metadata": metadata_v1,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata_origin_v1 = {
-            "id": data.origin_url_1,
-            "metadata": metadata_v1.copy(),
-            "indexer_configuration_id": tool_id,
-            "mappings": [],
-            "from_revision": data.revision_id_2,
-        }
+        metadata_rev_v1 = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_2,
+            metadata=metadata_v1,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+        )
+        metadata_origin_v1 = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata_v1.copy(),
+            indexer_configuration_id=tool_id,
+            mappings=[],
+            from_revision=data.revision_id_2,
+        )
 
         # given
         storage.revision_intrinsic_metadata_add([metadata_rev_v1])
@@ -1301,13 +1317,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         # then
         expected_metadata_v1 = [
-            {
-                "id": data.origin_url_1,
-                "metadata": metadata_v1,
-                "tool": data.tools["swh-metadata-detector"],
-                "from_revision": data.revision_id_2,
-                "mappings": [],
-            }
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata_v1,
+                tool=data.tools["swh-metadata-detector"],
+                from_revision=data.revision_id_2,
+                mappings=[],
+            )
         ]
         assert actual_metadata == expected_metadata_v1
 
@@ -1316,16 +1332,14 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         metadata_v2.update(
             {"name": "test_update_duplicated_metadata", "author": "MG",}
         )
-        metadata_rev_v2 = metadata_rev_v1.copy()
-        metadata_origin_v2 = metadata_origin_v1.copy()
-        metadata_rev_v2["metadata"] = metadata_v2
-        metadata_origin_v2 = {
-            "id": data.origin_url_1,
-            "metadata": metadata_v2.copy(),
-            "indexer_configuration_id": tool_id,
-            "mappings": ["npm"],
-            "from_revision": data.revision_id_1,
-        }
+        metadata_rev_v2 = attr.evolve(metadata_rev_v1, metadata=metadata_v2)
+        metadata_origin_v2 = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata_v2.copy(),
+            indexer_configuration_id=tool_id,
+            mappings=["npm"],
+            from_revision=data.revision_id_1,
+        )
 
         storage.revision_intrinsic_metadata_add([metadata_rev_v2], conflict_update=True)
         storage.origin_intrinsic_metadata_add(
@@ -1337,59 +1351,59 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         )
 
         expected_metadata_v2 = [
-            {
-                "id": data.origin_url_1,
-                "metadata": metadata_v2,
-                "tool": data.tools["swh-metadata-detector"],
-                "from_revision": data.revision_id_1,
-                "mappings": ["npm"],
-            }
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata_v2,
+                tool=data.tools["swh-metadata-detector"],
+                from_revision=data.revision_id_1,
+                mappings=["npm"],
+            )
         ]
 
         # metadata did change as the v2 was used to overwrite v1
         assert actual_metadata == expected_metadata_v2
 
     def test_origin_intrinsic_metadata_add__update_in_place_deadlock(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
 
         ids = list(range(10))
 
-        example_data1 = {
+        example_data1: Dict[str, Any] = {
             "metadata": {"version": None, "name": None,},
             "mappings": [],
         }
-        example_data2 = {
+        example_data2: Dict[str, Any] = {
             "metadata": {"version": "v1.1.1", "name": "foo",},
             "mappings": [],
         }
 
-        metadata_rev_v1 = {
-            "id": data.revision_id_2,
-            "metadata": {"version": None, "name": None,},
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-        }
+        metadata_rev_v1 = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_2,
+            metadata={"version": None, "name": None,},
+            mappings=[],
+            indexer_configuration_id=tool_id,
+        )
 
         data_v1 = [
-            {
-                "id": "file:///tmp/origin%d" % id_,
-                "from_revision": data.revision_id_2,
+            OriginIntrinsicMetadataRow(
+                id="file:///tmp/origin%d" % id_,
+                from_revision=data.revision_id_2,
+                indexer_configuration_id=tool_id,
                 **example_data1,
-                "indexer_configuration_id": tool_id,
-            }
+            )
             for id_ in ids
         ]
         data_v2 = [
-            {
-                "id": "file:///tmp/origin%d" % id_,
-                "from_revision": data.revision_id_2,
+            OriginIntrinsicMetadataRow(
+                id="file:///tmp/origin%d" % id_,
+                from_revision=data.revision_id_2,
+                indexer_configuration_id=tool_id,
                 **example_data2,
-                "indexer_configuration_id": tool_id,
-            }
+            )
             for id_ in ids
         ]
 
@@ -1407,12 +1421,12 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         actual_data = list(storage.origin_intrinsic_metadata_get(origins))
 
         expected_data_v1 = [
-            {
-                "id": "file:///tmp/origin%d" % id_,
-                "from_revision": data.revision_id_2,
+            OriginIntrinsicMetadataRow(
+                id="file:///tmp/origin%d" % id_,
+                from_revision=data.revision_id_2,
+                tool=data.tools["swh-metadata-detector"],
                 **example_data1,
-                "tool": data.tools["swh-metadata-detector"],
-            }
+            )
             for id_ in ids
         ]
 
@@ -1420,10 +1434,10 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         assert actual_data == expected_data_v1
 
         # given
-        def f1():
+        def f1() -> None:
             storage.origin_intrinsic_metadata_add(data_v2a, conflict_update=True)
 
-        def f2():
+        def f2() -> None:
             storage.origin_intrinsic_metadata_add(data_v2b, conflict_update=True)
 
         t1 = threading.Thread(target=f1)
@@ -1437,21 +1451,21 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         actual_data = list(storage.origin_intrinsic_metadata_get(origins))
 
         expected_data_v2 = [
-            {
-                "id": "file:///tmp/origin%d" % id_,
-                "from_revision": data.revision_id_2,
+            OriginIntrinsicMetadataRow(
+                id="file:///tmp/origin%d" % id_,
+                from_revision=data.revision_id_2,
+                tool=data.tools["swh-metadata-detector"],
                 **example_data2,
-                "tool": data.tools["swh-metadata-detector"],
-            }
+            )
             for id_ in ids
         ]
 
         assert len(actual_data) == len(expected_data_v2)
-        assert sorted(actual_data, key=lambda x: x["id"]) == expected_data_v2
+        assert sorted(actual_data, key=lambda x: x.id) == expected_data_v2
 
     def test_origin_intrinsic_metadata_add__duplicate_twice(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1460,19 +1474,19 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "developmentStatus": None,
             "name": None,
         }
-        metadata_rev = {
-            "id": data.revision_id_2,
-            "metadata": metadata,
-            "mappings": ["mapping1"],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata,
-            "indexer_configuration_id": tool_id,
-            "mappings": ["mapping1"],
-            "from_revision": data.revision_id_2,
-        }
+        metadata_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_2,
+            metadata=metadata,
+            mappings=["mapping1"],
+            indexer_configuration_id=tool_id,
+        )
+        metadata_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_revision=data.revision_id_2,
+        )
 
         # when
         storage.revision_intrinsic_metadata_add([metadata_rev])
@@ -1481,8 +1495,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             storage.origin_intrinsic_metadata_add([metadata_origin, metadata_origin])
 
     def test_origin_intrinsic_metadata_search_fulltext(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1490,35 +1504,35 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         metadata1 = {
             "author": "John Doe",
         }
-        metadata1_rev = {
-            "id": data.revision_id_1,
-            "metadata": metadata1,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata1_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata1,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-            "from_revision": data.revision_id_1,
-        }
+        metadata1_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_1,
+            metadata=metadata1,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+        )
+        metadata1_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata1,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+            from_revision=data.revision_id_1,
+        )
         metadata2 = {
             "author": "Jane Doe",
         }
-        metadata2_rev = {
-            "id": data.revision_id_2,
-            "metadata": metadata2,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata2_origin = {
-            "id": data.origin_url_2,
-            "metadata": metadata2,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-            "from_revision": data.revision_id_2,
-        }
+        metadata2_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_2,
+            metadata=metadata2,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+        )
+        metadata2_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_2,
+            metadata=metadata2,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+            from_revision=data.revision_id_2,
+        )
 
         # when
         storage.revision_intrinsic_metadata_add([metadata1_rev])
@@ -1528,16 +1542,16 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         # then
         search = storage.origin_intrinsic_metadata_search_fulltext
-        assert set([res["id"] for res in search(["Doe"])]) == set(
+        assert set([res.id for res in search(["Doe"])]) == set(
             [data.origin_url_1, data.origin_url_2]
         )
-        assert [res["id"] for res in search(["John", "Doe"])] == [data.origin_url_1]
-        assert [res["id"] for res in search(["John"])] == [data.origin_url_1]
+        assert [res.id for res in search(["John", "Doe"])] == [data.origin_url_1]
+        assert [res.id for res in search(["John"])] == [data.origin_url_1]
         assert not list(search(["John", "Jane"]))
 
     def test_origin_intrinsic_metadata_search_fulltext_rank(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
@@ -1547,33 +1561,33 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # are few words (rank/(1+ln(nb_words)) is very sensitive to nb_words
         # for small values of nb_words).
         metadata1 = {"author": ["Random Person", "John Doe", "Jane Doe",]}
-        metadata1_rev = {
-            "id": data.revision_id_1,
-            "metadata": metadata1,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata1_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata1,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-            "from_revision": data.revision_id_1,
-        }
+        metadata1_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_1,
+            metadata=metadata1,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+        )
+        metadata1_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata1,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+            from_revision=data.revision_id_1,
+        )
         metadata2 = {"author": ["Random Person", "Jane Doe",]}
-        metadata2_rev = {
-            "id": data.revision_id_2,
-            "metadata": metadata2,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-        }
-        metadata2_origin = {
-            "id": data.origin_url_2,
-            "metadata": metadata2,
-            "mappings": [],
-            "indexer_configuration_id": tool_id,
-            "from_revision": data.revision_id_2,
-        }
+        metadata2_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_2,
+            metadata=metadata2,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+        )
+        metadata2_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_2,
+            metadata=metadata2,
+            mappings=[],
+            indexer_configuration_id=tool_id,
+            from_revision=data.revision_id_2,
+        )
 
         # when
         storage.revision_intrinsic_metadata_add([metadata1_rev])
@@ -1583,19 +1597,21 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         # then
         search = storage.origin_intrinsic_metadata_search_fulltext
-        assert [res["id"] for res in search(["Doe"])] == [
+        assert [res.id for res in search(["Doe"])] == [
             data.origin_url_1,
             data.origin_url_2,
         ]
-        assert [res["id"] for res in search(["Doe"], limit=1)] == [data.origin_url_1]
-        assert [res["id"] for res in search(["John"])] == [data.origin_url_1]
-        assert [res["id"] for res in search(["Jane"])] == [
+        assert [res.id for res in search(["Doe"], limit=1)] == [data.origin_url_1]
+        assert [res.id for res in search(["John"])] == [data.origin_url_1]
+        assert [res.id for res in search(["Jane"])] == [
             data.origin_url_2,
             data.origin_url_1,
         ]
-        assert [res["id"] for res in search(["John", "Jane"])] == [data.origin_url_1]
+        assert [res.id for res in search(["John", "Jane"])] == [data.origin_url_1]
 
-    def _fill_origin_intrinsic_metadata(self, swh_indexer_storage_with_data):
+    def _fill_origin_intrinsic_metadata(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool1_id = data.tools["swh-metadata-detector"]["id"]
         tool2_id = data.tools["swh-metadata-detector2"]["id"]
@@ -1604,52 +1620,52 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "@context": "foo",
             "author": "John Doe",
         }
-        metadata1_rev = {
-            "id": data.revision_id_1,
-            "metadata": metadata1,
-            "mappings": ["npm"],
-            "indexer_configuration_id": tool1_id,
-        }
-        metadata1_origin = {
-            "id": data.origin_url_1,
-            "metadata": metadata1,
-            "mappings": ["npm"],
-            "indexer_configuration_id": tool1_id,
-            "from_revision": data.revision_id_1,
-        }
+        metadata1_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_1,
+            metadata=metadata1,
+            mappings=["npm"],
+            indexer_configuration_id=tool1_id,
+        )
+        metadata1_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata1,
+            mappings=["npm"],
+            indexer_configuration_id=tool1_id,
+            from_revision=data.revision_id_1,
+        )
         metadata2 = {
             "@context": "foo",
             "author": "Jane Doe",
         }
-        metadata2_rev = {
-            "id": data.revision_id_2,
-            "metadata": metadata2,
-            "mappings": ["npm", "gemspec"],
-            "indexer_configuration_id": tool2_id,
-        }
-        metadata2_origin = {
-            "id": data.origin_url_2,
-            "metadata": metadata2,
-            "mappings": ["npm", "gemspec"],
-            "indexer_configuration_id": tool2_id,
-            "from_revision": data.revision_id_2,
-        }
+        metadata2_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_2,
+            metadata=metadata2,
+            mappings=["npm", "gemspec"],
+            indexer_configuration_id=tool2_id,
+        )
+        metadata2_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_2,
+            metadata=metadata2,
+            mappings=["npm", "gemspec"],
+            indexer_configuration_id=tool2_id,
+            from_revision=data.revision_id_2,
+        )
         metadata3 = {
             "@context": "foo",
         }
-        metadata3_rev = {
-            "id": data.revision_id_3,
-            "metadata": metadata3,
-            "mappings": ["npm", "gemspec"],
-            "indexer_configuration_id": tool2_id,
-        }
-        metadata3_origin = {
-            "id": data.origin_url_3,
-            "metadata": metadata3,
-            "mappings": ["pkg-info"],
-            "indexer_configuration_id": tool2_id,
-            "from_revision": data.revision_id_3,
-        }
+        metadata3_rev = RevisionIntrinsicMetadataRow(
+            id=data.revision_id_3,
+            metadata=metadata3,
+            mappings=["npm", "gemspec"],
+            indexer_configuration_id=tool2_id,
+        )
+        metadata3_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_3,
+            metadata=metadata3,
+            mappings=["pkg-info"],
+            indexer_configuration_id=tool2_id,
+            from_revision=data.revision_id_3,
+        )
 
         storage.revision_intrinsic_metadata_add([metadata1_rev])
         storage.origin_intrinsic_metadata_add([metadata1_origin])
@@ -1659,8 +1675,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         storage.origin_intrinsic_metadata_add([metadata3_origin])
 
     def test_origin_intrinsic_metadata_search_by_producer(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         self._fill_origin_intrinsic_metadata(swh_indexer_storage_with_data)
         tool1 = data.tools["swh-metadata-detector"]
@@ -1670,95 +1686,96 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # test pagination
         # no 'page_token' param, return all origins
         result = endpoint(ids_only=True)
-        assert result["origins"] == [
-            data.origin_url_1,
-            data.origin_url_2,
-            data.origin_url_3,
-        ]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2, data.origin_url_3,],
+            next_page_token=None,
+        )
 
         # 'page_token' is < than origin_1, return everything
         result = endpoint(page_token=data.origin_url_1[:-1], ids_only=True)
-        assert result["origins"] == [
-            data.origin_url_1,
-            data.origin_url_2,
-            data.origin_url_3,
-        ]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2, data.origin_url_3,],
+            next_page_token=None,
+        )
 
         # 'page_token' is origin_3, return nothing
         result = endpoint(page_token=data.origin_url_3, ids_only=True)
-        assert not result["origins"]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[], next_page_token=None)
 
         # test limit argument
         result = endpoint(page_token=data.origin_url_1[:-1], limit=2, ids_only=True)
-        assert result["origins"] == [data.origin_url_1, data.origin_url_2]
-        assert result["next_page_token"] == result["origins"][-1]
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2],
+            next_page_token=data.origin_url_2,
+        )
 
         result = endpoint(page_token=data.origin_url_1, limit=2, ids_only=True)
-        assert result["origins"] == [data.origin_url_2, data.origin_url_3]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_2, data.origin_url_3], next_page_token=None,
+        )
 
         result = endpoint(page_token=data.origin_url_2, limit=2, ids_only=True)
-        assert result["origins"] == [data.origin_url_3]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[data.origin_url_3], next_page_token=None,)
 
         # test mappings filtering
         result = endpoint(mappings=["npm"], ids_only=True)
-        assert result["origins"] == [data.origin_url_1, data.origin_url_2]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2], next_page_token=None,
+        )
 
         result = endpoint(mappings=["npm", "gemspec"], ids_only=True)
-        assert result["origins"] == [data.origin_url_1, data.origin_url_2]
-        assert "next_page_token" not in result
+        assert result == PagedResult(
+            results=[data.origin_url_1, data.origin_url_2], next_page_token=None,
+        )
 
         result = endpoint(mappings=["gemspec"], ids_only=True)
-        assert result["origins"] == [data.origin_url_2]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[data.origin_url_2], next_page_token=None,)
 
         result = endpoint(mappings=["pkg-info"], ids_only=True)
-        assert result["origins"] == [data.origin_url_3]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[data.origin_url_3], next_page_token=None,)
 
         result = endpoint(mappings=["foobar"], ids_only=True)
-        assert not result["origins"]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[], next_page_token=None,)
 
         # test pagination + mappings
         result = endpoint(mappings=["npm"], limit=1, ids_only=True)
-        assert result["origins"] == [data.origin_url_1]
-        assert result["next_page_token"] == result["origins"][-1]
+        assert result == PagedResult(
+            results=[data.origin_url_1], next_page_token=data.origin_url_1,
+        )
 
         # test tool filtering
         result = endpoint(tool_ids=[tool1["id"]], ids_only=True)
-        assert result["origins"] == [data.origin_url_1]
-        assert "next_page_token" not in result
+        assert result == PagedResult(results=[data.origin_url_1], next_page_token=None,)
 
         result = endpoint(tool_ids=[tool2["id"]], ids_only=True)
-        assert sorted(result["origins"]) == [data.origin_url_2, data.origin_url_3]
-        assert "next_page_token" not in result
+        assert sorted(result.results) == [data.origin_url_2, data.origin_url_3]
+        assert result.next_page_token is None
 
         result = endpoint(tool_ids=[tool1["id"], tool2["id"]], ids_only=True)
-        assert sorted(result["origins"]) == [
+        assert sorted(result.results) == [
             data.origin_url_1,
             data.origin_url_2,
             data.origin_url_3,
         ]
-        assert "next_page_token" not in result
+        assert result.next_page_token is None
 
         # test ids_only=False
-        assert endpoint(mappings=["gemspec"])["origins"] == [
-            {
-                "id": data.origin_url_2,
-                "metadata": {"@context": "foo", "author": "Jane Doe",},
-                "mappings": ["npm", "gemspec"],
-                "tool": tool2,
-                "from_revision": data.revision_id_2,
-            }
-        ]
+        assert endpoint(mappings=["gemspec"]) == PagedResult(
+            results=[
+                OriginIntrinsicMetadataRow(
+                    id=data.origin_url_2,
+                    metadata={"@context": "foo", "author": "Jane Doe",},
+                    mappings=["npm", "gemspec"],
+                    tool=tool2,
+                    from_revision=data.revision_id_2,
+                )
+            ],
+            next_page_token=None,
+        )
 
-    def test_origin_intrinsic_metadata_stats(self, swh_indexer_storage_with_data):
+    def test_origin_intrinsic_metadata_stats(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         self._fill_origin_intrinsic_metadata(swh_indexer_storage_with_data)
 
@@ -1776,8 +1793,10 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         }
 
 
-class TestIndexerStorageIndexerCondifuration:
-    def test_indexer_configuration_add(self, swh_indexer_storage_with_data):
+class TestIndexerStorageIndexerConfiguration:
+    def test_indexer_configuration_add(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "some-unknown-tool",
@@ -1805,7 +1824,9 @@ class TestIndexerStorageIndexerCondifuration:
         assert new_id == new_id2
         assert actual_tool == actual_tool2
 
-    def test_indexer_configuration_add_multiple(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_add_multiple(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "some-unknown-tool",
@@ -1834,7 +1855,9 @@ class TestIndexerStorageIndexerCondifuration:
             assert _id is not None
             assert tool in new_tools
 
-    def test_indexer_configuration_get_missing(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_get_missing(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "unknown-tool",
@@ -1846,7 +1869,9 @@ class TestIndexerStorageIndexerCondifuration:
 
         assert actual_tool is None
 
-    def test_indexer_configuration_get(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_get(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "nomos",
@@ -1863,8 +1888,8 @@ class TestIndexerStorageIndexerCondifuration:
         assert expected_tool == actual_tool
 
     def test_indexer_configuration_metadata_get_missing_context(
-        self, swh_indexer_storage_with_data
-    ):
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "swh-metadata-translator",
@@ -1876,7 +1901,9 @@ class TestIndexerStorageIndexerCondifuration:
 
         assert actual_tool is None
 
-    def test_indexer_configuration_metadata_get(self, swh_indexer_storage_with_data):
+    def test_indexer_configuration_metadata_get(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
         storage, data = swh_indexer_storage_with_data
         tool = {
             "tool_name": "swh-metadata-translator",

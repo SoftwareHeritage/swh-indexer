@@ -3,9 +3,13 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from typing import Dict, Iterable, Iterator, List
+
 from swh.core.db import BaseDb
 from swh.core.db.db_utils import execute_values_generator, stored_procedure
 from swh.model import hashutil
+
+from .interface import Sha1
 
 
 class Db(BaseDb):
@@ -15,14 +19,16 @@ class Db(BaseDb):
 
     content_mimetype_hash_keys = ["id", "indexer_configuration_id"]
 
-    def _missing_from_list(self, table, data, hash_keys, cur=None):
+    def _missing_from_list(
+        self, table: str, data: Iterable[Dict], hash_keys: List[str], cur=None
+    ):
         """Read from table the data with hash_keys that are missing.
 
         Args:
-            table (str): Table name (e.g content_mimetype, content_language,
+            table: Table name (e.g content_mimetype, content_language,
               etc...)
-            data (dict): Dict of data to read from
-            hash_keys ([str]): List of keys to read in the data dict.
+            data: Dict of data to read from
+            hash_keys: List of keys to read in the data dict.
 
         Yields:
             The data which is missing from the db.
@@ -44,7 +50,9 @@ class Db(BaseDb):
             (tuple(m[k] for k in hash_keys) for m in data),
         )
 
-    def content_mimetype_missing_from_list(self, mimetypes, cur=None):
+    def content_mimetype_missing_from_list(
+        self, mimetypes: Iterable[Dict], cur=None
+    ) -> Iterator[Sha1]:
         """List missing mimetypes.
 
         """
@@ -90,13 +98,15 @@ class Db(BaseDb):
             return "%s.id" % main_table
         elif key == "tool_id":
             return "i.id as tool_id"
-        elif key == "licenses":
+        elif key == "license":
             return (
                 """
-                array(select name
-                      from fossology_license
-                      where id = ANY(
-                         array_agg(%s.license_id))) as licenses"""
+                (
+                    select name
+                    from fossology_license
+                    where id = %s.license_id
+                )
+                as licenses"""
                 % main_table
             )
         return key
@@ -286,7 +296,7 @@ class Db(BaseDb):
         "tool_name",
         "tool_version",
         "tool_configuration",
-        "licenses",
+        "license",
     ]
 
     @stored_procedure("swh_mktemp_content_fossology_license")
@@ -317,8 +327,6 @@ class Db(BaseDb):
             inner join content_fossology_license c on t.id=c.id
             inner join indexer_configuration i
                 on i.id=c.indexer_configuration_id
-            group by c.id, i.id, i.tool_name, i.tool_version,
-                     i.tool_configuration;
             """
             % ", ".join(keys),
             ((_id,) for _id in ids),

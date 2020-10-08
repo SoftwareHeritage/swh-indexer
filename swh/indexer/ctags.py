@@ -5,8 +5,11 @@
 
 import json
 import subprocess
-from typing import Dict, List
+from typing import Any, Dict, Iterator, List, Optional
 
+from swh.core.config import merge_configs
+from swh.indexer.storage import Sha1
+from swh.indexer.storage.model import ContentCtagsRow
 from swh.model import hashutil
 
 from .indexer import ContentIndexer, write_to_temp
@@ -29,7 +32,7 @@ def compute_language(content, log=None):
     )
 
 
-def run_ctags(path, lang=None, ctags_command="ctags"):
+def run_ctags(path, lang=None, ctags_command="ctags") -> Iterator[Dict[str, Any]]:
     """Run ctags on file path with optional language.
 
     Args:
@@ -59,35 +62,24 @@ def run_ctags(path, lang=None, ctags_command="ctags"):
         }
 
 
-class CtagsIndexer(ContentIndexer):
-    CONFIG_BASE_FILENAME = "indexer/ctags"
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "workdir": "/tmp/swh/indexer.ctags",
+    "tools": {
+        "name": "universal-ctags",
+        "version": "~git7859817b",
+        "configuration": {
+            "command_line": """ctags --fields=+lnz --sort=no --links=no """
+            """--output-format=json <filepath>"""
+        },
+    },
+    "languages": {},
+}
 
-    ADDITIONAL_CONFIG = {
-        "workdir": ("str", "/tmp/swh/indexer.ctags"),
-        "tools": (
-            "dict",
-            {
-                "name": "universal-ctags",
-                "version": "~git7859817b",
-                "configuration": {
-                    "command_line": """ctags --fields=+lnz --sort=no --links=no """
-                    """--output-format=json <filepath>"""
-                },
-            },
-        ),
-        "languages": (
-            "dict",
-            {
-                "ada": "Ada",
-                "adl": None,
-                "agda": None,
-                # ...
-            },
-        ),
-    }
 
-    def prepare(self):
-        super().prepare()
+class CtagsIndexer(ContentIndexer[ContentCtagsRow]):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
         self.working_directory = self.config["workdir"]
         self.language_map = self.config["languages"]
 
@@ -99,7 +91,9 @@ class CtagsIndexer(ContentIndexer):
             ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
         )
 
-    def index(self, id, data):
+    def index(
+        self, id: Sha1, data: Optional[bytes] = None, **kwargs
+    ) -> List[ContentCtagsRow]:
         """Index sha1s' content and store result.
 
         Args:
@@ -113,41 +107,41 @@ class CtagsIndexer(ContentIndexer):
             - **ctags** ([dict]): ctags list of symbols
 
         """
+        assert isinstance(id, bytes)
+        assert data is not None
+
         lang = compute_language(data, log=self.log)["lang"]
 
         if not lang:
-            return None
+            return []
 
         ctags_lang = self.language_map.get(lang)
 
         if not ctags_lang:
-            return None
+            return []
 
-        ctags = {
-            "id": id,
-        }
+        ctags = []
 
         filename = hashutil.hash_to_hex(id)
         with write_to_temp(
             filename=filename, data=data, working_directory=self.working_directory
         ) as content_path:
-            result = run_ctags(content_path, lang=ctags_lang)
-            ctags.update(
-                {"ctags": list(result), "indexer_configuration_id": self.tool["id"],}
-            )
+            for ctag_kwargs in run_ctags(content_path, lang=ctags_lang):
+                ctags.append(
+                    ContentCtagsRow(
+                        id=id, indexer_configuration_id=self.tool["id"], **ctag_kwargs,
+                    )
+                )
 
         return ctags
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[ContentCtagsRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
         Args:
-            results: list of content_mimetype, dict with the
-              following keys:
-              - id (bytes): content's identifier (sha1)
-              - ctags ([dict]): ctags list of symbols
+            results: list of ctags returned by index()
             policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates or ignore them
 

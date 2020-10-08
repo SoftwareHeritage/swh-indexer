@@ -15,6 +15,7 @@ from swh.indexer.fossology_license import (
     FossologyLicensePartitionIndexer,
     compute_license,
 )
+from swh.indexer.storage.model import ContentLicenseRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
     SHA1_TO_LICENSES,
@@ -24,6 +25,7 @@ from swh.indexer.tests.utils import (
     fill_storage,
     filter_dict,
 )
+from swh.model.hashutil import hash_to_bytes
 
 
 class BasicTest(unittest.TestCase):
@@ -52,7 +54,7 @@ def mock_compute_license(path):
         path = path.decode("utf-8")
     # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
     path = path.split("/")[-1]
-    return {"licenses": SHA1_TO_LICENSES.get(path)}
+    return {"licenses": SHA1_TO_LICENSES.get(path, [])}
 
 
 CONFIG = {
@@ -97,11 +99,21 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
         # then
-        self.expected_results = {
-            self.id0: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id0],},
-            self.id1: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id1],},
-            self.id2: {"tool": tool, "licenses": SHA1_TO_LICENSES[self.id2],},
-        }
+        self.expected_results = [
+            *[
+                ContentLicenseRow(
+                    id=hash_to_bytes(self.id0), tool=tool, license=license
+                )
+                for license in SHA1_TO_LICENSES[self.id0]
+            ],
+            *[
+                ContentLicenseRow(
+                    id=hash_to_bytes(self.id1), tool=tool, license=license
+                )
+                for license in SHA1_TO_LICENSES[self.id1]
+            ],
+            *[],  # self.id2
+        ]
 
     def tearDown(self):
         super().tearDown()

@@ -3,12 +3,13 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import magic
 
-from swh.indexer.storage.interface import PagedResult, Sha1
-from swh.model.model import Revision
+from swh.core.config import merge_configs
+from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult, Sha1
+from swh.indexer.storage.model import ContentMimetypeRow
 
 from .indexer import ContentIndexer, ContentPartitionIndexer
 
@@ -19,7 +20,7 @@ if not hasattr(magic.Magic, "from_buffer"):
     )
 
 
-def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
+def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, str]:
     """Determine mimetype and encoding from the raw content.
 
     Args:
@@ -41,6 +42,16 @@ def compute_mimetype_encoding(raw_content: bytes) -> Dict[str, bytes]:
     }
 
 
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "tools": {
+        "name": "file",
+        "version": "1:5.30-1+deb9u1",
+        "configuration": {"type": "library", "debian-package": "python3-magic"},
+    },
+    "write_batch_size": 1000,
+}
+
+
 class MixinMimetypeIndexer:
     """Mixin mimetype indexer.
 
@@ -49,24 +60,15 @@ class MixinMimetypeIndexer:
     """
 
     tool: Any
-    idx_storage: Any
-    ADDITIONAL_CONFIG = {
-        "tools": (
-            "dict",
-            {
-                "name": "file",
-                "version": "1:5.30-1+deb9u1",
-                "configuration": {"type": "library", "debian-package": "python3-magic"},
-            },
-        ),
-        "write_batch_size": ("int", 1000),
-    }
+    idx_storage: IndexerStorageInterface
 
-    CONFIG_BASE_FILENAME = "indexer/mimetype"  # type: Optional[str]
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
 
     def index(
-        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> Dict[str, Any]:
+        self, id: Sha1, data: Optional[bytes] = None, **kwargs
+    ) -> List[ContentMimetypeRow]:
         """Index sha1s' content and store result.
 
         Args:
@@ -83,14 +85,17 @@ class MixinMimetypeIndexer:
         """
         assert data is not None
         properties = compute_mimetype_encoding(data)
-        assert isinstance(id, bytes)
-        properties.update(
-            {"id": id, "indexer_configuration_id": self.tool["id"],}
-        )
-        return properties
+        return [
+            ContentMimetypeRow(
+                id=id,
+                indexer_configuration_id=self.tool["id"],
+                mimetype=properties["mimetype"],
+                encoding=properties["encoding"],
+            )
+        ]
 
     def persist_index_computations(
-        self, results: List[Dict], policy_update: str
+        self, results: List[ContentMimetypeRow], policy_update: str
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -107,7 +112,7 @@ class MixinMimetypeIndexer:
         )
 
 
-class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
+class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer[ContentMimetypeRow]):
     """Mimetype Indexer working on list of content identifiers.
 
     It:
@@ -129,7 +134,9 @@ class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer):
         )
 
 
-class MimetypePartitionIndexer(MixinMimetypeIndexer, ContentPartitionIndexer):
+class MimetypePartitionIndexer(
+    MixinMimetypeIndexer, ContentPartitionIndexer[ContentMimetypeRow]
+):
     """Mimetype Range Indexer working on range of content identifiers.
 
     It:

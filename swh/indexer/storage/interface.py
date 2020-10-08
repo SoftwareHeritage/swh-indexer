@@ -3,10 +3,19 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict, List, Optional, TypeVar
+from typing import Dict, Iterable, List, Optional, Tuple, TypeVar, Union
 
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
+from swh.indexer.storage.model import (
+    ContentCtagsRow,
+    ContentLanguageRow,
+    ContentLicenseRow,
+    ContentMetadataRow,
+    ContentMimetypeRow,
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 
 TResult = TypeVar("TResult")
 PagedResult = CorePagedResult[TResult, str]
@@ -22,7 +31,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_mimetype/missing")
-    def content_mimetype_missing(self, mimetypes):
+    def content_mimetype_missing(
+        self, mimetypes: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         """Generate mimetypes missing from storage.
 
         Args:
@@ -32,8 +43,8 @@ class IndexerStorageInterface:
               - **indexer_configuration_id** (int): tool used to compute the
                 results
 
-        Yields:
-            tuple (id, indexer_configuration_id): missing id
+        Returns:
+            list of tuple (id, indexer_configuration_id) missing
 
         """
         ...
@@ -70,21 +81,16 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint("content_mimetype/add")
     def content_mimetype_add(
-        self, mimetypes: List[Dict], conflict_update: bool = False
+        self, mimetypes: List[ContentMimetypeRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add mimetypes not present in storage.
 
         Args:
-            mimetypes (iterable): dictionaries with keys:
-
-              - **id** (bytes): sha1 identifier
-              - **mimetype** (bytes): raw content's mimetype
-              - **encoding** (bytes): raw content's encoding
-              - **indexer_configuration_id** (int): tool's id used to
-                compute the results
-              - **conflict_update** (bool): Flag to determine if we want to
-                overwrite (``True``) or skip duplicates (``False``, the
-                default)
+            mimetypes: mimetype rows to be added, with their `tool` attribute set to
+            None.
+            conflict_update: Flag to determine if we want to
+            overwrite (``True``) or skip duplicates (``False``, the
+            default)
 
         Returns:
             Dict summary of number of rows added
@@ -93,25 +99,22 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_mimetype")
-    def content_mimetype_get(self, ids):
+    def content_mimetype_get(self, ids: Iterable[Sha1]) -> List[ContentMimetypeRow]:
         """Retrieve full content mimetype per ids.
 
         Args:
-            ids (iterable): sha1 identifier
+            ids: sha1 identifiers
 
-        Yields:
-            mimetypes (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **mimetype** (bytes): raw content's mimetype
-                - **encoding** (bytes): raw content's encoding
-                - **tool** (dict): Tool used to compute the language
+        Returns:
+            mimetype row objects
 
         """
         ...
 
     @remote_api_endpoint("content_language/missing")
-    def content_language_missing(self, languages):
+    def content_language_missing(
+        self, languages: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         """List languages missing from storage.
 
         Args:
@@ -121,41 +124,33 @@ class IndexerStorageInterface:
                 - **indexer_configuration_id** (int): tool used to compute
                   the results
 
-        Yields:
-            an iterable of missing id for the tuple (id,
-            indexer_configuration_id)
+        Returns:
+            list of tuple (id, indexer_configuration_id) missing
 
         """
         ...
 
     @remote_api_endpoint("content_language")
-    def content_language_get(self, ids):
+    def content_language_get(self, ids: Iterable[Sha1]) -> List[ContentLanguageRow]:
         """Retrieve full content language per ids.
 
         Args:
             ids (iterable): sha1 identifier
 
-        Yields:
-            languages (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **lang** (bytes): raw content's language
-                - **tool** (dict): Tool used to compute the language
+        Returns:
+            language row objects
 
         """
         ...
 
     @remote_api_endpoint("content_language/add")
     def content_language_add(
-        self, languages: List[Dict], conflict_update: bool = False
+        self, languages: List[ContentLanguageRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add languages not present in storage.
 
         Args:
-            languages (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1
-                - **lang** (bytes): language detected
+            languages: language row objects
 
             conflict_update (bool): Flag to determine if we want to
                 overwrite (true) or skip duplicates (false, the
@@ -168,7 +163,7 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content/ctags/missing")
-    def content_ctags_missing(self, ctags):
+    def content_ctags_missing(self, ctags: Iterable[Dict]) -> List[Tuple[Sha1, int]]:
         """List ctags missing from storage.
 
         Args:
@@ -178,28 +173,22 @@ class IndexerStorageInterface:
                 - **indexer_configuration_id** (int): tool used to compute
                   the results
 
-        Yields:
-            an iterable of missing id for the tuple (id,
+        Returns:
+            list of missing id for the tuple (id,
             indexer_configuration_id)
 
         """
         ...
 
     @remote_api_endpoint("content/ctags")
-    def content_ctags_get(self, ids):
+    def content_ctags_get(self, ids: Iterable[Sha1]) -> List[ContentCtagsRow]:
         """Retrieve ctags per id.
 
         Args:
             ids (iterable): sha1 checksums
 
-        Yields:
-            Dictionaries with keys:
-
-                - **id** (bytes): content's identifier
-                - **name** (str): symbol's name
-                - **kind** (str): symbol's kind
-                - **lang** (str): language for that content
-                - **tool** (dict): tool used to compute the ctags' info
+        Returns:
+            list of language rows
 
 
         """
@@ -207,7 +196,7 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint("content/ctags/add")
     def content_ctags_add(
-        self, ctags: List[Dict], conflict_update: bool = False
+        self, ctags: List[ContentCtagsRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add ctags not present in storage
 
@@ -225,7 +214,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content/ctags/search")
-    def content_ctags_search(self, expression, limit=10, last_sha1=None):
+    def content_ctags_search(
+        self, expression: str, limit: int = 10, last_sha1: Optional[Sha1] = None
+    ) -> List[ContentCtagsRow]:
         """Search through content's raw ctags symbols.
 
         Args:
@@ -233,41 +224,37 @@ class IndexerStorageInterface:
             limit (int): Number of rows to return (default to 10).
             last_sha1 (str): Offset from which retrieving data (default to '').
 
-        Yields:
+        Returns:
             rows of ctags including id, name, lang, kind, line, etc...
 
         """
         ...
 
     @remote_api_endpoint("content/fossology_license")
-    def content_fossology_license_get(self, ids):
+    def content_fossology_license_get(
+        self, ids: Iterable[Sha1]
+    ) -> List[ContentLicenseRow]:
         """Retrieve licenses per id.
 
         Args:
-            ids (iterable): sha1 checksums
+            ids: sha1 identifiers
 
         Yields:
-            dict: ``{id: facts}`` where ``facts`` is a dict with the
-            following keys:
-
-                - **licenses** ([str]): associated licenses for that content
-                - **tool** (dict): Tool used to compute the license
+            license rows; possibly more than one per (sha1, tool_id) if there
+            are multiple licenses.
 
         """
         ...
 
     @remote_api_endpoint("content/fossology_license/add")
     def content_fossology_license_add(
-        self, licenses: List[Dict], conflict_update: bool = False
+        self, licenses: List[ContentLicenseRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add licenses not present in storage.
 
         Args:
-            licenses (iterable): dictionaries with keys:
-
-                - **id**: sha1
-                - **licenses** ([bytes]): List of licenses associated to sha1
-                - **tool** (str): nomossa
+            license: license rows to be added, with their `tool` attribute set to
+            None.
 
             conflict_update: Flag to determine if we want to overwrite (true)
                 or skip duplicates (false, the default)
@@ -308,7 +295,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_metadata/missing")
-    def content_metadata_missing(self, metadata):
+    def content_metadata_missing(
+        self, metadata: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         """List metadata missing from storage.
 
         Args:
@@ -325,7 +314,7 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("content_metadata")
-    def content_metadata_get(self, ids):
+    def content_metadata_get(self, ids: Iterable[Sha1]) -> List[ContentMetadataRow]:
         """Retrieve metadata per id.
 
         Args:
@@ -343,7 +332,7 @@ class IndexerStorageInterface:
 
     @remote_api_endpoint("content_metadata/add")
     def content_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self, metadata: List[ContentMetadataRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add metadata not present in storage.
 
@@ -363,7 +352,9 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("revision_intrinsic_metadata/missing")
-    def revision_intrinsic_metadata_missing(self, metadata):
+    def revision_intrinsic_metadata_missing(
+        self, metadata: Iterable[Dict]
+    ) -> List[Tuple[Sha1, int]]:
         """List metadata missing from storage.
 
         Args:
@@ -373,45 +364,37 @@ class IndexerStorageInterface:
                - **indexer_configuration_id** (int): tool used to compute
                  the results
 
-        Yields:
+        Returns:
             missing ids
 
         """
         ...
 
     @remote_api_endpoint("revision_intrinsic_metadata")
-    def revision_intrinsic_metadata_get(self, ids):
+    def revision_intrinsic_metadata_get(
+        self, ids: Iterable[Sha1]
+    ) -> List[RevisionIntrinsicMetadataRow]:
         """Retrieve revision metadata per id.
 
         Args:
             ids (iterable): sha1 checksums
 
-        Yields:
-            : dictionaries with the following keys:
-
-                - **id** (bytes)
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+        Returns:
+            ContentMetadataRow objects
 
         """
         ...
 
     @remote_api_endpoint("revision_intrinsic_metadata/add")
     def revision_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self,
+        metadata: List[RevisionIntrinsicMetadataRow],
+        conflict_update: bool = False,
     ) -> Dict[str, int]:
         """Add metadata not present in storage.
 
         Args:
-            metadata (iterable): dictionaries with keys:
-
-                - **id**: sha1_git of revision
-                - **metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+            metadata: ContentMetadataRow objects
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -439,42 +422,26 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("origin_intrinsic_metadata")
-    def origin_intrinsic_metadata_get(self, ids):
+    def origin_intrinsic_metadata_get(
+        self, urls: Iterable[str]
+    ) -> List[OriginIntrinsicMetadataRow]:
         """Retrieve origin metadata per id.
 
         Args:
-            ids (iterable): origin identifiers
+            urls (iterable): origin URLs
 
-        Yields:
-            list: dictionaries with the following keys:
-
-                - **id** (str): origin url
-                - **from_revision** (bytes): which revision this metadata
-                  was extracted from
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
-
+        Returns: list of OriginIntrinsicMetadataRow
         """
         ...
 
     @remote_api_endpoint("origin_intrinsic_metadata/add")
     def origin_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False
+        self, metadata: List[OriginIntrinsicMetadataRow], conflict_update: bool = False
     ) -> Dict[str, int]:
         """Add origin metadata not present in storage.
 
         Args:
-            metadata (iterable): dictionaries with keys:
-
-                - **id**: origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata**: arbitrary dict
-                - **indexer_configuration_id**: tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+            metadata: list of OriginIntrinsicMetadataRow objects
 
             conflict_update: Flag to determine if we want to overwrite (true)
               or skip duplicates (false, the default)
@@ -502,31 +469,30 @@ class IndexerStorageInterface:
         ...
 
     @remote_api_endpoint("origin_intrinsic_metadata/search/fulltext")
-    def origin_intrinsic_metadata_search_fulltext(self, conjunction, limit=100):
+    def origin_intrinsic_metadata_search_fulltext(
+        self, conjunction: List[str], limit: int = 100
+    ) -> List[OriginIntrinsicMetadataRow]:
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
-            conjunction (List[str]): List of terms to be searched for.
-            limit (int): The maximum number of results to return
+            conjunction: List of terms to be searched for.
+            limit: The maximum number of results to return
 
-        Yields:
-            list: dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+        Returns:
+            list of OriginIntrinsicMetadataRow
 
         """
         ...
 
     @remote_api_endpoint("origin_intrinsic_metadata/search/by_producer")
     def origin_intrinsic_metadata_search_by_producer(
-        self, page_token="", limit=100, ids_only=False, mappings=None, tool_ids=None
-    ):
+        self,
+        page_token: str = "",
+        limit: int = 100,
+        ids_only: bool = False,
+        mappings: Optional[List[str]] = None,
+        tool_ids: Optional[List[int]] = None,
+    ) -> PagedResult[Union[str, OriginIntrinsicMetadataRow]]:
         """Returns the list of origins whose metadata contain all the terms.
 
         Args:
@@ -538,20 +504,7 @@ class IndexerStorageInterface:
                 were generated using at least one of these mappings.
 
         Returns:
-            dict: dict with the following keys:
-              - **next_page_token** (str, optional): opaque token to be used as
-                `page_token` for retrieving the next page. If absent, there is
-                no more pages to gather.
-              - **origins** (list): list of origin url (str) if `ids_only=True`
-                else dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **from_revision**: sha1 id of the revision used to generate
-                  these metadata.
-                - **metadata** (str): associated metadata
-                - **tool** (dict): tool used to compute metadata
-                - **mappings** (List[str]): list of mappings used to translate
-                  these metadata
+            OriginIntrinsicMetadataRow objects
 
         """
         ...

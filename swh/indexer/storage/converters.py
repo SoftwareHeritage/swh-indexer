@@ -130,7 +130,8 @@ def db_to_metadata(metadata):
 
 def db_to_fossology_license(license):
     return {
-        "licenses": license["licenses"],
+        "id": license["id"],
+        "license": license["license"],
         "tool": {
             "id": license["tool_id"],
             "name": license["tool_name"],

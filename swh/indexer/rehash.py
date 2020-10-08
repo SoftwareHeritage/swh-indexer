@@ -9,15 +9,30 @@ import logging
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from swh.core import utils
-from swh.core.config import SWHConfig
+from swh.core.config import load_from_envvar
 from swh.model import hashutil
 from swh.model.model import Content
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
 
+DEFAULT_CONFIG: Dict[str, Any] = {
+    "storage": {"cls": "memory"},
+    "objstorage": {"cls": "memory"},
+    # the set of checksums that should be computed.
+    # Examples: 'sha1_git', 'blake2b512', 'blake2s256'
+    "compute_checksums": [],
+    # whether checksums that already exist in the DB should be
+    # recomputed/updated or left untouched
+    "recompute_checksums": False,
+    # Number of contents to retrieve blobs at the same time
+    "batch_size_retrieve_content": 10,
+    # Number of contents to update at the same time
+    "batch_size_update": 100,
+}
 
-class RecomputeChecksums(SWHConfig):
+
+class RecomputeChecksums:
     """Class in charge of (re)computing content's hashes.
 
     Hashes to compute are defined across 2 configuration options:
@@ -35,39 +50,8 @@ class RecomputeChecksums(SWHConfig):
 
     """
 
-    DEFAULT_CONFIG = {
-        # The storage to read from or update metadata to
-        "storage": (
-            "dict",
-            {"cls": "remote", "args": {"url": "http://localhost:5002/"},},
-        ),
-        # The objstorage to read contents' data from
-        "objstorage": (
-            "dict",
-            {
-                "cls": "pathslicing",
-                "args": {
-                    "root": "/srv/softwareheritage/objects",
-                    "slicing": "0:2/2:4/4:6",
-                },
-            },
-        ),
-        # the set of checksums that should be computed.
-        # Examples: 'sha1_git', 'blake2b512', 'blake2s256'
-        "compute_checksums": ("list[str]", []),
-        # whether checksums that already exist in the DB should be
-        # recomputed/updated or left untouched
-        "recompute_checksums": ("bool", False),
-        # Number of contents to retrieve blobs at the same time
-        "batch_size_retrieve_content": ("int", 10),
-        # Number of contents to update at the same time
-        "batch_size_update": ("int", 100),
-    }
-
-    CONFIG_BASE_FILENAME = "indexer/rehash"
-
     def __init__(self) -> None:
-        self.config = self.parse_config_file()
+        self.config = load_from_envvar(DEFAULT_CONFIG)
         self.storage = get_storage(**self.config["storage"])
         self.objstorage = get_objstorage(**self.config["objstorage"])
         self.compute_checksums = self.config["compute_checksums"]
