@@ -4,14 +4,14 @@
 # See top-level LICENSE file for more information
 
 
-from collections import Counter, defaultdict
+from collections import Counter
 import json
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import psycopg2
 import psycopg2.pool
 
-from swh.core.db.common import db_transaction, db_transaction_generator
+from swh.core.db.common import db_transaction
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import SHA1_SIZE
 from swh.storage.exc import StorageDBError
@@ -22,6 +22,15 @@ from .db import Db
 from .exc import DuplicateId, IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
 from .metrics import process_metrics, send_metric, timed
+from .model import (
+    ContentCtagsRow,
+    ContentLanguageRow,
+    ContentLicenseRow,
+    ContentMetadataRow,
+    ContentMimetypeRow,
+    OriginIntrinsicMetadataRow,
+    RevisionIntrinsicMetadataRow,
+)
 
 INDEXER_CFG_KEY = "indexer_storage"
 
@@ -59,7 +68,7 @@ def get_indexer_storage(cls, args):
 
 def check_id_duplicates(data):
     """
-    If any two dictionaries in `data` have the same id, raises
+    If any two row models in `data` have the same unique key, raises
     a `ValueError`.
 
     Values associated to the key must be hashable.
@@ -68,21 +77,21 @@ def check_id_duplicates(data):
         data (List[dict]): List of dictionaries to be inserted
 
     >>> check_id_duplicates([
-    ...     {'id': 'foo', 'data': 'spam'},
-    ...     {'id': 'bar', 'data': 'egg'},
+    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
+    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=32, lang="python"),
     ... ])
     >>> check_id_duplicates([
-    ...     {'id': 'foo', 'data': 'spam'},
-    ...     {'id': 'foo', 'data': 'egg'},
+    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
+    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
     ... ])
     Traceback (most recent call last):
       ...
-    swh.indexer.storage.exc.DuplicateId: ['foo']
-    """
-    counter = Counter(item["id"] for item in data)
+    swh.indexer.storage.exc.DuplicateId: [{'id': b'foo', 'indexer_configuration_id': 42}]
+    """  # noqa
+    counter = Counter(tuple(sorted(item.unique_key().items())) for item in data)
     duplicates = [id_ for (id_, count) in counter.items() if count >= 2]
     if duplicates:
-        raise DuplicateId(duplicates)
+        raise DuplicateId(list(map(dict, duplicates)))
 
 
 class IndexerStorage:
@@ -133,10 +142,11 @@ class IndexerStorage:
         return cur.fetchone()[0]
 
     @timed
-    @db_transaction_generator()
-    def content_mimetype_missing(self, mimetypes, db=None, cur=None):
-        for obj in db.content_mimetype_missing_from_list(mimetypes, cur):
-            yield obj[0]
+    @db_transaction()
+    def content_mimetype_missing(
+        self, mimetypes: Iterable[Dict], db=None, cur=None
+    ) -> List[Tuple[Sha1, int]]:
+        return [obj[0] for obj in db.content_mimetype_missing_from_list(mimetypes, cur)]
 
     @timed
     @db_transaction()
@@ -235,20 +245,17 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_mimetype_add(
-        self, mimetypes: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        mimetypes: List[ContentMimetypeRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
-        """Add mimetypes to the storage (if conflict_update is True, this will
-           override existing data if any).
-
-        Returns:
-            A dict with the number of new elements added to the storage.
-
-        """
         check_id_duplicates(mimetypes)
-        mimetypes.sort(key=lambda m: m["id"])
+        mimetypes.sort(key=lambda m: m.id)
         db.mktemp_content_mimetype(cur)
         db.copy_to(
-            mimetypes,
+            [m.to_dict() for m in mimetypes],
             "tmp_content_mimetype",
             ["id", "mimetype", "encoding", "indexer_configuration_id"],
             cur,
@@ -257,39 +264,56 @@ class IndexerStorage:
         return {"content_mimetype:add": count}
 
     @timed
-    @db_transaction_generator()
-    def content_mimetype_get(self, ids, db=None, cur=None):
-        for c in db.content_mimetype_get_from_list(ids, cur):
-            yield converters.db_to_mimetype(dict(zip(db.content_mimetype_cols, c)))
+    @db_transaction()
+    def content_mimetype_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[ContentMimetypeRow]:
+        return [
+            ContentMimetypeRow.from_dict(
+                converters.db_to_mimetype(dict(zip(db.content_mimetype_cols, c)))
+            )
+            for c in db.content_mimetype_get_from_list(ids, cur)
+        ]
 
     @timed
-    @db_transaction_generator()
-    def content_language_missing(self, languages, db=None, cur=None):
-        for obj in db.content_language_missing_from_list(languages, cur):
-            yield obj[0]
+    @db_transaction()
+    def content_language_missing(
+        self, languages: Iterable[Dict], db=None, cur=None
+    ) -> List[Tuple[Sha1, int]]:
+        return [obj[0] for obj in db.content_language_missing_from_list(languages, cur)]
 
     @timed
-    @db_transaction_generator()
-    def content_language_get(self, ids, db=None, cur=None):
-        for c in db.content_language_get_from_list(ids, cur):
-            yield converters.db_to_language(dict(zip(db.content_language_cols, c)))
+    @db_transaction()
+    def content_language_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[ContentLanguageRow]:
+        return [
+            ContentLanguageRow.from_dict(
+                converters.db_to_language(dict(zip(db.content_language_cols, c)))
+            )
+            for c in db.content_language_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
     @db_transaction()
     def content_language_add(
-        self, languages: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        languages: List[ContentLanguageRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(languages)
-        languages.sort(key=lambda m: m["id"])
+        languages.sort(key=lambda m: m.id)
         db.mktemp_content_language(cur)
         # empty language is mapped to 'unknown'
         db.copy_to(
             (
                 {
-                    "id": lang["id"],
-                    "lang": "unknown" if not lang["lang"] else lang["lang"],
-                    "indexer_configuration_id": lang["indexer_configuration_id"],
+                    "id": lang.id,
+                    "lang": lang.lang or "unknown",
+                    "indexer_configuration_id": lang.indexer_configuration_id,
                 }
                 for lang in languages
             ),
@@ -302,36 +326,40 @@ class IndexerStorage:
         return {"content_language:add": count}
 
     @timed
-    @db_transaction_generator()
-    def content_ctags_missing(self, ctags, db=None, cur=None):
-        for obj in db.content_ctags_missing_from_list(ctags, cur):
-            yield obj[0]
+    @db_transaction()
+    def content_ctags_missing(
+        self, ctags: Iterable[Dict], db=None, cur=None
+    ) -> List[Tuple[Sha1, int]]:
+        return [obj[0] for obj in db.content_ctags_missing_from_list(ctags, cur)]
 
     @timed
-    @db_transaction_generator()
-    def content_ctags_get(self, ids, db=None, cur=None):
-        for c in db.content_ctags_get_from_list(ids, cur):
-            yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
+    @db_transaction()
+    def content_ctags_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[ContentCtagsRow]:
+        return [
+            ContentCtagsRow.from_dict(
+                converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
+            )
+            for c in db.content_ctags_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
     @db_transaction()
     def content_ctags_add(
-        self, ctags: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        ctags: List[ContentCtagsRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(ctags)
-        ctags.sort(key=lambda m: m["id"])
-
-        def _convert_ctags(__ctags):
-            """Convert ctags dict to list of ctags.
-
-            """
-            for ctags in __ctags:
-                yield from converters.ctags_to_db(ctags)
+        ctags.sort(key=lambda m: m.id)
 
         db.mktemp_content_ctags(cur)
         db.copy_to(
-            list(_convert_ctags(ctags)),
+            [ctag.to_dict() for ctag in ctags],
             tblname="tmp_content_ctags",
             columns=["id", "name", "kind", "line", "lang", "indexer_configuration_id"],
             cur=cur,
@@ -341,45 +369,51 @@ class IndexerStorage:
         return {"content_ctags:add": count}
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def content_ctags_search(
-        self, expression, limit=10, last_sha1=None, db=None, cur=None
-    ):
-        for obj in db.content_ctags_search(expression, last_sha1, limit, cur=cur):
-            yield converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
+        self,
+        expression: str,
+        limit: int = 10,
+        last_sha1: Optional[Sha1] = None,
+        db=None,
+        cur=None,
+    ) -> List[ContentCtagsRow]:
+        return [
+            ContentCtagsRow.from_dict(
+                converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
+            )
+            for obj in db.content_ctags_search(expression, last_sha1, limit, cur=cur)
+        ]
 
     @timed
-    @db_transaction_generator()
-    def content_fossology_license_get(self, ids, db=None, cur=None):
-        d = defaultdict(list)
-        for c in db.content_fossology_license_get_from_list(ids, cur):
-            license = dict(zip(db.content_fossology_license_cols, c))
-
-            id_ = license["id"]
-            d[id_].append(converters.db_to_fossology_license(license))
-
-        for id_, facts in d.items():
-            yield {id_: facts}
+    @db_transaction()
+    def content_fossology_license_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[ContentLicenseRow]:
+        return [
+            ContentLicenseRow.from_dict(
+                converters.db_to_fossology_license(
+                    dict(zip(db.content_fossology_license_cols, c))
+                )
+            )
+            for c in db.content_fossology_license_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
     @db_transaction()
     def content_fossology_license_add(
-        self, licenses: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        licenses: List[ContentLicenseRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(licenses)
-        licenses.sort(key=lambda m: m["id"])
+        licenses.sort(key=lambda m: m.id)
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
-            (
-                {
-                    "id": sha1["id"],
-                    "indexer_configuration_id": sha1["indexer_configuration_id"],
-                    "license": license,
-                }
-                for sha1 in licenses
-                for license in sha1["licenses"]
-            ),
+            [license.to_dict() for license in licenses],
             tblname="tmp_content_fossology_license",
             columns=["id", "license", "indexer_configuration_id"],
             cur=cur,
@@ -412,30 +446,41 @@ class IndexerStorage:
         )
 
     @timed
-    @db_transaction_generator()
-    def content_metadata_missing(self, metadata, db=None, cur=None):
-        for obj in db.content_metadata_missing_from_list(metadata, cur):
-            yield obj[0]
+    @db_transaction()
+    def content_metadata_missing(
+        self, metadata: Iterable[Dict], db=None, cur=None
+    ) -> List[Tuple[Sha1, int]]:
+        return [obj[0] for obj in db.content_metadata_missing_from_list(metadata, cur)]
 
     @timed
-    @db_transaction_generator()
-    def content_metadata_get(self, ids, db=None, cur=None):
-        for c in db.content_metadata_get_from_list(ids, cur):
-            yield converters.db_to_metadata(dict(zip(db.content_metadata_cols, c)))
+    @db_transaction()
+    def content_metadata_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[ContentMetadataRow]:
+        return [
+            ContentMetadataRow.from_dict(
+                converters.db_to_metadata(dict(zip(db.content_metadata_cols, c)))
+            )
+            for c in db.content_metadata_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
     @db_transaction()
     def content_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        metadata: List[ContentMetadataRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m["id"])
+        metadata.sort(key=lambda m: m.id)
 
         db.mktemp_content_metadata(cur)
 
         db.copy_to(
-            metadata,
+            [m.to_dict() for m in metadata],
             "tmp_content_metadata",
             ["id", "metadata", "indexer_configuration_id"],
             cur,
@@ -446,32 +491,46 @@ class IndexerStorage:
         }
 
     @timed
-    @db_transaction_generator()
-    def revision_intrinsic_metadata_missing(self, metadata, db=None, cur=None):
-        for obj in db.revision_intrinsic_metadata_missing_from_list(metadata, cur):
-            yield obj[0]
+    @db_transaction()
+    def revision_intrinsic_metadata_missing(
+        self, metadata: Iterable[Dict], db=None, cur=None
+    ) -> List[Tuple[Sha1, int]]:
+        return [
+            obj[0]
+            for obj in db.revision_intrinsic_metadata_missing_from_list(metadata, cur)
+        ]
 
     @timed
-    @db_transaction_generator()
-    def revision_intrinsic_metadata_get(self, ids, db=None, cur=None):
-        for c in db.revision_intrinsic_metadata_get_from_list(ids, cur):
-            yield converters.db_to_metadata(
-                dict(zip(db.revision_intrinsic_metadata_cols, c))
+    @db_transaction()
+    def revision_intrinsic_metadata_get(
+        self, ids: Iterable[Sha1], db=None, cur=None
+    ) -> List[RevisionIntrinsicMetadataRow]:
+        return [
+            RevisionIntrinsicMetadataRow.from_dict(
+                converters.db_to_metadata(
+                    dict(zip(db.revision_intrinsic_metadata_cols, c))
+                )
             )
+            for c in db.revision_intrinsic_metadata_get_from_list(ids, cur)
+        ]
 
     @timed
     @process_metrics
     @db_transaction()
     def revision_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        metadata: List[RevisionIntrinsicMetadataRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m["id"])
+        metadata.sort(key=lambda m: m.id)
 
         db.mktemp_revision_intrinsic_metadata(cur)
 
         db.copy_to(
-            metadata,
+            [m.to_dict() for m in metadata],
             "tmp_revision_intrinsic_metadata",
             ["id", "metadata", "mappings", "indexer_configuration_id"],
             cur,
@@ -491,26 +550,36 @@ class IndexerStorage:
         return {"revision_intrinsic_metadata:del": count}
 
     @timed
-    @db_transaction_generator()
-    def origin_intrinsic_metadata_get(self, ids, db=None, cur=None):
-        for c in db.origin_intrinsic_metadata_get_from_list(ids, cur):
-            yield converters.db_to_metadata(
-                dict(zip(db.origin_intrinsic_metadata_cols, c))
+    @db_transaction()
+    def origin_intrinsic_metadata_get(
+        self, urls: Iterable[str], db=None, cur=None
+    ) -> List[OriginIntrinsicMetadataRow]:
+        return [
+            OriginIntrinsicMetadataRow.from_dict(
+                converters.db_to_metadata(
+                    dict(zip(db.origin_intrinsic_metadata_cols, c))
+                )
             )
+            for c in db.origin_intrinsic_metadata_get_from_list(urls, cur)
+        ]
 
     @timed
     @process_metrics
     @db_transaction()
     def origin_intrinsic_metadata_add(
-        self, metadata: List[Dict], conflict_update: bool = False, db=None, cur=None
+        self,
+        metadata: List[OriginIntrinsicMetadataRow],
+        conflict_update: bool = False,
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m["id"])
+        metadata.sort(key=lambda m: m.id)
 
         db.mktemp_origin_intrinsic_metadata(cur)
 
         db.copy_to(
-            metadata,
+            [m.to_dict() for m in metadata],
             "tmp_origin_intrinsic_metadata",
             ["id", "metadata", "indexer_configuration_id", "from_revision", "mappings"],
             cur,
@@ -532,52 +601,59 @@ class IndexerStorage:
         }
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def origin_intrinsic_metadata_search_fulltext(
-        self, conjunction, limit=100, db=None, cur=None
-    ):
-        for c in db.origin_intrinsic_metadata_search_fulltext(
-            conjunction, limit=limit, cur=cur
-        ):
-            yield converters.db_to_metadata(
-                dict(zip(db.origin_intrinsic_metadata_cols, c))
+        self, conjunction: List[str], limit: int = 100, db=None, cur=None
+    ) -> List[OriginIntrinsicMetadataRow]:
+        return [
+            OriginIntrinsicMetadataRow.from_dict(
+                converters.db_to_metadata(
+                    dict(zip(db.origin_intrinsic_metadata_cols, c))
+                )
             )
+            for c in db.origin_intrinsic_metadata_search_fulltext(
+                conjunction, limit=limit, cur=cur
+            )
+        ]
 
     @timed
     @db_transaction()
     def origin_intrinsic_metadata_search_by_producer(
         self,
-        page_token="",
-        limit=100,
-        ids_only=False,
-        mappings=None,
-        tool_ids=None,
+        page_token: str = "",
+        limit: int = 100,
+        ids_only: bool = False,
+        mappings: Optional[List[str]] = None,
+        tool_ids: Optional[List[int]] = None,
         db=None,
         cur=None,
-    ):
+    ) -> PagedResult[Union[str, OriginIntrinsicMetadataRow]]:
         assert isinstance(page_token, str)
         # we go to limit+1 to check whether we should add next_page_token in
         # the response
-        res = db.origin_intrinsic_metadata_search_by_producer(
+        rows = db.origin_intrinsic_metadata_search_by_producer(
             page_token, limit + 1, ids_only, mappings, tool_ids, cur
         )
-        result = {}
+        next_page_token = None
         if ids_only:
-            result["origins"] = [origin for (origin,) in res]
-            if len(result["origins"]) > limit:
-                result["origins"][limit:] = []
-                result["next_page_token"] = result["origins"][-1]
+            results = [origin for (origin,) in rows]
+            if len(results) > limit:
+                results[limit:] = []
+                next_page_token = results[-1]
         else:
-            result["origins"] = [
-                converters.db_to_metadata(
-                    dict(zip(db.origin_intrinsic_metadata_cols, c))
+            results = [
+                OriginIntrinsicMetadataRow.from_dict(
+                    converters.db_to_metadata(
+                        dict(zip(db.origin_intrinsic_metadata_cols, row))
+                    )
                 )
-                for c in res
+                for row in rows
             ]
-            if len(result["origins"]) > limit:
-                result["origins"][limit:] = []
-                result["next_page_token"] = result["origins"][-1]["id"]
-        return result
+            if len(results) > limit:
+                results[limit:] = []
+                next_page_token = results[-1].id
+
+        return PagedResult(results=results, next_page_token=next_page_token,)
 
     @timed
     @db_transaction()
@@ -614,7 +690,7 @@ class IndexerStorage:
         }
 
     @timed
-    @db_transaction_generator()
+    @db_transaction()
     def indexer_configuration_add(self, tools, db=None, cur=None):
         db.mktemp_indexer_configuration(cur)
         db.copy_to(
@@ -625,13 +701,13 @@ class IndexerStorage:
         )
 
         tools = db.indexer_configuration_add_from_temp(cur)
-        count = 0
-        for line in tools:
-            yield dict(zip(db.indexer_configuration_cols, line))
-            count += 1
+        results = [dict(zip(db.indexer_configuration_cols, line)) for line in tools]
         send_metric(
-            "indexer_configuration:add", count, method_name="indexer_configuration_add"
+            "indexer_configuration:add",
+            len(results),
+            method_name="indexer_configuration_add",
         )
+        return results
 
     @timed
     @db_transaction()

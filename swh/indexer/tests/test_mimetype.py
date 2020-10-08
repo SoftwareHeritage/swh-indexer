@@ -13,6 +13,7 @@ from swh.indexer.mimetype import (
     MimetypePartitionIndexer,
     compute_mimetype_encoding,
 )
+from swh.indexer.storage.model import ContentMimetypeRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
     CommonContentIndexerPartitionTest,
@@ -21,6 +22,7 @@ from swh.indexer.tests.utils import (
     fill_storage,
     filter_dict,
 )
+from swh.model.hashutil import hash_to_bytes
 
 
 def test_compute_mimetype_encoding():
@@ -52,8 +54,6 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
 
     """
 
-    legacy_get_format = True
-
     def get_indexer_results(self, ids):
         yield from self.idx_storage.content_mimetype_get(ids)
 
@@ -70,26 +70,26 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
 
-        self.expected_results = {
-            self.id0: {
-                "id": self.id0,
-                "tool": tool,
-                "mimetype": "text/plain",
-                "encoding": "us-ascii",
-            },
-            self.id1: {
-                "id": self.id1,
-                "tool": tool,
-                "mimetype": "text/plain",
-                "encoding": "us-ascii",
-            },
-            self.id2: {
-                "id": self.id2,
-                "tool": tool,
-                "mimetype": "application/x-empty",
-                "encoding": "binary",
-            },
-        }
+        self.expected_results = [
+            ContentMimetypeRow(
+                id=hash_to_bytes(self.id0),
+                tool=tool,
+                mimetype="text/plain",
+                encoding="us-ascii",
+            ),
+            ContentMimetypeRow(
+                id=hash_to_bytes(self.id1),
+                tool=tool,
+                mimetype="text/plain",
+                encoding="us-ascii",
+            ),
+            ContentMimetypeRow(
+                id=hash_to_bytes(self.id2),
+                tool=tool,
+                mimetype="application/x-empty",
+                encoding="binary",
+            ),
+        ]
 
 
 RANGE_CONFIG = dict(list(CONFIG.items()) + [("write_batch_size", 100)])

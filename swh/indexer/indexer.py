@@ -9,17 +9,19 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Generic, Iterator, List, Optional, Set, TypeVar, Union
 
 from swh.core import utils
-from swh.core.config import SWHConfig
+from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
+from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model import hashutil
-from swh.model.model import Revision
+from swh.model.model import Revision, Sha1Git
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
 from swh.scheduler import CONFIG as SWH_CONFIG
 from swh.storage import get_storage
+from swh.storage.interface import StorageInterface
 
 
 @contextmanager
@@ -49,7 +51,22 @@ def write_to_temp(filename: str, data: bytes, working_directory: str) -> Iterato
     shutil.rmtree(temp_dir)
 
 
-class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
+DEFAULT_CONFIG = {
+    INDEXER_CFG_KEY: {"cls": "memory"},
+    "storage": {"cls": "memory"},
+    "objstorage": {"cls": "memory"},
+}
+
+
+TId = TypeVar("TId")
+"""type of the ids of index()ed objects."""
+TData = TypeVar("TData")
+"""type of the objects passed to index()."""
+TResult = TypeVar("TResult")
+"""return type of index()"""
+
+
+class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
     """Base class for indexers to inherit from.
 
     The main entry point is the :func:`run` function which is in
@@ -102,26 +119,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
 
     """
 
-    results: List[Dict]
-
-    CONFIG = "indexer/base"
-
-    DEFAULT_CONFIG = {
-        INDEXER_CFG_KEY: (
-            "dict",
-            {"cls": "remote", "args": {"url": "http://localhost:5007/"}},
-        ),
-        "storage": (
-            "dict",
-            {"cls": "remote", "args": {"url": "http://localhost:5002/",}},
-        ),
-        "objstorage": (
-            "dict",
-            {"cls": "remote", "args": {"url": "http://localhost:5003/",}},
-        ),
-    }
-
-    ADDITIONAL_CONFIG = {}  # type: Dict[str, Tuple[str, Any]]
+    results: List[TResult]
 
     USE_TOOLS = True
 
@@ -130,6 +128,9 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
     in tests to properly catch all exceptions."""
 
     scheduler: Any
+    storage: StorageInterface
+    objstorage: Any
+    idx_storage: IndexerStorageInterface
 
     def __init__(self, config=None, **kw) -> None:
         """Prepare and check that the indexer is ready to run.
@@ -141,18 +142,8 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         elif SWH_CONFIG:
             self.config = SWH_CONFIG.copy()
         else:
-            config_keys = (
-                "base_filename",
-                "config_filename",
-                "additional_configs",
-                "global_config",
-            )
-            config_args = {k: v for k, v in kw.items() if k in config_keys}
-            if self.ADDITIONAL_CONFIG:
-                config_args.setdefault("additional_configs", []).append(
-                    self.ADDITIONAL_CONFIG
-                )
-            self.config = self.parse_config_file(**config_args)
+            self.config = load_from_envvar()
+        self.config = merge_configs(DEFAULT_CONFIG, self.config)
         self.prepare()
         self.check()
         self.log.debug("%s: config=%s", self, self.config)
@@ -231,9 +222,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         else:
             return []
 
-    def index(
-        self, id: Union[bytes, Dict, Revision], data: Optional[bytes] = None, **kwargs
-    ) -> Dict[str, Any]:
+    def index(self, id: TId, data: Optional[TData], **kwargs) -> List[TResult]:
         """Index computation for the id and associated raw data.
 
         Args:
@@ -248,7 +237,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError()
 
-    def filter(self, ids: List[bytes]) -> Iterator[bytes]:
+    def filter(self, ids: List[TId]) -> Iterator[TId]:
         """Filter missing ids for that particular indexer.
 
         Args:
@@ -261,14 +250,16 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         yield from ids
 
     @abc.abstractmethod
-    def persist_index_computations(self, results, policy_update) -> Dict[str, int]:
+    def persist_index_computations(
+        self, results: List[TResult], policy_update: str
+    ) -> Dict[str, int]:
         """Persist the computation resulting from the index.
 
         Args:
 
-            results ([result]): List of results. One result is the
+            results: List of results. One result is the
               result of the index function.
-            policy_update ([str]): either 'update-dups' or 'ignore-dups' to
+            policy_update: either 'update-dups' or 'ignore-dups' to
               respectively update duplicates or ignore them
 
         Returns:
@@ -278,7 +269,7 @@ class BaseIndexer(SWHConfig, metaclass=abc.ABCMeta):
         return {}
 
 
-class ContentIndexer(BaseIndexer):
+class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
     """A content indexer working on a list of ids directly.
 
     To work on indexer partition, use the :class:`ContentPartitionIndexer`
@@ -290,9 +281,7 @@ class ContentIndexer(BaseIndexer):
 
     """
 
-    def run(
-        self, ids: Union[List[bytes], bytes, str], policy_update: str, **kwargs
-    ) -> Dict:
+    def run(self, ids: List[Sha1], policy_update: str, **kwargs) -> Dict:
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -310,12 +299,11 @@ class ContentIndexer(BaseIndexer):
             A summary Dict of the task's status
 
         """
-        status = "uneventful"
         sha1s = [
             hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
         ]
         results = []
-        summary: Dict = {}
+        summary: Dict = {"status": "uneventful"}
         try:
             for sha1 in sha1s:
                 try:
@@ -328,21 +316,19 @@ class ContentIndexer(BaseIndexer):
                     continue
                 res = self.index(sha1, raw_content, **kwargs)
                 if res:  # If no results, skip it
-                    results.append(res)
-                    status = "eventful"
+                    results.extend(res)
+                    summary["status"] = "eventful"
             summary = self.persist_index_computations(results, policy_update)
             self.results = results
         except Exception:
             if not self.catch_exceptions:
                 raise
             self.log.exception("Problem when reading contents metadata.")
-            status = "failed"
-        finally:
-            summary["status"] = status
-            return summary
+            summary["status"] = "failed"
+        return summary
 
 
-class ContentPartitionIndexer(BaseIndexer):
+class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
     """A content partition indexer.
 
     This expects as input a partition_id and a nb_partitions. This will then index the
@@ -410,7 +396,7 @@ class ContentPartitionIndexer(BaseIndexer):
 
     def _index_contents(
         self, partition_id: int, nb_partitions: int, indexed: Set[Sha1], **kwargs: Any
-    ) -> Iterator[Dict]:
+    ) -> Iterator[TResult]:
         """Index the contents within the partition_id.
 
         Args:
@@ -428,18 +414,11 @@ class ContentPartitionIndexer(BaseIndexer):
             except ObjNotFoundError:
                 self.log.warning(f"Content {sha1.hex()} not found in objstorage")
                 continue
-            res = self.index(sha1, raw_content, **kwargs)
-            if res:
-                if not isinstance(res["id"], bytes):
-                    raise TypeError(
-                        "%r.index should return ids as bytes, not %r"
-                        % (self.__class__.__name__, res["id"])
-                    )
-                yield res
+            yield from self.index(sha1, raw_content, **kwargs)
 
     def _index_with_skipping_already_done(
         self, partition_id: int, nb_partitions: int
-    ) -> Iterator[Dict]:
+    ) -> Iterator[TResult]:
         """Index not already indexed contents within the partition partition_id
 
         Args:
@@ -486,8 +465,7 @@ class ContentPartitionIndexer(BaseIndexer):
             dict with the indexing task status
 
         """
-        status = "uneventful"
-        summary: Dict[str, Any] = {}
+        summary: Dict[str, Any] = {"status": "uneventful"}
         count = 0
         try:
             if skip_existing:
@@ -501,26 +479,25 @@ class ContentPartitionIndexer(BaseIndexer):
 
             for contents in utils.grouper(gen, n=self.config["write_batch_size"]):
                 res = self.persist_index_computations(
-                    contents, policy_update="update-dups"
+                    list(contents), policy_update="update-dups"
                 )
                 if not count_object_added_key:
                     count_object_added_key = list(res.keys())[0]
                 count += res[count_object_added_key]
                 if count > 0:
-                    status = "eventful"
+                    summary["status"] = "eventful"
         except Exception:
             if not self.catch_exceptions:
                 raise
             self.log.exception("Problem when computing metadata.")
-            status = "failed"
-        finally:
-            summary["status"] = status
-            if count > 0 and count_object_added_key:
-                summary[count_object_added_key] = count
-            return summary
+            summary["status"] = "failed"
+
+        if count > 0 and count_object_added_key:
+            summary[count_object_added_key] = count
+        return summary
 
 
-class OriginIndexer(BaseIndexer):
+class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
     implements Origin indexing using the run method
 
@@ -547,34 +524,36 @@ class OriginIndexer(BaseIndexer):
             **kwargs: passed to the `index` method
 
         """
-        summary: Dict[str, Any] = {}
-        status = "uneventful"
-        results = self.index_list(origin_urls, **kwargs)
+        summary: Dict[str, Any] = {"status": "uneventful"}
+        try:
+            results = self.index_list(origin_urls, **kwargs)
+        except Exception:
+            if not self.catch_exceptions:
+                raise
+            summary["status"] = "failed"
+            return summary
+
         summary_persist = self.persist_index_computations(results, policy_update)
         self.results = results
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
-                    status = "eventful"
+                    summary["status"] = "eventful"
             summary.update(summary_persist)
-        summary["status"] = status
         return summary
 
-    def index_list(self, origins: List[Any], **kwargs: Any) -> List[Dict]:
+    def index_list(self, origin_urls: List[str], **kwargs) -> List[TResult]:
         results = []
-        for origin in origins:
+        for origin_url in origin_urls:
             try:
-                res = self.index(origin, **kwargs)
-                if res:  # If no results, skip it
-                    results.append(res)
+                results.extend(self.index(origin_url, **kwargs))
             except Exception:
-                if not self.catch_exceptions:
-                    raise
-                self.log.exception("Problem when processing origin %s", origin["id"])
+                self.log.exception("Problem when processing origin %s", origin_url)
+                raise
         return results
 
 
-class RevisionIndexer(BaseIndexer):
+class RevisionIndexer(BaseIndexer[Sha1Git, Revision, TResult], Generic[TResult]):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
     implements Revision indexing using the run method
 
@@ -585,7 +564,7 @@ class RevisionIndexer(BaseIndexer):
 
     """
 
-    def run(self, ids: Union[str, bytes], policy_update: str) -> Dict:
+    def run(self, ids: List[Sha1Git], policy_update: str) -> Dict:
         """Given a list of sha1_gits:
 
         - retrieve revisions from storage
@@ -598,35 +577,33 @@ class RevisionIndexer(BaseIndexer):
               respectively update duplicates or ignore them
 
         """
-        summary: Dict[str, Any] = {}
-        status = "uneventful"
+        summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
 
         revision_ids = [
             hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
         ]
-        for rev in self.storage.revision_get(revision_ids):
+        for (rev_id, rev) in zip(revision_ids, self.storage.revision_get(revision_ids)):
             if not rev:
+                # TODO: call self.index() with rev=None?
                 self.log.warning(
-                    "Revisions %s not found in storage"
-                    % list(map(hashutil.hash_to_hex, ids))
+                    "Revision %s not found in storage", hashutil.hash_to_hex(rev_id)
                 )
                 continue
             try:
-                res = self.index(rev)
-                if res:  # If no results, skip it
-                    results.append(res)
+                results.extend(self.index(rev_id, rev))
             except Exception:
                 if not self.catch_exceptions:
                     raise
                 self.log.exception("Problem when processing revision")
-                status = "failed"
+                summary["status"] = "failed"
+                return summary
+
         summary_persist = self.persist_index_computations(results, policy_update)
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
-                    status = "eventful"
+                    summary["status"] = "eventful"
             summary.update(summary_persist)
         self.results = results
-        summary["status"] = status
         return summary

@@ -15,6 +15,7 @@ from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_dictionary.maven import MavenMapping
 from swh.indexer.metadata_dictionary.npm import NpmMapping
 from swh.indexer.metadata_dictionary.ruby import GemspecMapping
+from swh.indexer.storage.model import ContentMetadataRow, RevisionIntrinsicMetadataRow
 from swh.indexer.tests.utils import DIRECTORY2, REVISION
 from swh.model.hashutil import hash_to_bytes
 from swh.model.model import Directory, DirectoryEntry, Revision
@@ -143,8 +144,10 @@ class Metadata(unittest.TestCase):
         results = list(metadata_indexer.idx_storage.content_metadata_get(sha1s))
 
         expected_results = [
-            {
-                "metadata": {
+            ContentMetadataRow(
+                id=hash_to_bytes("26a9f72a7c87cc9205725cfd879f514ff4f3d8d5"),
+                tool=TRANSLATOR_TOOL,
+                metadata={
                     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
                     "type": "SoftwareSourceCode",
                     "codeRepository": "git+https://github.com/moranegg/metadata_test",
@@ -152,10 +155,11 @@ class Metadata(unittest.TestCase):
                     "name": "test_metadata",
                     "version": "0.0.1",
                 },
-                "id": hash_to_bytes("26a9f72a7c87cc9205725cfd879f514ff4f3d8d5"),
-            },
-            {
-                "metadata": {
+            ),
+            ContentMetadataRow(
+                id=hash_to_bytes("d4c647f0fc257591cc9ba1722484229780d1c607"),
+                tool=TRANSLATOR_TOOL,
+                metadata={
                     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
                     "type": "SoftwareSourceCode",
                     "issueTracker": "https://github.com/npm/npm/issues",
@@ -180,12 +184,11 @@ class Metadata(unittest.TestCase):
                     ],
                     "url": "https://docs.npmjs.com/",
                 },
-                "id": hash_to_bytes("d4c647f0fc257591cc9ba1722484229780d1c607"),
-            },
+            ),
         ]
 
         for result in results:
-            del result["tool"]
+            del result.tool["id"]
 
         # The assertion below returns False sometimes because of nested lists
         self.assertEqual(expected_results, results)
@@ -1111,11 +1114,11 @@ Gem::Specification.new { |s|
 
         metadata_indexer.idx_storage.content_metadata_add(
             [
-                {
-                    "indexer_configuration_id": tool["id"],
-                    "id": DIRECTORY2.entries[0].target,
-                    "metadata": YARN_PARSER_METADATA,
-                }
+                ContentMetadataRow(
+                    id=DIRECTORY2.entries[0].target,
+                    indexer_configuration_id=tool["id"],
+                    metadata=YARN_PARSER_METADATA,
+                )
             ]
         )
 
@@ -1126,16 +1129,16 @@ Gem::Specification.new { |s|
         )
 
         expected_results = [
-            {
-                "id": rev.id,
-                "tool": TRANSLATOR_TOOL,
-                "metadata": YARN_PARSER_METADATA,
-                "mappings": ["npm"],
-            }
+            RevisionIntrinsicMetadataRow(
+                id=rev.id,
+                tool=TRANSLATOR_TOOL,
+                metadata=YARN_PARSER_METADATA,
+                mappings=["npm"],
+            )
         ]
 
         for result in results:
-            del result["tool"]["id"]
+            del result.tool["id"]
 
         # then
         self.assertEqual(results, expected_results)
@@ -1172,11 +1175,11 @@ Gem::Specification.new { |s|
 
         metadata_indexer.idx_storage.content_metadata_add(
             [
-                {
-                    "indexer_configuration_id": tool["id"],
-                    "id": DIRECTORY2.entries[0].target,
-                    "metadata": YARN_PARSER_METADATA,
-                }
+                ContentMetadataRow(
+                    id=DIRECTORY2.entries[0].target,
+                    indexer_configuration_id=tool["id"],
+                    metadata=YARN_PARSER_METADATA,
+                )
             ]
         )
 
@@ -1187,16 +1190,16 @@ Gem::Specification.new { |s|
         )
 
         expected_results = [
-            {
-                "id": new_rev.id,
-                "tool": TRANSLATOR_TOOL,
-                "metadata": YARN_PARSER_METADATA,
-                "mappings": ["npm"],
-            }
+            RevisionIntrinsicMetadataRow(
+                id=new_rev.id,
+                tool=TRANSLATOR_TOOL,
+                metadata=YARN_PARSER_METADATA,
+                mappings=["npm"],
+            )
         ]
 
         for result in results:
-            del result["tool"]["id"]
+            del result.tool["id"]
 
         # then
         self.assertEqual(results, expected_results)

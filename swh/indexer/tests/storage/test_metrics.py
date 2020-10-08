@@ -12,20 +12,20 @@ from swh.indexer.storage.metrics import (
 )
 
 
-def test_send_metric_unknown_unit():
+def test_send_metric_unknown_unit() -> None:
     r = send_metric("content", count=10, method_name="content_add")
     assert r is False
     r = send_metric("sthg:add:bytes:extra", count=10, method_name="sthg_add")
     assert r is False
 
 
-def test_send_metric_no_value():
+def test_send_metric_no_value() -> None:
     r = send_metric("content_mimetype:add", count=0, method_name="content_mimetype_add")
     assert r is False
 
 
 @patch("swh.indexer.storage.metrics.statsd.increment")
-def test_send_metric_no_unit(mock_statsd):
+def test_send_metric_no_unit(mock_statsd) -> None:
     r = send_metric(
         "content_mimetype:add", count=10, method_name="content_mimetype_add"
     )
@@ -44,7 +44,7 @@ def test_send_metric_no_unit(mock_statsd):
 
 
 @patch("swh.indexer.storage.metrics.statsd.increment")
-def test_send_metric_unit(mock_statsd):
+def test_send_metric_unit(mock_statsd) -> None:
     unit_ = "bytes"
     r = send_metric("c:add:%s" % unit_, count=100, method_name="c_add")
 
