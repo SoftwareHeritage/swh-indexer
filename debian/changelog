@@ -1,3 +1,13 @@
+swh-indexer (0.3.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.3.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2020-10-08 13:33:02 +0200)
+  * Upstream changes:     - v0.3.0     - * Make indexer-storage
+    endpoints use attr-based classes instead of dicts     - * Add more
+    typing to indexers and their tests
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 08 Oct 2020 11:35:50 +0000
+
 swh-indexer (0.2.4-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.2.4     - (tagged by David Douard
