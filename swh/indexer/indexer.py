@@ -158,8 +158,7 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
         if config_storage:
             self.storage = get_storage(**config_storage)
 
-        objstorage = self.config["objstorage"]
-        self.objstorage = get_objstorage(objstorage["cls"], objstorage["args"])
+        self.objstorage = get_objstorage(**self.config["objstorage"])
 
         idx_storage = self.config[INDEXER_CFG_KEY]
         self.idx_storage = get_indexer_storage(**idx_storage)

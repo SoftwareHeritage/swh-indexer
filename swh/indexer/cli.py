@@ -40,7 +40,7 @@ def indexer_cli_group(ctx, config_file):
 
 def _get_api(getter, config, config_key, url):
     if url:
-        config[config_key] = {"cls": "remote", "args": {"url": url}}
+        config[config_key] = {"cls": "remote", "url": url}
     elif config_key not in config:
         raise click.ClickException("Missing configuration for {}".format(config_key))
     return getter(**config[config_key])
