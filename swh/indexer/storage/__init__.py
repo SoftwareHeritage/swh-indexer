@@ -3,15 +3,17 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-
 from collections import Counter
+from importlib import import_module
 import json
 from typing import Dict, Iterable, List, Optional, Tuple, Union
+import warnings
 
 import psycopg2
 import psycopg2.pool
 
 from swh.core.db.common import db_transaction
+from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import SHA1_SIZE
 from swh.storage.exc import StorageDBError
@@ -38,32 +40,52 @@ INDEXER_CFG_KEY = "indexer_storage"
 MAPPING_NAMES = ["codemeta", "gemspec", "maven", "npm", "pkg-info"]
 
 
-def get_indexer_storage(cls, args):
-    """Get an indexer storage object of class `storage_class` with
-    arguments `storage_args`.
+SERVER_IMPLEMENTATIONS: Dict[str, str] = {
+    "local": ".IndexerStorage",
+    "remote": ".api.client.RemoteStorage",
+    "memory": ".in_memory.IndexerStorage",
+}
+
+
+def get_indexer_storage(cls: str, **kwargs) -> IndexerStorageInterface:
+    """Instantiate an indexer storage implementation of class `cls` with arguments
+    `kwargs`.
 
     Args:
-        cls (str): storage's class, either 'local' or 'remote'
-        args (dict): dictionary of arguments passed to the
-            storage class constructor
+        cls: indexer storage class (local, remote or memory)
+        kwargs: dictionary of arguments passed to the
+            indexer storage class constructor
 
     Returns:
-        an instance of swh.indexer's storage (either local or remote)
+        an instance of swh.indexer.storage
 
     Raises:
         ValueError if passed an unknown storage class.
 
     """
-    if cls == "remote":
-        from .api.client import RemoteStorage as IndexerStorage
-    elif cls == "local":
-        from . import IndexerStorage
-    elif cls == "memory":
-        from .in_memory import IndexerStorage
-    else:
-        raise ValueError("Unknown indexer storage class `%s`" % cls)
+    if "args" in kwargs:
+        warnings.warn(
+            'Explicit "args" key is deprecated, use keys directly instead.',
+            DeprecationWarning,
+        )
+        kwargs = kwargs["args"]
 
-    return IndexerStorage(**args)
+    class_path = SERVER_IMPLEMENTATIONS.get(cls)
+    if class_path is None:
+        raise ValueError(
+            f"Unknown indexer storage class `{cls}`. "
+            f"Supported: {', '.join(SERVER_IMPLEMENTATIONS)}"
+        )
+
+    (module_path, class_name) = class_path.rsplit(".", 1)
+    module = import_module(module_path if module_path else ".", package=__package__)
+    BackendClass = getattr(module, class_name)
+    check_config = kwargs.pop("check_config", {})
+    idx_storage = BackendClass(**kwargs)
+    if check_config:
+        if not idx_storage.check_config(**check_config):
+            raise EnvironmentError("Indexer storage check config failed")
+    return idx_storage
 
 
 def check_id_duplicates(data):

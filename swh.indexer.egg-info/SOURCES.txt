@@ -132,6 +132,7 @@ swh/indexer/tests/storage/generate_data_test.py
 swh/indexer/tests/storage/test_api_client.py
 swh/indexer/tests/storage/test_converters.py
 swh/indexer/tests/storage/test_in_memory.py
+swh/indexer/tests/storage/test_init.py
 swh/indexer/tests/storage/test_metrics.py
 swh/indexer/tests/storage/test_server.py
 swh/indexer/tests/storage/test_storage.py
