@@ -42,7 +42,7 @@ def idx_storage():
     indexers classes.
 
     """
-    idx_storage = get_indexer_storage("memory", {})
+    idx_storage = get_indexer_storage("memory")
     with patch("swh.indexer.storage.in_memory.IndexerStorage") as idx_storage_mock:
         idx_storage_mock.return_value = idx_storage
         yield idx_storage

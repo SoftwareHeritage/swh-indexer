@@ -3,3 +3,4 @@ click
 python-magic >= 0.4.13
 pyld
 xmltodict
+typing-extensions
