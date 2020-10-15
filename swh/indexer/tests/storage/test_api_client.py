@@ -14,11 +14,7 @@ from .test_storage import *  # noqa
 
 @pytest.fixture
 def app(swh_indexer_storage_postgresql):
-    storage_config = {
-        "cls": "local",
-        "args": {"db": swh_indexer_storage_postgresql.dsn,},
-    }
-    server.storage = get_indexer_storage(**storage_config)
+    server.storage = get_indexer_storage("local", db=swh_indexer_storage_postgresql.dsn)
     return server.app
 
 

@@ -3,6 +3,7 @@ click
 python-magic>=0.4.13
 pyld
 xmltodict
+typing-extensions
 swh.core[db,http]>=0.3
 swh.model>=0.0.15
 swh.objstorage>=0.0.43

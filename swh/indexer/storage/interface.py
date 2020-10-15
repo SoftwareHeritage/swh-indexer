@@ -5,6 +5,8 @@
 
 from typing import Dict, Iterable, List, Optional, Tuple, TypeVar, Union
 
+from typing_extensions import Protocol, runtime_checkable
+
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
 from swh.indexer.storage.model import (
@@ -24,7 +26,8 @@ PagedResult = CorePagedResult[TResult, str]
 Sha1 = bytes
 
 
-class IndexerStorageInterface:
+@runtime_checkable
+class IndexerStorageInterface(Protocol):
     @remote_api_endpoint("check_config")
     def check_config(self, *, check_write):
         """Check that the storage is configured and ready to go."""
