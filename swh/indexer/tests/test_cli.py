@@ -29,7 +29,6 @@ storage:
     cls: memory
 indexer_storage:
     cls: memory
-    args: {}
 """
 
 
