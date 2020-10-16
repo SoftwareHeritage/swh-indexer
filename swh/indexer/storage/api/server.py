@@ -1,10 +1,11 @@
-# Copyright (C) 2015-2019  The Software Heritage developers
+# Copyright (C) 2015-2020  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import logging
 import os
+from typing import Any, Dict, Optional
 
 from swh.core import config
 from swh.core.api import RPCServerApp
@@ -54,14 +55,16 @@ def index():
 api_cfg = None
 
 
-def load_and_check_config(config_file, type="local"):
+def load_and_check_config(
+    config_path: Optional[str], type: str = "local"
+) -> Dict[str, Any]:
     """Check the minimal configuration is set to run the api or raise an
        error explanation.
 
     Args:
-        config_file (str): Path to the configuration file to load
-        type (str): configuration type. For 'local' type, more
-                    checks are done.
+        config_path: Path to the configuration file to load
+        type: configuration type. For 'local' type, more
+          checks are done.
 
     Raises:
         Error if the setup is not as expected
@@ -70,13 +73,13 @@ def load_and_check_config(config_file, type="local"):
         configuration as a dict
 
     """
-    if not config_file:
+    if not config_path:
         raise EnvironmentError("Configuration file must be defined")
 
-    if not os.path.exists(config_file):
-        raise FileNotFoundError("Configuration file %s does not exist" % (config_file,))
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Configuration file {config_path} does not exist")
 
-    cfg = config.read(config_file)
+    cfg = config.read(config_path)
     if "indexer_storage" not in cfg:
         raise KeyError("Missing '%indexer_storage' configuration")
 
@@ -106,8 +109,8 @@ def make_app_from_configfile():
     """
     global api_cfg
     if not api_cfg:
-        config_file = os.environ.get("SWH_CONFIG_FILENAME")
-        api_cfg = load_and_check_config(config_file)
+        config_path = os.environ.get("SWH_CONFIG_FILENAME")
+        api_cfg = load_and_check_config(config_path)
         app.config.update(api_cfg)
     handler = logging.StreamHandler()
     app.logger.addHandler(handler)
