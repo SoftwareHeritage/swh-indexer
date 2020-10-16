@@ -92,8 +92,7 @@ def load_and_check_config(
                 "'local' configuration"
             )
 
-        args = vcfg["args"]
-        if not args.get("db"):
+        if not vcfg.get("db"):
             raise ValueError("Invalid configuration; missing 'db' config entry")
 
     return cfg
