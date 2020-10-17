@@ -1,8 +1,24 @@
-swh-indexer (0.3.0-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.4.1-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.4.1     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-10-16 10:48:51
+    +0200)
+  * Upstream changes:     - v0.4.1     - test_cli: Remove unneeded
+    config args parameter     - api.server: Align configuration
+    structure with clients configuration     - storage.api.server: Add
+    types to module and refactor tests
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 08 Oct 2020 11:37:58 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 16 Oct 2020 08:59:09 +0000
+
+swh-indexer (0.4.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.4.0     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-10-15 18:17:59
+    +0200)
+  * Upstream changes:     - v0.4.0     - swh.indexer.storage: Unify
+    get_indexer_storage function with others
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 15 Oct 2020 16:19:01 +0000
 
 swh-indexer (0.3.0-1~swh1) unstable-swh; urgency=medium
 

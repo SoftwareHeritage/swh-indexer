@@ -31,66 +31,69 @@ def prepare_config_file(tmpdir, content, name="config.yml") -> str:
     return str(config_path)
 
 
-def test_load_and_check_config_no_configuration() -> None:
-    """Inexistent configuration files raises"""
-    with pytest.raises(EnvironmentError) as e:
-        load_and_check_config(None)
-
-    assert e.value.args[0] == "Configuration file must be defined"
-
-    config_path = "/indexer/inexistent/config.yml"
-    with pytest.raises(FileNotFoundError) as e:
+@pytest.mark.parametrize("config_path", [None, ""])
+def test_load_and_check_config_no_configuration(config_path) -> None:
+    """Irrelevant configuration file path raises"""
+    with pytest.raises(EnvironmentError, match="Configuration file must be defined"):
         load_and_check_config(config_path)
 
-    assert e.value.args[0] == "Configuration file %s does not exist" % (config_path,)
+
+def test_load_and_check_inexistent_config_path() -> None:
+    """Inexistent configuration file raises"""
+    config_path = "/indexer/inexistent/config.yml"
+    expected_error = f"Configuration file {config_path} does not exist"
+    with pytest.raises(FileNotFoundError, match=expected_error):
+        load_and_check_config(config_path)
 
 
 def test_load_and_check_config_wrong_configuration(tmpdir) -> None:
     """Wrong configuration raises"""
     config_path = prepare_config_file(tmpdir, "something: useless")
-    with pytest.raises(KeyError) as e:
+    with pytest.raises(KeyError, match="Missing '%indexer_storage' configuration"):
         load_and_check_config(config_path)
 
-    assert e.value.args[0] == "Missing '%indexer_storage' configuration"
 
+@pytest.mark.parametrize("class_storage", ["remote", "memory"])
+def test_load_and_check_config_remote_config_local_type_raise(
+    class_storage, tmpdir
+) -> None:
+    """Any other configuration than 'local' (the default) is rejected"""
+    assert class_storage != "local"
+    incompatible_config = {"indexer_storage": {"cls": class_storage}}
+    config_path = prepare_config_file(tmpdir, incompatible_config)
 
-def test_load_and_check_config_remote_config_local_type_raise(tmpdir) -> None:
-    """'local' configuration without 'local' storage raises"""
-    config = {"indexer_storage": {"cls": "remote", "args": {}}}
-    config_path = prepare_config_file(tmpdir, config)
-    with pytest.raises(ValueError) as e:
-        load_and_check_config(config_path, type="local")
-
-    assert (
-        e.value.args[0]
-        == "The indexer_storage backend can only be started with a 'local' "
+    expected_error = (
+        "The indexer_storage backend can only be started with a 'local' "
         "configuration"
     )
+    with pytest.raises(ValueError, match=expected_error):
+        load_and_check_config(config_path)
+    with pytest.raises(ValueError, match=expected_error):
+        load_and_check_config(config_path, type="local")
+
+
+def test_load_and_check_config_remote_config_fine(tmpdir) -> None:
+    """'Remote configuration is fine (when changing the default type)"""
+    config = {"indexer_storage": {"cls": "remote"}}
+    config_path = prepare_config_file(tmpdir, config)
+    cfg = load_and_check_config(config_path, type="any")
+
+    assert cfg == config
 
 
 def test_load_and_check_config_local_incomplete_configuration(tmpdir) -> None:
     """Incomplete 'local' configuration should raise"""
-    config = {"indexer_storage": {"cls": "local", "args": {}}}
+    config = {"indexer_storage": {"cls": "local"}}
 
+    expected_error = "Invalid configuration; missing 'db' config entry"
     config_path = prepare_config_file(tmpdir, config)
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match=expected_error):
         load_and_check_config(config_path)
-
-    assert e.value.args[0] == "Invalid configuration; missing 'db' config entry"
 
 
 def test_load_and_check_config_local_config_fine(tmpdir) -> None:
-    """'Remote configuration is fine"""
-    config = {"indexer_storage": {"cls": "local", "args": {"db": "db",}}}
+    """'Complete 'local' configuration is fine"""
+    config = {"indexer_storage": {"cls": "local", "db": "db",}}
     config_path = prepare_config_file(tmpdir, config)
     cfg = load_and_check_config(config_path, type="local")
-    assert cfg == config
-
-
-def test_load_and_check_config_remote_config_fine(tmpdir) -> None:
-    """'Remote configuration is fine"""
-    config = {"indexer_storage": {"cls": "remote", "args": {}}}
-    config_path = prepare_config_file(tmpdir, config)
-    cfg = load_and_check_config(config_path, type="any")
-
     assert cfg == config
