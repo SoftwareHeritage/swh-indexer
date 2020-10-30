@@ -1,8 +1,13 @@
-swh-indexer (0.4.1-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.4.2-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.4.2     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-10-30 17:22:22
+    +0100)
+  * Upstream changes:     - v0.4.2     - tests.conftest: Fix the indexer
+    scheduler initialization     - indexer.cli: Fix missing retries_left
+    parameter     - Rename sql files according to new conventions
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Sat, 17 Oct 2020 10:22:44 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 30 Oct 2020 16:24:14 +0000
 
 swh-indexer (0.4.1-1~swh1) unstable-swh; urgency=medium
 
