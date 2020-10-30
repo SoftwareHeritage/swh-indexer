@@ -5,6 +5,7 @@
 
 from datetime import timedelta
 import os
+from typing import List, Tuple
 from unittest.mock import patch
 
 import pytest
@@ -16,17 +17,22 @@ from swh.storage import get_storage
 
 from .utils import fill_obj_storage, fill_storage
 
-TASK_NAMES = ["revision_intrinsic_metadata", "origin_intrinsic_metadata"]
+TASK_NAMES: List[Tuple[str, str]] = [
+    # (scheduler-task-type, task-class-test-name)
+    ("index-revision-metadata", "revision_intrinsic_metadata"),
+    ("index-origin-metadata", "origin_intrinsic_metadata"),
+]
 
 
 @pytest.fixture
 def indexer_scheduler(swh_scheduler):
-    for taskname in TASK_NAMES:
+    # Insert the expected task types within the scheduler
+    for task_name, task_class_name in TASK_NAMES:
         swh_scheduler.create_task_type(
             {
-                "type": taskname,
-                "description": "The {} indexer testing task".format(taskname),
-                "backend_name": "swh.indexer.tests.tasks.{}".format(taskname),
+                "type": task_name,
+                "description": f"The {task_class_name} indexer testing task",
+                "backend_name": f"swh.indexer.tests.tasks.{task_class_name}",
                 "default_interval": timedelta(days=1),
                 "min_interval": timedelta(hours=6),
                 "max_interval": timedelta(days=12),
