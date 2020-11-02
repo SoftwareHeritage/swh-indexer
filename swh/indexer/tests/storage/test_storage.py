@@ -5,7 +5,7 @@
 
 import math
 import threading
-from typing import Any, Dict, List, Tuple, Type, cast
+from typing import Any, Dict, List, Tuple, Type
 
 import attr
 import pytest
@@ -817,45 +817,6 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
     ]
     row_class = RevisionIntrinsicMetadataRow
 
-    def test_revision_intrinsic_metadata_delete(
-        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
-    ) -> None:
-        storage, data = swh_indexer_storage_with_data
-        etype = self.endpoint_type
-        tool = data.tools[self.tool_name]
-
-        query = [data.sha1_2, data.sha1_1]
-        data1 = RevisionIntrinsicMetadataRow(
-            id=data.sha1_2,
-            indexer_configuration_id=tool["id"],
-            **self.example_data[0],  # type: ignore
-        )
-
-        # when
-        summary = endpoint(storage, etype, "add")([data1])
-        assert summary == expected_summary(1, etype)
-
-        summary2 = endpoint(storage, etype, "delete")(
-            [{"id": data.sha1_2, "indexer_configuration_id": tool["id"],}]
-        )
-        assert summary2 == expected_summary(1, etype, "del")
-
-        # then
-        actual_data = list(endpoint(storage, etype, "get")(query))
-
-        # then
-        assert not actual_data
-
-    def test_revision_intrinsic_metadata_delete_nonexisting(
-        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
-    ) -> None:
-        storage, data = swh_indexer_storage_with_data
-        etype = self.endpoint_type
-        tool = data.tools[self.tool_name]
-        endpoint(storage, etype, "delete")(
-            [{"id": data.sha1_2, "indexer_configuration_id": tool["id"],}]
-        )
-
 
 class TestIndexerStorageContentFossologyLicense:
     endpoint_type = "content_fossology_license"
@@ -1131,60 +1092,6 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         ]
 
         assert actual_metadata == expected_metadata
-
-    def test_origin_intrinsic_metadata_delete(
-        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
-    ) -> None:
-        storage, data = swh_indexer_storage_with_data
-        # given
-        tool_id = data.tools["swh-metadata-detector"]["id"]
-
-        metadata = {
-            "version": None,
-            "name": None,
-        }
-        metadata_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_2,
-            indexer_configuration_id=tool_id,
-            metadata=metadata,
-            mappings=["mapping1"],
-        )
-        metadata_origin = OriginIntrinsicMetadataRow(
-            id=data.origin_url_1,
-            metadata=metadata,
-            indexer_configuration_id=tool_id,
-            mappings=["mapping1"],
-            from_revision=data.revision_id_2,
-        )
-        metadata_origin2 = attr.evolve(metadata_origin, id=data.origin_url_2)
-
-        # when
-        storage.revision_intrinsic_metadata_add([metadata_rev])
-        storage.origin_intrinsic_metadata_add([metadata_origin, metadata_origin2])
-
-        storage.origin_intrinsic_metadata_delete(
-            [{"id": data.origin_url_1, "indexer_configuration_id": tool_id}]
-        )
-
-        # then
-        actual_metadata = list(
-            storage.origin_intrinsic_metadata_get(
-                [data.origin_url_1, data.origin_url_2, "no://where"]
-            )
-        )
-        assert [
-            attr.evolve(m, indexer_configuration_id=cast(Dict, m.tool)["id"], tool=None)
-            for m in actual_metadata
-        ] == [metadata_origin2]
-
-    def test_origin_intrinsic_metadata_delete_nonexisting(
-        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
-    ) -> None:
-        storage, data = swh_indexer_storage_with_data
-        tool_id = data.tools["swh-metadata-detector"]["id"]
-        storage.origin_intrinsic_metadata_delete(
-            [{"id": data.origin_url_1, "indexer_configuration_id": tool_id}]
-        )
 
     def test_origin_intrinsic_metadata_add_drop_duplicate(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]

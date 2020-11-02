@@ -371,33 +371,11 @@ class OriginMetadataIndexer(
         # Deduplicate revisions
         rev_metadata: List[RevisionIntrinsicMetadataRow] = []
         orig_metadata: List[OriginIntrinsicMetadataRow] = []
-        revs_to_delete: List[Dict] = []
-        origs_to_delete: List[Dict] = []
         summary: Dict = {}
         for (orig_item, rev_item) in results:
             assert rev_item.metadata == orig_item.metadata
-            if not rev_item.metadata or rev_item.metadata.keys() <= {"@context"}:
-                # If we didn't find any metadata, don't store a DB record
-                # (and delete existing ones, if any)
-                if rev_item not in revs_to_delete:
-                    revs_to_delete.append(
-                        {
-                            "id": rev_item.id,
-                            "indexer_configuration_id": (
-                                rev_item.indexer_configuration_id
-                            ),
-                        }
-                    )
-                if orig_item not in origs_to_delete:
-                    origs_to_delete.append(
-                        {
-                            "id": orig_item.id,
-                            "indexer_configuration_id": (
-                                orig_item.indexer_configuration_id
-                            ),
-                        }
-                    )
-            else:
+            if rev_item.metadata and not (rev_item.metadata.keys() <= {"@context"}):
+                # Only store non-empty metadata sets
                 if rev_item not in rev_metadata:
                     rev_metadata.append(rev_item)
                 if orig_item not in orig_metadata:
@@ -413,20 +391,5 @@ class OriginMetadataIndexer(
                 orig_metadata, conflict_update=conflict_update
             )
             summary.update(summary_ori)
-
-        # revs_to_delete should always be empty unless we changed a mapping
-        # to detect less files or less content.
-        # However, origs_to_delete may be empty whenever an upstream deletes
-        # a metadata file.
-        if origs_to_delete:
-            summary_ori = self.idx_storage.origin_intrinsic_metadata_delete(
-                origs_to_delete
-            )
-            summary.update(summary_ori)
-        if revs_to_delete:
-            summary_rev = self.idx_storage.revision_intrinsic_metadata_delete(
-                revs_to_delete
-            )
-            summary.update(summary_rev)
 
         return summary

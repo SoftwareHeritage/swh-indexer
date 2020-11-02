@@ -563,15 +563,6 @@ class IndexerStorage:
         }
 
     @timed
-    @process_metrics
-    @db_transaction()
-    def revision_intrinsic_metadata_delete(
-        self, entries: List[Dict], db=None, cur=None
-    ) -> Dict:
-        count = db.revision_intrinsic_metadata_delete(entries, cur)
-        return {"revision_intrinsic_metadata:del": count}
-
-    @timed
     @db_transaction()
     def origin_intrinsic_metadata_get(
         self, urls: Iterable[str], db=None, cur=None
@@ -609,17 +600,6 @@ class IndexerStorage:
         count = db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)
         return {
             "origin_intrinsic_metadata:add": count,
-        }
-
-    @timed
-    @process_metrics
-    @db_transaction()
-    def origin_intrinsic_metadata_delete(
-        self, entries: List[Dict], db=None, cur=None
-    ) -> Dict:
-        count = db.origin_intrinsic_metadata_delete(entries, cur)
-        return {
-            "origin_intrinsic_metadata:del": count,
         }
 
     @timed

@@ -408,22 +408,6 @@ class IndexerStorageInterface(Protocol):
         """
         ...
 
-    @remote_api_endpoint("revision_intrinsic_metadata/delete")
-    def revision_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
-        """Remove revision metadata from the storage.
-
-        Args:
-            entries (dict): dictionaries with the following keys:
-
-                - **id** (bytes): revision identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  metadata
-
-        Returns:
-            Summary of number of rows deleted
-        """
-        ...
-
     @remote_api_endpoint("origin_intrinsic_metadata")
     def origin_intrinsic_metadata_get(
         self, urls: Iterable[str]
@@ -452,22 +436,6 @@ class IndexerStorageInterface(Protocol):
         Returns:
             Dict summary of number of rows added
 
-        """
-        ...
-
-    @remote_api_endpoint("origin_intrinsic_metadata/delete")
-    def origin_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
-        """Remove origin metadata from the storage.
-
-        Args:
-            entries (dict): dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **indexer_configuration_id** (int): tool used to compute
-                  metadata
-
-        Returns:
-            Summary of number of rows deleted
         """
         ...
 

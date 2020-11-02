@@ -226,22 +226,6 @@ class SubStorage(Generic[TValue]):
                 self._sorted_ids.add(id_)
         return count
 
-    def delete(self, entries: List[Dict]) -> int:
-        """Delete entries and return the number of entries deleted.
-
-        """
-        deleted = 0
-        for entry in entries:
-            (id_, tool_id) = (entry["id"], entry["indexer_configuration_id"])
-            if tool_id in self._tools_per_id[id_]:
-                self._tools_per_id[id_].remove(tool_id)
-            if id_ in self._data:
-                key = self._key_from_dict(entry)
-                if key in self._data[id_]:
-                    deleted += 1
-                    del self._data[id_][key]
-        return deleted
-
 
 class IndexerStorage:
     """In-memory SWH indexer storage."""
@@ -394,10 +378,6 @@ class IndexerStorage:
         added = self._revision_intrinsic_metadata.add(metadata, conflict_update)
         return {"revision_intrinsic_metadata:add": added}
 
-    def revision_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
-        deleted = self._revision_intrinsic_metadata.delete(entries)
-        return {"revision_intrinsic_metadata:del": deleted}
-
     def origin_intrinsic_metadata_get(
         self, urls: Iterable[str]
     ) -> List[OriginIntrinsicMetadataRow]:
@@ -408,10 +388,6 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         added = self._origin_intrinsic_metadata.add(metadata, conflict_update)
         return {"origin_intrinsic_metadata:add": added}
-
-    def origin_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
-        deleted = self._origin_intrinsic_metadata.delete(entries)
-        return {"origin_intrinsic_metadata:del": deleted}
 
     def origin_intrinsic_metadata_search_fulltext(
         self, conjunction: List[str], limit: int = 100
