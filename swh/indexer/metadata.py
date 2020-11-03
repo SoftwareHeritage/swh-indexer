@@ -109,7 +109,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         ]
 
     def persist_index_computations(
-        self, results: List[ContentMetadataRow], policy_update: str
+        self, results: List[ContentMetadataRow]
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -118,13 +118,9 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
               following keys:
               - id (bytes): content's identifier (sha1)
               - metadata (jsonb): detected metadata
-            policy_update: either 'update-dups' or 'ignore-dups' to
-              respectively update duplicates or ignore them
 
         """
-        return self.idx_storage.content_metadata_add(
-            results, conflict_update=(policy_update == "update-dups")
-        )
+        return self.idx_storage.content_metadata_add(results)
 
 
 DEFAULT_CONFIG: Dict[str, Any] = {
@@ -217,7 +213,7 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
         ]
 
     def persist_index_computations(
-        self, results: List[RevisionIntrinsicMetadataRow], policy_update: str
+        self, results: List[RevisionIntrinsicMetadataRow]
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -227,15 +223,11 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
               - id (bytes): content's identifier (sha1)
               - mimetype (bytes): mimetype in bytes
               - encoding (bytes): encoding in bytes
-            policy_update: either 'update-dups' or 'ignore-dups' to
-              respectively update duplicates or ignore them
 
         """
         # TODO: add functions in storage to keep data in
         # revision_intrinsic_metadata
-        return self.idx_storage.revision_intrinsic_metadata_add(
-            results, conflict_update=(policy_update == "update-dups")
-        )
+        return self.idx_storage.revision_intrinsic_metadata_add(results)
 
     def translate_revision_intrinsic_metadata(
         self, detected_files: Dict[str, List[Any]], log_suffix: str
@@ -291,9 +283,7 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
                 # content indexing
                 try:
                     c_metadata_indexer.run(
-                        sha1s_filtered,
-                        policy_update="ignore-dups",
-                        log_suffix=log_suffix,
+                        sha1s_filtered, log_suffix=log_suffix,
                     )
                     # on the fly possibility:
                     for result in c_metadata_indexer.results:
@@ -364,10 +354,7 @@ class OriginMetadataIndexer(
     def persist_index_computations(
         self,
         results: List[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]],
-        policy_update: str,
     ) -> Dict[str, int]:
-        conflict_update = policy_update == "update-dups"
-
         # Deduplicate revisions
         rev_metadata: List[RevisionIntrinsicMetadataRow] = []
         orig_metadata: List[OriginIntrinsicMetadataRow] = []
@@ -382,14 +369,10 @@ class OriginMetadataIndexer(
                     orig_metadata.append(orig_item)
 
         if rev_metadata:
-            summary_rev = self.idx_storage.revision_intrinsic_metadata_add(
-                rev_metadata, conflict_update=conflict_update
-            )
+            summary_rev = self.idx_storage.revision_intrinsic_metadata_add(rev_metadata)
             summary.update(summary_rev)
         if orig_metadata:
-            summary_ori = self.idx_storage.origin_intrinsic_metadata_add(
-                orig_metadata, conflict_update=conflict_update
-            )
+            summary_ori = self.idx_storage.origin_intrinsic_metadata_add(orig_metadata)
             summary.update(summary_ori)
 
         return summary

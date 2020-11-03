@@ -36,7 +36,6 @@ def process_origin_visits(visits, scheduler, task_names):
                     task_names["origin_metadata"],
                     "oneshot",
                     visit_urls,
-                    policy_update="update-dups",
                     retries_left=1,
                 )
             )
