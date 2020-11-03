@@ -518,14 +518,6 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
     def test_add_deadlock(self):
         pass
 
-    @pytest.mark.skip
-    def test_add__duplicate_twice(self):
-        pass
-
-    @pytest.mark.skip
-    def test_get(self):
-        pass
-
     def test_content_ctags_search(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
@@ -779,11 +771,29 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
     row_class = RevisionIntrinsicMetadataRow
 
 
-class TestIndexerStorageContentFossologyLicense:
+class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
     endpoint_type = "content_fossology_license"
     tool_name = "nomos"
+    example_data = [
+        {"license": "Apache-2.0"},
+        {"license": "BSD-2-Clause"},
+    ]
 
     row_class = ContentLicenseRow
+
+    # the following tests are disabled because licenses behaves differently
+    @pytest.mark.skip
+    def test_add__update_in_place_duplicate(self):
+        pass
+
+    @pytest.mark.skip
+    def test_add_deadlock(self):
+        pass
+
+    # content_fossology_license_missing does not exist
+    @pytest.mark.skip
+    def test_missing(self):
+        pass
 
     def test_content_fossology_license_add__new_license_added(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
