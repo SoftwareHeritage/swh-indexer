@@ -74,9 +74,9 @@ class Db(BaseDb):
     def mktemp_content_mimetype(self, cur=None):
         pass
 
-    def content_mimetype_add_from_temp(self, conflict_update, cur=None):
+    def content_mimetype_add_from_temp(self, cur=None):
         cur = self._cursor(cur)
-        cur.execute("select * from swh_content_mimetype_add(%s)", (conflict_update,))
+        cur.execute("select * from swh_content_mimetype_add()")
         return cur.fetchone()[0]
 
     def _convert_key(self, key, main_table="c"):
@@ -209,9 +209,9 @@ class Db(BaseDb):
     def mktemp_content_language(self, cur=None):
         pass
 
-    def content_language_add_from_temp(self, conflict_update, cur=None):
+    def content_language_add_from_temp(self, cur=None):
         cur = self._cursor(cur)
-        cur.execute("select * from swh_content_language_add(%s)", (conflict_update,))
+        cur.execute("select * from swh_content_language_add()")
         return cur.fetchone()[0]
 
     def content_language_get_from_list(self, ids, cur=None):
@@ -245,9 +245,9 @@ class Db(BaseDb):
     def mktemp_content_ctags(self, cur=None):
         pass
 
-    def content_ctags_add_from_temp(self, conflict_update, cur=None):
+    def content_ctags_add_from_temp(self, cur=None):
         cur = self._cursor(cur)
-        cur.execute("select * from swh_content_ctags_add(%s)", (conflict_update,))
+        cur.execute("select * from swh_content_ctags_add()")
         return cur.fetchone()[0]
 
     def content_ctags_get_from_list(self, ids, cur=None):
@@ -303,14 +303,12 @@ class Db(BaseDb):
     def mktemp_content_fossology_license(self, cur=None):
         pass
 
-    def content_fossology_license_add_from_temp(self, conflict_update, cur=None):
+    def content_fossology_license_add_from_temp(self, cur=None):
         """Add new licenses per content.
 
         """
         cur = self._cursor(cur)
-        cur.execute(
-            "select * from swh_content_fossology_license_add(%s)", (conflict_update,)
-        )
+        cur.execute("select * from swh_content_fossology_license_add()")
         return cur.fetchone()[0]
 
     def content_fossology_license_get_from_list(self, ids, cur=None):
@@ -355,9 +353,9 @@ class Db(BaseDb):
     def mktemp_content_metadata(self, cur=None):
         pass
 
-    def content_metadata_add_from_temp(self, conflict_update, cur=None):
+    def content_metadata_add_from_temp(self, cur=None):
         cur = self._cursor(cur)
-        cur.execute("select * from swh_content_metadata_add(%s)", (conflict_update,))
+        cur.execute("select * from swh_content_metadata_add()")
         return cur.fetchone()[0]
 
     def content_metadata_get_from_list(self, ids, cur=None):
@@ -392,11 +390,9 @@ class Db(BaseDb):
     def mktemp_revision_intrinsic_metadata(self, cur=None):
         pass
 
-    def revision_intrinsic_metadata_add_from_temp(self, conflict_update, cur=None):
+    def revision_intrinsic_metadata_add_from_temp(self, cur=None):
         cur = self._cursor(cur)
-        cur.execute(
-            "select * from swh_revision_intrinsic_metadata_add(%s)", (conflict_update,)
-        )
+        cur.execute("select * from swh_revision_intrinsic_metadata_add()")
         return cur.fetchone()[0]
 
     def revision_intrinsic_metadata_get_from_list(self, ids, cur=None):
@@ -429,11 +425,9 @@ class Db(BaseDb):
     def mktemp_origin_intrinsic_metadata(self, cur=None):
         pass
 
-    def origin_intrinsic_metadata_add_from_temp(self, conflict_update, cur=None):
+    def origin_intrinsic_metadata_add_from_temp(self, cur=None):
         cur = self._cursor(cur)
-        cur.execute(
-            "select * from swh_origin_intrinsic_metadata_add(%s)", (conflict_update,)
-        )
+        cur.execute("select * from swh_origin_intrinsic_metadata_add()")
         return cur.fetchone()[0]
 
     def origin_intrinsic_metadata_get_from_list(self, ids, cur=None):

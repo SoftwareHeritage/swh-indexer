@@ -137,45 +137,6 @@ class StorageETypeTester:
         actual_missing = endpoint(storage, etype, "missing")(query)
         assert list(actual_missing) == [data.sha1_1]
 
-    def test_add__drop_duplicate(
-        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
-    ) -> None:
-        storage, data = swh_indexer_storage_with_data
-        etype = self.endpoint_type
-        tool_id = data.tools[self.tool_name]["id"]
-
-        # add the first object
-        data_v1 = {
-            "id": data.sha1_2,
-            **self.example_data[0],
-            "indexer_configuration_id": tool_id,
-        }
-        summary = endpoint(storage, etype, "add")([self.row_class.from_dict(data_v1)])
-        assert summary == expected_summary(1, etype)
-
-        # should be able to retrieve it
-        actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
-        expected_data_v1 = [
-            self.row_class.from_dict(
-                {
-                    "id": data.sha1_2,
-                    **self.example_data[0],
-                    "tool": data.tools[self.tool_name],
-                }
-            )
-        ]
-        assert actual_data == expected_data_v1
-
-        # now if we add a modified version of the same object (same id)
-        data_v2 = data_v1.copy()
-        data_v2.update(self.example_data[1])
-        summary2 = endpoint(storage, etype, "add")([self.row_class.from_dict(data_v2)])
-        assert summary2 == expected_summary(0, etype)  # not added
-
-        # we expect to retrieve the original data, not the modified one
-        actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
-        assert actual_data == expected_data_v1
-
     def test_add__update_in_place_duplicate(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
@@ -209,9 +170,7 @@ class StorageETypeTester:
         data_v2 = data_v1.copy()
         data_v2.update(self.example_data[1])
 
-        endpoint(storage, etype, "add")(
-            [self.row_class.from_dict(data_v2)], conflict_update=True
-        )
+        endpoint(storage, etype, "add")([self.row_class.from_dict(data_v2)])
         assert summary == expected_summary(1, etype)  # modified so counted
 
         actual_data = list(endpoint(storage, etype, "get")([data.sha1_2]))
@@ -225,7 +184,7 @@ class StorageETypeTester:
         # data did change as the v2 was used to overwrite v1
         assert actual_data == expected_data_v2
 
-    def test_add__update_in_place_deadlock(
+    def test_add_deadlock(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
         storage, data = swh_indexer_storage_with_data
@@ -267,7 +226,9 @@ class StorageETypeTester:
         endpoint(storage, etype, "add")(data_v1)
 
         # when
-        actual_data = list(endpoint(storage, etype, "get")(hashes))
+        actual_data = sorted(
+            endpoint(storage, etype, "get")(hashes), key=lambda x: x.id,
+        )
 
         expected_data_v1 = [
             self.row_class.from_dict(
@@ -281,10 +242,10 @@ class StorageETypeTester:
 
         # given
         def f1() -> None:
-            endpoint(storage, etype, "add")(data_v2a, conflict_update=True)
+            endpoint(storage, etype, "add")(data_v2a)
 
         def f2() -> None:
-            endpoint(storage, etype, "add")(data_v2b, conflict_update=True)
+            endpoint(storage, etype, "add")(data_v2b)
 
         t1 = threading.Thread(target=f1)
         t2 = threading.Thread(target=f2)
@@ -295,15 +256,21 @@ class StorageETypeTester:
         t2.join()
 
         actual_data = sorted(
-            (row.to_dict() for row in endpoint(storage, etype, "get")(hashes)),
-            key=lambda x: x["id"],
+            endpoint(storage, etype, "get")(hashes), key=lambda x: x.id,
         )
 
         expected_data_v2 = [
-            {"id": hash_, **self.example_data[1], "tool": tool} for hash_ in hashes
+            self.row_class.from_dict(
+                {"id": hash_, **self.example_data[1], "tool": tool}
+            )
+            for hash_ in hashes
         ]
 
-        assert actual_data == expected_data_v2
+        assert len(actual_data) == len(expected_data_v1) == len(expected_data_v2)
+        for (item, expected_item_v1, expected_item_v2) in zip(
+            actual_data, expected_data_v1, expected_data_v2
+        ):
+            assert item in (expected_item_v1, expected_item_v2)
 
     def test_add__duplicate_twice(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
@@ -333,9 +300,7 @@ class StorageETypeTester:
         assert summary == expected_summary(1, etype)
 
         with pytest.raises(DuplicateId):
-            endpoint(storage, etype, "add")(
-                [data_rev2, data_rev2], conflict_update=True
-            )
+            endpoint(storage, etype, "add")([data_rev2, data_rev2])
 
         # then
         actual_data = list(
@@ -546,15 +511,11 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
 
     # the following tests are disabled because CTAGS behaves differently
     @pytest.mark.skip
-    def test_add__drop_duplicate(self):
-        pass
-
-    @pytest.mark.skip
     def test_add__update_in_place_duplicate(self):
         pass
 
     @pytest.mark.skip
-    def test_add__update_in_place_deadlock(self):
+    def test_add_deadlock(self):
         pass
 
     @pytest.mark.skip
@@ -736,7 +697,7 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
         )
         ctag2_with_tool = attr.evolve(ctag2, indexer_configuration_id=None, tool=tool)
 
-        storage.content_ctags_add([ctag1, ctag2], conflict_update=True)
+        storage.content_ctags_add([ctag1, ctag2])
 
         actual_ctags = list(storage.content_ctags_get([data.sha1_2]))
 
@@ -889,7 +850,7 @@ class TestIndexerStorageContentFossologyLicense:
         mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
         indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
-        storage.content_mimetype_add(mimetypes, conflict_update=True)
+        storage.content_mimetype_add(mimetypes)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
@@ -925,7 +886,7 @@ class TestIndexerStorageContentFossologyLicense:
         mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
         indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
-        storage.content_mimetype_add(mimetypes, conflict_update=True)
+        storage.content_mimetype_add(mimetypes)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
@@ -951,7 +912,7 @@ class TestIndexerStorageContentFossologyLicense:
         mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
         indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
-        storage.content_mimetype_add(mimetypes, conflict_update=True)
+        storage.content_mimetype_add(mimetypes)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
@@ -993,7 +954,7 @@ class TestIndexerStorageContentFossologyLicense:
         mimetypes = prepare_mimetypes_from_licenses(fossology_licenses)
         indexer_configuration_id = fossology_licenses[0].indexer_configuration_id
 
-        storage.content_mimetype_add(mimetypes, conflict_update=True)
+        storage.content_mimetype_add(mimetypes)
         # add fossology_licenses to storage
         storage.content_fossology_license_add(fossology_licenses)
 
@@ -1093,71 +1054,6 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         assert actual_metadata == expected_metadata
 
-    def test_origin_intrinsic_metadata_add_drop_duplicate(
-        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
-    ) -> None:
-        storage, data = swh_indexer_storage_with_data
-        # given
-        tool_id = data.tools["swh-metadata-detector"]["id"]
-
-        metadata_v1: Dict[str, Any] = {
-            "version": None,
-            "name": None,
-        }
-        metadata_rev_v1 = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_1,
-            metadata=metadata_v1.copy(),
-            mappings=[],
-            indexer_configuration_id=tool_id,
-        )
-        metadata_origin_v1 = OriginIntrinsicMetadataRow(
-            id=data.origin_url_1,
-            metadata=metadata_v1.copy(),
-            indexer_configuration_id=tool_id,
-            mappings=[],
-            from_revision=data.revision_id_1,
-        )
-
-        # given
-        storage.revision_intrinsic_metadata_add([metadata_rev_v1])
-        storage.origin_intrinsic_metadata_add([metadata_origin_v1])
-
-        # when
-        actual_metadata = list(
-            storage.origin_intrinsic_metadata_get([data.origin_url_1, "no://where"])
-        )
-
-        expected_metadata_v1 = [
-            OriginIntrinsicMetadataRow(
-                id=data.origin_url_1,
-                metadata=metadata_v1,
-                tool=data.tools["swh-metadata-detector"],
-                from_revision=data.revision_id_1,
-                mappings=[],
-            )
-        ]
-
-        assert actual_metadata == expected_metadata_v1
-
-        # given
-        metadata_v2 = metadata_v1.copy()
-        metadata_v2.update(
-            {"name": "test_metadata", "author": "MG",}
-        )
-        metadata_rev_v2 = attr.evolve(metadata_rev_v1, metadata=metadata_v2)
-        metadata_origin_v2 = attr.evolve(metadata_origin_v1, metadata=metadata_v2)
-
-        storage.revision_intrinsic_metadata_add([metadata_rev_v2])
-        storage.origin_intrinsic_metadata_add([metadata_origin_v2])
-
-        # then
-        actual_metadata = list(
-            storage.origin_intrinsic_metadata_get([data.origin_url_1])
-        )
-
-        # metadata did not change as the v2 was dropped.
-        assert actual_metadata == expected_metadata_v1
-
     def test_origin_intrinsic_metadata_add_update_in_place_duplicate(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
@@ -1218,10 +1114,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             from_revision=data.revision_id_1,
         )
 
-        storage.revision_intrinsic_metadata_add([metadata_rev_v2], conflict_update=True)
-        storage.origin_intrinsic_metadata_add(
-            [metadata_origin_v2], conflict_update=True
-        )
+        storage.revision_intrinsic_metadata_add([metadata_rev_v2])
+        storage.origin_intrinsic_metadata_add([metadata_origin_v2])
 
         actual_metadata = list(
             storage.origin_intrinsic_metadata_get([data.origin_url_1])
@@ -1240,7 +1134,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # metadata did change as the v2 was used to overwrite v1
         assert actual_metadata == expected_metadata_v2
 
-    def test_origin_intrinsic_metadata_add__update_in_place_deadlock(
+    def test_origin_intrinsic_metadata_add__deadlock(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
         storage, data = swh_indexer_storage_with_data
@@ -1312,10 +1206,10 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         # given
         def f1() -> None:
-            storage.origin_intrinsic_metadata_add(data_v2a, conflict_update=True)
+            storage.origin_intrinsic_metadata_add(data_v2a)
 
         def f2() -> None:
-            storage.origin_intrinsic_metadata_add(data_v2b, conflict_update=True)
+            storage.origin_intrinsic_metadata_add(data_v2b)
 
         t1 = threading.Thread(target=f1)
         t2 = threading.Thread(target=f2)
@@ -1337,8 +1231,11 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             for id_ in ids
         ]
 
-        assert len(actual_data) == len(expected_data_v2)
-        assert sorted(actual_data, key=lambda x: x.id) == expected_data_v2
+        assert len(actual_data) == len(expected_data_v1) == len(expected_data_v2)
+        for (item, expected_item_v1, expected_item_v2) in zip(
+            actual_data, expected_data_v1, expected_data_v2
+        ):
+            assert item in (expected_item_v1, expected_item_v2)
 
     def test_origin_intrinsic_metadata_add__duplicate_twice(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
