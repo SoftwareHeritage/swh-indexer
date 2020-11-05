@@ -1241,6 +1241,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             for id_ in ids
         ]
 
+        actual_data.sort(key=lambda item: item.id)
         assert len(actual_data) == len(expected_data_v1) == len(expected_data_v2)
         for (item, expected_item_v1, expected_item_v2) in zip(
             actual_data, expected_data_v1, expected_data_v2
