@@ -1151,7 +1151,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # given
         tool_id = data.tools["swh-metadata-detector"]["id"]
 
-        ids = list(range(10))
+        origins = ["file:///tmp/origin{:02d}".format(i) for i in range(100)]
 
         example_data1: Dict[str, Any] = {
             "metadata": {"version": None, "name": None,},
@@ -1171,21 +1171,21 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         data_v1 = [
             OriginIntrinsicMetadataRow(
-                id="file:///tmp/origin%d" % id_,
+                id=origin,
                 from_revision=data.revision_id_2,
                 indexer_configuration_id=tool_id,
                 **example_data1,
             )
-            for id_ in ids
+            for origin in origins
         ]
         data_v2 = [
             OriginIntrinsicMetadataRow(
-                id="file:///tmp/origin%d" % id_,
+                id=origin,
                 from_revision=data.revision_id_2,
                 indexer_configuration_id=tool_id,
                 **example_data2,
             )
-            for id_ in ids
+            for origin in origins
         ]
 
         # Remove one item from each, so that both queries have to succeed for
@@ -1198,17 +1198,16 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         storage.origin_intrinsic_metadata_add(data_v1)
 
         # when
-        origins = ["file:///tmp/origin%d" % i for i in ids]
         actual_data = list(storage.origin_intrinsic_metadata_get(origins))
 
         expected_data_v1 = [
             OriginIntrinsicMetadataRow(
-                id="file:///tmp/origin%d" % id_,
+                id=origin,
                 from_revision=data.revision_id_2,
                 tool=data.tools["swh-metadata-detector"],
                 **example_data1,
             )
-            for id_ in ids
+            for origin in origins
         ]
 
         # then
@@ -1233,12 +1232,12 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         expected_data_v2 = [
             OriginIntrinsicMetadataRow(
-                id="file:///tmp/origin%d" % id_,
+                id=origin,
                 from_revision=data.revision_id_2,
                 tool=data.tools["swh-metadata-detector"],
                 **example_data2,
             )
-            for id_ in ids
+            for origin in origins
         ]
 
         actual_data.sort(key=lambda item: item.id)
