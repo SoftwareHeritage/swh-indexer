@@ -1,3 +1,14 @@
+swh-indexer (0.5.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.5.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2020-11-06 15:25:04 +0100)
+  * Upstream changes:     - v0.5.0     - * Remove metadata deletion
+    endpoints and algorithms     - * Remove
+    conflict_update/policy_update option from BaseIndexer.run()     - *
+    Remove conflict_update option from _add() endpoints.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 06 Nov 2020 14:28:05 +0000
+
 swh-indexer (0.4.2-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.4.2     - (tagged by Antoine R. Dumont
