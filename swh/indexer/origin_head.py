@@ -25,9 +25,7 @@ class OriginHeadIndexer(OriginIndexer[Dict]):
 
     USE_TOOLS = False
 
-    def persist_index_computations(
-        self, results: Any, policy_update: str
-    ) -> Dict[str, int]:
+    def persist_index_computations(self, results: Any) -> Dict[str, int]:
         """Do nothing. The indexer's results are not persistent, they
         should only be piped to another indexer."""
         return {}

@@ -193,7 +193,7 @@ class SubStorage(Generic[TValue]):
         assert len(ids) <= limit
         return PagedResult(results=ids, next_page_token=next_page_token)
 
-    def add(self, data: Iterable[TValue], conflict_update: bool) -> int:
+    def add(self, data: Iterable[TValue]) -> int:
         """Add data not present in storage.
 
         Args:
@@ -204,9 +204,6 @@ class SubStorage(Generic[TValue]):
                 results
               - arbitrary data
 
-            conflict_update (bool): Flag to determine if we want to overwrite
-              (true) or skip duplicates (false)
-
         """
         data = list(data)
         check_id_duplicates(data)
@@ -216,31 +213,12 @@ class SubStorage(Generic[TValue]):
             id_ = item.pop("id")
             tool_id = item["indexer_configuration_id"]
             key = _key_from_dict(obj.unique_key())
-            if not conflict_update and key in self._data[id_]:
-                # Duplicate, should not be updated
-                continue
             self._data[id_][key] = item
             self._tools_per_id[id_].add(tool_id)
             count += 1
             if id_ not in self._sorted_ids:
                 self._sorted_ids.add(id_)
         return count
-
-    def delete(self, entries: List[Dict]) -> int:
-        """Delete entries and return the number of entries deleted.
-
-        """
-        deleted = 0
-        for entry in entries:
-            (id_, tool_id) = (entry["id"], entry["indexer_configuration_id"])
-            if tool_id in self._tools_per_id[id_]:
-                self._tools_per_id[id_].remove(tool_id)
-            if id_ in self._data:
-                key = self._key_from_dict(entry)
-                if key in self._data[id_]:
-                    deleted += 1
-                    del self._data[id_][key]
-        return deleted
 
 
 class IndexerStorage:
@@ -281,9 +259,9 @@ class IndexerStorage:
         )
 
     def content_mimetype_add(
-        self, mimetypes: List[ContentMimetypeRow], conflict_update: bool = False
+        self, mimetypes: List[ContentMimetypeRow]
     ) -> Dict[str, int]:
-        added = self._mimetypes.add(mimetypes, conflict_update)
+        added = self._mimetypes.add(mimetypes)
         return {"content_mimetype:add": added}
 
     def content_mimetype_get(self, ids: Iterable[Sha1]) -> List[ContentMimetypeRow]:
@@ -298,9 +276,9 @@ class IndexerStorage:
         return self._languages.get(ids)
 
     def content_language_add(
-        self, languages: List[ContentLanguageRow], conflict_update: bool = False
+        self, languages: List[ContentLanguageRow]
     ) -> Dict[str, int]:
-        added = self._languages.add(languages, conflict_update)
+        added = self._languages.add(languages)
         return {"content_language:add": added}
 
     def content_ctags_missing(self, ctags: Iterable[Dict]) -> List[Tuple[Sha1, int]]:
@@ -309,10 +287,8 @@ class IndexerStorage:
     def content_ctags_get(self, ids: Iterable[Sha1]) -> List[ContentCtagsRow]:
         return self._content_ctags.get(ids)
 
-    def content_ctags_add(
-        self, ctags: List[ContentCtagsRow], conflict_update: bool = False
-    ) -> Dict[str, int]:
-        added = self._content_ctags.add(ctags, conflict_update,)
+    def content_ctags_add(self, ctags: List[ContentCtagsRow]) -> Dict[str, int]:
+        added = self._content_ctags.add(ctags)
         return {"content_ctags:add": added}
 
     def content_ctags_search(
@@ -345,9 +321,9 @@ class IndexerStorage:
         return self._licenses.get(ids)
 
     def content_fossology_license_add(
-        self, licenses: List[ContentLicenseRow], conflict_update: bool = False
+        self, licenses: List[ContentLicenseRow]
     ) -> Dict[str, int]:
-        added = self._licenses.add(licenses, conflict_update)
+        added = self._licenses.add(licenses)
         return {"content_fossology_license:add": added}
 
     def content_fossology_license_get_partition(
@@ -371,9 +347,9 @@ class IndexerStorage:
         return self._content_metadata.get(ids)
 
     def content_metadata_add(
-        self, metadata: List[ContentMetadataRow], conflict_update: bool = False
+        self, metadata: List[ContentMetadataRow]
     ) -> Dict[str, int]:
-        added = self._content_metadata.add(metadata, conflict_update)
+        added = self._content_metadata.add(metadata)
         return {"content_metadata:add": added}
 
     def revision_intrinsic_metadata_missing(
@@ -387,16 +363,10 @@ class IndexerStorage:
         return self._revision_intrinsic_metadata.get(ids)
 
     def revision_intrinsic_metadata_add(
-        self,
-        metadata: List[RevisionIntrinsicMetadataRow],
-        conflict_update: bool = False,
+        self, metadata: List[RevisionIntrinsicMetadataRow]
     ) -> Dict[str, int]:
-        added = self._revision_intrinsic_metadata.add(metadata, conflict_update)
+        added = self._revision_intrinsic_metadata.add(metadata)
         return {"revision_intrinsic_metadata:add": added}
-
-    def revision_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
-        deleted = self._revision_intrinsic_metadata.delete(entries)
-        return {"revision_intrinsic_metadata:del": deleted}
 
     def origin_intrinsic_metadata_get(
         self, urls: Iterable[str]
@@ -404,14 +374,10 @@ class IndexerStorage:
         return self._origin_intrinsic_metadata.get(urls)
 
     def origin_intrinsic_metadata_add(
-        self, metadata: List[OriginIntrinsicMetadataRow], conflict_update: bool = False
+        self, metadata: List[OriginIntrinsicMetadataRow]
     ) -> Dict[str, int]:
-        added = self._origin_intrinsic_metadata.add(metadata, conflict_update)
+        added = self._origin_intrinsic_metadata.add(metadata)
         return {"origin_intrinsic_metadata:add": added}
-
-    def origin_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
-        deleted = self._origin_intrinsic_metadata.delete(entries)
-        return {"origin_intrinsic_metadata:del": deleted}
 
     def origin_intrinsic_metadata_search_fulltext(
         self, conjunction: List[str], limit: int = 100

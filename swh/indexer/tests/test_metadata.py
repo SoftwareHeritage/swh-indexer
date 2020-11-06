@@ -140,7 +140,7 @@ class Metadata(unittest.TestCase):
         fill_storage(metadata_indexer.storage)
 
         # when
-        metadata_indexer.run(sha1s, policy_update="ignore-dups")
+        metadata_indexer.run(sha1s)
         results = list(metadata_indexer.idx_storage.content_metadata_get(sha1s))
 
         expected_results = [
@@ -1122,7 +1122,7 @@ Gem::Specification.new { |s|
             ]
         )
 
-        metadata_indexer.run([rev.id], "update-dups")
+        metadata_indexer.run([rev.id])
 
         results = list(
             metadata_indexer.idx_storage.revision_intrinsic_metadata_get([REVISION.id])
@@ -1183,7 +1183,7 @@ Gem::Specification.new { |s|
             ]
         )
 
-        metadata_indexer.run([new_rev.id], "update-dups")
+        metadata_indexer.run([new_rev.id])
 
         results = list(
             metadata_indexer.idx_storage.revision_intrinsic_metadata_get([new_rev.id])

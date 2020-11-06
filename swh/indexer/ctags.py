@@ -136,16 +136,12 @@ class CtagsIndexer(ContentIndexer[ContentCtagsRow]):
         return ctags
 
     def persist_index_computations(
-        self, results: List[ContentCtagsRow], policy_update: str
+        self, results: List[ContentCtagsRow]
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
         Args:
             results: list of ctags returned by index()
-            policy_update: either 'update-dups' or 'ignore-dups' to
-              respectively update duplicates or ignore them
 
         """
-        return self.idx_storage.content_ctags_add(
-            results, conflict_update=(policy_update == "update-dups")
-        )
+        return self.idx_storage.content_ctags_add(results)
