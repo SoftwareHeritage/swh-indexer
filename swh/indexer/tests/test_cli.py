@@ -74,7 +74,7 @@ def _origins_in_task_args(tasks):
 
 
 def _assert_tasks_for_origins(tasks, origins):
-    expected_kwargs = {"policy_update": "update-dups"}
+    expected_kwargs = {}
     assert {task["type"] for task in tasks} == {"index-origin-metadata"}
     assert all(len(task["arguments"]["args"]) == 1 for task in tasks)
     for task in tasks:

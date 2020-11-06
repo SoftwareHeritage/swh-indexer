@@ -211,32 +211,6 @@ def test_origin_metadata_indexer_error(
     assert orig_results == []
 
 
-def test_origin_metadata_indexer_delete_metadata(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
-) -> None:
-
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
-    origin = "https://github.com/librariesio/yarn-parser"
-    indexer.run([origin])
-
-    rev_id = REVISION.id
-
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert rev_results != []
-
-    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
-    assert orig_results != []
-
-    with patch("swh.indexer.metadata_dictionary.npm.NpmMapping.filename", b"foo.json"):
-        indexer.run([origin])
-
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert rev_results == []
-
-    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
-    assert orig_results == []
-
-
 def test_origin_metadata_indexer_unknown_origin(
     idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
 ) -> None:

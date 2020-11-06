@@ -46,7 +46,7 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
        indexing tests.
     """
 
-    def persist_index_computations(self, results, policy_update):
+    def persist_index_computations(self, results):
         self.results = results
 
 

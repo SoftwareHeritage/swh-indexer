@@ -31,7 +31,7 @@ class CrashingIndexerMixin:
     ) -> List[Dict[str, Any]]:
         raise _TestException()
 
-    def persist_index_computations(self, results, policy_update) -> Dict[str, int]:
+    def persist_index_computations(self, results) -> Dict[str, int]:
         return {}
 
     def indexed_contents_in_partition(
@@ -61,12 +61,12 @@ def test_content_indexer_catch_exceptions():
     indexer.objstorage = Mock()
     indexer.objstorage.get.return_value = b"content"
 
-    assert indexer.run([b"foo"], policy_update=True) == {"status": "failed"}
+    assert indexer.run([b"foo"]) == {"status": "failed"}
 
     indexer.catch_exceptions = False
 
     with pytest.raises(_TestException):
-        indexer.run([b"foo"], policy_update=True)
+        indexer.run([b"foo"])
 
 
 def test_revision_indexer_catch_exceptions():
@@ -74,25 +74,23 @@ def test_revision_indexer_catch_exceptions():
     indexer.storage = Mock()
     indexer.storage.revision_get.return_value = ["rev"]
 
-    assert indexer.run([b"foo"], policy_update=True) == {"status": "failed"}
+    assert indexer.run([b"foo"]) == {"status": "failed"}
 
     indexer.catch_exceptions = False
 
     with pytest.raises(_TestException):
-        indexer.run([b"foo"], policy_update=True)
+        indexer.run([b"foo"])
 
 
 def test_origin_indexer_catch_exceptions():
     indexer = CrashingOriginIndexer(config=BASE_TEST_CONFIG)
 
-    assert indexer.run(["http://example.org"], policy_update=True) == {
-        "status": "failed"
-    }
+    assert indexer.run(["http://example.org"]) == {"status": "failed"}
 
     indexer.catch_exceptions = False
 
     with pytest.raises(_TestException):
-        indexer.run(["http://example.org"], policy_update=True)
+        indexer.run(["http://example.org"])
 
 
 def test_content_partition_indexer_catch_exceptions():
@@ -100,9 +98,9 @@ def test_content_partition_indexer_catch_exceptions():
         config={**BASE_TEST_CONFIG, "write_batch_size": 42}
     )
 
-    assert indexer.run(0, 42, policy_update=True) == {"status": "failed"}
+    assert indexer.run(0, 42) == {"status": "failed"}
 
     indexer.catch_exceptions = False
 
     with pytest.raises(_TestException):
-        indexer.run(0, 42, policy_update=True)
+        indexer.run(0, 42)

@@ -114,7 +114,7 @@ class MixinFossologyLicenseIndexer:
         ]
 
     def persist_index_computations(
-        self, results: List[ContentLicenseRow], policy_update: str
+        self, results: List[ContentLicenseRow]
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -126,13 +126,8 @@ class MixinFossologyLicenseIndexer:
               - license (bytes): license in bytes
               - path (bytes): path
 
-            policy_update: either 'update-dups' or 'ignore-dups' to
-              respectively update duplicates or ignore them
-
         """
-        return self.idx_storage.content_fossology_license_add(
-            results, conflict_update=(policy_update == "update-dups")
-        )
+        return self.idx_storage.content_fossology_license_add(results)
 
 
 class FossologyLicenseIndexer(

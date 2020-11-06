@@ -262,7 +262,6 @@ OBJ_STORAGE_DATA = {
     class MockStorage():
         def content_mimetype_add(self, mimetypes):
             self.state = mimetypes
-            self.conflict_update = conflict_update
 
         def indexer_configuration_add(self, tools):
             return [{
@@ -606,12 +605,12 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         sha1s = [self.id0, self.id1, self.id2]
 
         # when
-        self.indexer.run(sha1s, policy_update="update-dups")
+        self.indexer.run(sha1s)
 
         self.assert_results_ok(sha1s)
 
         # 2nd pass
-        self.indexer.run(sha1s, policy_update="ignore-dups")
+        self.indexer.run(sha1s)
 
         self.assert_results_ok(sha1s)
 
@@ -624,7 +623,7 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         ]  # unknown
 
         # when
-        self.indexer.run(sha1s, policy_update="update-dups")
+        self.indexer.run(sha1s)
 
         # then
         expected_results = [

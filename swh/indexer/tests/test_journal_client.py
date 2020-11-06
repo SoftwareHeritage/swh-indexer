@@ -30,10 +30,7 @@ class JournalClientTest(unittest.TestCase):
             (
                 [
                     {
-                        "arguments": {
-                            "kwargs": {"policy_update": "update-dups"},
-                            "args": (["file:///dev/zero"],),
-                        },
+                        "arguments": {"kwargs": {}, "args": (["file:///dev/zero"],),},
                         "policy": "oneshot",
                         "type": "task-name",
                         "retries_left": 1,
@@ -64,10 +61,7 @@ class JournalClientTest(unittest.TestCase):
             (
                 [
                     {
-                        "arguments": {
-                            "kwargs": {"policy_update": "update-dups"},
-                            "args": (["file:///dev/zero"],),
-                        },
+                        "arguments": {"kwargs": {}, "args": (["file:///dev/zero"],),},
                         "policy": "oneshot",
                         "type": "task-name",
                         "retries_left": 1,
@@ -100,7 +94,7 @@ class JournalClientTest(unittest.TestCase):
                 [
                     {
                         "arguments": {
-                            "kwargs": {"policy_update": "update-dups"},
+                            "kwargs": {},
                             "args": (["file:///dev/zero", "file:///tmp/foobar"],),
                         },
                         "policy": "oneshot",
@@ -138,7 +132,7 @@ class JournalClientTest(unittest.TestCase):
                 [
                     {
                         "arguments": {
-                            "kwargs": {"policy_update": "update-dups"},
+                            "kwargs": {},
                             "args": (["file:///dev/zero", "file:///tmp/foobar"],),
                         },
                         "policy": "oneshot",
@@ -147,7 +141,7 @@ class JournalClientTest(unittest.TestCase):
                     },
                     {
                         "arguments": {
-                            "kwargs": {"policy_update": "update-dups"},
+                            "kwargs": {},
                             "args": (["file:///tmp/spamegg"],),
                         },
                         "policy": "oneshot",

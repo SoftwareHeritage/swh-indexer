@@ -84,14 +84,13 @@ class IndexerStorageInterface(Protocol):
 
     @remote_api_endpoint("content_mimetype/add")
     def content_mimetype_add(
-        self, mimetypes: List[ContentMimetypeRow], conflict_update: bool = False
+        self, mimetypes: List[ContentMimetypeRow]
     ) -> Dict[str, int]:
         """Add mimetypes not present in storage.
 
         Args:
             mimetypes: mimetype rows to be added, with their `tool` attribute set to
             None.
-            conflict_update: Flag to determine if we want to
             overwrite (``True``) or skip duplicates (``False``, the
             default)
 
@@ -148,16 +147,12 @@ class IndexerStorageInterface(Protocol):
 
     @remote_api_endpoint("content_language/add")
     def content_language_add(
-        self, languages: List[ContentLanguageRow], conflict_update: bool = False
+        self, languages: List[ContentLanguageRow]
     ) -> Dict[str, int]:
         """Add languages not present in storage.
 
         Args:
             languages: language row objects
-
-            conflict_update (bool): Flag to determine if we want to
-                overwrite (true) or skip duplicates (false, the
-                default)
 
         Returns:
             Dict summary of number of rows added
@@ -198,9 +193,7 @@ class IndexerStorageInterface(Protocol):
         ...
 
     @remote_api_endpoint("content/ctags/add")
-    def content_ctags_add(
-        self, ctags: List[ContentCtagsRow], conflict_update: bool = False
-    ) -> Dict[str, int]:
+    def content_ctags_add(self, ctags: List[ContentCtagsRow]) -> Dict[str, int]:
         """Add ctags not present in storage
 
         Args:
@@ -251,16 +244,13 @@ class IndexerStorageInterface(Protocol):
 
     @remote_api_endpoint("content/fossology_license/add")
     def content_fossology_license_add(
-        self, licenses: List[ContentLicenseRow], conflict_update: bool = False
+        self, licenses: List[ContentLicenseRow]
     ) -> Dict[str, int]:
         """Add licenses not present in storage.
 
         Args:
             license: license rows to be added, with their `tool` attribute set to
             None.
-
-            conflict_update: Flag to determine if we want to overwrite (true)
-                or skip duplicates (false, the default)
 
         Returns:
             Dict summary of number of rows added
@@ -335,7 +325,7 @@ class IndexerStorageInterface(Protocol):
 
     @remote_api_endpoint("content_metadata/add")
     def content_metadata_add(
-        self, metadata: List[ContentMetadataRow], conflict_update: bool = False
+        self, metadata: List[ContentMetadataRow]
     ) -> Dict[str, int]:
         """Add metadata not present in storage.
 
@@ -344,9 +334,6 @@ class IndexerStorageInterface(Protocol):
 
                 - **id**: sha1
                 - **metadata**: arbitrary dict
-
-            conflict_update: Flag to determine if we want to overwrite (true)
-                or skip duplicates (false, the default)
 
         Returns:
             Dict summary of number of rows added
@@ -390,37 +377,16 @@ class IndexerStorageInterface(Protocol):
 
     @remote_api_endpoint("revision_intrinsic_metadata/add")
     def revision_intrinsic_metadata_add(
-        self,
-        metadata: List[RevisionIntrinsicMetadataRow],
-        conflict_update: bool = False,
+        self, metadata: List[RevisionIntrinsicMetadataRow],
     ) -> Dict[str, int]:
         """Add metadata not present in storage.
 
         Args:
             metadata: ContentMetadataRow objects
 
-            conflict_update: Flag to determine if we want to overwrite (true)
-              or skip duplicates (false, the default)
-
         Returns:
             Dict summary of number of rows added
 
-        """
-        ...
-
-    @remote_api_endpoint("revision_intrinsic_metadata/delete")
-    def revision_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
-        """Remove revision metadata from the storage.
-
-        Args:
-            entries (dict): dictionaries with the following keys:
-
-                - **id** (bytes): revision identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  metadata
-
-        Returns:
-            Summary of number of rows deleted
         """
         ...
 
@@ -439,35 +405,16 @@ class IndexerStorageInterface(Protocol):
 
     @remote_api_endpoint("origin_intrinsic_metadata/add")
     def origin_intrinsic_metadata_add(
-        self, metadata: List[OriginIntrinsicMetadataRow], conflict_update: bool = False
+        self, metadata: List[OriginIntrinsicMetadataRow]
     ) -> Dict[str, int]:
         """Add origin metadata not present in storage.
 
         Args:
             metadata: list of OriginIntrinsicMetadataRow objects
 
-            conflict_update: Flag to determine if we want to overwrite (true)
-              or skip duplicates (false, the default)
-
         Returns:
             Dict summary of number of rows added
 
-        """
-        ...
-
-    @remote_api_endpoint("origin_intrinsic_metadata/delete")
-    def origin_intrinsic_metadata_delete(self, entries: List[Dict]) -> Dict:
-        """Remove origin metadata from the storage.
-
-        Args:
-            entries (dict): dictionaries with the following keys:
-
-                - **id** (str): origin urls
-                - **indexer_configuration_id** (int): tool used to compute
-                  metadata
-
-        Returns:
-            Summary of number of rows deleted
         """
         ...
 
