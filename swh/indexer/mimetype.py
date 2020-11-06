@@ -95,7 +95,7 @@ class MixinMimetypeIndexer:
         ]
 
     def persist_index_computations(
-        self, results: List[ContentMimetypeRow], policy_update: str
+        self, results: List[ContentMimetypeRow]
     ) -> Dict[str, int]:
         """Persist the results in storage.
 
@@ -103,13 +103,8 @@ class MixinMimetypeIndexer:
             results: list of content's mimetype dicts
               (see :meth:`.index`)
 
-            policy_update: either 'update-dups' or 'ignore-dups' to
-               respectively update duplicates or ignore them
-
         """
-        return self.idx_storage.content_mimetype_add(
-            results, conflict_update=(policy_update == "update-dups")
-        )
+        return self.idx_storage.content_mimetype_add(results)
 
 
 class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer[ContentMimetypeRow]):

@@ -10,6 +10,7 @@ import os
 import shutil
 import tempfile
 from typing import Any, Dict, Generic, Iterator, List, Optional, Set, TypeVar, Union
+import warnings
 
 from swh.core import utils
 from swh.core.config import load_from_envvar, merge_configs
@@ -250,17 +251,13 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
         yield from ids
 
     @abc.abstractmethod
-    def persist_index_computations(
-        self, results: List[TResult], policy_update: str
-    ) -> Dict[str, int]:
+    def persist_index_computations(self, results: List[TResult]) -> Dict[str, int]:
         """Persist the computation resulting from the index.
 
         Args:
 
             results: List of results. One result is the
               result of the index function.
-            policy_update: either 'update-dups' or 'ignore-dups' to
-              respectively update duplicates or ignore them
 
         Returns:
             a summary dict of what has been inserted in the storage
@@ -281,24 +278,28 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
 
     """
 
-    def run(self, ids: List[Sha1], policy_update: str, **kwargs) -> Dict:
+    def run(self, ids: List[Sha1], **kwargs) -> Dict:
         """Given a list of ids:
 
         - retrieve the content from the storage
         - execute the indexing computations
-        - store the results (according to policy_update)
+        - store the results
 
         Args:
             ids (Iterable[Union[bytes, str]]): sha1's identifier list
-            policy_update (str): either 'update-dups' or 'ignore-dups' to
-                                 respectively update duplicates or ignore
-                                 them
             **kwargs: passed to the `index` method
 
         Returns:
             A summary Dict of the task's status
 
         """
+        if "policy_update" in kwargs:
+            warnings.warn(
+                "'policy_update' argument is deprecated and ignored.",
+                DeprecationWarning,
+            )
+            del kwargs["policy_update"]
+
         sha1s = [
             hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
         ]
@@ -318,7 +319,7 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
                 if res:  # If no results, skip it
                     results.extend(res)
                     summary["status"] = "eventful"
-            summary = self.persist_index_computations(results, policy_update)
+            summary = self.persist_index_computations(results)
             self.results = results
         except Exception:
             if not self.catch_exceptions:
@@ -478,9 +479,7 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
             count_object_added_key: Optional[str] = None
 
             for contents in utils.grouper(gen, n=self.config["write_batch_size"]):
-                res = self.persist_index_computations(
-                    list(contents), policy_update="update-dups"
-                )
+                res = self.persist_index_computations(list(contents))
                 if not count_object_added_key:
                     count_object_added_key = list(res.keys())[0]
                 count += res[count_object_added_key]
@@ -508,22 +507,24 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
 
     """
 
-    def run(
-        self, origin_urls: List[str], policy_update: str = "update-dups", **kwargs
-    ) -> Dict:
+    def run(self, origin_urls: List[str], **kwargs) -> Dict:
         """Given a list of origin urls:
 
         - retrieve origins from storage
         - execute the indexing computations
-        - store the results (according to policy_update)
+        - store the results
 
         Args:
             origin_urls: list of origin urls.
-            policy_update: either 'update-dups' or 'ignore-dups' to
-              respectively update duplicates (default) or ignore them
             **kwargs: passed to the `index` method
 
         """
+        if "policy_update" in kwargs:
+            warnings.warn(
+                "'policy_update' argument is deprecated and ignored.",
+                DeprecationWarning,
+            )
+            del kwargs["policy_update"]
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
             results = self.index_list(origin_urls, **kwargs)
@@ -533,7 +534,7 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
             summary["status"] = "failed"
             return summary
 
-        summary_persist = self.persist_index_computations(results, policy_update)
+        summary_persist = self.persist_index_computations(results)
         self.results = results
         if summary_persist:
             for value in summary_persist.values():
@@ -564,19 +565,23 @@ class RevisionIndexer(BaseIndexer[Sha1Git, Revision, TResult], Generic[TResult])
 
     """
 
-    def run(self, ids: List[Sha1Git], policy_update: str) -> Dict:
+    def run(self, ids: List[Sha1Git], **kwargs) -> Dict:
         """Given a list of sha1_gits:
 
         - retrieve revisions from storage
         - execute the indexing computations
-        - store the results (according to policy_update)
+        - store the results
 
         Args:
             ids: sha1_git's identifier list
-            policy_update: either 'update-dups' or 'ignore-dups' to
-              respectively update duplicates or ignore them
 
         """
+        if "policy_update" in kwargs:
+            warnings.warn(
+                "'policy_update' argument is deprecated and ignored.",
+                DeprecationWarning,
+            )
+            del kwargs["policy_update"]
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
 
@@ -599,7 +604,7 @@ class RevisionIndexer(BaseIndexer[Sha1Git, Revision, TResult], Generic[TResult])
                 summary["status"] = "failed"
                 return summary
 
-        summary_persist = self.persist_index_computations(results, policy_update)
+        summary_persist = self.persist_index_computations(results)
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:

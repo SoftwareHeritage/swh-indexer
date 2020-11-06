@@ -267,11 +267,7 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_mimetype_add(
-        self,
-        mimetypes: List[ContentMimetypeRow],
-        conflict_update: bool = False,
-        db=None,
-        cur=None,
+        self, mimetypes: List[ContentMimetypeRow], db=None, cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(mimetypes)
         mimetypes.sort(key=lambda m: m.id)
@@ -282,7 +278,7 @@ class IndexerStorage:
             ["id", "mimetype", "encoding", "indexer_configuration_id"],
             cur,
         )
-        count = db.content_mimetype_add_from_temp(conflict_update, cur)
+        count = db.content_mimetype_add_from_temp(cur)
         return {"content_mimetype:add": count}
 
     @timed
@@ -320,11 +316,7 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_language_add(
-        self,
-        languages: List[ContentLanguageRow],
-        conflict_update: bool = False,
-        db=None,
-        cur=None,
+        self, languages: List[ContentLanguageRow], db=None, cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(languages)
         languages.sort(key=lambda m: m.id)
@@ -344,7 +336,7 @@ class IndexerStorage:
             cur,
         )
 
-        count = db.content_language_add_from_temp(conflict_update, cur)
+        count = db.content_language_add_from_temp(cur)
         return {"content_language:add": count}
 
     @timed
@@ -370,11 +362,7 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_ctags_add(
-        self,
-        ctags: List[ContentCtagsRow],
-        conflict_update: bool = False,
-        db=None,
-        cur=None,
+        self, ctags: List[ContentCtagsRow], db=None, cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(ctags)
         ctags.sort(key=lambda m: m.id)
@@ -387,7 +375,7 @@ class IndexerStorage:
             cur=cur,
         )
 
-        count = db.content_ctags_add_from_temp(conflict_update, cur)
+        count = db.content_ctags_add_from_temp(cur)
         return {"content_ctags:add": count}
 
     @timed
@@ -425,11 +413,7 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_fossology_license_add(
-        self,
-        licenses: List[ContentLicenseRow],
-        conflict_update: bool = False,
-        db=None,
-        cur=None,
+        self, licenses: List[ContentLicenseRow], db=None, cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(licenses)
         licenses.sort(key=lambda m: m.id)
@@ -440,7 +424,7 @@ class IndexerStorage:
             columns=["id", "license", "indexer_configuration_id"],
             cur=cur,
         )
-        count = db.content_fossology_license_add_from_temp(conflict_update, cur)
+        count = db.content_fossology_license_add_from_temp(cur)
         return {"content_fossology_license:add": count}
 
     @timed
@@ -490,11 +474,7 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_metadata_add(
-        self,
-        metadata: List[ContentMetadataRow],
-        conflict_update: bool = False,
-        db=None,
-        cur=None,
+        self, metadata: List[ContentMetadataRow], db=None, cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
@@ -507,7 +487,7 @@ class IndexerStorage:
             ["id", "metadata", "indexer_configuration_id"],
             cur,
         )
-        count = db.content_metadata_add_from_temp(conflict_update, cur)
+        count = db.content_metadata_add_from_temp(cur)
         return {
             "content_metadata:add": count,
         }
@@ -540,11 +520,7 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def revision_intrinsic_metadata_add(
-        self,
-        metadata: List[RevisionIntrinsicMetadataRow],
-        conflict_update: bool = False,
-        db=None,
-        cur=None,
+        self, metadata: List[RevisionIntrinsicMetadataRow], db=None, cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
@@ -557,19 +533,10 @@ class IndexerStorage:
             ["id", "metadata", "mappings", "indexer_configuration_id"],
             cur,
         )
-        count = db.revision_intrinsic_metadata_add_from_temp(conflict_update, cur)
+        count = db.revision_intrinsic_metadata_add_from_temp(cur)
         return {
             "revision_intrinsic_metadata:add": count,
         }
-
-    @timed
-    @process_metrics
-    @db_transaction()
-    def revision_intrinsic_metadata_delete(
-        self, entries: List[Dict], db=None, cur=None
-    ) -> Dict:
-        count = db.revision_intrinsic_metadata_delete(entries, cur)
-        return {"revision_intrinsic_metadata:del": count}
 
     @timed
     @db_transaction()
@@ -589,11 +556,7 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def origin_intrinsic_metadata_add(
-        self,
-        metadata: List[OriginIntrinsicMetadataRow],
-        conflict_update: bool = False,
-        db=None,
-        cur=None,
+        self, metadata: List[OriginIntrinsicMetadataRow], db=None, cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
@@ -606,20 +569,9 @@ class IndexerStorage:
             ["id", "metadata", "indexer_configuration_id", "from_revision", "mappings"],
             cur,
         )
-        count = db.origin_intrinsic_metadata_add_from_temp(conflict_update, cur)
+        count = db.origin_intrinsic_metadata_add_from_temp(cur)
         return {
             "origin_intrinsic_metadata:add": count,
-        }
-
-    @timed
-    @process_metrics
-    @db_transaction()
-    def origin_intrinsic_metadata_delete(
-        self, entries: List[Dict], db=None, cur=None
-    ) -> Dict:
-        count = db.origin_intrinsic_metadata_delete(entries, cur)
-        return {
-            "origin_intrinsic_metadata:del": count,
         }
 
     @timed

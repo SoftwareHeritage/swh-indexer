@@ -205,7 +205,7 @@ def schedule_origin_metadata_reindex(
 
     origins = list_origins_by_producer(idx_storage, mappings, tool_ids)
 
-    kwargs = {"policy_update": "update-dups", "retries_left": 1}
+    kwargs = {"retries_left": 1}
     schedule_origin_batches(scheduler, task_type, origins, origin_batch_size, kwargs)
 
 
