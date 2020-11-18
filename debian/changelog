@@ -1,3 +1,9 @@
+swh-indexer (0.5.0-2~swh1) UNRELEASED; urgency=medium
+
+  * Move distutils package from python3-swh.indexer to python3-swh.indexer.storage.
+
+ -- Nicolas Dandrimont <olasd@debian.org>  Wed, 18 Nov 2020 20:04:23 +0100
+
 swh-indexer (0.5.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.5.0     - (tagged by Valentin Lorentz
