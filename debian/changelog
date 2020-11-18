@@ -1,8 +1,8 @@
-swh-indexer (0.5.0-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.5.0-2~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * Move distutils package from python3-swh.indexer to python3-swh.indexer.storage.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 06 Nov 2020 14:31:27 +0000
+ -- Nicolas Dandrimont <olasd@debian.org>  Wed, 18 Nov 2020 20:04:23 +0100
 
 swh-indexer (0.5.0-1~swh1) unstable-swh; urgency=medium
 
