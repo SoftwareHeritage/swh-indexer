@@ -1,4 +1,4 @@
-swh-indexer (0.5.0-2~swh1) UNRELEASED; urgency=medium
+swh-indexer (0.5.0-2~swh1) unstable-swh; urgency=medium
 
   * Move distutils package from python3-swh.indexer to python3-swh.indexer.storage.
 
