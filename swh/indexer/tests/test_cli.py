@@ -354,7 +354,7 @@ def test_journal_client(
 
     STATUS = {"status": "full", "origin": {"url": "file://dev/0000",}}
     producer.produce(
-        topic=kafka_prefix + ".origin_visit",
+        topic=f"{kafka_prefix}.origin_visit_status",
         key=b"bogus",
         value=value_to_kafka(STATUS),
     )

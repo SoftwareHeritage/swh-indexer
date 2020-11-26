@@ -270,7 +270,7 @@ def journal_client(
         brokers=brokers,
         prefix=prefix,
         group_id=group_id,
-        object_types=["origin_visit"],
+        object_types=["origin_visit_status"],
         stop_after_objects=stop_after_objects,
     )
 
