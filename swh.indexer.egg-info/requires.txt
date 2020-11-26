@@ -1,4 +1,3 @@
-vcversioner
 click
 python-magic>=0.4.13
 pyld
@@ -6,7 +5,7 @@ xmltodict
 typing-extensions
 swh.core[db,http]>=0.3
 swh.model>=0.0.15
-swh.objstorage>=0.0.43
+swh.objstorage>=0.2.2
 swh.scheduler>=0.5.2
 swh.storage>=0.12.0
 swh.journal>=0.1.0

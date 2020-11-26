@@ -33,6 +33,7 @@ from .model import (
     OriginIntrinsicMetadataRow,
     RevisionIntrinsicMetadataRow,
 )
+from .writer import JournalWriter
 
 INDEXER_CFG_KEY = "indexer_storage"
 
@@ -121,12 +122,15 @@ class IndexerStorage:
 
     """
 
-    def __init__(self, db, min_pool_conns=1, max_pool_conns=10):
+    def __init__(self, db, min_pool_conns=1, max_pool_conns=10, journal_writer=None):
         """
         Args:
-            db_conn: either a libpq connection string, or a psycopg2 connection
+            db: either a libpq connection string, or a psycopg2 connection
+            journal_writer: configuration passed to
+                            `swh.journal.writer.get_journal_writer`
 
         """
+        self.journal_writer = JournalWriter(self._tool_get_from_id, journal_writer)
         try:
             if isinstance(db, psycopg2.extensions.connection):
                 self._pool = None
@@ -271,6 +275,7 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         check_id_duplicates(mimetypes)
         mimetypes.sort(key=lambda m: m.id)
+        self.journal_writer.write_additions("content_mimetype", mimetypes)
         db.mktemp_content_mimetype(cur)
         db.copy_to(
             [m.to_dict() for m in mimetypes],
@@ -320,6 +325,7 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         check_id_duplicates(languages)
         languages.sort(key=lambda m: m.id)
+        self.journal_writer.write_additions("content_language", languages)
         db.mktemp_content_language(cur)
         # empty language is mapped to 'unknown'
         db.copy_to(
@@ -366,6 +372,7 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         check_id_duplicates(ctags)
         ctags.sort(key=lambda m: m.id)
+        self.journal_writer.write_additions("content_ctags", ctags)
 
         db.mktemp_content_ctags(cur)
         db.copy_to(
@@ -417,6 +424,7 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         check_id_duplicates(licenses)
         licenses.sort(key=lambda m: m.id)
+        self.journal_writer.write_additions("content_fossology_license", licenses)
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
             [license.to_dict() for license in licenses],
@@ -478,6 +486,7 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
+        self.journal_writer.write_additions("content_metadata", metadata)
 
         db.mktemp_content_metadata(cur)
 
@@ -524,6 +533,7 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
+        self.journal_writer.write_additions("revision_intrinsic_metadata", metadata)
 
         db.mktemp_revision_intrinsic_metadata(cur)
 
@@ -560,6 +570,7 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
+        self.journal_writer.write_additions("origin_intrinsic_metadata", metadata)
 
         db.mktemp_origin_intrinsic_metadata(cur)
 
@@ -695,3 +706,18 @@ class IndexerStorage:
         if not idx:
             return None
         return dict(zip(db.indexer_configuration_cols, idx))
+
+    @db_transaction()
+    def _tool_get_from_id(self, id_, db, cur):
+        tool = dict(
+            zip(
+                db.indexer_configuration_cols,
+                db.indexer_configuration_get_from_id(id_, cur),
+            )
+        )
+        return {
+            "id": tool["id"],
+            "name": tool["tool_name"],
+            "version": tool["tool_version"],
+            "configuration": tool["tool_configuration"],
+        }

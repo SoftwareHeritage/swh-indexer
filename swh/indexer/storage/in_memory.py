@@ -41,8 +41,11 @@ from .model import (
     OriginIntrinsicMetadataRow,
     RevisionIntrinsicMetadataRow,
 )
+from .writer import JournalWriter
 
 SHA1_DIGEST_SIZE = 160
+
+ToolId = int
 
 
 def _transform_tool(tool):
@@ -64,7 +67,6 @@ def _key_from_dict(d):
     return tuple(sorted(d.items()))
 
 
-ToolId = int
 TValue = TypeVar("TValue", bound=BaseRow)
 
 
@@ -74,11 +76,12 @@ class SubStorage(Generic[TValue]):
     _data: Dict[Sha1, Dict[Tuple, Dict[str, Any]]]
     _tools_per_id: Dict[Sha1, Set[ToolId]]
 
-    def __init__(self, row_class: Type[TValue], tools):
+    def __init__(self, row_class: Type[TValue], tools, journal_writer):
         self.row_class = row_class
         self._tools = tools
         self._sorted_ids = SortedList[bytes, Sha1]()
         self._data = defaultdict(dict)
+        self._journal_writer = journal_writer
         self._tools_per_id = defaultdict(set)
 
     def _key_from_dict(self, d) -> Tuple:
@@ -207,6 +210,8 @@ class SubStorage(Generic[TValue]):
         """
         data = list(data)
         check_id_duplicates(data)
+        object_type = self.row_class.object_type  # type: ignore
+        self._journal_writer.write_additions(object_type, data)
         count = 0
         for obj in data:
             item = obj.to_dict()
@@ -224,19 +229,29 @@ class SubStorage(Generic[TValue]):
 class IndexerStorage:
     """In-memory SWH indexer storage."""
 
-    def __init__(self):
+    def __init__(self, journal_writer=None):
         self._tools = {}
-        self._mimetypes = SubStorage(ContentMimetypeRow, self._tools)
-        self._languages = SubStorage(ContentLanguageRow, self._tools)
-        self._content_ctags = SubStorage(ContentCtagsRow, self._tools)
-        self._licenses = SubStorage(ContentLicenseRow, self._tools)
-        self._content_metadata = SubStorage(ContentMetadataRow, self._tools)
+
+        def tool_getter(id_):
+            tool = self._tools[id_]
+            return {
+                "id": tool["id"],
+                "name": tool["tool_name"],
+                "version": tool["tool_version"],
+                "configuration": tool["tool_configuration"],
+            }
+
+        self.journal_writer = JournalWriter(tool_getter, journal_writer)
+        args = (self._tools, self.journal_writer)
+        self._mimetypes = SubStorage(ContentMimetypeRow, *args)
+        self._languages = SubStorage(ContentLanguageRow, *args)
+        self._content_ctags = SubStorage(ContentCtagsRow, *args)
+        self._licenses = SubStorage(ContentLicenseRow, *args)
+        self._content_metadata = SubStorage(ContentMetadataRow, *args)
         self._revision_intrinsic_metadata = SubStorage(
-            RevisionIntrinsicMetadataRow, self._tools
+            RevisionIntrinsicMetadataRow, *args
         )
-        self._origin_intrinsic_metadata = SubStorage(
-            OriginIntrinsicMetadataRow, self._tools
-        )
+        self._origin_intrinsic_metadata = SubStorage(OriginIntrinsicMetadataRow, *args)
 
     def check_config(self, *, check_write):
         return True

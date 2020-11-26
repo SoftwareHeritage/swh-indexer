@@ -14,8 +14,8 @@ MAX_ORIGINS_PER_TASK = 100
 def process_journal_objects(messages, *, scheduler, task_names):
     """Worker function for `JournalClient.process(worker_fn)`, after
     currification of `scheduler` and `task_names`."""
-    assert set(messages) == {"origin_visit"}, set(messages)
-    process_origin_visits(messages["origin_visit"], scheduler, task_names)
+    assert set(messages) == {"origin_visit_status"}, set(messages)
+    process_origin_visits(messages["origin_visit_status"], scheduler, task_names)
 
 
 def process_origin_visits(visits, scheduler, task_names):
