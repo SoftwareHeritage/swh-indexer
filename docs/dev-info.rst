@@ -45,18 +45,15 @@ commands:
     # storage to read sha1's metadata (path)
   	# storage:
   	#   cls: local
-  	#   args:
-  	#     db: "service=swh-dev"
-  	#     objstorage:
-  	#       cls: pathslicing
-  	#       args:
-  	#         root: /home/storage/swh-storage/
-  	#         slicing: 0:1/1:5
+  	#   db: "service=swh-dev"
+  	#   objstorage:
+  	#     cls: pathslicing
+  	#     root: /home/storage/swh-storage/
+  	#     slicing: 0:1/1:5
 
   	storage:
   	  cls: remote
-  	  args:
-  	    url: http://localhost:5002/
+	    url: http://localhost:5002/
 
   	indexer_storage:
   	  cls: remote
@@ -68,9 +65,8 @@ commands:
   	# locally: this needs to match your storage's setup
   	objstorage:
   	  cls: pathslicing
-  	  args:
-  	    slicing: 0:1/1:5
-  	    root: /home/storage/swh-storage/
+	    slicing: 0:1/1:5
+ 	    root: /home/storage/swh-storage/
 
   	destination_task: swh.indexer.tasks.SWHOrchestratorTextContentsTask
   	rescheduling_task: swh.indexer.tasks.SWHContentMimetypeTask
@@ -84,13 +80,11 @@ commands:
     # storage to read sha1's metadata (path)
   	# storage:
   	#   cls: local
-  	#   args:
-  	#     db: "service=swh-dev"
-  	#     objstorage:
-  	#       cls: pathslicing
-  	#       args:
-  	#         root: /home/storage/swh-storage/
-  	#         slicing: 0:1/1:5
+  	#   db: "service=swh-dev"
+  	#   objstorage:
+  	#     cls: pathslicing
+  	#     root: /home/storage/swh-storage/
+  	#     slicing: 0:1/1:5
 
   	storage:
   	  cls: remote
@@ -106,9 +100,8 @@ commands:
   	# locally: this needs to match your storage's setup
   	objstorage:
   	  cls: pathslicing
-  	  args:
-  	    slicing: 0:1/1:5
-  	    root: /home/storage/swh-storage/
+	    slicing: 0:1/1:5
+	    root: /home/storage/swh-storage/
 
   	workdir: /tmp/swh/worker.indexer/license/
 

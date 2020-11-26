@@ -73,7 +73,7 @@ def obj_storage():
     classes.
 
     """
-    objstorage = get_objstorage("memory", {})
+    objstorage = get_objstorage("memory")
     fill_obj_storage(objstorage)
     with patch.dict(
         "swh.objstorage.factory._STORAGE_CLASSES", {"memory": lambda: objstorage}
@@ -85,8 +85,8 @@ def obj_storage():
 def swh_indexer_config():
     return {
         "storage": {"cls": "memory"},
-        "objstorage": {"cls": "memory", "args": {},},
-        "indexer_storage": {"cls": "memory", "args": {},},
+        "objstorage": {"cls": "memory"},
+        "indexer_storage": {"cls": "memory"},
         "tools": {
             "name": "file",
             "version": "1:5.30-1+deb9u1",

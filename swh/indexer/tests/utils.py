@@ -34,8 +34,8 @@ from swh.storage.utils import now
 
 BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
     "storage": {"cls": "memory"},
-    "objstorage": {"cls": "memory", "args": {},},
-    INDEXER_CFG_KEY: {"cls": "memory", "args": {},},
+    "objstorage": {"cls": "memory"},
+    INDEXER_CFG_KEY: {"cls": "memory"},
 }
 
 

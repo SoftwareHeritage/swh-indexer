@@ -40,7 +40,7 @@ def indexer_cli_group(ctx, config_file):
 
 def _get_api(getter, config, config_key, url):
     if url:
-        config[config_key] = {"cls": "remote", "args": {"url": url}}
+        config[config_key] = {"cls": "remote", "url": url}
     elif config_key not in config:
         raise click.ClickException("Missing configuration for {}".format(config_key))
     return getter(**config[config_key])
@@ -249,14 +249,28 @@ def journal_client(
     from swh.journal.client import get_journal_client
     from swh.scheduler import get_scheduler
 
-    scheduler = _get_api(get_scheduler, ctx.obj["config"], "scheduler", scheduler_url)
+    cfg = ctx.obj["config"]
+    journal_cfg = cfg.get("journal", {})
+
+    scheduler = _get_api(get_scheduler, cfg, "scheduler", scheduler_url)
+
+    brokers = brokers or journal_cfg.get("brokers")
+    if not brokers:
+        raise ValueError("The brokers configuration is mandatory.")
+
+    prefix = prefix or journal_cfg.get("prefix")
+    group_id = group_id or journal_cfg.get("group_id")
+    origin_metadata_task_type = origin_metadata_task_type or journal_cfg.get(
+        "origin_metadata_task_type"
+    )
+    stop_after_objects = stop_after_objects or journal_cfg.get("stop_after_objects")
 
     client = get_journal_client(
         cls="kafka",
         brokers=brokers,
         prefix=prefix,
         group_id=group_id,
-        object_types=["origin_visit"],
+        object_types=["origin_visit_status"],
         stop_after_objects=stop_after_objects,
     )
 
