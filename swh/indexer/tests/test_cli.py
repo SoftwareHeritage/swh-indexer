@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 from confluent_kafka import Consumer, Producer
+import pytest
 
 from swh.indexer.cli import indexer_cli_group
 from swh.indexer.storage.interface import IndexerStorageInterface
@@ -383,3 +384,14 @@ def test_journal_client(
     tasks = indexer_scheduler.search_tasks()
     assert len(tasks) == 1
     _assert_tasks_for_origins(tasks, [0])
+
+
+def test_journal_client_without_brokers(
+    storage, indexer_scheduler, kafka_prefix: str, kafka_server, consumer: Consumer
+):
+    """Without brokers configuration, the cli fails."""
+
+    with pytest.raises(ValueError, match="brokers"):
+        invoke(
+            indexer_scheduler, False, ["journal-client",],
+        )
