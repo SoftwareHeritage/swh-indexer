@@ -136,5 +136,6 @@ swh/indexer/tests/storage/test_converters.py
 swh/indexer/tests/storage/test_in_memory.py
 swh/indexer/tests/storage/test_init.py
 swh/indexer/tests/storage/test_metrics.py
+swh/indexer/tests/storage/test_model.py
 swh/indexer/tests/storage/test_server.py
 swh/indexer/tests/storage/test_storage.py

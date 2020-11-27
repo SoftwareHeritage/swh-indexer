@@ -55,12 +55,15 @@ class BaseRow:
         return cls(**d)  # type: ignore
 
     def unique_key(self) -> Dict:
-        if self.indexer_configuration_id is None:
-            raise ValueError(
-                "Can only call unique_key() on objects without "
-                "indexer_configuration_id."
-            )
-        return {key: getattr(self, key) for key in self.UNIQUE_KEY_FIELDS}
+        obj = self
+
+        # tool["id"] and obj.indexer_configuration_id are the same value, but
+        # only one of them is set for any given object
+        if obj.indexer_configuration_id is None:
+            assert obj.tool  # constructors ensures tool XOR indexer_configuration_id
+            obj = attr.evolve(obj, indexer_configuration_id=obj.tool["id"], tool=None)
+
+        return {key: getattr(obj, key) for key in self.UNIQUE_KEY_FIELDS}
 
 
 @attr.s
