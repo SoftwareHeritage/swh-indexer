@@ -1,8 +1,12 @@
-swh-indexer (0.6.2-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.6.3-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.6.3     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-11-27 14:42:30
+    +0100)
+  * Upstream changes:     - v0.6.3     - storage.writer: Fix journal
+    writer sanitizer function
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 27 Nov 2020 13:04:30 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 27 Nov 2020 13:46:03 +0000
 
 swh-indexer (0.6.2-1~swh1) unstable-swh; urgency=medium
 
