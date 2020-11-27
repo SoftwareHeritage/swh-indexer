@@ -25,15 +25,30 @@ from swh.indexer.tests.utils import (
 from swh.model.hashutil import hash_to_bytes
 
 
-def test_compute_mimetype_encoding():
-    """Compute mimetype encoding should return results"""
-    for _input, _mimetype, _encoding in [
+@pytest.mark.parametrize(
+    "raw_text,mimetype,encoding",
+    [
         ("du français".encode(), "text/plain", "utf-8"),
-        (b"def __init__(self):", "text/x-python", "us-ascii"),
+        (b"def __init__(self):", ("text/x-python", "text/x-script.python"), "us-ascii"),
         (b"\xff\xfe\x00\x00\x00\x00\xff\xfe\xff\xff", "application/octet-stream", ""),
-    ]:
-        actual_result = compute_mimetype_encoding(_input)
-        assert actual_result == {"mimetype": _mimetype, "encoding": _encoding}
+    ],
+)
+def test_compute_mimetype_encoding(raw_text, mimetype, encoding):
+    """Compute mimetype encoding should return results"""
+    actual_result = compute_mimetype_encoding(raw_text)
+    if isinstance(mimetype, tuple):
+        # New magic version can return different results, this deals with such a case
+        expected_result = {"mimetype": mimetype[0], "encoding": encoding}
+        # as a fallback
+        fallback_expected_result = {"mimetype": mimetype[1], "encoding": encoding}
+    else:
+        expected_result = {"mimetype": mimetype, "encoding": encoding}
+        fallback_expected_result = expected_result
+
+    try:
+        assert actual_result == expected_result
+    except AssertionError:
+        assert actual_result == fallback_expected_result
 
 
 CONFIG = {
