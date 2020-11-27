@@ -38,7 +38,8 @@ class JournalWriter:
                     "journal_writer feature"
                 )
             self.journal = get_journal_writer(
-                **journal_writer, value_sanitizer=lambda x: x
+                **journal_writer,
+                value_sanitizer=lambda object_type, value_dict: value_dict,
             )
         else:
             self.journal = None
