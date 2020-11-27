@@ -37,7 +37,9 @@ class JournalWriter:
                     "You need the swh.journal package to use the "
                     "journal_writer feature"
                 )
-            self.journal = get_journal_writer(**journal_writer)
+            self.journal = get_journal_writer(
+                **journal_writer, value_sanitizer=lambda x: x
+            )
         else:
             self.journal = None
 
