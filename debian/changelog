@@ -1,3 +1,15 @@
+swh-indexer (0.6.2-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.6.2     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2020-11-27 13:55:53
+    +0100)
+  * Upstream changes:     - v0.6.2     - BaseRow.unique_key: Don't crash
+    when indexer_configuration_id is None.     -
+    idx.storage.JournalWriter: pass value_sanitizer to
+    get_journal_writer.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 27 Nov 2020 13:00:28 +0000
+
 swh-indexer (0.6.1-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.6.1     - (tagged by Antoine R. Dumont
