@@ -536,3 +536,15 @@ class Db(BaseDb):
         )
 
         return cur.fetchone()
+
+    def indexer_configuration_get_from_id(self, id_, cur=None):
+        cur = self._cursor(cur)
+        cur.execute(
+            """select %s
+                       from indexer_configuration
+                       where id=%%s"""
+            % (",".join(self.indexer_configuration_cols)),
+            (id_,),
+        )
+
+        return cur.fetchone()

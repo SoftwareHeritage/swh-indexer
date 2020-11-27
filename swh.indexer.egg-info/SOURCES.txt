@@ -108,6 +108,7 @@ swh/indexer/storage/in_memory.py
 swh/indexer/storage/interface.py
 swh/indexer/storage/metrics.py
 swh/indexer/storage/model.py
+swh/indexer/storage/writer.py
 swh/indexer/storage/api/__init__.py
 swh/indexer/storage/api/client.py
 swh/indexer/storage/api/serializers.py

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 import attr
+from typing_extensions import Final
 
 from swh.model.model import Sha1Git, dictify
 
@@ -64,6 +65,8 @@ class BaseRow:
 
 @attr.s
 class ContentMimetypeRow(BaseRow):
+    object_type: Final = "content_mimetype"
+
     id = attr.ib(type=Sha1Git)
     mimetype = attr.ib(type=str)
     encoding = attr.ib(type=str)
@@ -71,12 +74,15 @@ class ContentMimetypeRow(BaseRow):
 
 @attr.s
 class ContentLanguageRow(BaseRow):
+    object_type: Final = "content_language"
+
     id = attr.ib(type=Sha1Git)
     lang = attr.ib(type=str)
 
 
 @attr.s
 class ContentCtagsRow(BaseRow):
+    object_type: Final = "content_ctags"
     UNIQUE_KEY_FIELDS = (
         "id",
         "indexer_configuration_id",
@@ -95,6 +101,7 @@ class ContentCtagsRow(BaseRow):
 
 @attr.s
 class ContentLicenseRow(BaseRow):
+    object_type: Final = "content_fossology_license"
     UNIQUE_KEY_FIELDS = ("id", "indexer_configuration_id", "license")
 
     id = attr.ib(type=Sha1Git)
@@ -103,12 +110,16 @@ class ContentLicenseRow(BaseRow):
 
 @attr.s
 class ContentMetadataRow(BaseRow):
+    object_type: Final = "content_metadata"
+
     id = attr.ib(type=Sha1Git)
     metadata = attr.ib(type=Dict[str, Any])
 
 
 @attr.s
 class RevisionIntrinsicMetadataRow(BaseRow):
+    object_type: Final = "revision_intrinsic_metadata"
+
     id = attr.ib(type=Sha1Git)
     metadata = attr.ib(type=Dict[str, Any])
     mappings = attr.ib(type=List[str])
@@ -116,6 +127,8 @@ class RevisionIntrinsicMetadataRow(BaseRow):
 
 @attr.s
 class OriginIntrinsicMetadataRow(BaseRow):
+    object_type: Final = "origin_intrinsic_metadata"
+
     id = attr.ib(type=str)
     metadata = attr.ib(type=Dict[str, Any])
     from_revision = attr.ib(type=Sha1Git)

@@ -13,9 +13,18 @@ from .test_storage import *  # noqa
 
 
 @pytest.fixture
-def app(swh_indexer_storage_postgresql):
-    server.storage = get_indexer_storage("local", db=swh_indexer_storage_postgresql.dsn)
-    return server.app
+def app_server(swh_indexer_storage_postgresql):
+    server.storage = get_indexer_storage(
+        "local",
+        db=swh_indexer_storage_postgresql.dsn,
+        journal_writer={"cls": "memory",},
+    )
+    yield server
+
+
+@pytest.fixture
+def app(app_server):
+    return app_server.app
 
 
 @pytest.fixture
@@ -27,9 +36,19 @@ def swh_rpc_client_class():
 
 
 @pytest.fixture
-def swh_indexer_storage(swh_rpc_client, app):
+def swh_indexer_storage(swh_rpc_client, app_server):
     # This version of the swh_storage fixture uses the swh_rpc_client fixture
     # to instantiate a RemoteStorage (see swh_rpc_client_class above) that
     # proxies, via the swh.core RPC mechanism, the local (in memory) storage
     # configured in the app fixture above.
-    return swh_rpc_client
+    #
+    # Also note that, for the sake of
+    # making it easier to write tests, the in-memory journal writer of the
+    # in-memory backend storage is attached to the RemoteStorage as its
+    # journal_writer attribute.
+    storage = swh_rpc_client
+
+    journal_writer = getattr(storage, "journal_writer", None)
+    storage.journal_writer = app_server.storage.journal_writer
+    yield storage
+    storage.journal_writer = journal_writer
