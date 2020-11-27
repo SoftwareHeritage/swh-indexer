@@ -25,15 +25,18 @@ from swh.indexer.tests.utils import (
 from swh.model.hashutil import hash_to_bytes
 
 
-def test_compute_mimetype_encoding():
-    """Compute mimetype encoding should return results"""
-    for _input, _mimetype, _encoding in [
+@pytest.mark.parametrize(
+    "raw_text,mimetype,encoding",
+    [
         ("du français".encode(), "text/plain", "utf-8"),
         (b"def __init__(self):", "text/x-python", "us-ascii"),
         (b"\xff\xfe\x00\x00\x00\x00\xff\xfe\xff\xff", "application/octet-stream", ""),
-    ]:
-        actual_result = compute_mimetype_encoding(_input)
-        assert actual_result == {"mimetype": _mimetype, "encoding": _encoding}
+    ],
+)
+def test_compute_mimetype_encoding(raw_text, mimetype, encoding):
+    """Compute mimetype encoding should return results"""
+    actual_result = compute_mimetype_encoding(raw_text)
+    assert actual_result == {"mimetype": mimetype, "encoding": encoding}
 
 
 CONFIG = {
