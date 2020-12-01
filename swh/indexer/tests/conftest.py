@@ -5,12 +5,15 @@
 
 from datetime import timedelta
 import os
+from os import path
 from typing import List, Tuple
 from unittest.mock import patch
 
 import pytest
 import yaml
 
+from swh.core.db.pytest_plugin import postgresql_fact
+import swh.indexer
 from swh.indexer.storage import get_indexer_storage
 from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
@@ -22,6 +25,14 @@ TASK_NAMES: List[Tuple[str, str]] = [
     ("index-revision-metadata", "revision_intrinsic_metadata"),
     ("index-origin-metadata", "origin_intrinsic_metadata"),
 ]
+
+
+SQL_FILES = path.join(path.dirname(swh.indexer.__file__), "sql", "*.sql")
+
+
+idx_storage_postgresql = postgresql_fact(
+    "postgresql_proc", db_name="indexer_storage", dump_files=SQL_FILES,
+)
 
 
 @pytest.fixture
@@ -43,50 +54,26 @@ def indexer_scheduler(swh_scheduler):
 
 
 @pytest.fixture
-def idx_storage():
-    """An instance of in-memory indexer storage that gets injected into all
-    indexers classes.
+def idx_storage_backend_config(idx_storage_postgresql):
+    """Basic pg storage configuration with no journal collaborator for the indexer
+    storage (to avoid pulling optional dependency on clients of this fixture)
 
     """
-    idx_storage = get_indexer_storage("memory")
-    with patch("swh.indexer.storage.in_memory.IndexerStorage") as idx_storage_mock:
-        idx_storage_mock.return_value = idx_storage
-        yield idx_storage
-
-
-@pytest.fixture
-def storage():
-    """An instance of in-memory storage that gets injected into all indexers
-       classes.
-
-    """
-    storage = get_storage(cls="memory")
-    fill_storage(storage)
-    with patch("swh.storage.in_memory.InMemoryStorage") as storage_mock:
-        storage_mock.return_value = storage
-        yield storage
-
-
-@pytest.fixture
-def obj_storage():
-    """An instance of in-memory objstorage that gets injected into all indexers
-    classes.
-
-    """
-    objstorage = get_objstorage("memory")
-    fill_obj_storage(objstorage)
-    with patch.dict(
-        "swh.objstorage.factory._STORAGE_CLASSES", {"memory": lambda: objstorage}
-    ):
-        yield objstorage
-
-
-@pytest.fixture
-def swh_indexer_config():
     return {
-        "storage": {"cls": "memory"},
+        "cls": "local",
+        "db": idx_storage_postgresql.dsn,
+    }
+
+
+@pytest.fixture
+def swh_indexer_config(
+    swh_storage_backend_config, idx_storage_backend_config, swh_scheduler_config
+):
+    return {
+        "storage": swh_storage_backend_config,
         "objstorage": {"cls": "memory"},
-        "indexer_storage": {"cls": "memory"},
+        "indexer_storage": idx_storage_backend_config,
+        "scheduler": {"cls": "local", **swh_scheduler_config},
         "tools": {
             "name": "file",
             "version": "1:5.30-1+deb9u1",
@@ -94,6 +81,41 @@ def swh_indexer_config():
         },
         "compute_checksums": ["blake2b512"],  # for rehash indexer
     }
+
+
+@pytest.fixture
+def idx_storage(swh_indexer_config):
+    """An instance of in-memory indexer storage that gets injected into all
+    indexers classes.
+
+    """
+    idx_storage_config = swh_indexer_config["indexer_storage"]
+    return get_indexer_storage(**idx_storage_config)
+
+
+@pytest.fixture
+def storage(swh_indexer_config):
+    """An instance of in-memory storage that gets injected into all indexers
+       classes.
+
+    """
+    storage = get_storage(**swh_indexer_config["storage"])
+    fill_storage(storage)
+    return storage
+
+
+@pytest.fixture
+def obj_storage(swh_indexer_config):
+    """An instance of in-memory objstorage that gets injected into all indexers
+    classes.
+
+    """
+    objstorage = get_objstorage(**swh_indexer_config["objstorage"])
+    fill_obj_storage(objstorage)
+    with patch.dict(
+        "swh.objstorage.factory._STORAGE_CLASSES", {"memory": lambda: objstorage}
+    ):
+        yield objstorage
 
 
 @pytest.fixture

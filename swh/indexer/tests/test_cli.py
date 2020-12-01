@@ -5,7 +5,6 @@
 
 from functools import reduce
 import re
-import tempfile
 from typing import Any, Dict, List
 from unittest.mock import patch
 
@@ -22,16 +21,6 @@ from swh.indexer.storage.model import (
 from swh.journal.serializers import value_to_kafka
 from swh.model.hashutil import hash_to_bytes
 
-CLI_CONFIG = """
-scheduler:
-    cls: foo
-    args: {}
-storage:
-    cls: memory
-indexer_storage:
-    cls: memory
-"""
-
 
 def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List[int]:
     tools: List[Dict[str, Any]] = [
@@ -43,7 +32,7 @@ def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List
     origin_metadata = [
         OriginIntrinsicMetadataRow(
             id="file://dev/%04d" % origin_id,
-            from_revision=hash_to_bytes("abcd{:0>4}".format(origin_id)),
+            from_revision=hash_to_bytes("abcd{:0>36}".format(origin_id)),
             indexer_configuration_id=tools[origin_id % 2]["id"],
             metadata={"name": "origin %d" % origin_id},
             mappings=["mapping%d" % (origin_id % 10)],
@@ -52,7 +41,7 @@ def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List
     ]
     revision_metadata = [
         RevisionIntrinsicMetadataRow(
-            id=hash_to_bytes("abcd{:0>4}".format(origin_id)),
+            id=hash_to_bytes("abcd{:0>36}".format(origin_id)),
             indexer_configuration_id=tools[origin_id % 2]["id"],
             metadata={"name": "origin %d" % origin_id},
             mappings=["mapping%d" % (origin_id % 10)],
@@ -83,25 +72,17 @@ def _assert_tasks_for_origins(tasks, origins):
     assert _origins_in_task_args(tasks) == set(["file://dev/%04d" % i for i in origins])
 
 
-def invoke(scheduler, catch_exceptions, args):
-    runner = CliRunner()
-    with patch(
-        "swh.scheduler.get_scheduler"
-    ) as get_scheduler_mock, tempfile.NamedTemporaryFile(
-        "a", suffix=".yml"
-    ) as config_fd:
-        config_fd.write(CLI_CONFIG)
-        config_fd.seek(0)
-        get_scheduler_mock.return_value = scheduler
-        result = runner.invoke(indexer_cli_group, ["-C" + config_fd.name] + args)
-    if not catch_exceptions and result.exception:
-        print(result.output)
-        raise result.exception
-    return result
+@pytest.fixture
+def cli_runner():
+    return CliRunner()
 
 
-def test_mapping_list(indexer_scheduler):
-    result = invoke(indexer_scheduler, False, ["mapping", "list",])
+def test_cli_mapping_list(cli_runner, swh_config):
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        ["-C", swh_config, "mapping", "list"],
+        catch_exceptions=False,
+    )
     expected_output = "\n".join(
         ["codemeta", "gemspec", "maven", "npm", "pkg-info", "",]
     )
@@ -109,8 +90,12 @@ def test_mapping_list(indexer_scheduler):
     assert result.output == expected_output
 
 
-def test_mapping_list_terms(indexer_scheduler):
-    result = invoke(indexer_scheduler, False, ["mapping", "list-terms",])
+def test_cli_mapping_list_terms(cli_runner, swh_config):
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        ["-C", swh_config, "mapping", "list-terms"],
+        catch_exceptions=False,
+    )
     assert result.exit_code == 0, result.output
     assert re.search(r"http://schema.org/url:\n.*npm", result.output)
     assert re.search(r"http://schema.org/url:\n.*codemeta", result.output)
@@ -120,11 +105,11 @@ def test_mapping_list_terms(indexer_scheduler):
     )
 
 
-def test_mapping_list_terms_exclude(indexer_scheduler):
-    result = invoke(
-        indexer_scheduler,
-        False,
-        ["mapping", "list-terms", "--exclude-mapping", "codemeta"],
+def test_cli_mapping_list_terms_exclude(cli_runner, swh_config):
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        ["-C", swh_config, "mapping", "list-terms", "--exclude-mapping", "codemeta"],
+        catch_exceptions=False,
     )
     assert result.exit_code == 0, result.output
     assert re.search(r"http://schema.org/url:\n.*npm", result.output)
@@ -137,8 +122,14 @@ def test_mapping_list_terms_exclude(indexer_scheduler):
 
 @patch("swh.scheduler.cli.utils.TASK_BATCH_SIZE", 3)
 @patch("swh.scheduler.cli_utils.TASK_BATCH_SIZE", 3)
-def test_origin_metadata_reindex_empty_db(indexer_scheduler, idx_storage, storage):
-    result = invoke(indexer_scheduler, False, ["schedule", "reindex_origin_metadata",])
+def test_cli_origin_metadata_reindex_empty_db(
+    cli_runner, swh_config, indexer_scheduler, idx_storage, storage
+):
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        ["-C", swh_config, "schedule", "reindex_origin_metadata",],
+        catch_exceptions=False,
+    )
     expected_output = "Nothing to do (no origin metadata matched the criteria).\n"
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
@@ -148,12 +139,18 @@ def test_origin_metadata_reindex_empty_db(indexer_scheduler, idx_storage, storag
 
 @patch("swh.scheduler.cli.utils.TASK_BATCH_SIZE", 3)
 @patch("swh.scheduler.cli_utils.TASK_BATCH_SIZE", 3)
-def test_origin_metadata_reindex_divisor(indexer_scheduler, idx_storage, storage):
+def test_cli_origin_metadata_reindex_divisor(
+    cli_runner, swh_config, indexer_scheduler, idx_storage, storage
+):
     """Tests the re-indexing when origin_batch_size*task_batch_size is a
     divisor of nb_origins."""
     fill_idx_storage(idx_storage, 90)
 
-    result = invoke(indexer_scheduler, False, ["schedule", "reindex_origin_metadata",])
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        ["-C", swh_config, "schedule", "reindex_origin_metadata",],
+        catch_exceptions=False,
+    )
 
     # Check the output
     expected_output = (
@@ -173,13 +170,17 @@ def test_origin_metadata_reindex_divisor(indexer_scheduler, idx_storage, storage
 
 @patch("swh.scheduler.cli.utils.TASK_BATCH_SIZE", 3)
 @patch("swh.scheduler.cli_utils.TASK_BATCH_SIZE", 3)
-def test_origin_metadata_reindex_dry_run(indexer_scheduler, idx_storage, storage):
+def test_cli_origin_metadata_reindex_dry_run(
+    cli_runner, swh_config, indexer_scheduler, idx_storage, storage
+):
     """Tests the re-indexing when origin_batch_size*task_batch_size is a
     divisor of nb_origins."""
     fill_idx_storage(idx_storage, 90)
 
-    result = invoke(
-        indexer_scheduler, False, ["schedule", "--dry-run", "reindex_origin_metadata",]
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        ["-C", swh_config, "schedule", "--dry-run", "reindex_origin_metadata",],
+        catch_exceptions=False,
     )
 
     # Check the output
@@ -199,15 +200,24 @@ def test_origin_metadata_reindex_dry_run(indexer_scheduler, idx_storage, storage
 
 @patch("swh.scheduler.cli.utils.TASK_BATCH_SIZE", 3)
 @patch("swh.scheduler.cli_utils.TASK_BATCH_SIZE", 3)
-def test_origin_metadata_reindex_nondivisor(indexer_scheduler, idx_storage, storage):
+def test_cli_origin_metadata_reindex_nondivisor(
+    cli_runner, swh_config, indexer_scheduler, idx_storage, storage
+):
     """Tests the re-indexing when neither origin_batch_size or
     task_batch_size is a divisor of nb_origins."""
     fill_idx_storage(idx_storage, 70)
 
-    result = invoke(
-        indexer_scheduler,
-        False,
-        ["schedule", "reindex_origin_metadata", "--batch-size", "20",],
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config,
+            "schedule",
+            "reindex_origin_metadata",
+            "--batch-size",
+            "20",
+        ],
+        catch_exceptions=False,
     )
 
     # Check the output
@@ -227,17 +237,24 @@ def test_origin_metadata_reindex_nondivisor(indexer_scheduler, idx_storage, stor
 
 @patch("swh.scheduler.cli.utils.TASK_BATCH_SIZE", 3)
 @patch("swh.scheduler.cli_utils.TASK_BATCH_SIZE", 3)
-def test_origin_metadata_reindex_filter_one_mapping(
-    indexer_scheduler, idx_storage, storage
+def test_cli_origin_metadata_reindex_filter_one_mapping(
+    cli_runner, swh_config, indexer_scheduler, idx_storage, storage
 ):
     """Tests the re-indexing when origin_batch_size*task_batch_size is a
     divisor of nb_origins."""
     fill_idx_storage(idx_storage, 110)
 
-    result = invoke(
-        indexer_scheduler,
-        False,
-        ["schedule", "reindex_origin_metadata", "--mapping", "mapping1",],
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config,
+            "schedule",
+            "reindex_origin_metadata",
+            "--mapping",
+            "mapping1",
+        ],
+        catch_exceptions=False,
     )
 
     # Check the output
@@ -253,17 +270,18 @@ def test_origin_metadata_reindex_filter_one_mapping(
 
 @patch("swh.scheduler.cli.utils.TASK_BATCH_SIZE", 3)
 @patch("swh.scheduler.cli_utils.TASK_BATCH_SIZE", 3)
-def test_origin_metadata_reindex_filter_two_mappings(
-    indexer_scheduler, idx_storage, storage
+def test_cli_origin_metadata_reindex_filter_two_mappings(
+    cli_runner, swh_config, indexer_scheduler, idx_storage, storage
 ):
     """Tests the re-indexing when origin_batch_size*task_batch_size is a
     divisor of nb_origins."""
     fill_idx_storage(idx_storage, 110)
 
-    result = invoke(
-        indexer_scheduler,
-        False,
+    result = cli_runner.invoke(
+        indexer_cli_group,
         [
+            "--config-file",
+            swh_config,
             "schedule",
             "reindex_origin_metadata",
             "--mapping",
@@ -271,6 +289,7 @@ def test_origin_metadata_reindex_filter_two_mappings(
             "--mapping",
             "mapping2",
         ],
+        catch_exceptions=False,
     )
 
     # Check the output
@@ -312,17 +331,24 @@ def test_origin_metadata_reindex_filter_two_mappings(
 
 @patch("swh.scheduler.cli.utils.TASK_BATCH_SIZE", 3)
 @patch("swh.scheduler.cli_utils.TASK_BATCH_SIZE", 3)
-def test_origin_metadata_reindex_filter_one_tool(
-    indexer_scheduler, idx_storage, storage
+def test_cli_origin_metadata_reindex_filter_one_tool(
+    cli_runner, swh_config, indexer_scheduler, idx_storage, storage
 ):
     """Tests the re-indexing when origin_batch_size*task_batch_size is a
     divisor of nb_origins."""
     tool_ids = fill_idx_storage(idx_storage, 110)
 
-    result = invoke(
-        indexer_scheduler,
-        False,
-        ["schedule", "reindex_origin_metadata", "--tool-id", str(tool_ids[0]),],
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config,
+            "schedule",
+            "reindex_origin_metadata",
+            "--tool-id",
+            str(tool_ids[0]),
+        ],
+        catch_exceptions=False,
     )
 
     # Check the output
@@ -340,8 +366,13 @@ def test_origin_metadata_reindex_filter_one_tool(
     _assert_tasks_for_origins(tasks, [x * 2 for x in range(55)])
 
 
-def test_journal_client(
-    storage, indexer_scheduler, kafka_prefix: str, kafka_server, consumer: Consumer
+def test_cli_journal_client(
+    cli_runner,
+    swh_config,
+    indexer_scheduler,
+    kafka_prefix: str,
+    kafka_server,
+    consumer: Consumer,
 ):
     """Test the 'swh indexer journal-client' cli tool."""
     producer = Producer(
@@ -359,10 +390,11 @@ def test_journal_client(
         value=value_to_kafka(STATUS),
     )
 
-    result = invoke(
-        indexer_scheduler,
-        False,
+    result = cli_runner.invoke(
+        indexer_cli_group,
         [
+            "-C",
+            swh_config,
             "journal-client",
             "--stop-after-objects",
             "1",
@@ -373,6 +405,7 @@ def test_journal_client(
             "--group-id",
             "test-consumer",
         ],
+        catch_exceptions=False,
     )
 
     # Check the output
@@ -386,12 +419,14 @@ def test_journal_client(
     _assert_tasks_for_origins(tasks, [0])
 
 
-def test_journal_client_without_brokers(
-    storage, indexer_scheduler, kafka_prefix: str, kafka_server, consumer: Consumer
+def test_cli_journal_client_without_brokers(
+    cli_runner, swh_config, kafka_prefix: str, kafka_server, consumer: Consumer
 ):
     """Without brokers configuration, the cli fails."""
 
     with pytest.raises(ValueError, match="brokers"):
-        invoke(
-            indexer_scheduler, False, ["journal-client",],
+        cli_runner.invoke(
+            indexer_cli_group,
+            ["-C", swh_config, "journal-client",],
+            catch_exceptions=False,
         )
