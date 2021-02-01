@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 from unittest.mock import Mock
 
 import pytest
@@ -36,8 +36,8 @@ class CrashingIndexerMixin:
         return {}
 
     def indexed_contents_in_partition(
-        self, partition_id: int, nb_partitions: int, page_token: Optional[str] = None
-    ) -> PagedResult[Sha1]:
+        self, partition_id: int, nb_partitions: int
+    ) -> Iterable[Sha1]:
         raise _TestException()
 
 
@@ -64,14 +64,9 @@ class TrivialContentPartitionIndexer(ContentPartitionIndexer[str]):
         return ["indexed " + id.decode()]
 
     def indexed_contents_in_partition(
-        self, partition_id: int, nb_partitions: int, page_token: Optional[str] = None
-    ) -> PagedResult[Sha1]:
-        if page_token is None:
-            return PagedResult(results=[b"excluded hash"], next_page_token="not none")
-        elif page_token == "not none":
-            return PagedResult(results=[b"other excluded hash"], next_page_token=None)
-        else:
-            assert False, page_token
+        self, partition_id: int, nb_partitions: int
+    ) -> Iterable[Sha1]:
+        return iter([b"excluded hash", b"other excluded hash"])
 
     def persist_index_computations(self, results: List[str]) -> Dict[str, int]:
         self._results.append(results)  # type: ignore
