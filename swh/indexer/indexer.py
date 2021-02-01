@@ -437,10 +437,11 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
             )
             for sha1 in indexed_page.results:
                 contents.add(sha1)
-            yield from self._index_contents(partition_id, nb_partitions, contents)
             next_page_token = indexed_page.next_page_token
             if next_page_token is None:
                 break
+
+        return self._index_contents(partition_id, nb_partitions, contents)
 
     def run(
         self,
