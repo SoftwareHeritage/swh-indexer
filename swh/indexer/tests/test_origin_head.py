@@ -50,6 +50,14 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
         self.results = results
 
 
+SAMPLE_SNAPSHOT = Snapshot(
+    branches={
+        b"foo": None,
+        b"HEAD": SnapshotBranch(target_type=TargetType.ALIAS, target=b"foo",),
+    },
+)
+
+
 class OriginHead(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def init(self, swh_config):
@@ -79,24 +87,13 @@ class OriginHead(unittest.TestCase):
                 )
             ]
         )[0]
-        self.indexer.storage.snapshot_add(
-            [
-                Snapshot(
-                    branches={
-                        b"foo": None,
-                        b"HEAD": SnapshotBranch(
-                            target_type=TargetType.ALIAS, target=b"foo",
-                        ),
-                    },
-                ),
-            ]
-        )
+        self.indexer.storage.snapshot_add([SAMPLE_SNAPSHOT])
         visit_status = OriginVisitStatus(
             origin=origin_url,
             visit=visit.visit,
             date=now(),
             status="partial",
-            snapshot=b"foo",
+            snapshot=SAMPLE_SNAPSHOT.id,
         )
         self.indexer.storage.origin_visit_status_add([visit_status])
         self.indexer.run([origin_url])
@@ -120,24 +117,13 @@ class OriginHead(unittest.TestCase):
                 )
             ]
         )[0]
-        self.indexer.storage.snapshot_add(
-            [
-                Snapshot(
-                    branches={
-                        b"foo": None,
-                        b"HEAD": SnapshotBranch(
-                            target_type=TargetType.ALIAS, target=b"foo",
-                        ),
-                    },
-                )
-            ]
-        )
+        self.indexer.storage.snapshot_add([SAMPLE_SNAPSHOT])
         visit_status = OriginVisitStatus(
             origin=origin_url,
             visit=visit.visit,
             date=now(),
             status="full",
-            snapshot=b"foo",
+            snapshot=SAMPLE_SNAPSHOT.id,
         )
         self.indexer.storage.origin_visit_status_add([visit_status])
         self.indexer.run(["https://pypi.org/project/abcdef/"])

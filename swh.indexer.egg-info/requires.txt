@@ -3,7 +3,7 @@ python-magic>=0.4.13
 pyld
 xmltodict
 typing-extensions
-swh.core[db,http]>=0.3
+swh.core[db,http]>=0.9.1
 swh.model>=0.0.15
 swh.objstorage>=0.2.2
 swh.scheduler>=0.5.2

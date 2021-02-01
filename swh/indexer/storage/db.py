@@ -487,10 +487,10 @@ class Db(BaseDb):
             args.append(last)
         if mappings is not None:
             where.append("oim.mappings && %s")
-            args.append(mappings)
+            args.append(list(mappings))
         if tool_ids is not None:
             where.append("oim.indexer_configuration_id = ANY(%s)")
-            args.append(tool_ids)
+            args.append(list(tool_ids))
         if where:
             query_parts.append("WHERE")
             query_parts.append(" AND ".join(where))

@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2020  The Software Heritage developers
+# Copyright (C) 2016-2021  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -9,12 +9,23 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Any, Dict, Generic, Iterator, List, Optional, Set, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    TypeVar,
+    Union,
+)
 import warnings
 
 from swh.core import utils
 from swh.core.config import load_from_envvar, merge_configs
-from swh.indexer.storage import INDEXER_CFG_KEY, PagedResult, Sha1, get_indexer_storage
+from swh.indexer.storage import INDEXER_CFG_KEY, Sha1, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model import hashutil
 from swh.model.model import Revision, Sha1Git
@@ -344,8 +355,8 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
 
     @abc.abstractmethod
     def indexed_contents_in_partition(
-        self, partition_id: int, nb_partitions: int, page_token: Optional[str] = None
-    ) -> PagedResult[Sha1]:
+        self, partition_id: int, nb_partitions: int
+    ) -> Iterable[Sha1]:
         """Retrieve indexed contents within range [start, end].
 
         Args:
@@ -353,16 +364,12 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
             nb_partitions: Total number of partitions to split into
             page_token: opaque token used for pagination
 
-        Returns:
-            PagedResult of Sha1. If next_page_token is None, there is no more data
-            to fetch
-
         """
         pass
 
     def _list_contents_to_index(
         self, partition_id: int, nb_partitions: int, indexed: Set[Sha1]
-    ) -> Iterator[Sha1]:
+    ) -> Iterable[Sha1]:
         """Compute from storage the new contents to index in the partition_id . The already
            indexed contents are skipped.
 
@@ -429,18 +436,13 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
            indexing result as dict to persist in the indexer backend
 
         """
-        next_page_token = None
-        contents = set()
-        while True:
-            indexed_page = self.indexed_contents_in_partition(
-                partition_id, nb_partitions, page_token=next_page_token
-            )
-            for sha1 in indexed_page.results:
-                contents.add(sha1)
-            yield from self._index_contents(partition_id, nb_partitions, contents)
-            next_page_token = indexed_page.next_page_token
-            if next_page_token is None:
-                break
+        already_indexed_contents = set(
+            self.indexed_contents_in_partition(partition_id, nb_partitions)
+        )
+
+        return self._index_contents(
+            partition_id, nb_partitions, already_indexed_contents
+        )
 
     def run(
         self,
