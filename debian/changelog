@@ -1,3 +1,18 @@
+swh-indexer (0.6.4-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.6.4     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2021-02-01 15:06:04
+    +0100)
+  * Upstream changes:     - v0.6.4     - indexer: Remove pagination
+    logic using stream_results() instead.     - ContentPartitionIndexer:
+    Do not index the same content multiple times at once.     - Add a
+    cli section in the doc     - test_journal_client_cli: Send
+    production objects to journal     - test_journal_client: Migrate
+    away from mocks     - tests: Use production backends within the
+    indexer tests
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 01 Feb 2021 14:10:18 +0000
+
 swh-indexer (0.6.3-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.6.3     - (tagged by Antoine R. Dumont
