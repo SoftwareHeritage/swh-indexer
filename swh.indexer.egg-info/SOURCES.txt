@@ -23,6 +23,7 @@ docs/.gitignore
 docs/Makefile
 docs/Makefile.local
 docs/README.md
+docs/cli.rst
 docs/conf.py
 docs/dev-info.rst
 docs/index.rst

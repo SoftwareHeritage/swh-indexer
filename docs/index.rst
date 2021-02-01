@@ -22,4 +22,5 @@ Reference Documentation
 .. toctree::
    :maxdepth: 2
 
+   cli
    /apidoc/swh.indexer
