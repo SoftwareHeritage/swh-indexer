@@ -34,18 +34,17 @@ class OriginHeadIndexer(OriginIndexer[Dict]):
 
     def index(self, id: str, data: None = None, **kwargs) -> List[Dict]:
         origin_url = id
-        visit_and_status = origin_get_latest_visit_status(
+        visit_status = origin_get_latest_visit_status(
             self.storage, origin_url, allowed_statuses=["full"], require_snapshot=True
         )
-        if not visit_and_status:
+        if not visit_status:
             return []
-        visit, visit_status = visit_and_status
         assert visit_status.snapshot is not None
         snapshot = snapshot_get_all_branches(self.storage, visit_status.snapshot)
         if snapshot is None:
             return []
         method = getattr(
-            self, "_try_get_%s_head" % visit.type, self._try_get_head_generic
+            self, "_try_get_%s_head" % visit_status.type, self._try_get_head_generic
         )
 
         rev_id = method(snapshot.branches)
