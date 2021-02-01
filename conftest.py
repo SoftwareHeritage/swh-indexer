@@ -16,8 +16,12 @@ settings.register_profile("slow", max_examples=20, deadline=5000)
 # loading)
 collect_ignore = ["swh/indexer/storage/api/wsgi.py"]
 
-# we use the swh_scheduler fixture
-pytest_plugins = ["swh.scheduler.pytest_plugin"]
+# we use the various swh fixtures
+pytest_plugins = [
+    "swh.scheduler.pytest_plugin",
+    "swh.storage.pytest_plugin",
+    "swh.core.db.pytest_plugin",
+]
 
 
 @pytest.fixture(scope="session")

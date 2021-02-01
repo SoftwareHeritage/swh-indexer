@@ -3,7 +3,10 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import copy
 from unittest.mock import patch
+
+import pytest
 
 from swh.indexer.metadata import OriginMetadataIndexer
 from swh.indexer.storage.interface import IndexerStorageInterface
@@ -14,23 +17,31 @@ from swh.indexer.storage.model import (
 from swh.model.model import Origin
 from swh.storage.interface import StorageInterface
 
-from .test_metadata import REVISION_METADATA_CONFIG
+from .test_metadata import TRANSLATOR_TOOL
 from .utils import REVISION, YARN_PARSER_METADATA
 
 
-def test_origin_metadata_indexer(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
-) -> None:
+@pytest.fixture
+def swh_indexer_config(swh_indexer_config):
+    """Override the default configuration to override the tools entry
 
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    """
+    cfg = copy.deepcopy(swh_indexer_config)
+    cfg["tools"] = TRANSLATOR_TOOL
+    return cfg
+
+
+def test_origin_metadata_indexer(
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
+) -> None:
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
     indexer.run([origin])
 
-    tool = {
-        "name": "swh-metadata-translator",
-        "version": "0.0.2",
-        "configuration": {"context": "NpmMapping", "type": "local"},
-    }
+    tool = swh_indexer_config["tools"]
 
     rev_id = REVISION.id
     rev_metadata = RevisionIntrinsicMetadataRow(
@@ -44,13 +55,13 @@ def test_origin_metadata_indexer(
         mappings=["npm"],
     )
 
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
+    rev_results = list(idx_storage.revision_intrinsic_metadata_get([rev_id]))
     for rev_result in rev_results:
         assert rev_result.tool
         del rev_result.tool["id"]
     assert rev_results == [rev_metadata]
 
-    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    orig_results = list(idx_storage.origin_intrinsic_metadata_get([origin]))
     for orig_result in orig_results:
         assert orig_result.tool
         del orig_result.tool["id"]
@@ -58,9 +69,12 @@ def test_origin_metadata_indexer(
 
 
 def test_origin_metadata_indexer_duplicate_origin(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     indexer.storage = storage
     indexer.idx_storage = idx_storage
     indexer.run(["https://github.com/librariesio/yarn-parser"])
@@ -77,11 +91,14 @@ def test_origin_metadata_indexer_duplicate_origin(
 
 
 def test_origin_metadata_indexer_missing_head(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
 ) -> None:
     storage.origin_add([Origin(url="https://example.com")])
 
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     indexer.run(["https://example.com"])
 
     origin = "https://example.com"
@@ -91,13 +108,16 @@ def test_origin_metadata_indexer_missing_head(
 
 
 def test_origin_metadata_indexer_partial_missing_head(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
 ) -> None:
 
     origin1 = "https://example.com"
     origin2 = "https://github.com/librariesio/yarn-parser"
     storage.origin_add([Origin(url=origin1)])
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     indexer.run([origin1, origin2])
 
     rev_id = REVISION.id
@@ -128,9 +148,12 @@ def test_origin_metadata_indexer_partial_missing_head(
 
 
 def test_origin_metadata_indexer_duplicate_revision(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     indexer.storage = storage
     indexer.idx_storage = idx_storage
     indexer.catch_exceptions = False
@@ -150,10 +173,13 @@ def test_origin_metadata_indexer_duplicate_revision(
 
 
 def test_origin_metadata_indexer_no_metadata_file(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
 ) -> None:
 
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch("swh.indexer.metadata_dictionary.npm.NpmMapping.filename", b"foo.json"):
         indexer.run([origin])
@@ -168,10 +194,13 @@ def test_origin_metadata_indexer_no_metadata_file(
 
 
 def test_origin_metadata_indexer_no_metadata(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
 ) -> None:
 
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch(
         "swh.indexer.metadata.RevisionMetadataIndexer"
@@ -190,10 +219,13 @@ def test_origin_metadata_indexer_no_metadata(
 
 
 def test_origin_metadata_indexer_error(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
 ) -> None:
 
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch(
         "swh.indexer.metadata.RevisionMetadataIndexer"
@@ -212,9 +244,12 @@ def test_origin_metadata_indexer_error(
 
 
 def test_origin_metadata_indexer_unknown_origin(
-    idx_storage: IndexerStorageInterface, storage: StorageInterface, obj_storage
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
 ) -> None:
 
-    indexer = OriginMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
     result = indexer.index_list(["https://unknown.org/foo"])
     assert not result

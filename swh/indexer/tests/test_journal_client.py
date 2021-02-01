@@ -3,66 +3,59 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from typing import Dict, List
+from unittest.mock import patch
 
-from unittest.mock import Mock, patch
+import pytest
 
 from swh.indexer.journal_client import process_journal_objects
+from swh.scheduler.interface import SchedulerInterface
 
 
-def test_one_origin_visit_status():
-    mock_scheduler = Mock()
-    messages = {
-        "origin_visit_status": [{"status": "full", "origin": "file:///dev/zero",},]
-    }
+def search_tasks(indexer_scheduler: SchedulerInterface, task_type) -> List[Dict]:
+    tasks = indexer_scheduler.search_tasks(task_type=task_type)
+
+    keys_not_to_compare = ["next_run", "current_interval", "id", "priority", "status"]
+
+    result_tasks = []
+    for task in tasks:
+        task = dict(task)
+
+        for key in keys_not_to_compare:
+            del task[key]
+
+        result_tasks.append(task)
+
+    return result_tasks
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "file:///dev/zero",  # current format
+        {"url": "file:///dev/zero",},  # legacy format
+    ],
+)
+def test_journal_client_origin_visit_status(origin, indexer_scheduler):
+    messages = {"origin_visit_status": [{"status": "full", "origin": origin},]}
     process_journal_objects(
-        messages, scheduler=mock_scheduler, task_names={"origin_metadata": "task-name"},
+        messages,
+        scheduler=indexer_scheduler,
+        task_names={"origin_metadata": "index-origin-metadata"},
     )
-    assert mock_scheduler.create_tasks.called is True
-    call_args = mock_scheduler.create_tasks.call_args
-    (args, kwargs) = call_args
-    assert kwargs == {}
-    del args[0][0]["next_run"]
-    assert args == (
-        [
-            {
-                "arguments": {"kwargs": {}, "args": (["file:///dev/zero"],),},
-                "policy": "oneshot",
-                "type": "task-name",
-                "retries_left": 1,
-            },
-        ],
-    )
+    actual_tasks = search_tasks(indexer_scheduler, task_type="index-origin-metadata")
+
+    assert actual_tasks == [
+        {
+            "arguments": {"kwargs": {}, "args": [["file:///dev/zero"]],},
+            "policy": "oneshot",
+            "type": "index-origin-metadata",
+            "retries_left": 1,
+        }
+    ]
 
 
-def test_origin_visit_legacy():
-    mock_scheduler = Mock()
-    messages = {
-        "origin_visit_status": [
-            {"status": "full", "origin": {"url": "file:///dev/zero",}},
-        ]
-    }
-    process_journal_objects(
-        messages, scheduler=mock_scheduler, task_names={"origin_metadata": "task-name"},
-    )
-    assert mock_scheduler.create_tasks.called is True
-    call_args = mock_scheduler.create_tasks.call_args
-    (args, kwargs) = call_args
-    assert kwargs == {}
-    del args[0][0]["next_run"]
-    assert args == (
-        [
-            {
-                "arguments": {"kwargs": {}, "args": (["file:///dev/zero"],),},
-                "policy": "oneshot",
-                "type": "task-name",
-                "retries_left": 1,
-            },
-        ],
-    )
-
-
-def test_one_origin_visit_batch():
-    mock_scheduler = Mock()
+def test_journal_client_one_origin_visit_batch(indexer_scheduler):
     messages = {
         "origin_visit_status": [
             {"status": "full", "origin": "file:///dev/zero",},
@@ -70,31 +63,27 @@ def test_one_origin_visit_batch():
         ]
     }
     process_journal_objects(
-        messages, scheduler=mock_scheduler, task_names={"origin_metadata": "task-name"},
+        messages,
+        scheduler=indexer_scheduler,
+        task_names={"origin_metadata": "index-origin-metadata"},
     )
-    assert mock_scheduler.create_tasks.called is True
-    call_args = mock_scheduler.create_tasks.call_args
-    (args, kwargs) = call_args
-    assert kwargs == {}
-    del args[0][0]["next_run"]
-    assert args == (
-        [
-            {
-                "arguments": {
-                    "kwargs": {},
-                    "args": (["file:///dev/zero", "file:///tmp/foobar"],),
-                },
-                "policy": "oneshot",
-                "type": "task-name",
-                "retries_left": 1,
+
+    actual_tasks = search_tasks(indexer_scheduler, task_type="index-origin-metadata")
+    assert actual_tasks == [
+        {
+            "arguments": {
+                "kwargs": {},
+                "args": [["file:///dev/zero", "file:///tmp/foobar"]],
             },
-        ],
-    )
+            "policy": "oneshot",
+            "type": "index-origin-metadata",
+            "retries_left": 1,
+        }
+    ]
 
 
 @patch("swh.indexer.journal_client.MAX_ORIGINS_PER_TASK", 2)
-def test_origin_visit_batches():
-    mock_scheduler = Mock()
+def test_journal_client_origin_visit_batches(indexer_scheduler):
     messages = {
         "origin_visit_status": [
             {"status": "full", "origin": "file:///dev/zero",},
@@ -103,30 +92,25 @@ def test_origin_visit_batches():
         ]
     }
     process_journal_objects(
-        messages, scheduler=mock_scheduler, task_names={"origin_metadata": "task-name"},
+        messages,
+        scheduler=indexer_scheduler,
+        task_names={"origin_metadata": "index-origin-metadata"},
     )
-    assert mock_scheduler.create_tasks.called is True
-    call_args = mock_scheduler.create_tasks.call_args
-    (args, kwargs) = call_args
-    assert kwargs == {}
-    del args[0][0]["next_run"]
-    del args[0][1]["next_run"]
-    assert args == (
-        [
-            {
-                "arguments": {
-                    "kwargs": {},
-                    "args": (["file:///dev/zero", "file:///tmp/foobar"],),
-                },
-                "policy": "oneshot",
-                "type": "task-name",
-                "retries_left": 1,
+    actual_tasks = search_tasks(indexer_scheduler, task_type="index-origin-metadata")
+    assert actual_tasks == [
+        {
+            "arguments": {
+                "kwargs": {},
+                "args": [["file:///dev/zero", "file:///tmp/foobar"],],
             },
-            {
-                "arguments": {"kwargs": {}, "args": (["file:///tmp/spamegg"],),},
-                "policy": "oneshot",
-                "type": "task-name",
-                "retries_left": 1,
-            },
-        ],
-    )
+            "policy": "oneshot",
+            "type": "index-origin-metadata",
+            "retries_left": 1,
+        },
+        {
+            "arguments": {"kwargs": {}, "args": [["file:///tmp/spamegg"]],},
+            "policy": "oneshot",
+            "type": "index-origin-metadata",
+            "retries_left": 1,
+        },
+    ]
