@@ -354,6 +354,39 @@ class Metadata(unittest.TestCase):
         # then
         self.assertEqual(expected_results, results)
 
+    def test_detect_metadata_codemeta_json_uppercase(self):
+        # given
+        df = [
+            {
+                "sha1_git": b"abc",
+                "name": b"index.html",
+                "target": b"abc",
+                "length": 897,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"bcd",
+            },
+            {
+                "sha1_git": b"aab",
+                "name": b"CODEMETA.json",
+                "target": b"aab",
+                "length": 712,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"bcd",
+            },
+        ]
+        # when
+        results = detect_metadata(df)
+
+        expected_results = {"CodemetaMapping": [b"bcd"]}
+        # then
+        self.assertEqual(expected_results, results)
+
     def test_compute_metadata_valid_codemeta(self):
         raw_content = b"""{
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",

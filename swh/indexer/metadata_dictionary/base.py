@@ -62,7 +62,7 @@ class SingleFileMapping(BaseMapping):
     @classmethod
     def detect_metadata_files(cls, file_entries):
         for entry in file_entries:
-            if entry["name"] == cls.filename:
+            if entry["name"].lower() == cls.filename.lower():
                 return [entry["sha1"]]
         return []
 
