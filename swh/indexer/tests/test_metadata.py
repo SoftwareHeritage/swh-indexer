@@ -66,6 +66,7 @@ class Metadata(unittest.TestCase):
         self.maven_mapping = MAPPINGS["MavenMapping"]()
         self.pkginfo_mapping = MAPPINGS["PythonPkginfoMapping"]()
         self.gemspec_mapping = MAPPINGS["GemspecMapping"]()
+        self.cff_mapping = MAPPINGS["CffMapping"]()
 
     def test_compute_metadata_none(self):
         """
@@ -81,6 +82,85 @@ class Metadata(unittest.TestCase):
         result = self.npm_mapping.translate(content)
         # then
         self.assertEqual(declared_metadata, result)
+
+    def test_compute_metadata_cff(self):
+        """
+        testing CITATION.cff translation
+        """
+        # given
+        content = """# YAML 1.2
+---
+abstract: "Command line program to convert from Citation File \
+Format to various other formats such as BibTeX, EndNote, RIS, \
+schema.org, CodeMeta, and .zenodo.json."
+authors:
+  -
+    affiliation: "Netherlands eScience Center"
+    family-names: Klaver
+    given-names: Tom
+  -
+    affiliation: "Humboldt-Universität zu Berlin"
+    family-names: Druskat
+    given-names: Stephan
+    orcid: https://orcid.org/0000-0003-4925-7248
+cff-version: "1.0.3"
+date-released: 2019-11-12
+doi: 10.5281/zenodo.1162057
+keywords:
+  - "citation"
+  - "bibliography"
+  - "cff"
+  - "CITATION.cff"
+license: Apache-2.0
+message: "If you use this software, please cite it using these metadata."
+repository-code: "https://github.com/citation-file-format/cff-converter-python"
+title: cffconvert
+version: "1.4.0-alpha0"
+        """.encode(
+            "utf-8"
+        )
+
+        expected = {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "author": [
+                {
+                    "type": "Person",
+                    "affiliation": {
+                        "type": "Organization",
+                        "name": "Netherlands eScience Center",
+                    },
+                    "familyName": "Klaver",
+                    "givenName": "Tom",
+                },
+                {
+                    "id": "https://orcid.org/0000-0003-4925-7248",
+                    "type": "Person",
+                    "affiliation": {
+                        "type": "Organization",
+                        "name": "Humboldt-Universität zu Berlin",
+                    },
+                    "familyName": "Druskat",
+                    "givenName": "Stephan",
+                },
+            ],
+            "codeRepository": (
+                "https://github.com/citation-file-format/cff-converter-python"
+            ),
+            "datePublished": "2019-11-12",
+            "description": """Command line program to convert from \
+Citation File Format to various other formats such as BibTeX, EndNote, \
+RIS, schema.org, CodeMeta, and .zenodo.json.""",
+            "identifier": "https://doi.org/10.5281/zenodo.1162057",
+            "keywords": ["citation", "bibliography", "cff", "CITATION.cff"],
+            "license": "https://spdx.org/licenses/Apache-2.0",
+            "version": "1.4.0-alpha0",
+        }
+
+        # when
+        result = self.cff_mapping.translate(content)
+        # then
+        self.assertEqual(expected, result)
 
     def test_compute_metadata_npm(self):
         """
