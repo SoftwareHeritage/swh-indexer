@@ -31,7 +31,7 @@ SQL_FILES = path.join(path.dirname(swh.indexer.__file__), "sql", "*.sql")
 
 
 idx_storage_postgresql = postgresql_fact(
-    "postgresql_proc", db_name="indexer_storage", dump_files=SQL_FILES,
+    "postgresql_proc", dbname="indexer_storage", dump_files=SQL_FILES,
 )
 
 
