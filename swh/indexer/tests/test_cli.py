@@ -86,7 +86,15 @@ def test_cli_mapping_list(cli_runner, swh_config):
         catch_exceptions=False,
     )
     expected_output = "\n".join(
-        ["codemeta", "gemspec", "maven", "npm", "pkg-info", "",]
+        [
+            "cff",
+            "codemeta",
+            "gemspec",
+            "maven",
+            "npm",
+            "pkg-info",
+            "",
+        ]  # must be sorted for test to pass
     )
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
