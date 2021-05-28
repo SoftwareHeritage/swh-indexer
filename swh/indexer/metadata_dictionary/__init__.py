@@ -2,7 +2,7 @@ import collections
 
 import click
 
-from . import codemeta, maven, npm, python, ruby
+from . import cff, codemeta, maven, npm, python, ruby
 
 MAPPINGS = {
     "CodemetaMapping": codemeta.CodemetaMapping,
@@ -10,6 +10,7 @@ MAPPINGS = {
     "NpmMapping": npm.NpmMapping,
     "PythonPkginfoMapping": python.PythonPkginfoMapping,
     "GemspecMapping": ruby.GemspecMapping,
+    "CffMapping": cff.CffMapping,
 }
 
 

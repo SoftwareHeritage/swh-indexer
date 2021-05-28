@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2020  The Software Heritage developers
+# Copyright (C) 2017-2021 The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -80,8 +80,8 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         """Index sha1s' content and store result.
 
         Args:
-            id (bytes): content's identifier
-            data (bytes): raw content in bytes
+            id: content's identifier
+            data: raw content in bytes
 
         Returns:
             dict: dictionary representing a content_metadata. If the
@@ -91,6 +91,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         """
         assert isinstance(id, bytes)
         assert data is not None
+        metadata = None
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
             log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id)
