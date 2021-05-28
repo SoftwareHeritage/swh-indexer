@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2019  The Software Heritage developers
+# Copyright (C) 2018-2021  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -35,6 +35,9 @@ class MavenMapping(DictMapping, SingleFileMapping):
         except (LookupError, ValueError):
             # unknown encoding or multi-byte encoding
             self.log.warning("Error detecting XML encoding from %s", self.log_suffix)
+            return None
+        if not isinstance(d, dict):
+            self.log.warning("Skipping ill-formed XML content: %s", content)
             return None
         metadata = self._translate_dict(d, normalize=False)
         metadata[SCHEMA_URI + "codeRepository"] = self.parse_repositories(d)

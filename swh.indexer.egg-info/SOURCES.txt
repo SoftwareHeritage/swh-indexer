@@ -90,6 +90,7 @@ swh/indexer/data/codemeta/codemeta.jsonld
 swh/indexer/data/codemeta/crosswalk.csv
 swh/indexer/metadata_dictionary/__init__.py
 swh/indexer/metadata_dictionary/base.py
+swh/indexer/metadata_dictionary/cff.py
 swh/indexer/metadata_dictionary/codemeta.py
 swh/indexer/metadata_dictionary/maven.py
 swh/indexer/metadata_dictionary/npm.py

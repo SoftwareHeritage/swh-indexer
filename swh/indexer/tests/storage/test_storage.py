@@ -1583,6 +1583,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         result = storage.origin_intrinsic_metadata_stats()
         assert result == {
             "per_mapping": {
+                "cff": 0,
                 "gemspec": 1,
                 "npm": 2,
                 "pkg-info": 1,
