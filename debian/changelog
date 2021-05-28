@@ -1,3 +1,17 @@
+swh-indexer (0.8.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 0.8.0     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2021-05-28 16:57:47
+    +0200)
+  * Upstream changes:     - v0.8.0     - metadata_dictionary: Add
+    mapping for CITATION.cff     - metadata/maven: Ignore ill-formed xml
+    instead of failing     - metadata: Fix UnboundLocalError in edge
+    case     - data/codemeta: sync with official codemeta repo     - Fix
+    SingleFileMapping case sensitivity     - Use swh.core 0.14     -
+    tox: Add sphinx environments to check sane doc build
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 28 May 2021 15:05:39 +0000
+
 swh-indexer (0.7.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.7.0     - (tagged by Antoine R. Dumont
