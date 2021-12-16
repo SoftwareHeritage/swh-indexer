@@ -47,7 +47,7 @@ class OriginHeadIndexer(OriginIndexer[Dict]):
             self, "_try_get_%s_head" % visit_status.type, self._try_get_head_generic
         )
 
-        rev_id = method(snapshot.branches)
+        rev_id = method(snapshot.branches)  # type: ignore
         if rev_id is not None:
             return [{"origin_url": origin_url, "revision_id": rev_id,}]
 
