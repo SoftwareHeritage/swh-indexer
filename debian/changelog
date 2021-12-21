@@ -1,8 +1,11 @@
-swh-indexer (0.8.0-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (0.8.1-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 0.8.1     - (tagged by Vincent SELLIER
+    <vincent.sellier@softwareheritage.org> on 2021-12-21 16:23:37 +0100)
+  * Upstream changes:     - v0.8.1     - Changelog:     - tag frozendict
+    version to avoid segfaults on the ci
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 28 May 2021 15:09:57 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 21 Dec 2021 15:28:27 +0000
 
 swh-indexer (0.8.0-1~swh1) unstable-swh; urgency=medium
 

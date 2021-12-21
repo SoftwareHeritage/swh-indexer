@@ -1,6 +1,9 @@
 confluent-kafka
+hypothesis >= 3.11.0
 pytest
 pytest-mock
-hypothesis>=3.11.0
 swh.scheduler[testing] >= 0.5.0
 swh.storage[testing] >= 0.10.0
+
+types-click
+types-pyyaml
