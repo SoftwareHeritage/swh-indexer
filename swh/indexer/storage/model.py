@@ -52,7 +52,7 @@ class BaseRow:
 
     @classmethod
     def from_dict(cls: Type[TSelf], d) -> TSelf:
-        return cls(**d)  # type: ignore
+        return cls(**d)
 
     def unique_key(self) -> Dict:
         obj = self
