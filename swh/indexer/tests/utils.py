@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import abc
+import datetime
 import functools
 from typing import Any, Dict
 import unittest
@@ -27,7 +28,6 @@ from swh.model.model import (
     Snapshot,
     SnapshotBranch,
     TargetType,
-    Timestamp,
     TimestampWithTimezone,
 )
 from swh.storage.utils import now
@@ -110,17 +110,29 @@ REVISION = Revision(
         fullname=b"Andrew Nesbitt <andrewnez@gmail.com>",
         email=b"andrewnez@gmail.com",
     ),
-    committer_date=TimestampWithTimezone(
-        timestamp=Timestamp(seconds=1380883849, microseconds=0,),
-        offset=120,
-        negative_utc=False,
+    committer_date=TimestampWithTimezone.from_datetime(
+        datetime.datetime(
+            2013,
+            10,
+            4,
+            12,
+            50,
+            49,
+            tzinfo=datetime.timezone(datetime.timedelta(minutes=120)),
+        )
     ),
     type=RevisionType.GIT,
     synthetic=False,
-    date=TimestampWithTimezone(
-        timestamp=Timestamp(seconds=1487596456, microseconds=0,),
-        offset=0,
-        negative_utc=False,
+    date=TimestampWithTimezone.from_datetime(
+        datetime.datetime(
+            2017,
+            2,
+            20,
+            16,
+            14,
+            16,
+            tzinfo=datetime.timezone(datetime.timedelta(minutes=120)),
+        )
     ),
     directory=DIRECTORY2.id,
     parents=(),
