@@ -3,8 +3,7 @@ Hacking on swh-indexer
 
 This tutorial will guide you through the hacking on the swh-indexer.
 If you do not have a local copy of the Software Heritage archive, go to the
-`getting started tutorial
-<https://docs.softwareheritage.org/devel/getting-started.html>`_
+:ref:`getting started tutorial <getting-started>`.
 
 Configuration files
 -------------------
