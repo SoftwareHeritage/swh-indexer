@@ -42,7 +42,7 @@ Indexer fetches the root directory associated with a revision, then extracts
 the metadata from that directory.
 
 To do so, it lists files in that directory, and looks for known names, such
-as `codemeta.json`, `package.json`, or `pom.xml`. If there are any, it
+as :file:`codemeta.json`, :file:`package.json`, or :file:`pom.xml`. If there are any, it
 runs the Content Metadata Indexer on them, which in turn fetches their
 contents and runs them through extraction dictionaries/mappings.
 See below for details.
@@ -64,7 +64,7 @@ associate it with the latter.
 
 The reason for this is to be able to perform searches on metadata, and
 efficiently find out which origins matched the pattern.
-Running that search on the `revision_metadata` table would require either
+Running that search on the ``revision_metadata`` table would require either
 a reverse lookup from revisions to origins, which is costly.
 
 
@@ -128,7 +128,7 @@ This section will guide you through adding code to the metadata indexer to
 detect and translate new metadata formats.
 
 First, you should start by picking one of the `CodeMeta crosswalks`_.
-Then create a new file in `swh-indexer/swh/indexer/metadata_dictionary/`, that
+Then create a new file in :file:`swh-indexer/swh/indexer/metadata_dictionary/`, that
 will contain your code, and create a new class that inherits from helper
 classes, with some documentation about your indexer:
 
@@ -145,7 +145,7 @@ classes, with some documentation about your indexer:
 
 .. _CodeMeta crosswalks: https://github.com/codemeta/codemeta/tree/master/crosswalks
 
-Then, add a `string_fields` attribute, that is the list of all keys whose
+Then, add a ``string_fields`` attribute, that is the list of all keys whose
 values are simple text values. For instance, to
 `translate Python PKG-INFO`_, it's:
 
@@ -160,10 +160,10 @@ supported terms.
 
 .. _translate Python PKG-INFO: https://forge.softwareheritage.org/source/swh-indexer/browse/master/swh/indexer/metadata_dictionary/python.py
 
-Last step to get your code working: add a `translate` method that will
+Last step to get your code working: add a ``translate`` method that will
 take a single byte string as argument, turn it into a Python dictionary,
 whose keys are the ones of the input document, and pass it to
-`_translate_dict`.
+``_translate_dict``.
 
 For instance, if the input document is in JSON, it can be as simple as:
 
@@ -174,13 +174,13 @@ For instance, if the input document is in JSON, it can be as simple as:
         content_dict = json.loads(raw_content)  # str to dict
         return self._translate_dict(content_dict)  # convert to CodeMeta
 
-`_translate_dict` will do the heavy work of reading the crosswalk table for
-each of `string_fields`, read the corresponding value in the `content_dict`,
+``_translate_dict`` will do the heavy work of reading the crosswalk table for
+each of ``string_fields``, read the corresponding value in the ``content_dict``,
 and build a CodeMeta dictionary with the corresponding names from the
 crosswalk table.
 
 One last thing to run your code: add it to the list in
-`swh-indexer/swh/indexer/metadata_dictionary/__init__.py`, so the rest of the
+:file:`swh-indexer/swh/indexer/metadata_dictionary/__init__.py`, so the rest of the
 code is aware of it.
 
 Now, you can run it:
@@ -195,7 +195,7 @@ If it works, well done!
 
 You can now improve your translation code further, by adding methods that
 will do more advanced conversion. For example, if there is a field named
-`license` containing an SPDX identifier, you must convert it to an URI,
+``license`` containing an SPDX identifier, you must convert it to an URI,
 like this:
 
 .. code-block:: python
@@ -204,5 +204,5 @@ like this:
         if isinstance(s, str):
             return {"@id": "https://spdx.org/licenses/" + s}
 
-This method will automatically get called by `_translate_dict` when it
-finds a `license` field in `content_dict`.
+This method will automatically get called by ``_translate_dict`` when it
+finds a ``license`` field in ``content_dict``.
