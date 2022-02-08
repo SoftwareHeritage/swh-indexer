@@ -4,17 +4,18 @@
 # See top-level LICENSE file for more information
 
 from datetime import timedelta
+from functools import partial
 import os
-from os import path
 from typing import List, Tuple
 from unittest.mock import patch
 
 import pytest
+from pytest_postgresql import factories
 import yaml
 
-from swh.core.db.pytest_plugin import postgresql_fact
-import swh.indexer
+from swh.core.db.pytest_plugin import initialize_database_for_module, postgresql_fact
 from swh.indexer.storage import get_indexer_storage
+from swh.indexer.storage.db import Db as IndexerDb
 from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
 
@@ -27,12 +28,18 @@ TASK_NAMES: List[Tuple[str, str]] = [
 ]
 
 
-SQL_FILES = path.join(path.dirname(swh.indexer.__file__), "sql", "*.sql")
-
-
-idx_storage_postgresql = postgresql_fact(
-    "postgresql_proc", dbname="indexer_storage", dump_files=SQL_FILES,
+idx_postgresql_proc = factories.postgresql_proc(
+    dbname="indexer_storage",
+    load=[
+        partial(
+            initialize_database_for_module,
+            modname="indexer",
+            version=IndexerDb.current_version,
+        )
+    ],
 )
+
+idx_storage_postgresql = postgresql_fact("idx_postgresql_proc")
 
 
 @pytest.fixture

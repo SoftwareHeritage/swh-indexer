@@ -18,6 +18,7 @@ class Db(BaseDb):
     """
 
     content_mimetype_hash_keys = ["id", "indexer_configuration_id"]
+    current_version = 133
 
     def _missing_from_list(
         self, table: str, data: Iterable[Dict], hash_keys: List[str], cur=None
