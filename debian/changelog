@@ -1,3 +1,11 @@
+swh-indexer (1.0.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 1.0.0     - (tagged by David Douard
+    <david.douard@sdfa3.org> on 2022-02-24 17:35:56 +0100)
+  * Upstream changes:     - v1.0.0
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 24 Feb 2022 16:42:39 +0000
+
 swh-indexer (0.8.2-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 0.8.2     - (tagged by Valentin Lorentz
