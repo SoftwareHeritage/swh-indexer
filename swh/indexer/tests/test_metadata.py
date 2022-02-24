@@ -702,17 +702,29 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
         self.assertEqual(result, None)
 
     def test_compute_metadata_maven_invalid_encoding(self):
-        expected_warning = (
-            "WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:"
-            "Error unidecoding XML from foo"
-        )
+        expected_warning = [
+            # libexpat1 <= 2.2.10-2+deb11u1
+            [
+                (
+                    "WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:"
+                    "Error unidecoding XML from foo"
+                )
+            ],
+            # libexpat1 >= 2.2.10-2+deb11u2
+            [
+                (
+                    "WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:"
+                    "Error parsing XML from foo"
+                )
+            ],
+        ]
 
         raw_content = b"""<?xml version="1.0" encoding="UTF-8"?>
         <foo\xe5ct>
         </foo>"""
         with self.assertLogs("swh.indexer.metadata_dictionary", level="WARNING") as cm:
             result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
-            self.assertEqual(cm.output, [expected_warning])
+            self.assertIn(cm.output, expected_warning)
         self.assertEqual(result, None)
 
     def test_compute_metadata_maven_minimal(self):
