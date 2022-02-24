@@ -14,7 +14,7 @@ swh.journal>=0.1.0
 [testing]
 confluent-kafka
 hypothesis>=3.11.0
-pytest
+pytest<7.0.0
 pytest-mock
 swh.scheduler[testing]>=0.5.0
 swh.storage[testing]>=0.10.0

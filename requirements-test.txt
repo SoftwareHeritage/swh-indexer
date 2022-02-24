@@ -1,6 +1,6 @@
 confluent-kafka
 hypothesis >= 3.11.0
-pytest
+pytest < 7.0.0  # v7.0.0 removed _pytest.tmpdir.TempdirFactory, which is used by some of the pytest plugins we use
 pytest-mock
 swh.scheduler[testing] >= 0.5.0
 swh.storage[testing] >= 0.10.0
