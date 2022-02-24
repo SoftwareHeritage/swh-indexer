@@ -9,8 +9,8 @@ import pytest
 
 from swh.indexer.storage import get_indexer_storage
 from swh.indexer.storage.model import ContentLicenseRow, ContentMimetypeRow
+from swh.indexer.tests.conftest import idx_storage_postgresql
 from swh.model.hashutil import hash_to_bytes
-from swh.storage.pytest_plugin import postgresql_fact
 
 from . import SQL_DIR
 from .generate_data_test import FOSSOLOGY_LICENSES, MIMETYPE_OBJECTS, TOOLS
@@ -66,9 +66,7 @@ def swh_indexer_storage_with_data(swh_indexer_storage):
     return (swh_indexer_storage, data)
 
 
-swh_indexer_storage_postgresql = postgresql_fact(
-    "postgresql_proc", dump_files=DUMP_FILES
-)
+swh_indexer_storage_postgresql = idx_storage_postgresql
 
 
 @pytest.fixture
