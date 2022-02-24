@@ -2,19 +2,6 @@
 --- Software Heritage Indexers Data Model
 ---
 
--- drop schema if exists swh cascade;
--- create schema swh;
--- set search_path to swh;
-
-create table dbversion
-(
-  version     int primary key,
-  release     timestamptz,
-  description text
-);
-
-insert into dbversion(version, release, description)
-      values(133, now(), 'Work In Progress');
 -- Computing metadata on sha1's contents
 
 -- a SHA1 checksum (not necessarily originating from Git)

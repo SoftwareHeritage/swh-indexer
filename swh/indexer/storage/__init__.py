@@ -42,9 +42,11 @@ MAPPING_NAMES = ["cff", "codemeta", "gemspec", "maven", "npm", "pkg-info"]
 
 
 SERVER_IMPLEMENTATIONS: Dict[str, str] = {
-    "local": ".IndexerStorage",
+    "postgresql": ".IndexerStorage",
     "remote": ".api.client.RemoteStorage",
     "memory": ".in_memory.IndexerStorage",
+    # deprecated
+    "local": ".IndexerStorage",
 }
 
 
@@ -151,6 +153,10 @@ class IndexerStorage:
     def put_db(self, db):
         if db is not self._db:
             db.put_conn()
+
+    @db_transaction()
+    def get_current_version(self, *, db=None, cur=None):
+        return db.current_version
 
     @timed
     @db_transaction()
