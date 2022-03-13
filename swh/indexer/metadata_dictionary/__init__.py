@@ -1,7 +1,8 @@
 import collections
-from typing import DefaultDict, Dict, Final, Set, Type
+from typing import DefaultDict, Dict, Set, Type
 
 import click
+from typing_extensions import Final
 
 from . import cff, codemeta, maven, npm, python, ruby
 from .base import BaseMapping

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -32,14 +32,14 @@ class CffMapping(DictMapping, SingleFileMapping):
     def normalize_authors(self, d) -> Authors:
         result: List[Author] = []
         for author in d:
-            author_data = {"@type": SCHEMA_URI + "Person"}
+            author_data: Dict[str, Any] = {"@type": SCHEMA_URI + "Person"}
             if "orcid" in author:
                 author_data["@id"] = author["orcid"]
             if "affiliation" in author:
                 author_data[SCHEMA_URI + "affiliation"] = {
                     "@type": SCHEMA_URI + "Organization",
                     SCHEMA_URI + "name": author["affiliation"],
-                }  # type: ignore
+                }
             if "family-names" in author:
                 author_data[SCHEMA_URI + "familyName"] = author["family-names"]
             if "given-names" in author:
