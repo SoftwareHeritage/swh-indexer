@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import json
+from typing import Dict, List, Optional
 
 from swh.indexer.codemeta import CODEMETA_TERMS, expand
 
@@ -20,10 +21,10 @@ class CodemetaMapping(SingleFileMapping):
     string_fields = None
 
     @classmethod
-    def supported_terms(cls):
+    def supported_terms(cls) -> List[str]:
         return [term for term in CODEMETA_TERMS if not term.startswith("@")]
 
-    def translate(self, content):
+    def translate(self, content: bytes) -> Optional[Dict]:
         try:
             return self.normalize_translation(expand(json.loads(content.decode())))
         except Exception:

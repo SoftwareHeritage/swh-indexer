@@ -1,10 +1,12 @@
 import collections
+from typing import DefaultDict, Dict, Final, Set, Type
 
 import click
 
 from . import cff, codemeta, maven, npm, python, ruby
+from .base import BaseMapping
 
-MAPPINGS = {
+MAPPINGS: Final[Dict[str, Type[BaseMapping]]] = {
     "CodemetaMapping": codemeta.CodemetaMapping,
     "MavenMapping": maven.MavenMapping,
     "NpmMapping": npm.NpmMapping,
@@ -14,7 +16,7 @@ MAPPINGS = {
 }
 
 
-def list_terms():
+def list_terms() -> DefaultDict[str, Set[Type[BaseMapping]]]:
     """Returns a dictionary with all supported CodeMeta terms as keys,
     and the mappings that support each of them as values."""
     d = collections.defaultdict(set)
@@ -27,7 +29,7 @@ def list_terms():
 @click.command()
 @click.argument("mapping_name")
 @click.argument("file_name")
-def main(mapping_name, file_name):
+def main(mapping_name: str, file_name: str) -> None:
     from pprint import pprint
 
     with open(file_name, "rb") as fd:

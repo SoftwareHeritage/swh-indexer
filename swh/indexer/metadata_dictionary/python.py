@@ -6,10 +6,11 @@
 import email.parser
 import email.policy
 import itertools
+from typing import Dict, List
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import DictMapping, SingleFileMapping
+from .base import DictMapping, SchemaEntry, SingleFileMapping
 
 _normalize_pkginfo_key = str.lower
 
@@ -44,9 +45,9 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
 
     _parser = email.parser.BytesHeaderParser(policy=LinebreakPreservingEmailPolicy())
 
-    def translate(self, content):
+    def translate(self, content: bytes) -> Dict:
         msg = self._parser.parsebytes(content)
-        d = {}
+        d: Dict[str, List[str]] = {}
         for (key, value) in msg.items():
             key = _normalize_pkginfo_key(key)
             if value != "UNKNOWN":
@@ -66,11 +67,11 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
             }
         return self.normalize_translation(metadata)
 
-    def normalize_home_page(self, urls):
+    def normalize_home_page(self, urls: List[str]) -> List[SchemaEntry]:
         return [{"@id": url} for url in urls]
 
-    def normalize_keywords(self, keywords):
+    def normalize_keywords(self, keywords: List[str]) -> List[str]:
         return list(itertools.chain.from_iterable(s.split(" ") for s in keywords))
 
-    def normalize_license(self, licenses):
+    def normalize_license(self, licenses: str) -> List[SchemaEntry]:
         return [{"@id": license} for license in licenses]

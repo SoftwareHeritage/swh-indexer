@@ -4,10 +4,11 @@
 # See top-level LICENSE file for more information
 
 import re
+from typing import Any, Dict, List, Optional, cast
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import JsonMapping
+from .base import Author, Authors, JsonMapping, SchemaEntry
 
 
 class NpmMapping(JsonMapping):
@@ -29,7 +30,7 @@ class NpmMapping(JsonMapping):
         # 'bitbucket': 'https://bitbucket.org/',
     }
 
-    def normalize_repository(self, d):
+    def normalize_repository(self, d) -> Optional[SchemaEntry]:
         """https://docs.npmjs.com/files/package.json#repository
 
         >>> NpmMapping().normalize_repository({
@@ -67,7 +68,7 @@ class NpmMapping(JsonMapping):
 
         return {"@id": url}
 
-    def normalize_bugs(self, d):
+    def normalize_bugs(self, d) -> Optional[SchemaEntry]:
         """https://docs.npmjs.com/files/package.json#bugs
 
         >>> NpmMapping().normalize_bugs({
@@ -90,7 +91,7 @@ class NpmMapping(JsonMapping):
         r"^ *" r"(?P<name>.*?)" r"( +<(?P<email>.*)>)?" r"( +\((?P<url>.*)\))?" r" *$"
     )
 
-    def normalize_author(self, d):
+    def normalize_author(self, d) -> Optional[Authors]:
         """https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
 
         >>> from pprint import pprint
@@ -111,7 +112,7 @@ class NpmMapping(JsonMapping):
                     'http://schema.org/name': 'John Doe',
                     'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
         """  # noqa
-        author = {"@type": SCHEMA_URI + "Person"}
+        author: Dict[str, Any] = {"@type": SCHEMA_URI + "Person"}
         if isinstance(d, dict):
             name = d.get("name", None)
             email = d.get("email", None)
@@ -131,9 +132,10 @@ class NpmMapping(JsonMapping):
             author[SCHEMA_URI + "email"] = email
         if url and isinstance(url, str):
             author[SCHEMA_URI + "url"] = {"@id": url}
-        return {"@list": [author]}
+        authors = [cast(Author, author)]
+        return {"@list": authors}
 
-    def normalize_license(self, s):
+    def normalize_license(self, s) -> Optional[SchemaEntry]:
         """https://docs.npmjs.com/files/package.json#license
 
         >>> NpmMapping().normalize_license('MIT')
@@ -141,8 +143,9 @@ class NpmMapping(JsonMapping):
         """
         if isinstance(s, str):
             return {"@id": "https://spdx.org/licenses/" + s}
+        return None
 
-    def normalize_homepage(self, s):
+    def normalize_homepage(self, s) -> Optional[SchemaEntry]:
         """https://docs.npmjs.com/files/package.json#homepage
 
         >>> NpmMapping().normalize_homepage('https://example.org/~john.doe')
@@ -150,8 +153,9 @@ class NpmMapping(JsonMapping):
         """
         if isinstance(s, str):
             return {"@id": s}
+        return None
 
-    def normalize_keywords(self, lst):
+    def normalize_keywords(self, lst: List) -> Optional[List[str]]:
         """https://docs.npmjs.com/files/package.json#homepage
 
         >>> NpmMapping().normalize_keywords(['foo', 'bar'])
@@ -159,3 +163,4 @@ class NpmMapping(JsonMapping):
         """
         if isinstance(lst, list):
             return [x for x in lst if isinstance(x, str)]
+        return None

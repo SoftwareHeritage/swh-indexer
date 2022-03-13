@@ -5,9 +5,45 @@
 
 import json
 import logging
-from typing import List
+from typing import Dict, Iterable, List, Optional
+
+from typing_extensions import TypedDict
 
 from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
+
+
+class FileEntry(TypedDict):
+    name: bytes
+    sha1: bytes
+    sha1_git: bytes
+    target: bytes
+    length: int
+    status: str
+    type: str
+    perms: int
+    dir_id: bytes
+
+
+SchemaEntry = TypedDict("SchemaEntry", {"@id": str})
+
+Affiliation = TypedDict("Affiliation", {"@type": str, "http://schema.org/name": str})
+Author = TypedDict(
+    "Author",
+    {
+        "@type": str,
+        "@id": str,
+        "http://schema.org/name": str,
+        "http://schema.org/email": str,
+        "http://schema.org/familyName": str,
+        "http://schema.org/givenName": str,
+        "http://schema.org/affiliation": Affiliation,
+        "http://schema.org/url": SchemaEntry,
+    },
+    total=False,
+)
+Authors = TypedDict("Authors", {"@list": List[Author]})
+
+Date = TypedDict("Date", {"@value": str, "@type": str})
 
 
 class BaseMapping:
@@ -19,35 +55,40 @@ class BaseMapping:
     - override translate function
     """
 
-    def __init__(self, log_suffix=""):
+    def __init__(self, log_suffix: str = ""):
         self.log_suffix = log_suffix
         self.log = logging.getLogger(
             "%s.%s" % (self.__class__.__module__, self.__class__.__name__)
         )
 
     @property
-    def name(self):
+    def name(self) -> str:
         """A name of this mapping, used as an identifier in the
         indexer storage."""
         raise NotImplementedError(f"{self.__class__.__name__}.name")
 
     @classmethod
-    def detect_metadata_files(cls, files):
+    def detect_metadata_files(cls, file_entries: List[FileEntry]) -> List[bytes]:
         """
         Detects files potentially containing metadata
 
         Args:
-            file_entries (list): list of files
+            file_entries: list of files
 
         Returns:
             list: list of sha1 (possibly empty)
         """
         raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
 
-    def translate(self, file_content):
+    @classmethod
+    def supported_terms(cls) -> Iterable[str]:
+        """Returns all CodeMeta terms this mapping supports"""
+        raise NotImplementedError(f"{cls.__name__}.supported_terms")
+
+    def translate(self, file_content: bytes) -> Optional[Dict]:
         raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
-    def normalize_translation(self, metadata):
+    def normalize_translation(self, metadata: Dict) -> Dict:
         return compact(metadata)
 
 
@@ -55,14 +96,14 @@ class SingleFileMapping(BaseMapping):
     """Base class for all mappings that use a single file as input."""
 
     @property
-    def filename(self):
+    def filename(self) -> bytes:
         """The .json file to extract metadata from."""
         raise NotImplementedError(f"{self.__class__.__name__}.filename")
 
     @classmethod
-    def detect_metadata_files(cls, file_entries):
+    def detect_metadata_files(cls, file_entries: List[FileEntry]) -> List[bytes]:
         for entry in file_entries:
-            if entry["name"].lower() == cls.filename.lower():
+            if entry["name"].lower() == cls.filename.lower():  # type: ignore
                 return [entry["sha1"]]
         return []
 
@@ -71,36 +112,36 @@ class DictMapping(BaseMapping):
     """Base class for mappings that take as input a file that is mostly
     a key-value store (eg. a shallow JSON dict)."""
 
-    string_fields = []  # type: List[str]
+    string_fields: List[str] = []
     """List of fields that are simple strings, and don't need any
     normalization."""
 
     @property
-    def mapping(self):
+    def mapping(self) -> Dict[str, str]:
         """A translation dict to map dict keys into a canonical name."""
         raise NotImplementedError(f"{self.__class__.__name__}.mapping")
 
     @staticmethod
-    def _normalize_method_name(name):
+    def _normalize_method_name(name: str) -> str:
         return name.replace("-", "_")
 
     @classmethod
-    def supported_terms(cls):
+    def supported_terms(cls) -> Iterable[str]:
         return {
             term
-            for (key, term) in cls.mapping.items()
+            for (key, term) in cls.mapping.items()  # type: ignore
             if key in cls.string_fields
             or hasattr(cls, "translate_" + cls._normalize_method_name(key))
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
         }
 
-    def _translate_dict(self, content_dict, *, normalize=True):
+    def _translate_dict(self, content_dict: Dict, *, normalize: bool = True) -> Dict:
         """
         Translates content  by parsing content from a dict object
         and translating with the appropriate mapping
 
         Args:
-            content_dict (dict): content dict to translate
+            content_dict: content dict to translate
 
         Returns:
             dict: translated metadata in json-friendly form needed for
@@ -150,13 +191,13 @@ class DictMapping(BaseMapping):
 class JsonMapping(DictMapping, SingleFileMapping):
     """Base class for all mappings that use a JSON file as input."""
 
-    def translate(self, raw_content):
+    def translate(self, raw_content: bytes) -> Optional[Dict]:
         """
         Translates content by parsing content from a bytestring containing
         json data and translating with the appropriate mapping
 
         Args:
-            raw_content (bytes): raw content to translate
+            raw_content: raw content to translate
 
         Returns:
             dict: translated metadata in json-friendly form needed for
@@ -164,14 +205,15 @@ class JsonMapping(DictMapping, SingleFileMapping):
 
         """
         try:
-            raw_content = raw_content.decode()
+            content: str = raw_content.decode()
         except UnicodeDecodeError:
             self.log.warning("Error unidecoding from %s", self.log_suffix)
-            return
+            return None
         try:
-            content_dict = json.loads(raw_content)
+            content_dict = json.loads(content)
         except json.JSONDecodeError:
             self.log.warning("Error unjsoning from %s", self.log_suffix)
-            return
+            return None
         if isinstance(content_dict, dict):
             return self._translate_dict(content_dict)
+        return None

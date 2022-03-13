@@ -6,16 +6,17 @@
 import ast
 import itertools
 import re
+from typing import Dict, List, Optional, Union
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import DictMapping
+from .base import Author, Authors, DictMapping, FileEntry, SchemaEntry
 
 
-def name_to_person(name):
+def name_to_person(name: str) -> Author:
     return {
         "@type": SCHEMA_URI + "Person",
-        SCHEMA_URI + "name": name,
+        SCHEMA_URI + "name": name,  # type: ignore
     }
 
 
@@ -28,29 +29,29 @@ class GemspecMapping(DictMapping):
     _re_spec_entry = re.compile(r"\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)")
 
     @classmethod
-    def detect_metadata_files(cls, file_entries):
+    def detect_metadata_files(cls, file_entries: List[FileEntry]) -> List[bytes]:
         for entry in file_entries:
             if entry["name"].endswith(b".gemspec"):
                 return [entry["sha1"]]
         return []
 
-    def translate(self, raw_content):
+    def translate(self, raw_content: bytes) -> Optional[Dict[str, str]]:
         try:
-            raw_content = raw_content.decode()
+            content: str = raw_content.decode()
         except UnicodeDecodeError:
             self.log.warning("Error unidecoding from %s", self.log_suffix)
-            return
+            return None
 
         # Skip lines before 'Gem::Specification.new'
         lines = itertools.dropwhile(
-            lambda x: not self._re_spec_new.match(x), raw_content.split("\n")
+            lambda x: not self._re_spec_new.match(x), content.split("\n")
         )
 
         try:
             next(lines)  # Consume 'Gem::Specification.new'
         except StopIteration:
             self.log.warning("Could not find Gem::Specification in %s", self.log_suffix)
-            return
+            return None
 
         content_dict = {}
         for line in lines:
@@ -61,7 +62,7 @@ class GemspecMapping(DictMapping):
                     content_dict[match.group("key")] = value
         return self._translate_dict(content_dict)
 
-    def eval_ruby_expression(self, expr):
+    def eval_ruby_expression(self, expr: str) -> Optional[Union[str, List]]:
         """Very simple evaluator of Ruby expressions.
 
         >>> GemspecMapping().eval_ruby_expression('"Foo bar"')
@@ -97,31 +98,36 @@ class GemspecMapping(DictMapping):
             # of such strings).
             tree = ast.parse(expr, mode="eval")
         except (SyntaxError, ValueError):
-            return
+            return None
         if isinstance(tree, ast.Expression):
             return evaluator(tree.body)
+        return None
 
-    def normalize_homepage(self, s):
+    def normalize_homepage(self, s) -> Optional[SchemaEntry]:
         if isinstance(s, str):
             return {"@id": s}
+        return None
 
-    def normalize_license(self, s):
+    def normalize_license(self, s) -> Optional[List[SchemaEntry]]:
         if isinstance(s, str):
             return [{"@id": "https://spdx.org/licenses/" + s}]
+        return None
 
-    def normalize_licenses(self, licenses):
+    def normalize_licenses(self, licenses) -> Optional[List[SchemaEntry]]:
         if isinstance(licenses, list):
             return [
                 {"@id": "https://spdx.org/licenses/" + license}
                 for license in licenses
                 if isinstance(license, str)
             ]
+        return None
 
-    def normalize_author(self, author):
+    def normalize_author(self, author) -> Optional[Authors]:
         if isinstance(author, str):
             return {"@list": [name_to_person(author)]}
+        return None
 
-    def normalize_authors(self, authors):
+    def normalize_authors(self, authors) -> Optional[Authors]:
         if isinstance(authors, list):
             return {
                 "@list": [
@@ -130,3 +136,4 @@ class GemspecMapping(DictMapping):
                     if isinstance(author, str)
                 ]
             }
+        return None
