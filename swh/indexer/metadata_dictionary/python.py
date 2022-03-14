@@ -10,7 +10,7 @@ from typing import Dict, List
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import DictMapping, SchemaEntry, SingleFileMapping
+from .base import DictMapping, SingleFileMapping
 
 _normalize_pkginfo_key = str.lower
 
@@ -67,11 +67,11 @@ class PythonPkginfoMapping(DictMapping, SingleFileMapping):
             }
         return self.normalize_translation(metadata)
 
-    def normalize_home_page(self, urls: List[str]) -> List[SchemaEntry]:
+    def normalize_home_page(self, urls: List[str]) -> List[Dict[str, str]]:
         return [{"@id": url} for url in urls]
 
     def normalize_keywords(self, keywords: List[str]) -> List[str]:
         return list(itertools.chain.from_iterable(s.split(" ") for s in keywords))
 
-    def normalize_license(self, licenses: str) -> List[SchemaEntry]:
+    def normalize_license(self, licenses: str) -> List[Dict[str, str]]:
         return [{"@id": license} for license in licenses]

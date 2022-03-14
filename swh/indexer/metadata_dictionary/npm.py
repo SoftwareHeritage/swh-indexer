@@ -4,11 +4,11 @@
 # See top-level LICENSE file for more information
 
 import re
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import Author, Authors, JsonMapping, SchemaEntry
+from .base import JsonMapping
 
 
 class NpmMapping(JsonMapping):
@@ -30,7 +30,7 @@ class NpmMapping(JsonMapping):
         # 'bitbucket': 'https://bitbucket.org/',
     }
 
-    def normalize_repository(self, d) -> Optional[SchemaEntry]:
+    def normalize_repository(self, d) -> Optional[Dict[str, str]]:
         """https://docs.npmjs.com/files/package.json#repository
 
         >>> NpmMapping().normalize_repository({
@@ -68,7 +68,7 @@ class NpmMapping(JsonMapping):
 
         return {"@id": url}
 
-    def normalize_bugs(self, d) -> Optional[SchemaEntry]:
+    def normalize_bugs(self, d) -> Optional[Dict[str, str]]:
         """https://docs.npmjs.com/files/package.json#bugs
 
         >>> NpmMapping().normalize_bugs({
@@ -91,7 +91,7 @@ class NpmMapping(JsonMapping):
         r"^ *" r"(?P<name>.*?)" r"( +<(?P<email>.*)>)?" r"( +\((?P<url>.*)\))?" r" *$"
     )
 
-    def normalize_author(self, d) -> Optional[Authors]:
+    def normalize_author(self, d) -> Optional[Dict[str, Any]]:
         """https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
 
         >>> from pprint import pprint
@@ -132,10 +132,9 @@ class NpmMapping(JsonMapping):
             author[SCHEMA_URI + "email"] = email
         if url and isinstance(url, str):
             author[SCHEMA_URI + "url"] = {"@id": url}
-        authors = [cast(Author, author)]
-        return {"@list": authors}
+        return {"@list": [author]}
 
-    def normalize_license(self, s) -> Optional[SchemaEntry]:
+    def normalize_license(self, s) -> Optional[Dict[str, str]]:
         """https://docs.npmjs.com/files/package.json#license
 
         >>> NpmMapping().normalize_license('MIT')
@@ -145,7 +144,7 @@ class NpmMapping(JsonMapping):
             return {"@id": "https://spdx.org/licenses/" + s}
         return None
 
-    def normalize_homepage(self, s) -> Optional[SchemaEntry]:
+    def normalize_homepage(self, s) -> Optional[Dict[str, str]]:
         """https://docs.npmjs.com/files/package.json#homepage
 
         >>> NpmMapping().normalize_homepage('https://example.org/~john.doe')

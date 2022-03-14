@@ -4,14 +4,14 @@
 # See top-level LICENSE file for more information
 
 import os
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import xml.parsers.expat
 
 import xmltodict
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import DictMapping, SchemaEntry, SingleFileMapping
+from .base import DictMapping, SingleFileMapping
 
 
 class MavenMapping(DictMapping, SingleFileMapping):
@@ -47,7 +47,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
 
     _default_repository = {"url": "https://repo.maven.apache.org/maven2/"}
 
-    def parse_repositories(self, d: Dict) -> Optional[List[Optional[SchemaEntry]]]:
+    def parse_repositories(self, d: Dict) -> Optional[List[Optional[Dict[str, Any]]]]:
         """https://maven.apache.org/pom.html#Repositories
 
         >>> import xmltodict
@@ -76,7 +76,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
             results = []
         return [res for res in results if res] or None
 
-    def parse_repository(self, d: Dict, repo) -> Optional[SchemaEntry]:
+    def parse_repository(self, d: Dict, repo) -> Optional[Dict[str, Any]]:
         if not isinstance(repo, dict):
             return None
         if repo.get("layout", "default") != "default":
@@ -93,7 +93,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
             return {"@id": repo}
         return None
 
-    def normalize_groupId(self, id_) -> Optional[SchemaEntry]:
+    def normalize_groupId(self, id_) -> Optional[Dict[str, Any]]:
         """https://maven.apache.org/pom.html#Maven_Coordinates
 
         >>> MavenMapping().normalize_groupId('org.example')
@@ -103,7 +103,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
             return {"@id": id_}
         return None
 
-    def parse_licenses(self, d) -> Optional[List[SchemaEntry]]:
+    def parse_licenses(self, d) -> Optional[List[Dict[str, Any]]]:
         """https://maven.apache.org/pom.html#Licenses
 
         >>> import xmltodict

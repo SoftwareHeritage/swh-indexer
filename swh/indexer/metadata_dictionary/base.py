@@ -24,28 +24,6 @@ class FileEntry(TypedDict):
     dir_id: bytes
 
 
-SchemaEntry = TypedDict("SchemaEntry", {"@id": str})
-
-Affiliation = TypedDict("Affiliation", {"@type": str, "http://schema.org/name": str})
-Author = TypedDict(
-    "Author",
-    {
-        "@type": str,
-        "@id": str,
-        "http://schema.org/name": str,
-        "http://schema.org/email": str,
-        "http://schema.org/familyName": str,
-        "http://schema.org/givenName": str,
-        "http://schema.org/affiliation": Affiliation,
-        "http://schema.org/url": SchemaEntry,
-    },
-    total=False,
-)
-Authors = TypedDict("Authors", {"@list": List[Author]})
-
-Date = TypedDict("Date", {"@value": str, "@type": str})
-
-
 class BaseMapping:
     """Base class for mappings to inherit from
 

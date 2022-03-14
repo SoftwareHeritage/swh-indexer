@@ -4,7 +4,7 @@ import yaml
 
 from swh.indexer.codemeta import CODEMETA_CONTEXT_URL, CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import Author, Authors, Date, DictMapping, SchemaEntry, SingleFileMapping
+from .base import DictMapping, SingleFileMapping
 
 yaml.SafeLoader.yaml_implicit_resolvers = {
     k: [r for r in v if r[0] != "tag:yaml.org,2002:timestamp"]
@@ -29,8 +29,8 @@ class CffMapping(DictMapping, SingleFileMapping):
 
         return metadata
 
-    def normalize_authors(self, d) -> Authors:
-        result: List[Author] = []
+    def normalize_authors(self, d) -> Dict[str, Any]:
+        result: List[Dict[str, Any]] = []
         for author in d:
             author_data: Dict[str, Any] = {"@type": SCHEMA_URI + "Person"}
             if "orcid" in author:
@@ -45,26 +45,26 @@ class CffMapping(DictMapping, SingleFileMapping):
             if "given-names" in author:
                 author_data[SCHEMA_URI + "givenName"] = author["given-names"]
 
-            result.append(author_data)  # type: ignore
+            result.append(author_data)
 
         return {"@list": result}
 
-    def normalize_doi(self, s) -> Optional[SchemaEntry]:
+    def normalize_doi(self, s) -> Optional[Dict[str, str]]:
         if isinstance(s, str):
             return {"@id": "https://doi.org/" + s}
         return None
 
-    def normalize_license(self, s) -> Optional[SchemaEntry]:
+    def normalize_license(self, s) -> Optional[Dict[str, str]]:
         if isinstance(s, str):
             return {"@id": "https://spdx.org/licenses/" + s}
         return None
 
-    def normalize_repository_code(self, s) -> Optional[SchemaEntry]:
+    def normalize_repository_code(self, s) -> Optional[Dict[str, str]]:
         if isinstance(s, str):
             return {"@id": s}
         return None
 
-    def normalize_date_released(self, s) -> Optional[Date]:
+    def normalize_date_released(self, s) -> Optional[Dict[str, str]]:
         if isinstance(s, str):
             return {"@value": s, "@type": SCHEMA_URI + "Date"}
         return None

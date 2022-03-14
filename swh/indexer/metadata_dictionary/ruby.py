@@ -6,17 +6,17 @@
 import ast
 import itertools
 import re
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import Author, Authors, DictMapping, FileEntry, SchemaEntry
+from .base import DictMapping, FileEntry
 
 
-def name_to_person(name: str) -> Author:
+def name_to_person(name: str) -> Dict[str, str]:
     return {
         "@type": SCHEMA_URI + "Person",
-        SCHEMA_URI + "name": name,  # type: ignore
+        SCHEMA_URI + "name": name,
     }
 
 
@@ -103,17 +103,17 @@ class GemspecMapping(DictMapping):
             return evaluator(tree.body)
         return None
 
-    def normalize_homepage(self, s) -> Optional[SchemaEntry]:
+    def normalize_homepage(self, s) -> Optional[Dict[str, str]]:
         if isinstance(s, str):
             return {"@id": s}
         return None
 
-    def normalize_license(self, s) -> Optional[List[SchemaEntry]]:
+    def normalize_license(self, s) -> Optional[List[Dict[str, str]]]:
         if isinstance(s, str):
             return [{"@id": "https://spdx.org/licenses/" + s}]
         return None
 
-    def normalize_licenses(self, licenses) -> Optional[List[SchemaEntry]]:
+    def normalize_licenses(self, licenses) -> Optional[List[Dict[str, str]]]:
         if isinstance(licenses, list):
             return [
                 {"@id": "https://spdx.org/licenses/" + license}
@@ -122,12 +122,12 @@ class GemspecMapping(DictMapping):
             ]
         return None
 
-    def normalize_author(self, author) -> Optional[Authors]:
+    def normalize_author(self, author) -> Optional[Dict[str, Any]]:
         if isinstance(author, str):
             return {"@list": [name_to_person(author)]}
         return None
 
-    def normalize_authors(self, authors) -> Optional[Authors]:
+    def normalize_authors(self, authors) -> Optional[Dict[str, List[Dict[str, Any]]]]:
         if isinstance(authors, list):
             return {
                 "@list": [
