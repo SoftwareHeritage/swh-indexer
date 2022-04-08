@@ -43,7 +43,7 @@ def swh_indexer_config(swh_indexer_config):
 
 class OriginHeadTestIndexer(OriginHeadIndexer):
     """Specific indexer whose configuration is enough to satisfy the
-       indexing tests.
+    indexing tests.
     """
 
     def persist_index_computations(self, results):
@@ -53,7 +53,10 @@ class OriginHeadTestIndexer(OriginHeadIndexer):
 SAMPLE_SNAPSHOT = Snapshot(
     branches={
         b"foo": None,
-        b"HEAD": SnapshotBranch(target_type=TargetType.ALIAS, target=b"foo",),
+        b"HEAD": SnapshotBranch(
+            target_type=TargetType.ALIAS,
+            target=b"foo",
+        ),
     },
 )
 
@@ -71,7 +74,13 @@ class OriginHead(unittest.TestCase):
         self.indexer.run([origin_url])
         rev_id = b"8K\x12\x00d\x03\xcc\xe4]bS\xe3\x8f{\xd7}\xac\xefrm"
         self.assertEqual(
-            self.indexer.results, [{"revision_id": rev_id, "origin_url": origin_url,}],
+            self.indexer.results,
+            [
+                {
+                    "revision_id": rev_id,
+                    "origin_url": origin_url,
+                }
+            ],
         )
 
     def test_git_partial_snapshot(self):
@@ -107,7 +116,13 @@ class OriginHead(unittest.TestCase):
 
     def test_pypi_missing_branch(self):
         origin_url = "https://pypi.org/project/abcdef/"
-        self.indexer.storage.origin_add([Origin(url=origin_url,)])
+        self.indexer.storage.origin_add(
+            [
+                Origin(
+                    url=origin_url,
+                )
+            ]
+        )
         visit = self.indexer.storage.origin_visit_add(
             [
                 OriginVisit(
@@ -134,7 +149,13 @@ class OriginHead(unittest.TestCase):
         self.indexer.run([origin_url])
         rev_id = b"\x8e\xa9\x8e/\xea}\x9feF\xf4\x9f\xfd\xee\xcc\x1a\xb4`\x8c\x8by"
         self.assertEqual(
-            self.indexer.results, [{"revision_id": rev_id, "origin_url": origin_url,}],
+            self.indexer.results,
+            [
+                {
+                    "revision_id": rev_id,
+                    "origin_url": origin_url,
+                }
+            ],
         )
 
     def test_ftp_missing_snapshot(self):
@@ -149,12 +170,24 @@ class OriginHead(unittest.TestCase):
         self.indexer.run([origin_url])
         rev_id = b"\xe7n\xa4\x9c\x9f\xfb\xb7\xf76\x11\x08{\xa6\xe9\x99\xb1\x9e]q\xeb"
         self.assertEqual(
-            self.indexer.results, [{"revision_id": rev_id, "origin_url": origin_url,}],
+            self.indexer.results,
+            [
+                {
+                    "revision_id": rev_id,
+                    "origin_url": origin_url,
+                }
+            ],
         )
 
     def test_deposit_missing_snapshot(self):
         origin_url = "https://forge.softwareheritage.org/source/foobar"
-        self.indexer.storage.origin_add([Origin(url=origin_url,)])
+        self.indexer.storage.origin_add(
+            [
+                Origin(
+                    url=origin_url,
+                )
+            ]
+        )
         self.indexer.run([origin_url])
         self.assertEqual(self.indexer.results, [])
 
@@ -164,7 +197,8 @@ class OriginHead(unittest.TestCase):
 
         rev_id = b"\x83\xb9\xb6\xc7\x05\xb1%\xd0\xfem\xd8kA\x10\x9d\xc5\xfa2\xf8t"
         self.assertEqual(
-            self.indexer.results, [{"revision_id": rev_id, "origin_url": origin_url}],
+            self.indexer.results,
+            [{"revision_id": rev_id, "origin_url": origin_url}],
         )
 
     def test_svn(self):
@@ -172,5 +206,11 @@ class OriginHead(unittest.TestCase):
         self.indexer.run([origin_url])
         rev_id = b"\xe4?r\xe1,\x88\xab\xec\xe7\x9a\x87\xb8\xc9\xad#.\x1bw=\x18"
         self.assertEqual(
-            self.indexer.results, [{"revision_id": rev_id, "origin_url": origin_url,}],
+            self.indexer.results,
+            [
+                {
+                    "revision_id": rev_id,
+                    "origin_url": origin_url,
+                }
+            ],
         )

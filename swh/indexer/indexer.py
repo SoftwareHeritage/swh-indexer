@@ -145,9 +145,7 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
     idx_storage: IndexerStorageInterface
 
     def __init__(self, config=None, **kw) -> None:
-        """Prepare and check that the indexer is ready to run.
-
-        """
+        """Prepare and check that the indexer is ready to run."""
         super().__init__()
         if config is not None:
             self.config = config
@@ -162,7 +160,7 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
 
     def prepare(self) -> None:
         """Prepare the indexer's needed runtime configuration.
-           Without this step, the indexer cannot possibly run.
+        Without this step, the indexer cannot possibly run.
 
         """
         config_storage = self.config.get("storage")
@@ -188,16 +186,14 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
 
     def check(self) -> None:
         """Check the indexer's configuration is ok before proceeding.
-           If ok, does nothing. If not raise error.
+        If ok, does nothing. If not raise error.
 
         """
         if self.USE_TOOLS and not self.tools:
             raise ValueError("Tools %s is unknown, cannot continue" % self.tools)
 
     def _prepare_tool(self, tool: Dict[str, Any]) -> Dict[str, Any]:
-        """Prepare the tool dict to be compliant with the storage api.
-
-        """
+        """Prepare the tool dict to be compliant with the storage api."""
         return {"tool_%s" % key: value for key, value in tool.items()}
 
     def register_tools(

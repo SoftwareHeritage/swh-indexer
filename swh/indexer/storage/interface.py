@@ -377,7 +377,8 @@ class IndexerStorageInterface(Protocol):
 
     @remote_api_endpoint("revision_intrinsic_metadata/add")
     def revision_intrinsic_metadata_add(
-        self, metadata: List[RevisionIntrinsicMetadataRow],
+        self,
+        metadata: List[RevisionIntrinsicMetadataRow],
     ) -> Dict[str, int]:
         """Add metadata not present in storage.
 

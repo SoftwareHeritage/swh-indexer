@@ -66,9 +66,7 @@ class RecomputeChecksums:
     def _read_content_ids(
         self, contents: List[Dict[str, Any]]
     ) -> Generator[bytes, Any, None]:
-        """Read the content identifiers from the contents.
-
-        """
+        """Read the content identifiers from the contents."""
         for c in contents:
             h = c["sha1"]
             if isinstance(h, str):

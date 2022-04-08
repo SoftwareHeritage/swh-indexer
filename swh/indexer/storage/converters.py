@@ -81,9 +81,7 @@ def db_to_ctags(ctag):
 
 
 def db_to_mimetype(mimetype):
-    """Convert a ctags entry into a ready ctags output.
-
-    """
+    """Convert a ctags entry into a ready ctags output."""
     return {
         "id": mimetype["id"],
         "encoding": mimetype["encoding"],
@@ -98,9 +96,7 @@ def db_to_mimetype(mimetype):
 
 
 def db_to_language(language):
-    """Convert a language entry into a ready language output.
-
-    """
+    """Convert a language entry into a ready language output."""
     return {
         "id": language["id"],
         "lang": language["lang"],
@@ -114,9 +110,7 @@ def db_to_language(language):
 
 
 def db_to_metadata(metadata):
-    """Convert a metadata entry into a ready metadata output.
-
-    """
+    """Convert a metadata entry into a ready metadata output."""
     metadata["tool"] = {
         "id": metadata["tool_id"],
         "name": metadata["tool_name"],

@@ -126,7 +126,10 @@ def test_content_partition_indexer_catch_exceptions():
 def test_content_partition_indexer():
     # TODO: simplify the mocking in this test
     indexer = TrivialContentPartitionIndexer(
-        config={**BASE_TEST_CONFIG, "write_batch_size": 10,}  # doesn't matter
+        config={
+            **BASE_TEST_CONFIG,
+            "write_batch_size": 10,
+        }  # doesn't matter
     )
     indexer.catch_exceptions = False
     indexer._results = []

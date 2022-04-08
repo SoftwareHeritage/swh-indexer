@@ -28,9 +28,7 @@ from swh.model.hashutil import hash_to_bytes
 def prepare_mimetypes_from_licenses(
     fossology_licenses: List[ContentLicenseRow],
 ) -> List[ContentMimetypeRow]:
-    """Fossology license needs some consistent data in db to run.
-
-    """
+    """Fossology license needs some consistent data in db to run."""
     mimetypes = []
     for c in fossology_licenses:
         mimetypes.append(
@@ -107,8 +105,14 @@ class StorageETypeTester:
 
         # given 2 (hopefully) unknown objects
         query = [
-            {"id": data.sha1_1, "indexer_configuration_id": tool_id,},
-            {"id": data.sha1_2, "indexer_configuration_id": tool_id,},
+            {
+                "id": data.sha1_1,
+                "indexer_configuration_id": tool_id,
+            },
+            {
+                "id": data.sha1_2,
+                "indexer_configuration_id": tool_id,
+            },
         ]
 
         # we expect these are both returned by the xxx_missing endpoint
@@ -177,7 +181,11 @@ class StorageETypeTester:
 
         expected_data_v2 = [
             self.row_class.from_dict(
-                {"id": data.sha1_2, **self.example_data[1], "tool": tool,}
+                {
+                    "id": data.sha1_2,
+                    **self.example_data[1],
+                    "tool": tool,
+                }
             )
         ]
 
@@ -227,7 +235,8 @@ class StorageETypeTester:
 
         # when
         actual_data = sorted(
-            endpoint(storage, etype, "get")(hashes), key=lambda x: x.id,
+            endpoint(storage, etype, "get")(hashes),
+            key=lambda x: x.id,
         )
 
         expected_data_v1 = [
@@ -256,7 +265,8 @@ class StorageETypeTester:
         t2.join()
 
         actual_data = sorted(
-            endpoint(storage, etype, "get")(hashes), key=lambda x: x.id,
+            endpoint(storage, etype, "get")(hashes),
+            key=lambda x: x.id,
         )
 
         expected_data_v2 = [
@@ -357,14 +367,19 @@ class StorageETypeTester:
 
 
 class TestIndexerStorageContentMimetypes(StorageETypeTester):
-    """Test Indexer Storage content_mimetype related methods
-    """
+    """Test Indexer Storage content_mimetype related methods"""
 
     endpoint_type = "content_mimetype"
     tool_name = "file"
     example_data = [
-        {"mimetype": "text/plain", "encoding": "utf-8",},
-        {"mimetype": "text/html", "encoding": "us-ascii",},
+        {
+            "mimetype": "text/plain",
+            "encoding": "utf-8",
+        },
+        {
+            "mimetype": "text/html",
+            "encoding": "us-ascii",
+        },
     ]
     row_class = ContentMimetypeRow
 
@@ -409,9 +424,7 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
     def test_generate_content_mimetype_get_partition_full(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
-        """get_partition for a single partition should return available ids
-
-        """
+        """get_partition for a single partition should return available ids"""
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
         expected_ids = set([c.id for c in mimetypes])
@@ -461,9 +474,7 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
     def test_generate_content_mimetype_get_partition_with_pagination(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
-        """get_partition should return ids provided with pagination
-
-        """
+        """get_partition should return ids provided with pagination"""
         storage, data = swh_indexer_storage_with_data
         mimetypes = data.mimetypes
         expected_ids = set([c.id for c in mimetypes])
@@ -493,28 +504,45 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
 
 
 class TestIndexerStorageContentLanguage(StorageETypeTester):
-    """Test Indexer Storage content_language related methods
-    """
+    """Test Indexer Storage content_language related methods"""
 
     endpoint_type = "content_language"
     tool_name = "pygments"
     example_data = [
-        {"lang": "haskell",},
-        {"lang": "common-lisp",},
+        {
+            "lang": "haskell",
+        },
+        {
+            "lang": "common-lisp",
+        },
     ]
     row_class = ContentLanguageRow
 
 
 class TestIndexerStorageContentCTags(StorageETypeTester):
-    """Test Indexer Storage content_ctags related methods
-    """
+    """Test Indexer Storage content_ctags related methods"""
 
     endpoint_type = "content_ctags"
     tool_name = "universal-ctags"
     example_data = [
-        {"name": "done", "kind": "variable", "line": 119, "lang": "OCaml",},
-        {"name": "done", "kind": "variable", "line": 100, "lang": "Python",},
-        {"name": "main", "kind": "function", "line": 119, "lang": "Python",},
+        {
+            "name": "done",
+            "kind": "variable",
+            "line": 119,
+            "lang": "OCaml",
+        },
+        {
+            "name": "done",
+            "kind": "variable",
+            "line": 100,
+            "lang": "Python",
+        },
+        {
+            "name": "main",
+            "kind": "function",
+            "line": 119,
+            "lang": "Python",
+        },
     ]
     row_class = ContentCtagsRow
 
@@ -542,9 +570,24 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
                 **kwargs,  # type: ignore
             )
             for kwargs in [
-                {"name": "hello", "kind": "function", "line": 133, "lang": "Python",},
-                {"name": "counter", "kind": "variable", "line": 119, "lang": "Python",},
-                {"name": "hello", "kind": "variable", "line": 210, "lang": "Python",},
+                {
+                    "name": "hello",
+                    "kind": "function",
+                    "line": 133,
+                    "lang": "Python",
+                },
+                {
+                    "name": "counter",
+                    "kind": "variable",
+                    "line": 119,
+                    "lang": "Python",
+                },
+                {
+                    "name": "hello",
+                    "kind": "variable",
+                    "line": 210,
+                    "lang": "Python",
+                },
             ]
         ]
         ctags1_with_tool = [
@@ -559,8 +602,18 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
                 **kwargs,  # type: ignore
             )
             for kwargs in [
-                {"name": "hello", "kind": "variable", "line": 100, "lang": "C",},
-                {"name": "result", "kind": "variable", "line": 120, "lang": "C",},
+                {
+                    "name": "hello",
+                    "kind": "variable",
+                    "line": 100,
+                    "lang": "C",
+                },
+                {
+                    "name": "result",
+                    "kind": "variable",
+                    "line": 120,
+                    "lang": "C",
+                },
             ]
         ]
         ctags2_with_tool = [
@@ -729,8 +782,7 @@ class TestIndexerStorageContentCTags(StorageETypeTester):
 
 
 class TestIndexerStorageContentMetadata(StorageETypeTester):
-    """Test Indexer Storage content_metadata related methods
-    """
+    """Test Indexer Storage content_metadata related methods"""
 
     tool_name = "swh-metadata-detector"
     endpoint_type = "content_metadata"
@@ -747,14 +799,15 @@ class TestIndexerStorageContentMetadata(StorageETypeTester):
                 "version": "0.0.1",
             },
         },
-        {"metadata": {"other": {}, "name": "test_metadata", "version": "0.0.1"},},
+        {
+            "metadata": {"other": {}, "name": "test_metadata", "version": "0.0.1"},
+        },
     ]
     row_class = ContentMetadataRow
 
 
 class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
-    """Test Indexer Storage revision_intrinsic_metadata related methods
-    """
+    """Test Indexer Storage revision_intrinsic_metadata related methods"""
 
     tool_name = "swh-metadata-detector"
     endpoint_type = "revision_intrinsic_metadata"
@@ -813,7 +866,9 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
         tool_id = tool["id"]
 
         license1 = ContentLicenseRow(
-            id=data.sha1_1, license="Apache-2.0", indexer_configuration_id=tool_id,
+            id=data.sha1_1,
+            license="Apache-2.0",
+            indexer_configuration_id=tool_id,
         )
 
         # given
@@ -826,13 +881,19 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
 
         # then
         expected_licenses = [
-            ContentLicenseRow(id=data.sha1_1, license="Apache-2.0", tool=tool,)
+            ContentLicenseRow(
+                id=data.sha1_1,
+                license="Apache-2.0",
+                tool=tool,
+            )
         ]
         assert actual_licenses == expected_licenses
 
         # given
         license2 = ContentLicenseRow(
-            id=data.sha1_1, license="BSD-2-Clause", indexer_configuration_id=tool_id,
+            id=data.sha1_1,
+            license="BSD-2-Clause",
+            indexer_configuration_id=tool_id,
         )
 
         storage.content_fossology_license_add([license2])
@@ -840,7 +901,11 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
         actual_licenses = list(storage.content_fossology_license_get([data.sha1_1]))
 
         expected_licenses.append(
-            ContentLicenseRow(id=data.sha1_1, license="BSD-2-Clause", tool=tool,)
+            ContentLicenseRow(
+                id=data.sha1_1,
+                license="BSD-2-Clause",
+                tool=tool,
+            )
         )
 
         # first license was not removed when the second one was added
@@ -856,7 +921,10 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
             IndexerStorageArgumentException, match="limit should not be None"
         ):
             storage.content_fossology_license_get_partition(
-                indexer_configuration_id, 0, 3, limit=None,  # type: ignore
+                indexer_configuration_id,
+                0,
+                3,
+                limit=None,  # type: ignore
             )
 
     def test_generate_content_fossology_license_get_partition_no_limit(
@@ -896,9 +964,7 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
     def test_generate_content_fossology_license_get_partition_full(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
-        """get_partition for a single partition should return available ids
-
-        """
+        """get_partition for a single partition should return available ids"""
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
@@ -964,9 +1030,7 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
     def test_generate_content_fossology_license_get_partition_with_pagination(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
-        """get_partition should return ids provided with paginationv
-
-        """
+        """get_partition should return ids provided with paginationv"""
         storage, data = swh_indexer_storage_with_data
         # craft some consistent mimetypes
         fossology_licenses = data.fossology_licenses
@@ -1130,7 +1194,10 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # given
         metadata_v2 = metadata_v1.copy()
         metadata_v2.update(
-            {"name": "test_update_duplicated_metadata", "author": "MG",}
+            {
+                "name": "test_update_duplicated_metadata",
+                "author": "MG",
+            }
         )
         metadata_rev_v2 = attr.evolve(metadata_rev_v1, metadata=metadata_v2)
         metadata_origin_v2 = OriginIntrinsicMetadataRow(
@@ -1171,17 +1238,26 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         origins = ["file:///tmp/origin{:02d}".format(i) for i in range(100)]
 
         example_data1: Dict[str, Any] = {
-            "metadata": {"version": None, "name": None,},
+            "metadata": {
+                "version": None,
+                "name": None,
+            },
             "mappings": [],
         }
         example_data2: Dict[str, Any] = {
-            "metadata": {"version": "v1.1.1", "name": "foo",},
+            "metadata": {
+                "version": "v1.1.1",
+                "name": "foo",
+            },
             "mappings": [],
         }
 
         metadata_rev_v1 = RevisionIntrinsicMetadataRow(
             id=data.revision_id_2,
-            metadata={"version": None, "name": None,},
+            metadata={
+                "version": None,
+                "name": None,
+            },
             mappings=[],
             indexer_configuration_id=tool_id,
         )
@@ -1361,7 +1437,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # to the JSON data, to work around normalization quirks when there
         # are few words (rank/(1+ln(nb_words)) is very sensitive to nb_words
         # for small values of nb_words).
-        metadata1 = {"author": ["Random Person", "John Doe", "Jane Doe",]}
+        metadata1 = {
+            "author": [
+                "Random Person",
+                "John Doe",
+                "Jane Doe",
+            ]
+        }
         metadata1_rev = RevisionIntrinsicMetadataRow(
             id=data.revision_id_1,
             metadata=metadata1,
@@ -1375,7 +1457,12 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             indexer_configuration_id=tool_id,
             from_revision=data.revision_id_1,
         )
-        metadata2 = {"author": ["Random Person", "Jane Doe",]}
+        metadata2 = {
+            "author": [
+                "Random Person",
+                "Jane Doe",
+            ]
+        }
         metadata2_rev = RevisionIntrinsicMetadataRow(
             id=data.revision_id_2,
             metadata=metadata2,
@@ -1488,14 +1575,22 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         # no 'page_token' param, return all origins
         result = endpoint(ids_only=True)
         assert result == PagedResult(
-            results=[data.origin_url_1, data.origin_url_2, data.origin_url_3,],
+            results=[
+                data.origin_url_1,
+                data.origin_url_2,
+                data.origin_url_3,
+            ],
             next_page_token=None,
         )
 
         # 'page_token' is < than origin_1, return everything
         result = endpoint(page_token=data.origin_url_1[:-1], ids_only=True)
         assert result == PagedResult(
-            results=[data.origin_url_1, data.origin_url_2, data.origin_url_3,],
+            results=[
+                data.origin_url_1,
+                data.origin_url_2,
+                data.origin_url_3,
+            ],
             next_page_token=None,
         )
 
@@ -1512,41 +1607,60 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         result = endpoint(page_token=data.origin_url_1, limit=2, ids_only=True)
         assert result == PagedResult(
-            results=[data.origin_url_2, data.origin_url_3], next_page_token=None,
+            results=[data.origin_url_2, data.origin_url_3],
+            next_page_token=None,
         )
 
         result = endpoint(page_token=data.origin_url_2, limit=2, ids_only=True)
-        assert result == PagedResult(results=[data.origin_url_3], next_page_token=None,)
+        assert result == PagedResult(
+            results=[data.origin_url_3],
+            next_page_token=None,
+        )
 
         # test mappings filtering
         result = endpoint(mappings=["npm"], ids_only=True)
         assert result == PagedResult(
-            results=[data.origin_url_1, data.origin_url_2], next_page_token=None,
+            results=[data.origin_url_1, data.origin_url_2],
+            next_page_token=None,
         )
 
         result = endpoint(mappings=["npm", "gemspec"], ids_only=True)
         assert result == PagedResult(
-            results=[data.origin_url_1, data.origin_url_2], next_page_token=None,
+            results=[data.origin_url_1, data.origin_url_2],
+            next_page_token=None,
         )
 
         result = endpoint(mappings=["gemspec"], ids_only=True)
-        assert result == PagedResult(results=[data.origin_url_2], next_page_token=None,)
+        assert result == PagedResult(
+            results=[data.origin_url_2],
+            next_page_token=None,
+        )
 
         result = endpoint(mappings=["pkg-info"], ids_only=True)
-        assert result == PagedResult(results=[data.origin_url_3], next_page_token=None,)
+        assert result == PagedResult(
+            results=[data.origin_url_3],
+            next_page_token=None,
+        )
 
         result = endpoint(mappings=["foobar"], ids_only=True)
-        assert result == PagedResult(results=[], next_page_token=None,)
+        assert result == PagedResult(
+            results=[],
+            next_page_token=None,
+        )
 
         # test pagination + mappings
         result = endpoint(mappings=["npm"], limit=1, ids_only=True)
         assert result == PagedResult(
-            results=[data.origin_url_1], next_page_token=data.origin_url_1,
+            results=[data.origin_url_1],
+            next_page_token=data.origin_url_1,
         )
 
         # test tool filtering
         result = endpoint(tool_ids=[tool1["id"]], ids_only=True)
-        assert result == PagedResult(results=[data.origin_url_1], next_page_token=None,)
+        assert result == PagedResult(
+            results=[data.origin_url_1],
+            next_page_token=None,
+        )
 
         result = endpoint(tool_ids=[tool2["id"]], ids_only=True)
         assert sorted(result.results) == [data.origin_url_2, data.origin_url_3]
@@ -1565,7 +1679,10 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             results=[
                 OriginIntrinsicMetadataRow(
                     id=data.origin_url_2,
-                    metadata={"@context": "foo", "author": "Jane Doe",},
+                    metadata={
+                        "@context": "foo",
+                        "author": "Jane Doe",
+                    },
                     mappings=["npm", "gemspec"],
                     tool=tool2,
                     from_revision=data.revision_id_2,

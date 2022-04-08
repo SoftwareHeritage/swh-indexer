@@ -93,7 +93,12 @@ def test_load_and_check_config_local_incomplete_configuration(tmpdir) -> None:
 
 def test_load_and_check_config_local_config_fine(tmpdir) -> None:
     """'Complete 'local' configuration is fine"""
-    config = {"indexer_storage": {"cls": "local", "db": "db",}}
+    config = {
+        "indexer_storage": {
+            "cls": "local",
+            "db": "db",
+        }
+    }
     config_path = prepare_config_file(tmpdir, config)
     cfg = load_and_check_config(config_path, type="local")
     assert cfg == config

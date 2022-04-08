@@ -26,7 +26,11 @@ from swh.model.model import OriginVisitStatus
 
 def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List[int]:
     tools: List[Dict[str, Any]] = [
-        {"tool_name": "tool %d" % i, "tool_version": "0.0.1", "tool_configuration": {},}
+        {
+            "tool_name": "tool %d" % i,
+            "tool_version": "0.0.1",
+            "tool_configuration": {},
+        }
         for i in range(2)
     ]
     tools = idx_storage.indexer_configuration_add(tools)
@@ -137,7 +141,12 @@ def test_cli_origin_metadata_reindex_empty_db(
 ):
     result = cli_runner.invoke(
         indexer_cli_group,
-        ["-C", swh_config, "schedule", "reindex_origin_metadata",],
+        [
+            "-C",
+            swh_config,
+            "schedule",
+            "reindex_origin_metadata",
+        ],
         catch_exceptions=False,
     )
     expected_output = "Nothing to do (no origin metadata matched the criteria).\n"
@@ -158,7 +167,12 @@ def test_cli_origin_metadata_reindex_divisor(
 
     result = cli_runner.invoke(
         indexer_cli_group,
-        ["-C", swh_config, "schedule", "reindex_origin_metadata",],
+        [
+            "-C",
+            swh_config,
+            "schedule",
+            "reindex_origin_metadata",
+        ],
         catch_exceptions=False,
     )
 
@@ -189,7 +203,13 @@ def test_cli_origin_metadata_reindex_dry_run(
 
     result = cli_runner.invoke(
         indexer_cli_group,
-        ["-C", swh_config, "schedule", "--dry-run", "reindex_origin_metadata",],
+        [
+            "-C",
+            swh_config,
+            "schedule",
+            "--dry-run",
+            "reindex_origin_metadata",
+        ],
         catch_exceptions=False,
     )
 
@@ -496,6 +516,10 @@ def test_cli_journal_client_without_brokers(
     with pytest.raises(ValueError, match="brokers"):
         cli_runner.invoke(
             indexer_cli_group,
-            ["-C", swh_config, "journal-client",],
+            [
+                "-C",
+                swh_config,
+                "journal-client",
+            ],
             catch_exceptions=False,
         )

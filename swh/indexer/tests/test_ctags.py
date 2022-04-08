@@ -27,9 +27,7 @@ from swh.model.hashutil import hash_to_bytes
 class BasicTest(unittest.TestCase):
     @patch("swh.indexer.ctags.subprocess")
     def test_run_ctags(self, mock_subprocess):
-        """Computing licenses from a raw content should return results
-
-        """
+        """Computing licenses from a raw content should return results"""
         output0 = """
 {"name":"defun","kind":"function","line":1,"language":"scheme"}
 {"name":"name","kind":"symbol","line":5,"language":"else"}"""
@@ -54,14 +52,10 @@ class BasicTest(unittest.TestCase):
 
 
 class InjectCtagsIndexer:
-    """Override ctags computations.
-
-    """
+    """Override ctags computations."""
 
     def compute_ctags(self, path, lang):
-        """Inject fake ctags given path (sha1 identifier).
-
-        """
+        """Inject fake ctags given path (sha1 identifier)."""
         return {"lang": lang, **SHA1_TO_CTAGS.get(path)}
 
 
@@ -76,7 +70,11 @@ CONFIG = {
             "max_content_size": 1000,
         },
     },
-    "languages": {"python": "python", "haskell": "haskell", "bar": "bar",},
+    "languages": {
+        "python": "python",
+        "haskell": "haskell",
+        "bar": "bar",
+    },
     "workdir": "/tmp",
 }
 
@@ -109,15 +107,27 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
 
         self.expected_results = [
             *[
-                ContentCtagsRow(id=hash_to_bytes(self.id0), tool=tool, **kwargs,)
+                ContentCtagsRow(
+                    id=hash_to_bytes(self.id0),
+                    tool=tool,
+                    **kwargs,
+                )
                 for kwargs in SHA1_TO_CTAGS[self.id0]
             ],
             *[
-                ContentCtagsRow(id=hash_to_bytes(self.id1), tool=tool, **kwargs,)
+                ContentCtagsRow(
+                    id=hash_to_bytes(self.id1),
+                    tool=tool,
+                    **kwargs,
+                )
                 for kwargs in SHA1_TO_CTAGS[self.id1]
             ],
             *[
-                ContentCtagsRow(id=hash_to_bytes(self.id2), tool=tool, **kwargs,)
+                ContentCtagsRow(
+                    id=hash_to_bytes(self.id2),
+                    tool=tool,
+                    **kwargs,
+                )
                 for kwargs in SHA1_TO_CTAGS[self.id2]
             ],
         ]

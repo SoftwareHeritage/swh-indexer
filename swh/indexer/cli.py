@@ -20,7 +20,10 @@ from swh.core.cli import swh as swh_cli_group
     "--config-file",
     "-C",
     default=None,
-    type=click.Path(exists=True, dir_okay=False,),
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+    ),
     help="Configuration file.",
 )
 @click.pass_context
@@ -277,7 +280,9 @@ def journal_client(
     worker_fn = functools.partial(
         process_journal_objects,
         scheduler=scheduler,
-        task_names={"origin_metadata": origin_metadata_task_type,},
+        task_names={
+            "origin_metadata": origin_metadata_task_type,
+        },
     )
     try:
         client.process(worker_fn)

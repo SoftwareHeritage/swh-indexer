@@ -13,9 +13,7 @@ from .interface import Sha1
 
 
 class Db(BaseDb):
-    """Proxy to the SWH Indexer DB, with wrappers around stored procedures
-
-    """
+    """Proxy to the SWH Indexer DB, with wrappers around stored procedures"""
 
     content_mimetype_hash_keys = ["id", "indexer_configuration_id"]
     current_version = 133
@@ -54,9 +52,7 @@ class Db(BaseDb):
     def content_mimetype_missing_from_list(
         self, mimetypes: Iterable[Dict], cur=None
     ) -> Iterator[Sha1]:
-        """List missing mimetypes.
-
-        """
+        """List missing mimetypes."""
         yield from self._missing_from_list(
             "content_mimetype", mimetypes, self.content_mimetype_hash_keys, cur=cur
         )
@@ -148,11 +144,11 @@ class Db(BaseDb):
         cur=None,
     ):
         """Retrieve contents with content_type, within range [start, end]
-           bound by limit and associated to the given indexer
-           configuration id.
+        bound by limit and associated to the given indexer
+        configuration id.
 
-           When asking to work on textual content, that filters on the
-           mimetype table with any mimetype that is not binary.
+        When asking to work on textual content, that filters on the
+        mimetype table with any mimetype that is not binary.
 
         """
         cur = self._cursor(cur)
@@ -190,9 +186,7 @@ class Db(BaseDb):
     content_language_hash_keys = ["id", "indexer_configuration_id"]
 
     def content_language_missing_from_list(self, languages, cur=None):
-        """List missing languages.
-
-        """
+        """List missing languages."""
         yield from self._missing_from_list(
             "content_language", languages, self.content_language_hash_keys, cur=cur
         )
@@ -223,9 +217,7 @@ class Db(BaseDb):
     content_ctags_hash_keys = ["id", "indexer_configuration_id"]
 
     def content_ctags_missing_from_list(self, ctags, cur=None):
-        """List missing ctags.
-
-        """
+        """List missing ctags."""
         yield from self._missing_from_list(
             "content_ctags", ctags, self.content_ctags_hash_keys, cur=cur
         )
@@ -305,17 +297,13 @@ class Db(BaseDb):
         pass
 
     def content_fossology_license_add_from_temp(self, cur=None):
-        """Add new licenses per content.
-
-        """
+        """Add new licenses per content."""
         cur = self._cursor(cur)
         cur.execute("select * from swh_content_fossology_license_add()")
         return cur.fetchone()[0]
 
     def content_fossology_license_get_from_list(self, ids, cur=None):
-        """Retrieve licenses per id.
-
-        """
+        """Retrieve licenses per id."""
         cur = self._cursor(cur)
         keys = map(self._convert_key, self.content_fossology_license_cols)
         yield from execute_values_generator(
@@ -334,9 +322,7 @@ class Db(BaseDb):
     content_metadata_hash_keys = ["id", "indexer_configuration_id"]
 
     def content_metadata_missing_from_list(self, metadata, cur=None):
-        """List missing metadata.
-
-        """
+        """List missing metadata."""
         yield from self._missing_from_list(
             "content_metadata", metadata, self.content_metadata_hash_keys, cur=cur
         )
@@ -367,9 +353,7 @@ class Db(BaseDb):
     revision_intrinsic_metadata_hash_keys = ["id", "indexer_configuration_id"]
 
     def revision_intrinsic_metadata_missing_from_list(self, metadata, cur=None):
-        """List missing metadata.
-
-        """
+        """List missing metadata."""
         yield from self._missing_from_list(
             "revision_intrinsic_metadata",
             metadata,

@@ -38,7 +38,7 @@ TRANSLATOR_TOOL = {
 
 class ContentMetadataTestIndexer(ContentMetadataIndexer):
     """Specific Metadata whose configuration is enough to satisfy the
-       indexing tests.
+    indexing tests.
     """
 
     def parse_config_file(self, *args, **kwargs):
@@ -190,7 +190,11 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             "description": "Simple package.json test for indexer",
             "codeRepository": "git+https://github.com/moranegg/metadata_test",
             "author": [
-                {"type": "Person", "name": "Morane G", "email": "moranegg@example.com",}
+                {
+                    "type": "Person",
+                    "name": "Morane G",
+                    "email": "moranegg@example.com",
+                }
             ],
         }
 
@@ -1281,7 +1285,10 @@ Gem::Specification.new { |s|
         directory = Directory(
             entries=(
                 DirectoryEntry(
-                    name=b"foobar-1.0.0", type="dir", target=rev.directory, perms=16384,
+                    name=b"foobar-1.0.0",
+                    type="dir",
+                    target=rev.directory,
+                    perms=16384,
                 ),
             ),
         )
