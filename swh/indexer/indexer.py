@@ -23,6 +23,8 @@ from typing import (
 )
 import warnings
 
+import sentry_sdk
+
 from swh.core import utils
 from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, Sha1, get_indexer_storage
@@ -331,6 +333,7 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
             if not self.catch_exceptions:
                 raise
             self.log.exception("Problem when reading contents metadata.")
+            sentry_sdk.capture_exception()
             summary["status"] = "failed"
         return summary
 
@@ -486,6 +489,7 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
             if not self.catch_exceptions:
                 raise
             self.log.exception("Problem when computing metadata.")
+            sentry_sdk.capture_exception()
             summary["status"] = "failed"
 
         if count > 0 and count_object_added_key:
@@ -547,6 +551,7 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
                 results.extend(self.index(origin_url, **kwargs))
             except Exception:
                 self.log.exception("Problem when processing origin %s", origin_url)
+                sentry_sdk.capture_exception()
                 raise
         return results
 
@@ -598,6 +603,7 @@ class RevisionIndexer(BaseIndexer[Sha1Git, Revision, TResult], Generic[TResult])
                 if not self.catch_exceptions:
                     raise
                 self.log.exception("Problem when processing revision")
+                sentry_sdk.capture_exception()
                 summary["status"] = "failed"
                 return summary
 

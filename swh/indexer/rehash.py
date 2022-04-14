@@ -8,6 +8,8 @@ import itertools
 import logging
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
+import sentry_sdk
+
 from swh.core import utils
 from swh.core.config import load_from_envvar
 from swh.model import hashutil
@@ -98,6 +100,7 @@ class RecomputeChecksums:
                 )
             except Exception:
                 self.log.exception("Problem when reading contents metadata.")
+                sentry_sdk.capture_exception()
                 continue
 
             for sha1, content_model in zip(sha1s, content_metadata):
@@ -165,6 +168,7 @@ class RecomputeChecksums:
                     status = "eventful"
                 except Exception:
                     self.log.exception("Problem during update.")
+                    sentry_sdk.capture_exception()
                     continue
 
         return {

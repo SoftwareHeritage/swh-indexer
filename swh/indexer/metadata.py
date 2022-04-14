@@ -16,6 +16,8 @@ from typing import (
     TypeVar,
 )
 
+import sentry_sdk
+
 from swh.core.config import merge_configs
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
@@ -107,6 +109,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
                 "Problem during metadata translation "
                 "for content %s" % hashutil.hash_to_hex(id)
             )
+            sentry_sdk.capture_exception()
         if metadata is None:
             return []
         return [
@@ -214,6 +217,7 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
             )
         except Exception as e:
             self.log.exception("Problem when indexing rev: %r", e)
+            sentry_sdk.capture_exception()
         return [
             RevisionIntrinsicMetadataRow(
                 id=rev.id,
@@ -304,6 +308,7 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
 
                 except Exception:
                     self.log.exception("Exception while indexing metadata on contents")
+                    sentry_sdk.capture_exception()
 
         metadata = merge_documents(metadata)
         return (used_mappings, metadata)
