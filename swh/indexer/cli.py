@@ -97,7 +97,7 @@ def mapping_list_terms(concise, exclude_mapping):
 @click.argument("mapping-name")
 @click.argument("file", type=click.File("rb"))
 def mapping_translate(mapping_name, file):
-    """Prints the list of known mappings."""
+    """Translates file from mapping-name to codemeta format."""
     import json
 
     from swh.indexer import metadata_dictionary
