@@ -406,37 +406,41 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
         )
 
     def test_detect_metadata_package_json(self):
-        # given
-        df = [
-            {
-                "sha1_git": b"abc",
-                "name": b"index.js",
-                "target": b"abc",
-                "length": 897,
-                "status": "visible",
-                "type": "file",
-                "perms": 33188,
-                "dir_id": b"dir_a",
-                "sha1": b"bcd",
-            },
-            {
-                "sha1_git": b"aab",
-                "name": b"package.json",
-                "target": b"aab",
-                "length": 712,
-                "status": "visible",
-                "type": "file",
-                "perms": 33188,
-                "dir_id": b"dir_a",
-                "sha1": b"cde",
-            },
-        ]
-        # when
-        results = detect_metadata(df)
+        filenames = [b"package.json", b"Package.json", b"PACKAGE.json", b"PACKAGE.JSON"]
 
-        expected_results = {"NpmMapping": [b"cde"]}
-        # then
-        self.assertEqual(expected_results, results)
+        for filename in filenames:
+            with self.subTest(filename=filename):
+                # given
+                df = [
+                    {
+                        "sha1_git": b"abc",
+                        "name": b"index.js",
+                        "target": b"abc",
+                        "length": 897,
+                        "status": "visible",
+                        "type": "file",
+                        "perms": 33188,
+                        "dir_id": b"dir_a",
+                        "sha1": b"bcd",
+                    },
+                    {
+                        "sha1_git": b"aab",
+                        "name": filename,
+                        "target": b"aab",
+                        "length": 712,
+                        "status": "visible",
+                        "type": "file",
+                        "perms": 33188,
+                        "dir_id": b"dir_a",
+                        "sha1": b"cde",
+                    },
+                ]
+                # when
+                results = detect_metadata(df)
+
+                expected_results = {"NpmMapping": [b"cde"]}
+                # then
+                self.assertEqual(expected_results, results)
 
     def test_detect_metadata_codemeta_json_uppercase(self):
         # given
