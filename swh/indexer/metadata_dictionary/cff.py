@@ -6,10 +6,12 @@ from swh.indexer.codemeta import CODEMETA_CONTEXT_URL, CROSSWALK_TABLE, SCHEMA_U
 
 from .base import DictMapping, SingleFileMapping
 
-yaml.SafeLoader.yaml_implicit_resolvers = {
-    k: [r for r in v if r[0] != "tag:yaml.org,2002:timestamp"]
-    for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()
-}
+
+class SafeLoader(yaml.SafeLoader):
+    yaml_implicit_resolvers = {
+        k: [r for r in v if r[0] != "tag:yaml.org,2002:timestamp"]
+        for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()
+    }
 
 
 class CffMapping(DictMapping, SingleFileMapping):
@@ -22,7 +24,7 @@ class CffMapping(DictMapping, SingleFileMapping):
 
     def translate(self, raw_content: bytes) -> Dict[str, str]:
         raw_content_string: str = raw_content.decode()
-        content_dict = yaml.load(raw_content_string, Loader=yaml.SafeLoader)
+        content_dict = yaml.load(raw_content_string, Loader=SafeLoader)
         metadata = self._translate_dict(content_dict)
 
         metadata["@context"] = CODEMETA_CONTEXT_URL
