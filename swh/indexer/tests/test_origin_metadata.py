@@ -252,5 +252,5 @@ def test_origin_metadata_indexer_unknown_origin(
 ) -> None:
 
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
-    result = indexer.index_list(["https://unknown.org/foo"])
+    result = indexer.index_list([Origin("https://unknown.org/foo")])
     assert not result

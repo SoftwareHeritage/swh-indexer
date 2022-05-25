@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2021 The Software Heritage developers
+# Copyright (C) 2017-2022 The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -32,7 +32,7 @@ from swh.indexer.storage.model import (
     RevisionIntrinsicMetadataRow,
 )
 from swh.model import hashutil
-from swh.model.model import Revision, Sha1Git
+from swh.model.model import Origin, Revision, Sha1Git
 
 REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
@@ -325,18 +325,21 @@ class OriginMetadataIndexer(
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
     def index_list(
-        self, origin_urls: List[str], **kwargs
+        self, origins: List[Origin], **kwargs
     ) -> List[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]]:
         head_rev_ids = []
         origins_with_head = []
-        origins = list(
+
+        # Filter out origins not in the storage
+        known_origins = list(
             call_with_batches(
                 self.storage.origin_get,
-                origin_urls,
+                [origin.url for origin in origins],
                 ORIGIN_GET_BATCH_SIZE,
             )
         )
-        for origin in origins:
+
+        for origin in known_origins:
             if origin is None:
                 continue
             head_results = self.origin_head_indexer.index(origin.url)
@@ -368,6 +371,7 @@ class OriginMetadataIndexer(
                     indexer_configuration_id=rev_metadata.indexer_configuration_id,
                 )
                 results.append((orig_metadata, rev_metadata))
+
         return results
 
     def persist_index_computations(

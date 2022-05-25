@@ -17,7 +17,7 @@ from swh.indexer.indexer import (
 from swh.indexer.storage import PagedResult, Sha1
 from swh.model.model import Content
 
-from .utils import BASE_TEST_CONFIG
+from .utils import BASE_TEST_CONFIG, REVISION
 
 
 class _TestException(Exception):
@@ -89,7 +89,7 @@ def test_content_indexer_catch_exceptions():
 def test_revision_indexer_catch_exceptions():
     indexer = CrashingRevisionIndexer(config=BASE_TEST_CONFIG)
     indexer.storage = Mock()
-    indexer.storage.revision_get.return_value = ["rev"]
+    indexer.storage.revision_get.return_value = [REVISION]
 
     assert indexer.run([b"foo"]) == {"status": "failed"}
 
