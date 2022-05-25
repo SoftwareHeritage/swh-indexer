@@ -1,12 +1,13 @@
-# Copyright (C) 2017-2020  The Software Heritage developers
+# Copyright (C) 2017-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import json
-import unittest
+import logging
 
 from hypothesis import HealthCheck, given, settings, strategies
+import pytest
 
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata import ContentMetadataIndexer, RevisionMetadataIndexer
@@ -51,16 +52,12 @@ REVISION_METADATA_CONFIG = {
 }
 
 
-class Metadata(unittest.TestCase):
+class TestMetadata:
     """
     Tests metadata_mock_tool tool for Metadata detection
     """
 
-    def setUp(self):
-        """
-        shows the entire diff in the results
-        """
-        self.maxDiff = None
+    def setup_method(self):
         self.npm_mapping = MAPPINGS["NpmMapping"]()
         self.codemeta_mapping = MAPPINGS["CodemetaMapping"]()
         self.maven_mapping = MAPPINGS["MavenMapping"]()
@@ -81,7 +78,7 @@ class Metadata(unittest.TestCase):
         # when
         result = self.npm_mapping.translate(content)
         # then
-        self.assertEqual(declared_metadata, result)
+        assert declared_metadata == result
 
     def test_compute_metadata_cff(self):
         """
@@ -160,7 +157,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
         # when
         result = self.cff_mapping.translate(content)
         # then
-        self.assertEqual(expected, result)
+        assert expected == result
 
     def test_compute_metadata_npm(self):
         """
@@ -201,7 +198,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
         # when
         result = self.npm_mapping.translate(content)
         # then
-        self.assertEqual(declared_metadata, result)
+        assert declared_metadata == result
 
     def test_index_content_metadata_npm(self):
         """
@@ -275,7 +272,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             del result.tool["id"]
 
         # The assertion below returns False sometimes because of nested lists
-        self.assertEqual(expected_results, results)
+        assert expected_results == results
 
     def test_npm_bugs_normalization(self):
         # valid dictionary
@@ -287,15 +284,12 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             }
         }"""
         result = self.npm_mapping.translate(package_json)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "name": "foo",
-                "issueTracker": "https://github.com/owner/project/issues",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "name": "foo",
+            "issueTracker": "https://github.com/owner/project/issues",
+            "type": "SoftwareSourceCode",
+        }
 
         # "invalid" dictionary
         package_json = b"""{
@@ -305,14 +299,11 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             }
         }"""
         result = self.npm_mapping.translate(package_json)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "name": "foo",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "name": "foo",
+            "type": "SoftwareSourceCode",
+        }
 
         # string
         package_json = b"""{
@@ -320,15 +311,12 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             "bugs": "https://github.com/owner/project/issues"
         }"""
         result = self.npm_mapping.translate(package_json)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "name": "foo",
-                "issueTracker": "https://github.com/owner/project/issues",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "name": "foo",
+            "issueTracker": "https://github.com/owner/project/issues",
+            "type": "SoftwareSourceCode",
+        }
 
     def test_npm_repository_normalization(self):
         # normal
@@ -340,15 +328,12 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             }
         }"""
         result = self.npm_mapping.translate(package_json)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "name": "foo",
-                "codeRepository": "git+https://github.com/npm/cli.git",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "name": "foo",
+            "codeRepository": "git+https://github.com/npm/cli.git",
+            "type": "SoftwareSourceCode",
+        }
 
         # missing url
         package_json = b"""{
@@ -358,14 +343,11 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             }
         }"""
         result = self.npm_mapping.translate(package_json)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "name": "foo",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "name": "foo",
+            "type": "SoftwareSourceCode",
+        }
 
         # github shortcut
         package_json = b"""{
@@ -379,7 +361,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             "codeRepository": "git+https://github.com/npm/cli.git",
             "type": "SoftwareSourceCode",
         }
-        self.assertEqual(result, expected_result)
+        assert result == expected_result
 
         # github shortshortcut
         package_json = b"""{
@@ -387,7 +369,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             "repository": "npm/cli"
         }"""
         result = self.npm_mapping.translate(package_json)
-        self.assertEqual(result, expected_result)
+        assert result == expected_result
 
         # gitlab shortcut
         package_json = b"""{
@@ -395,52 +377,48 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             "repository": "gitlab:user/repo"
         }"""
         result = self.npm_mapping.translate(package_json)
-        self.assertEqual(
-            result,
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "name": "foo",
+            "codeRepository": "git+https://gitlab.com/user/repo.git",
+            "type": "SoftwareSourceCode",
+        }
+
+    @pytest.mark.parametrize(
+        "filename", [b"package.json", b"Package.json", b"PACKAGE.json", b"PACKAGE.JSON"]
+    )
+    def test_detect_metadata_package_json(self, filename):
+        # given
+        df = [
             {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "name": "foo",
-                "codeRepository": "git+https://gitlab.com/user/repo.git",
-                "type": "SoftwareSourceCode",
+                "sha1_git": b"abc",
+                "name": b"index.js",
+                "target": b"abc",
+                "length": 897,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"bcd",
             },
-        )
+            {
+                "sha1_git": b"aab",
+                "name": filename,
+                "target": b"aab",
+                "length": 712,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"cde",
+            },
+        ]
+        # when
+        results = detect_metadata(df)
 
-    def test_detect_metadata_package_json(self):
-        filenames = [b"package.json", b"Package.json", b"PACKAGE.json", b"PACKAGE.JSON"]
-
-        for filename in filenames:
-            with self.subTest(filename=filename):
-                # given
-                df = [
-                    {
-                        "sha1_git": b"abc",
-                        "name": b"index.js",
-                        "target": b"abc",
-                        "length": 897,
-                        "status": "visible",
-                        "type": "file",
-                        "perms": 33188,
-                        "dir_id": b"dir_a",
-                        "sha1": b"bcd",
-                    },
-                    {
-                        "sha1_git": b"aab",
-                        "name": filename,
-                        "target": b"aab",
-                        "length": 712,
-                        "status": "visible",
-                        "type": "file",
-                        "perms": 33188,
-                        "dir_id": b"dir_a",
-                        "sha1": b"cde",
-                    },
-                ]
-                # when
-                results = detect_metadata(df)
-
-                expected_results = {"NpmMapping": [b"cde"]}
-                # then
-                self.assertEqual(expected_results, results)
+        expected_results = {"NpmMapping": [b"cde"]}
+        # then
+        assert expected_results == results
 
     def test_detect_metadata_codemeta_json_uppercase(self):
         # given
@@ -473,7 +451,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
 
         expected_results = {"CodemetaMapping": [b"bcd"]}
         # then
-        self.assertEqual(expected_results, results)
+        assert expected_results == results
 
     def test_compute_metadata_valid_codemeta(self):
         raw_content = b"""{
@@ -580,7 +558,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             "programmingLanguage": "JSON-LD",
         }
         result = self.codemeta_mapping.translate(raw_content)
-        self.assertEqual(result, expected_result)
+        assert result == expected_result
 
     def test_compute_metadata_codemeta_alternate_context(self):
         raw_content = b"""{
@@ -594,7 +572,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             "identifier": "CodeMeta",
         }
         result = self.codemeta_mapping.translate(raw_content)
-        self.assertEqual(result, expected_result)
+        assert result == expected_result
 
     def test_compute_metadata_maven(self):
         raw_content = b"""
@@ -625,33 +603,27 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           </licenses>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "Maven Default Project",
-                "identifier": "com.mycompany.app",
-                "version": "1.2.3",
-                "license": "https://www.apache.org/licenses/LICENSE-2.0.txt",
-                "codeRepository": (
-                    "http://repo1.maven.org/maven2/com/mycompany/app/my-app"
-                ),
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "Maven Default Project",
+            "identifier": "com.mycompany.app",
+            "version": "1.2.3",
+            "license": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+            "codeRepository": (
+                "http://repo1.maven.org/maven2/com/mycompany/app/my-app"
+            ),
+        }
 
     def test_compute_metadata_maven_empty(self):
         raw_content = b"""
         <project>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+        }
 
     def test_compute_metadata_maven_almost_empty(self):
         raw_content = b"""
@@ -659,81 +631,85 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           <foo/>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+        }
 
-    def test_compute_metadata_maven_invalid_xml(self):
+    def test_compute_metadata_maven_invalid_xml(self, caplog):
         expected_warning = (
-            "WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:"
-            "Error parsing XML from foo"
+            "swh.indexer.metadata_dictionary.maven.MavenMapping",
+            logging.WARNING,
+            "Error parsing XML from foo",
         )
+        caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_dictionary")
 
         raw_content = b"""
         <project>"""
-        with self.assertLogs("swh.indexer.metadata_dictionary", level="WARNING") as cm:
-            result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
-            self.assertEqual(cm.output, [expected_warning])
-        self.assertEqual(result, None)
+        caplog.clear()
+        result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+        assert caplog.record_tuples == [expected_warning]
+        assert result is None
 
         raw_content = b"""
         """
-        with self.assertLogs("swh.indexer.metadata_dictionary", level="WARNING") as cm:
-            result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
-            self.assertEqual(cm.output, [expected_warning])
-        self.assertEqual(result, None)
+        caplog.clear()
+        result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+        assert caplog.record_tuples == [expected_warning]
+        assert result is None
 
-    def test_compute_metadata_maven_unknown_encoding(self):
+    def test_compute_metadata_maven_unknown_encoding(self, caplog):
         expected_warning = (
-            "WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:"
-            "Error detecting XML encoding from foo"
+            "swh.indexer.metadata_dictionary.maven.MavenMapping",
+            logging.WARNING,
+            "Error detecting XML encoding from foo",
         )
+        caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_dictionary")
 
         raw_content = b"""<?xml version="1.0" encoding="foo"?>
         <project>
         </project>"""
-        with self.assertLogs("swh.indexer.metadata_dictionary", level="WARNING") as cm:
-            result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
-            self.assertEqual(cm.output, [expected_warning])
-        self.assertEqual(result, None)
+        caplog.clear()
+        result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+        assert caplog.record_tuples == [expected_warning]
+        assert result is None
 
         raw_content = b"""<?xml version="1.0" encoding="UTF-7"?>
         <project>
         </project>"""
-        with self.assertLogs("swh.indexer.metadata_dictionary", level="WARNING") as cm:
-            result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
-            self.assertEqual(cm.output, [expected_warning])
-        self.assertEqual(result, None)
+        caplog.clear()
+        result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+        assert caplog.record_tuples == [expected_warning]
+        assert result is None
 
-    def test_compute_metadata_maven_invalid_encoding(self):
+    def test_compute_metadata_maven_invalid_encoding(self, caplog):
         expected_warning = [
             # libexpat1 <= 2.2.10-2+deb11u1
             [
                 (
-                    "WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:"
-                    "Error unidecoding XML from foo"
+                    "swh.indexer.metadata_dictionary.maven.MavenMapping",
+                    logging.WARNING,
+                    "Error unidecoding XML from foo",
                 )
             ],
             # libexpat1 >= 2.2.10-2+deb11u2
             [
                 (
-                    "WARNING:swh.indexer.metadata_dictionary.maven.MavenMapping:"
-                    "Error parsing XML from foo"
+                    "swh.indexer.metadata_dictionary.maven.MavenMapping",
+                    logging.WARNING,
+                    "Error parsing XML from foo",
                 )
             ],
         ]
+        caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_dictionary")
 
         raw_content = b"""<?xml version="1.0" encoding="UTF-8"?>
         <foo\xe5ct>
         </foo>"""
-        with self.assertLogs("swh.indexer.metadata_dictionary", level="WARNING") as cm:
-            result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
-            self.assertIn(cm.output, expected_warning)
-        self.assertEqual(result, None)
+        caplog.clear()
+        result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+        assert caplog.record_tuples in expected_warning
+        assert result is None
 
     def test_compute_metadata_maven_minimal(self):
         raw_content = b"""
@@ -745,19 +721,16 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           <version>1.2.3</version>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "Maven Default Project",
-                "identifier": "com.mycompany.app",
-                "version": "1.2.3",
-                "codeRepository": (
-                    "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
-                ),
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "Maven Default Project",
+            "identifier": "com.mycompany.app",
+            "version": "1.2.3",
+            "codeRepository": (
+                "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
+            ),
+        }
 
     def test_compute_metadata_maven_empty_nodes(self):
         raw_content = b"""
@@ -771,19 +744,16 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           </repositories>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "Maven Default Project",
-                "identifier": "com.mycompany.app",
-                "version": "1.2.3",
-                "codeRepository": (
-                    "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
-                ),
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "Maven Default Project",
+            "identifier": "com.mycompany.app",
+            "version": "1.2.3",
+            "codeRepository": (
+                "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
+            ),
+        }
 
         raw_content = b"""
         <project>
@@ -794,18 +764,15 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           <version></version>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "Maven Default Project",
-                "identifier": "com.mycompany.app",
-                "codeRepository": (
-                    "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
-                ),
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "Maven Default Project",
+            "identifier": "com.mycompany.app",
+            "codeRepository": (
+                "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
+            ),
+        }
 
         raw_content = b"""
         <project>
@@ -816,18 +783,15 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           <version>1.2.3</version>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "identifier": "com.mycompany.app",
-                "version": "1.2.3",
-                "codeRepository": (
-                    "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
-                ),
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "identifier": "com.mycompany.app",
+            "version": "1.2.3",
+            "codeRepository": (
+                "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
+            ),
+        }
 
         raw_content = b"""
         <project>
@@ -840,19 +804,16 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           </licenses>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "Maven Default Project",
-                "identifier": "com.mycompany.app",
-                "version": "1.2.3",
-                "codeRepository": (
-                    "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
-                ),
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "Maven Default Project",
+            "identifier": "com.mycompany.app",
+            "version": "1.2.3",
+            "codeRepository": (
+                "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
+            ),
+        }
 
         raw_content = b"""
         <project>
@@ -860,14 +821,11 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           <version>1.2.3</version>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "version": "1.2.3",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "version": "1.2.3",
+        }
 
     def test_compute_metadata_maven_invalid_licenses(self):
         raw_content = b"""
@@ -882,19 +840,16 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           </licenses>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "Maven Default Project",
-                "identifier": "com.mycompany.app",
-                "version": "1.2.3",
-                "codeRepository": (
-                    "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
-                ),
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "Maven Default Project",
+            "identifier": "com.mycompany.app",
+            "version": "1.2.3",
+            "codeRepository": (
+                "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
+            ),
+        }
 
     def test_compute_metadata_maven_multiple(self):
         """Tests when there are multiple code repos and licenses."""
@@ -936,24 +891,21 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
           </licenses>
         </project>"""
         result = self.maven_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "Maven Default Project",
-                "identifier": "com.mycompany.app",
-                "version": "1.2.3",
-                "license": [
-                    "https://www.apache.org/licenses/LICENSE-2.0.txt",
-                    "https://opensource.org/licenses/MIT",
-                ],
-                "codeRepository": [
-                    "http://repo1.maven.org/maven2/com/mycompany/app/my-app",
-                    "http://example.org/maven2/com/mycompany/app/my-app",
-                ],
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "Maven Default Project",
+            "identifier": "com.mycompany.app",
+            "version": "1.2.3",
+            "license": [
+                "https://www.apache.org/licenses/LICENSE-2.0.txt",
+                "https://opensource.org/licenses/MIT",
+            ],
+            "codeRepository": [
+                "http://repo1.maven.org/maven2/com/mycompany/app/my-app",
+                "http://example.org/maven2/com/mycompany/app/my-app",
+            ],
+        }
 
     def test_compute_metadata_pkginfo(self):
         raw_content = b"""\
@@ -987,40 +939,33 @@ Description-Content-Type: text/markdown
 Provides-Extra: testing
 """  # noqa
         result = self.pkginfo_mapping.translate(raw_content)
-        self.assertCountEqual(
-            result["description"],
-            [
-                "Software Heritage core utilities",  # note the comma here
-                "swh-core\n"
-                "========\n"
-                "\n"
-                "core library for swh's modules:\n"
-                "- config parser\n"
-                "- hash computations\n"
-                "- serialization\n"
-                "- logging mechanism\n"
-                "",
-            ],
-            result,
-        )
+        assert result["description"] == [
+            "Software Heritage core utilities",  # note the comma here
+            "swh-core\n"
+            "========\n"
+            "\n"
+            "core library for swh's modules:\n"
+            "- config parser\n"
+            "- hash computations\n"
+            "- serialization\n"
+            "- logging mechanism\n"
+            "",
+        ], result
         del result["description"]
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "url": "https://forge.softwareheritage.org/diffusion/DCORE/",
-                "name": "swh.core",
-                "author": [
-                    {
-                        "type": "Person",
-                        "name": "Software Heritage developers",
-                        "email": "swh-devel@inria.fr",
-                    }
-                ],
-                "version": "0.0.49",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "url": "https://forge.softwareheritage.org/diffusion/DCORE/",
+            "name": "swh.core",
+            "author": [
+                {
+                    "type": "Person",
+                    "name": "Software Heritage developers",
+                    "email": "swh-devel@inria.fr",
+                }
+            ],
+            "version": "0.0.49",
+        }
 
     def test_compute_metadata_pkginfo_utf8(self):
         raw_content = b"""\
@@ -1031,15 +976,12 @@ Description: foo
         Hydrology N\xc2\xb083
 """  # noqa
         result = self.pkginfo_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "snowpyt",
-                "description": "foo\nHydrology N°83",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "snowpyt",
+            "description": "foo\nHydrology N°83",
+        }
 
     def test_compute_metadata_pkginfo_keywords(self):
         raw_content = b"""\
@@ -1048,15 +990,12 @@ Name: foo
 Keywords: foo bar baz
 """  # noqa
         result = self.pkginfo_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "foo",
-                "keywords": ["foo", "bar", "baz"],
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "foo",
+            "keywords": ["foo", "bar", "baz"],
+        }
 
     def test_compute_metadata_pkginfo_license(self):
         raw_content = b"""\
@@ -1065,15 +1004,12 @@ Name: foo
 License: MIT
 """  # noqa
         result = self.pkginfo_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "foo",
-                "license": "MIT",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "foo",
+            "license": "MIT",
+        }
 
     def test_gemspec_base(self):
         raw_content = b"""
@@ -1090,23 +1026,20 @@ Gem::Specification.new do |s|
   s.metadata    = { "source_code_uri" => "https://github.com/example/example" }
 end"""
         result = self.gemspec_mapping.translate(raw_content)
-        self.assertCountEqual(
-            result.pop("description"),
-            ["This is an example!", "Much longer explanation of the example!"],
-        )
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "author": [{"type": "Person", "name": "Ruby Coder"}],
-                "name": "example",
-                "license": "https://spdx.org/licenses/MIT",
-                "codeRepository": "https://rubygems.org/gems/example",
-                "email": "rubycoder@example.com",
-                "version": "0.1.0",
-            },
-        )
+        assert set(result.pop("description")) == {
+            "This is an example!",
+            "Much longer explanation of the example!",
+        }
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "author": [{"type": "Person", "name": "Ruby Coder"}],
+            "name": "example",
+            "license": "https://spdx.org/licenses/MIT",
+            "codeRepository": "https://rubygems.org/gems/example",
+            "email": "rubycoder@example.com",
+            "version": "0.1.0",
+        }
 
     def test_gemspec_two_author_fields(self):
         raw_content = b"""
@@ -1115,20 +1048,20 @@ Gem::Specification.new do |s|
   s.author      = "Ruby Coder2"
 end"""
         result = self.gemspec_mapping.translate(raw_content)
-        self.assertCountEqual(
-            result.pop("author"),
+        assert result.pop("author") in (
             [
                 {"type": "Person", "name": "Ruby Coder1"},
                 {"type": "Person", "name": "Ruby Coder2"},
             ],
+            [
+                {"type": "Person", "name": "Ruby Coder2"},
+                {"type": "Person", "name": "Ruby Coder1"},
+            ],
         )
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+        }
 
     def test_gemspec_invalid_author(self):
         raw_content = b"""
@@ -1136,38 +1069,29 @@ Gem::Specification.new do |s|
   s.author      = ["Ruby Coder"]
 end"""
         result = self.gemspec_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+        }
         raw_content = b"""
 Gem::Specification.new do |s|
   s.author      = "Ruby Coder1",
 end"""
         result = self.gemspec_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+        }
         raw_content = b"""
 Gem::Specification.new do |s|
   s.authors     = ["Ruby Coder1", ["Ruby Coder2"]]
 end"""
         result = self.gemspec_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "author": [{"type": "Person", "name": "Ruby Coder1"}],
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "author": [{"type": "Person", "name": "Ruby Coder1"}],
+        }
 
     def test_gemspec_alternative_header(self):
         raw_content = b"""
@@ -1179,15 +1103,12 @@ Gem::Specification.new { |s|
 }
 """
         result = self.gemspec_mapping.translate(raw_content)
-        self.assertEqual(
-            result,
-            {
-                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-                "type": "SoftwareSourceCode",
-                "name": "rb-system-with-aliases",
-                "description": "execute system commands with aliases",
-            },
-        )
+        assert result == {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "rb-system-with-aliases",
+            "description": "execute system commands with aliases",
+        }
 
     @settings(suppress_health_check=[HealthCheck.too_slow])
     @given(json_document_strategy(keys=list(NpmMapping.mapping)))
@@ -1274,7 +1195,7 @@ Gem::Specification.new { |s|
             del result.tool["id"]
 
         # then
-        self.assertEqual(results, expected_results)
+        assert results == expected_results
 
     def test_revision_metadata_indexer_single_root_dir(self):
         metadata_indexer = RevisionMetadataIndexer(config=REVISION_METADATA_CONFIG)
@@ -1338,4 +1259,4 @@ Gem::Specification.new { |s|
             del result.tool["id"]
 
         # then
-        self.assertEqual(results, expected_results)
+        assert results == expected_results
