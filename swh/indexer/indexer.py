@@ -541,13 +541,25 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Worker function for ``JournalClient``. Expects ``objects`` to have a single
         key, either ``origin`` or ``"origin_visit_status"``."""
-        assert set(objects) == {"origin"}
+        # TODO: add support for subscribing to other topics? Currently, this is
+        # not implemented because no indexer would use it.
+        assert set(objects) <= {"origin", "origin_visit_status"}
 
-        origins = [Origin(url=origin["url"]) for origin in objects.get("origin", [])]
+        origins = [
+            Origin(url=status["origin"])
+            for status in objects.get("origin_visit_status", [])
+            if status["status"] == "full"
+        ] + [Origin(url=origin["url"]) for origin in objects.get("origin", [])]
 
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
-            results = self.index_list(origins)
+            results = self.index_list(
+                origins,
+                check_origin_known=False,
+                # no need to check they exist, as we just received either an origin or
+                # visit status; which cannot be created by swh-storage unless the origin
+                # already exists
+            )
         except Exception:
             if not self.catch_exceptions:
                 raise

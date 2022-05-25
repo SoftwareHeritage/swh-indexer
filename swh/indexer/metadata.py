@@ -325,19 +325,22 @@ class OriginMetadataIndexer(
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
     def index_list(
-        self, origins: List[Origin], **kwargs
+        self, origins: List[Origin], check_origin_known: bool = True, **kwargs
     ) -> List[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]]:
         head_rev_ids = []
         origins_with_head = []
 
         # Filter out origins not in the storage
-        known_origins = list(
-            call_with_batches(
-                self.storage.origin_get,
-                [origin.url for origin in origins],
-                ORIGIN_GET_BATCH_SIZE,
+        if check_origin_known:
+            known_origins = list(
+                call_with_batches(
+                    self.storage.origin_get,
+                    [origin.url for origin in origins],
+                    ORIGIN_GET_BATCH_SIZE,
+                )
             )
-        )
+        else:
+            known_origins = list(origins)
 
         for origin in known_origins:
             if origin is None:

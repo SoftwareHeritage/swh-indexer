@@ -23,6 +23,8 @@ from swh.journal.writer import get_journal_writer
 from swh.model.hashutil import hash_to_bytes
 from swh.model.model import OriginVisitStatus
 
+from .utils import REVISION
+
 
 def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List[int]:
     tools: List[Dict[str, Any]] = [
@@ -400,7 +402,7 @@ def now():
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
 
-def test_cli_journal_client(
+def test_cli_journal_client_schedule(
     cli_runner,
     swh_config,
     indexer_scheduler,
@@ -523,3 +525,129 @@ def test_cli_journal_client_without_brokers(
             ],
             catch_exceptions=False,
         )
+
+
+def test_cli_journal_client_index(
+    cli_runner,
+    swh_config,
+    kafka_prefix: str,
+    kafka_server,
+    consumer: Consumer,
+    idx_storage,
+    storage,
+    mocker,
+    swh_indexer_config,
+):
+    """Test the 'swh indexer journal-client' cli tool."""
+    journal_writer = get_journal_writer(
+        "kafka",
+        brokers=[kafka_server],
+        prefix=kafka_prefix,
+        client_id="test producer",
+        value_sanitizer=lambda object_type, value: value,
+        flush_timeout=3,  # fail early if something is going wrong
+    )
+
+    visit_statuses = [
+        OriginVisitStatus(
+            origin="file:///dev/zero",
+            visit=1,
+            date=now(),
+            status="full",
+            snapshot=None,
+        ),
+        OriginVisitStatus(
+            origin="file:///dev/foobar",
+            visit=2,
+            date=now(),
+            status="full",
+            snapshot=None,
+        ),
+        OriginVisitStatus(
+            origin="file:///tmp/spamegg",
+            visit=3,
+            date=now(),
+            status="full",
+            snapshot=None,
+        ),
+        OriginVisitStatus(
+            origin="file:///dev/0002",
+            visit=6,
+            date=now(),
+            status="full",
+            snapshot=None,
+        ),
+        OriginVisitStatus(  # will be filtered out due to its 'partial' status
+            origin="file:///dev/0000",
+            visit=4,
+            date=now(),
+            status="partial",
+            snapshot=None,
+        ),
+        OriginVisitStatus(  # will be filtered out due to its 'ongoing' status
+            origin="file:///dev/0001",
+            visit=5,
+            date=now(),
+            status="ongoing",
+            snapshot=None,
+        ),
+    ]
+
+    journal_writer.write_additions("origin_visit_status", visit_statuses)
+    visit_statuses_full = [vs for vs in visit_statuses if vs.status == "full"]
+    storage.revision_add([REVISION])
+
+    mocker.patch(
+        "swh.indexer.origin_head.OriginHeadIndexer.index",
+        return_value=[{"revision_id": REVISION.id}],
+    )
+
+    mocker.patch(
+        "swh.indexer.metadata.RevisionMetadataIndexer.index",
+        return_value=[
+            RevisionIntrinsicMetadataRow(
+                id=REVISION.id,
+                indexer_configuration_id=1,
+                mappings=["cff"],
+                metadata={"foo": "bar"},
+            )
+        ],
+    )
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config,
+            "journal-client",
+            "origin-intrinsic-metadata",
+            "--broker",
+            kafka_server,
+            "--prefix",
+            kafka_prefix,
+            "--group-id",
+            "test-consumer",
+            "--stop-after-objects",
+            len(visit_statuses),
+        ],
+        catch_exceptions=False,
+    )
+
+    # Check the output
+    expected_output = "Done.\n"
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output
+
+    results = idx_storage.origin_intrinsic_metadata_get(
+        [status.origin for status in visit_statuses]
+    )
+    expected_results = [
+        OriginIntrinsicMetadataRow(
+            id=status.origin,
+            from_revision=REVISION.id,
+            tool={"id": 1, **swh_indexer_config["tools"]},
+            mappings=["cff"],
+            metadata={"foo": "bar"},
+        )
+        for status in sorted(visit_statuses_full, key=lambda r: r.origin)
+    ]
+    assert sorted(results, key=lambda r: r.id) == expected_results

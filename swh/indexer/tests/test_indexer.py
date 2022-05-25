@@ -93,10 +93,17 @@ def test_revision_indexer_catch_exceptions():
 
     assert indexer.run([b"foo"]) == {"status": "failed"}
 
+    assert indexer.process_journal_objects({"revision": [REVISION.to_dict()]}) == {
+        "status": "failed"
+    }
+
     indexer.catch_exceptions = False
 
     with pytest.raises(_TestException):
         indexer.run([b"foo"])
+
+    with pytest.raises(_TestException):
+        indexer.process_journal_objects({"revision": [REVISION.to_dict()]})
 
 
 def test_origin_indexer_catch_exceptions():
@@ -104,10 +111,17 @@ def test_origin_indexer_catch_exceptions():
 
     assert indexer.run(["http://example.org"]) == {"status": "failed"}
 
+    assert indexer.process_journal_objects(
+        {"origin": [{"url": "http://example.org"}]}
+    ) == {"status": "failed"}
+
     indexer.catch_exceptions = False
 
     with pytest.raises(_TestException):
         indexer.run(["http://example.org"])
+
+    with pytest.raises(_TestException):
+        indexer.process_journal_objects({"origin": [{"url": "http://example.org"}]})
 
 
 def test_content_partition_indexer_catch_exceptions():
