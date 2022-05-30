@@ -33,11 +33,17 @@ def search_tasks(indexer_scheduler: SchedulerInterface, task_type) -> List[Dict]
     "origin",
     [
         "file:///dev/zero",  # current format
-        {"url": "file:///dev/zero",},  # legacy format
+        {
+            "url": "file:///dev/zero",
+        },  # legacy format
     ],
 )
 def test_journal_client_origin_visit_status(origin, indexer_scheduler):
-    messages = {"origin_visit_status": [{"status": "full", "origin": origin},]}
+    messages = {
+        "origin_visit_status": [
+            {"status": "full", "origin": origin},
+        ]
+    }
     process_journal_objects(
         messages,
         scheduler=indexer_scheduler,
@@ -47,7 +53,10 @@ def test_journal_client_origin_visit_status(origin, indexer_scheduler):
 
     assert actual_tasks == [
         {
-            "arguments": {"kwargs": {}, "args": [["file:///dev/zero"]],},
+            "arguments": {
+                "kwargs": {},
+                "args": [["file:///dev/zero"]],
+            },
             "policy": "oneshot",
             "type": "index-origin-metadata",
             "retries_left": 1,
@@ -58,8 +67,14 @@ def test_journal_client_origin_visit_status(origin, indexer_scheduler):
 def test_journal_client_one_origin_visit_batch(indexer_scheduler):
     messages = {
         "origin_visit_status": [
-            {"status": "full", "origin": "file:///dev/zero",},
-            {"status": "full", "origin": "file:///tmp/foobar",},
+            {
+                "status": "full",
+                "origin": "file:///dev/zero",
+            },
+            {
+                "status": "full",
+                "origin": "file:///tmp/foobar",
+            },
         ]
     }
     process_journal_objects(
@@ -86,9 +101,18 @@ def test_journal_client_one_origin_visit_batch(indexer_scheduler):
 def test_journal_client_origin_visit_batches(indexer_scheduler):
     messages = {
         "origin_visit_status": [
-            {"status": "full", "origin": "file:///dev/zero",},
-            {"status": "full", "origin": "file:///tmp/foobar",},
-            {"status": "full", "origin": "file:///tmp/spamegg",},
+            {
+                "status": "full",
+                "origin": "file:///dev/zero",
+            },
+            {
+                "status": "full",
+                "origin": "file:///tmp/foobar",
+            },
+            {
+                "status": "full",
+                "origin": "file:///tmp/spamegg",
+            },
         ]
     }
     process_journal_objects(
@@ -101,14 +125,19 @@ def test_journal_client_origin_visit_batches(indexer_scheduler):
         {
             "arguments": {
                 "kwargs": {},
-                "args": [["file:///dev/zero", "file:///tmp/foobar"],],
+                "args": [
+                    ["file:///dev/zero", "file:///tmp/foobar"],
+                ],
             },
             "policy": "oneshot",
             "type": "index-origin-metadata",
             "retries_left": 1,
         },
         {
-            "arguments": {"kwargs": {}, "args": [["file:///tmp/spamegg"]],},
+            "arguments": {
+                "kwargs": {},
+                "args": [["file:///tmp/spamegg"]],
+            },
             "policy": "oneshot",
             "type": "index-origin-metadata",
             "retries_left": 1,

@@ -1,3 +1,4 @@
+.git-blame-ignore-revs
 .gitignore
 .pre-commit-config.yaml
 AUTHORS

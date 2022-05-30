@@ -52,7 +52,11 @@ def test_send_metric_unit(mock_statsd) -> None:
     mock_statsd.assert_called_with(
         expected_metric,
         100,
-        tags={"endpoint": "c_add", "object_type": "c", "operation": "add",},
+        tags={
+            "endpoint": "c_add",
+            "object_type": "c",
+            "operation": "add",
+        },
     )
 
     assert r

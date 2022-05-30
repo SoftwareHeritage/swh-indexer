@@ -1,9 +1,9 @@
-# Copyright (C) 2019-2020  The Software Heritage developers
+# Copyright (C) 2019-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Iterator
+from typing import Callable, Dict, Iterator, List, Optional
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
 # control
@@ -20,7 +20,10 @@ from swh.core.cli import swh as swh_cli_group
     "--config-file",
     "-C",
     default=None,
-    type=click.Path(exists=True, dir_okay=False,),
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+    ),
     help="Configuration file.",
 )
 @click.pass_context
@@ -94,7 +97,7 @@ def mapping_list_terms(concise, exclude_mapping):
 @click.argument("mapping-name")
 @click.argument("file", type=click.File("rb"))
 def mapping_translate(mapping_name, file):
-    """Prints the list of known mappings."""
+    """Translates file from mapping-name to codemeta format."""
     import json
 
     from swh.indexer import metadata_dictionary
@@ -210,6 +213,12 @@ def schedule_origin_metadata_reindex(
 
 
 @indexer_cli_group.command("journal-client")
+@click.argument(
+    "indexer",
+    type=click.Choice(["origin-intrinsic-metadata"]),
+    required=False
+    # TODO: remove required=False after we stop using it
+)
 @click.option("--scheduler-url", "-s", default=None, help="URL of the scheduler API")
 @click.option(
     "--origin-metadata-task-type",
@@ -233,18 +242,21 @@ def schedule_origin_metadata_reindex(
 @click.pass_context
 def journal_client(
     ctx,
-    scheduler_url,
-    origin_metadata_task_type,
-    brokers,
-    prefix,
-    group_id,
-    stop_after_objects,
+    indexer: Optional[str],
+    scheduler_url: str,
+    origin_metadata_task_type: str,
+    brokers: List[str],
+    prefix: str,
+    group_id: str,
+    stop_after_objects: Optional[int],
 ):
     """Listens for new objects from the SWH Journal, and schedules tasks
     to run relevant indexers (currently, only origin-intrinsic-metadata)
     on these new objects."""
     import functools
+    import warnings
 
+    from swh.indexer.indexer import ObjectsDict
     from swh.indexer.journal_client import process_journal_objects
     from swh.journal.client import get_journal_client
     from swh.scheduler import get_scheduler
@@ -265,20 +277,41 @@ def journal_client(
     )
     stop_after_objects = stop_after_objects or journal_cfg.get("stop_after_objects")
 
+    worker_fn: Callable[[ObjectsDict], Dict]
+
+    if indexer is None:
+        warnings.warn(
+            "'swh indexer journal-client' with no argument creates scheduler tasks "
+            "to index, rather than index directly.",
+            DeprecationWarning,
+        )
+        object_types = ["origin_visit_status"]
+        worker_fn = functools.partial(
+            process_journal_objects,
+            scheduler=scheduler,
+            task_names={
+                "origin_metadata": origin_metadata_task_type,
+            },
+        )
+    elif indexer == "origin-intrinsic-metadata":
+        from swh.indexer.metadata import OriginMetadataIndexer
+
+        object_types = ["origin_visit_status"]
+        idx = OriginMetadataIndexer()
+        idx.catch_exceptions = False  # don't commit offsets if indexation failed
+        worker_fn = idx.process_journal_objects
+    else:
+        raise click.ClickException(f"Unknown indexer: {indexer}")
+
     client = get_journal_client(
         cls="kafka",
         brokers=brokers,
         prefix=prefix,
         group_id=group_id,
-        object_types=["origin_visit_status"],
+        object_types=object_types,
         stop_after_objects=stop_after_objects,
     )
 
-    worker_fn = functools.partial(
-        process_journal_objects,
-        scheduler=scheduler,
-        task_names={"origin_metadata": origin_metadata_task_type,},
-    )
     try:
         client.process(worker_fn)
     except KeyboardInterrupt:

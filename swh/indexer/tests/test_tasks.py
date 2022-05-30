@@ -12,7 +12,8 @@ def test_task_origin_metadata(
     mock_indexer.return_value = {"status": "eventful"}
 
     res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.OriginMetadata", args=["origin-url"],
+        "swh.indexer.tasks.OriginMetadata",
+        args=["origin-url"],
     )
     assert res
     res.wait()
@@ -28,7 +29,10 @@ def test_task_ctags(
     mock_indexer = mocker.patch("swh.indexer.tasks.CtagsIndexer.run")
     mock_indexer.return_value = {"status": "eventful"}
 
-    res = swh_scheduler_celery_app.send_task("swh.indexer.tasks.Ctags", args=["id0"],)
+    res = swh_scheduler_celery_app.send_task(
+        "swh.indexer.tasks.Ctags",
+        args=["id0"],
+    )
     assert res
     res.wait()
     assert res.successful()
@@ -44,7 +48,8 @@ def test_task_fossology_license(
     mock_indexer.return_value = {"status": "eventful"}
 
     res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.ContentFossologyLicense", args=["id0"],
+        "swh.indexer.tasks.ContentFossologyLicense",
+        args=["id0"],
     )
     assert res
     res.wait()
@@ -61,7 +66,8 @@ def test_task_recompute_checksums(
     mock_indexer.return_value = {"status": "eventful"}
 
     res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.RecomputeChecksums", args=[[{"blake2b256": "id"}]],
+        "swh.indexer.tasks.RecomputeChecksums",
+        args=[[{"blake2b256": "id"}]],
     )
     assert res
     res.wait()
@@ -78,7 +84,8 @@ def test_task_mimetype(
     mock_indexer.return_value = {"status": "eventful"}
 
     res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.ContentMimetype", args=["id0"],
+        "swh.indexer.tasks.ContentMimetype",
+        args=["id0"],
     )
     assert res
     res.wait()
@@ -95,7 +102,8 @@ def test_task_mimetype_partition(
     mock_indexer.return_value = {"status": "eventful"}
 
     res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.ContentMimetypePartition", args=[0, 4],
+        "swh.indexer.tasks.ContentMimetypePartition",
+        args=[0, 4],
     )
     assert res
     res.wait()
@@ -114,7 +122,8 @@ def test_task_license_partition(
     mock_indexer.return_value = {"status": "eventful"}
 
     res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.ContentFossologyLicensePartition", args=[0, 4],
+        "swh.indexer.tasks.ContentFossologyLicensePartition",
+        args=[0, 4],
     )
     assert res
     res.wait()

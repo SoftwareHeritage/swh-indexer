@@ -78,7 +78,10 @@ def test_merge_documents():
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "name": "test_metadata",
             "version": "0.0.2",
-            "author": {"type": "Person", "name": "moranegg",},
+            "author": {
+                "type": "Person",
+                "name": "moranegg",
+            },
         },
     ]
 
@@ -164,11 +167,19 @@ def test_merge_documents_lists():
     metadata_list = [
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-            "author": {"@list": [{"name": "test_1"},]},
+            "author": {
+                "@list": [
+                    {"name": "test_1"},
+                ]
+            },
         },
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-            "author": {"@list": [{"name": "test_2"},]},
+            "author": {
+                "@list": [
+                    {"name": "test_2"},
+                ]
+            },
         },
     ]
 
@@ -178,7 +189,10 @@ def test_merge_documents_lists():
     # then
     expected_results = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-        "author": [{"name": "test_1"}, {"name": "test_2"},],
+        "author": [
+            {"name": "test_1"},
+            {"name": "test_2"},
+        ],
     }
     assert results == expected_results
 
@@ -189,11 +203,20 @@ def test_merge_documents_lists_duplicates():
     metadata_list = [
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-            "author": {"@list": [{"name": "test_1"},]},
+            "author": {
+                "@list": [
+                    {"name": "test_1"},
+                ]
+            },
         },
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-            "author": {"@list": [{"name": "test_2"}, {"name": "test_1"},]},
+            "author": {
+                "@list": [
+                    {"name": "test_2"},
+                    {"name": "test_1"},
+                ]
+            },
         },
     ]
 
@@ -203,7 +226,10 @@ def test_merge_documents_lists_duplicates():
     # then
     expected_results = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-        "author": [{"name": "test_1"}, {"name": "test_2"},],
+        "author": [
+            {"name": "test_1"},
+            {"name": "test_2"},
+        ],
     }
     assert results == expected_results
 
@@ -218,7 +244,11 @@ def test_merge_documents_list_left():
         },
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-            "author": {"@list": [{"name": "test_2"},]},
+            "author": {
+                "@list": [
+                    {"name": "test_2"},
+                ]
+            },
         },
     ]
 
@@ -228,7 +258,10 @@ def test_merge_documents_list_left():
     # then
     expected_results = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-        "author": [{"name": "test_1"}, {"name": "test_2"},],
+        "author": [
+            {"name": "test_1"},
+            {"name": "test_2"},
+        ],
     }
     assert results == expected_results
 
@@ -239,7 +272,11 @@ def test_merge_documents_list_right():
     metadata_list = [
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-            "author": {"@list": [{"name": "test_1"},]},
+            "author": {
+                "@list": [
+                    {"name": "test_1"},
+                ]
+            },
         },
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -253,6 +290,9 @@ def test_merge_documents_list_right():
     # then
     expected_results = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-        "author": [{"name": "test_1"}, {"name": "test_2"},],
+        "author": [
+            {"name": "test_1"},
+            {"name": "test_2"},
+        ],
     }
     assert results == expected_results

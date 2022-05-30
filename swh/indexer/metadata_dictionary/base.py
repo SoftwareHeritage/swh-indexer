@@ -5,7 +5,7 @@
 
 import json
 import logging
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
 
@@ -32,7 +32,7 @@ class BaseMapping:
         raise NotImplementedError(f"{self.__class__.__name__}.name")
 
     @classmethod
-    def detect_metadata_files(cls, files):
+    def detect_metadata_files(cls, files: List[Dict[str, str]]) -> List[str]:
         """
         Detects files potentially containing metadata
 
@@ -44,10 +44,10 @@ class BaseMapping:
         """
         raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
 
-    def translate(self, file_content):
+    def translate(self, file_content: bytes) -> Optional[Dict]:
         raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
-    def normalize_translation(self, metadata):
+    def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         return compact(metadata)
 
 
@@ -60,9 +60,9 @@ class SingleFileMapping(BaseMapping):
         raise NotImplementedError(f"{self.__class__.__name__}.filename")
 
     @classmethod
-    def detect_metadata_files(cls, file_entries):
+    def detect_metadata_files(cls, file_entries: List[Dict[str, str]]) -> List[str]:
         for entry in file_entries:
-            if entry["name"].lower() == cls.filename.lower():
+            if entry["name"].lower() == cls.filename:
                 return [entry["sha1"]]
         return []
 
@@ -81,7 +81,7 @@ class DictMapping(BaseMapping):
         raise NotImplementedError(f"{self.__class__.__name__}.mapping")
 
     @staticmethod
-    def _normalize_method_name(name):
+    def _normalize_method_name(name: str) -> str:
         return name.replace("-", "_")
 
     @classmethod
@@ -94,7 +94,9 @@ class DictMapping(BaseMapping):
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
         }
 
-    def _translate_dict(self, content_dict, *, normalize=True):
+    def _translate_dict(
+        self, content_dict: Dict, *, normalize: bool = True
+    ) -> Dict[str, str]:
         """
         Translates content  by parsing content from a dict object
         and translating with the appropriate mapping
@@ -150,7 +152,7 @@ class DictMapping(BaseMapping):
 class JsonMapping(DictMapping, SingleFileMapping):
     """Base class for all mappings that use a JSON file as input."""
 
-    def translate(self, raw_content):
+    def translate(self, raw_content: bytes) -> Optional[Dict]:
         """
         Translates content by parsing content from a bytestring containing
         json data and translating with the appropriate mapping
@@ -164,14 +166,15 @@ class JsonMapping(DictMapping, SingleFileMapping):
 
         """
         try:
-            raw_content = raw_content.decode()
+            raw_content_string: str = raw_content.decode()
         except UnicodeDecodeError:
             self.log.warning("Error unidecoding from %s", self.log_suffix)
-            return
+            return None
         try:
-            content_dict = json.loads(raw_content)
+            content_dict = json.loads(raw_content_string)
         except json.JSONDecodeError:
             self.log.warning("Error unjsoning from %s", self.log_suffix)
-            return
+            return None
         if isinstance(content_dict, dict):
             return self._translate_dict(content_dict)
+        return None

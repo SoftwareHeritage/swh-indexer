@@ -7,6 +7,8 @@ import logging
 import subprocess
 from typing import Any, Dict, Iterable, List, Optional
 
+import sentry_sdk
+
 from swh.core.api.classes import stream_results
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import IndexerStorageInterface, Sha1
@@ -49,6 +51,7 @@ def compute_license(path) -> Dict:
         logger.exception(
             "Problem during license detection for sha1 %s" % __path.basename(path)
         )
+        sentry_sdk.capture_exception()
         return {
             "licenses": [],
             "path": path,
@@ -60,7 +63,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "tools": {
         "name": "nomos",
         "version": "3.1.0rc2-31-ga2cbb8c",
-        "configuration": {"command_line": "nomossa <filepath>",},
+        "configuration": {
+            "command_line": "nomossa <filepath>",
+        },
     },
     "write_batch_size": 1000,
 }
@@ -109,7 +114,9 @@ class MixinFossologyLicenseIndexer:
             properties = compute_license(path=content_path)
         return [
             ContentLicenseRow(
-                id=id, indexer_configuration_id=self.tool["id"], license=license,
+                id=id,
+                indexer_configuration_id=self.tool["id"],
+                license=license,
             )
             for license in properties["licenses"]
         ]
@@ -144,11 +151,15 @@ class FossologyLicenseIndexer(
     """
 
     def filter(self, ids):
-        """Filter out known sha1s and return only missing ones.
-
-        """
+        """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_fossology_license_missing(
-            ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
+            (
+                {
+                    "id": sha1,
+                    "indexer_configuration_id": self.tool["id"],
+                }
+                for sha1 in ids
+            )
         )
 
 

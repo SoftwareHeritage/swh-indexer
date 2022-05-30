@@ -25,23 +25,17 @@ ENCODINGS = [
 
 
 def gen_mimetype():
-    """Generate one mimetype strategy.
-
-    """
+    """Generate one mimetype strategy."""
     return one_of(sampled_from(MIMETYPES))
 
 
 def gen_encoding():
-    """Generate one encoding strategy.
-
-    """
+    """Generate one encoding strategy."""
     return one_of(sampled_from(ENCODINGS))
 
 
 def _init_content(uuid):
-    """Given a uuid, initialize a content
-
-    """
+    """Given a uuid, initialize a content"""
     return {
         "id": MultiHash.from_data(uuid.bytes, {"sha1"}).digest()["sha1"],
         "indexer_configuration_id": 1,
@@ -77,7 +71,11 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
     content_mimetypes = []
     for uuid, mimetype, encoding in _ids:
         content_mimetypes.append(
-            {**_init_content(uuid), "mimetype": mimetype, "encoding": encoding,}
+            {
+                **_init_content(uuid),
+                "mimetype": mimetype,
+                "encoding": encoding,
+            }
         )
     return content_mimetypes
 
@@ -161,7 +159,9 @@ LICENSES = [
 FOSSOLOGY_LICENSES = [
     {
         "id": MultiHash.from_data(uuid1().bytes, {"sha1"}).digest()["sha1"],
-        "licenses": [LICENSES[i % len(LICENSES)],],
+        "licenses": [
+            LICENSES[i % len(LICENSES)],
+        ],
         # 'indexer_configuration_id' will be added after TOOLS get registered
     }
     for i in range(10)
@@ -191,12 +191,22 @@ def gen_content_fossology_licenses(draw, *, min_size=0, max_size=100):
 
     """
     _ids = draw(
-        sets(tuples(uuids(), gen_license(),), min_size=min_size, max_size=max_size)
+        sets(
+            tuples(
+                uuids(),
+                gen_license(),
+            ),
+            min_size=min_size,
+            max_size=max_size,
+        )
     )
 
     content_licenses = []
     for uuid, license in _ids:
         content_licenses.append(
-            {**_init_content(uuid), "licenses": [license],}
+            {
+                **_init_content(uuid),
+                "licenses": [license],
+            }
         )
     return content_licenses

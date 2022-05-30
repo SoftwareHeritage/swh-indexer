@@ -120,9 +120,7 @@ def check_id_duplicates(data):
 
 
 class IndexerStorage:
-    """SWH Indexer Storage
-
-    """
+    """SWH Indexer Storage"""
 
     def __init__(self, db, min_pool_conns=1, max_pool_conns=10, journal_writer=None):
         """
@@ -277,7 +275,10 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_mimetype_add(
-        self, mimetypes: List[ContentMimetypeRow], db=None, cur=None,
+        self,
+        mimetypes: List[ContentMimetypeRow],
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(mimetypes)
         mimetypes.sort(key=lambda m: m.id)
@@ -327,7 +328,10 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_language_add(
-        self, languages: List[ContentLanguageRow], db=None, cur=None,
+        self,
+        languages: List[ContentLanguageRow],
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(languages)
         languages.sort(key=lambda m: m.id)
@@ -374,7 +378,10 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_ctags_add(
-        self, ctags: List[ContentCtagsRow], db=None, cur=None,
+        self,
+        ctags: List[ContentCtagsRow],
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(ctags)
         ctags.sort(key=lambda m: m.id)
@@ -426,7 +433,10 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_fossology_license_add(
-        self, licenses: List[ContentLicenseRow], db=None, cur=None,
+        self,
+        licenses: List[ContentLicenseRow],
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(licenses)
         licenses.sort(key=lambda m: m.id)
@@ -488,7 +498,10 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def content_metadata_add(
-        self, metadata: List[ContentMetadataRow], db=None, cur=None,
+        self,
+        metadata: List[ContentMetadataRow],
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
@@ -535,7 +548,10 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def revision_intrinsic_metadata_add(
-        self, metadata: List[RevisionIntrinsicMetadataRow], db=None, cur=None,
+        self,
+        metadata: List[RevisionIntrinsicMetadataRow],
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
@@ -572,7 +588,10 @@ class IndexerStorage:
     @process_metrics
     @db_transaction()
     def origin_intrinsic_metadata_add(
-        self, metadata: List[OriginIntrinsicMetadataRow], db=None, cur=None,
+        self,
+        metadata: List[OriginIntrinsicMetadataRow],
+        db=None,
+        cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
@@ -644,7 +663,10 @@ class IndexerStorage:
                 results[limit:] = []
                 next_page_token = results[-1].id
 
-        return PagedResult(results=results, next_page_token=next_page_token,)
+        return PagedResult(
+            results=results,
+            next_page_token=next_page_token,
+        )
 
     @timed
     @db_transaction()

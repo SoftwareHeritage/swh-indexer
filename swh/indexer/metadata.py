@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2021 The Software Heritage developers
+# Copyright (C) 2017-2022 The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -16,6 +16,8 @@ from typing import (
     TypeVar,
 )
 
+import sentry_sdk
+
 from swh.core.config import merge_configs
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
@@ -30,7 +32,7 @@ from swh.indexer.storage.model import (
     RevisionIntrinsicMetadataRow,
 )
 from swh.model import hashutil
-from swh.model.model import Revision, Sha1Git
+from swh.model.model import Origin, Revision, Sha1Git
 
 REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
@@ -41,10 +43,11 @@ T2 = TypeVar("T2")
 
 
 def call_with_batches(
-    f: Callable[[List[T1]], Iterable[T2]], args: List[T1], batch_size: int,
+    f: Callable[[List[T1]], Iterable[T2]],
+    args: List[T1],
+    batch_size: int,
 ) -> Iterator[T2]:
-    """Calls a function with batches of args, and concatenates the results.
-    """
+    """Calls a function with batches of args, and concatenates the results."""
     groups = grouper(args, batch_size)
     for group in groups:
         yield from f(list(group))
@@ -64,10 +67,15 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
     """
 
     def filter(self, ids):
-        """Filter out known sha1s and return only missing ones.
-        """
+        """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_metadata_missing(
-            ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
+            (
+                {
+                    "id": sha1,
+                    "indexer_configuration_id": self.tool["id"],
+                }
+                for sha1 in ids
+            )
         )
 
     def index(
@@ -101,11 +109,14 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
                 "Problem during metadata translation "
                 "for content %s" % hashutil.hash_to_hex(id)
             )
+            sentry_sdk.capture_exception()
         if metadata is None:
             return []
         return [
             ContentMetadataRow(
-                id=id, indexer_configuration_id=self.tool["id"], metadata=metadata,
+                id=id,
+                indexer_configuration_id=self.tool["id"],
+                metadata=metadata,
             )
         ]
 
@@ -153,12 +164,13 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
         self.config = merge_configs(DEFAULT_CONFIG, self.config)
 
     def filter(self, sha1_gits):
-        """Filter out known sha1s and return only missing ones.
-
-        """
+        """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.revision_intrinsic_metadata_missing(
             (
-                {"id": sha1_git, "indexer_configuration_id": self.tool["id"],}
+                {
+                    "id": sha1_git,
+                    "indexer_configuration_id": self.tool["id"],
+                }
                 for sha1_git in sha1_gits
             )
         )
@@ -200,10 +212,12 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
             files = [entry for entry in dir_ls if entry["type"] == "file"]
             detected_files = detect_metadata(files)
             (mappings, metadata) = self.translate_revision_intrinsic_metadata(
-                detected_files, log_suffix="revision=%s" % hashutil.hash_to_hex(rev.id),
+                detected_files,
+                log_suffix="revision=%s" % hashutil.hash_to_hex(rev.id),
             )
         except Exception as e:
             self.log.exception("Problem when indexing rev: %r", e)
+            sentry_sdk.capture_exception()
         return [
             RevisionIntrinsicMetadataRow(
                 id=rev.id,
@@ -284,7 +298,8 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
                 # content indexing
                 try:
                     c_metadata_indexer.run(
-                        sha1s_filtered, log_suffix=log_suffix,
+                        sha1s_filtered,
+                        log_suffix=log_suffix,
                     )
                     # on the fly possibility:
                     for result in c_metadata_indexer.results:
@@ -293,6 +308,7 @@ class RevisionMetadataIndexer(RevisionIndexer[RevisionIntrinsicMetadataRow]):
 
                 except Exception:
                     self.log.exception("Exception while indexing metadata on contents")
+                    sentry_sdk.capture_exception()
 
         metadata = merge_documents(metadata)
         return (used_mappings, metadata)
@@ -309,16 +325,24 @@ class OriginMetadataIndexer(
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
     def index_list(
-        self, origin_urls: List[str], **kwargs
+        self, origins: List[Origin], check_origin_known: bool = True, **kwargs
     ) -> List[Tuple[OriginIntrinsicMetadataRow, RevisionIntrinsicMetadataRow]]:
         head_rev_ids = []
         origins_with_head = []
-        origins = list(
-            call_with_batches(
-                self.storage.origin_get, origin_urls, ORIGIN_GET_BATCH_SIZE,
+
+        # Filter out origins not in the storage
+        if check_origin_known:
+            known_origins = list(
+                call_with_batches(
+                    self.storage.origin_get,
+                    [origin.url for origin in origins],
+                    ORIGIN_GET_BATCH_SIZE,
+                )
             )
-        )
-        for origin in origins:
+        else:
+            known_origins = list(origins)
+
+        for origin in known_origins:
             if origin is None:
                 continue
             head_results = self.origin_head_indexer.index(origin.url)
@@ -350,6 +374,7 @@ class OriginMetadataIndexer(
                     indexer_configuration_id=rev_metadata.indexer_configuration_id,
                 )
                 results.append((orig_metadata, rev_metadata))
+
         return results
 
     def persist_index_computations(
