@@ -84,11 +84,15 @@ class CtagsIndexer(ContentIndexer[ContentCtagsRow]):
         self.language_map = self.config["languages"]
 
     def filter(self, ids):
-        """Filter out known sha1s and return only missing ones.
-
-        """
+        """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_ctags_missing(
-            ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
+            (
+                {
+                    "id": sha1,
+                    "indexer_configuration_id": self.tool["id"],
+                }
+                for sha1 in ids
+            )
         )
 
     def index(
@@ -129,7 +133,9 @@ class CtagsIndexer(ContentIndexer[ContentCtagsRow]):
             for ctag_kwargs in run_ctags(content_path, lang=ctags_lang):
                 ctags.append(
                     ContentCtagsRow(
-                        id=id, indexer_configuration_id=self.tool["id"], **ctag_kwargs,
+                        id=id,
+                        indexer_configuration_id=self.tool["id"],
+                        **ctag_kwargs,
                     )
                 )
 

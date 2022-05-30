@@ -2,8 +2,9 @@ python-magic>=0.4.13
 click
 frozendict<2.1.2
 pyld
-xmltodict
+sentry-sdk
 typing-extensions
+xmltodict
 swh.core[db,http]>=0.14.0
 swh.model>=0.0.15
 swh.objstorage>=0.2.2
@@ -14,7 +15,7 @@ swh.journal>=0.1.0
 [testing]
 confluent-kafka
 hypothesis>=3.11.0
-pytest<7.0.0
+pytest
 pytest-mock
 swh.scheduler[testing]>=0.5.0
 swh.storage[testing]>=0.10.0

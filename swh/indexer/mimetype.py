@@ -122,11 +122,15 @@ class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer[ContentMimetypeRow]):
     """
 
     def filter(self, ids):
-        """Filter out known sha1s and return only missing ones.
-
-        """
+        """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_mimetype_missing(
-            ({"id": sha1, "indexer_configuration_id": self.tool["id"],} for sha1 in ids)
+            (
+                {
+                    "id": sha1,
+                    "indexer_configuration_id": self.tool["id"],
+                }
+                for sha1 in ids
+            )
         )
 
 
@@ -146,7 +150,9 @@ class MimetypePartitionIndexer(
     """
 
     def indexed_contents_in_partition(
-        self, partition_id: int, nb_partitions: int,
+        self,
+        partition_id: int,
+        nb_partitions: int,
     ) -> Iterable[Sha1]:
         """Retrieve indexed content ids within partition_id.
 

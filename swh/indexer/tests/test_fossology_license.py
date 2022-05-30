@@ -31,9 +31,7 @@ from swh.model.hashutil import hash_to_bytes
 class BasicTest(unittest.TestCase):
     @patch("swh.indexer.fossology_license.subprocess")
     def test_compute_license(self, mock_subprocess):
-        """Computing licenses from a raw content should return results
-
-        """
+        """Computing licenses from a raw content should return results"""
         for path, intermediary_result, output in [
             (b"some/path", None, []),
             (b"some/path/2", [], []),
@@ -43,13 +41,17 @@ class BasicTest(unittest.TestCase):
 
             actual_result = compute_license(path)
 
-            self.assertEqual(actual_result, {"licenses": output, "path": path,})
+            self.assertEqual(
+                actual_result,
+                {
+                    "licenses": output,
+                    "path": path,
+                },
+            )
 
 
 def mock_compute_license(path):
-    """path is the content identifier
-
-    """
+    """path is the content identifier"""
     if isinstance(id, bytes):
         path = path.decode("utf-8")
     # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
@@ -63,7 +65,9 @@ CONFIG = {
     "tools": {
         "name": "nomos",
         "version": "3.1.0rc2-31-ga2cbb8c",
-        "configuration": {"command_line": "nomossa <filepath>",},
+        "configuration": {
+            "command_line": "nomossa <filepath>",
+        },
     },
 }  # type: Dict[str, Any]
 

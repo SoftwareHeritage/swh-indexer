@@ -103,7 +103,7 @@ def idx_storage(swh_indexer_config):
 @pytest.fixture
 def storage(swh_indexer_config):
     """An instance of in-memory storage that gets injected into all indexers
-       classes.
+    classes.
 
     """
     storage = get_storage(**swh_indexer_config["storage"])

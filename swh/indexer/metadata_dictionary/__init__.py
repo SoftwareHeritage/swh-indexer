@@ -27,7 +27,7 @@ def list_terms():
 @click.command()
 @click.argument("mapping_name")
 @click.argument("file_name")
-def main(mapping_name, file_name):
+def main(mapping_name: str, file_name: str):
     from pprint import pprint
 
     with open(file_name, "rb") as fd:
