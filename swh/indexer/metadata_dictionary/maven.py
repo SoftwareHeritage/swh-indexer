@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import os
+from typing import Any, Dict, Optional
 import xml.parsers.expat
 
 import xmltodict
@@ -23,7 +24,7 @@ class MavenMapping(DictMapping, SingleFileMapping):
     mapping = CROSSWALK_TABLE["Java (Maven)"]
     string_fields = ["name", "version", "description", "email"]
 
-    def translate(self, content):
+    def translate(self, content: bytes) -> Optional[Dict[str, Any]]:
         try:
             d = xmltodict.parse(content).get("project") or {}
         except xml.parsers.expat.ExpatError:

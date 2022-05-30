@@ -9,7 +9,7 @@ from .utils import BASE_TEST_CONFIG
 
 class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
     """Specific indexer whose configuration is enough to satisfy the
-       indexing tests.
+    indexing tests.
     """
 
     ContentMetadataIndexer = ContentMetadataTestIndexer

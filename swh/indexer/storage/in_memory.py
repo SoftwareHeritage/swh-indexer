@@ -132,7 +132,9 @@ class SubStorage(Generic[TValue]):
                 tool_id = entry.pop("indexer_configuration_id")
                 results.append(
                     self.row_class(
-                        id=id_, tool=_transform_tool(self._tools[tool_id]), **entry,
+                        id=id_,
+                        tool=_transform_tool(self._tools[tool_id]),
+                        **entry,
                     )
                 )
         return results
@@ -465,7 +467,10 @@ class IndexerStorage:
             next_page_token = None
         if ids_only:
             rows = [row.id for row in rows]
-        return PagedResult(results=rows, next_page_token=next_page_token,)
+        return PagedResult(
+            results=rows,
+            next_page_token=next_page_token,
+        )
 
     def origin_intrinsic_metadata_stats(self):
         mapping_count = {m: 0 for m in MAPPING_NAMES}

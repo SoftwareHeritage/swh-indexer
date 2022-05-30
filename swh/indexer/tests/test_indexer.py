@@ -17,7 +17,7 @@ from swh.indexer.indexer import (
 from swh.indexer.storage import PagedResult, Sha1
 from swh.model.model import Content
 
-from .utils import BASE_TEST_CONFIG
+from .utils import BASE_TEST_CONFIG, REVISION
 
 
 class _TestException(Exception):
@@ -89,14 +89,21 @@ def test_content_indexer_catch_exceptions():
 def test_revision_indexer_catch_exceptions():
     indexer = CrashingRevisionIndexer(config=BASE_TEST_CONFIG)
     indexer.storage = Mock()
-    indexer.storage.revision_get.return_value = ["rev"]
+    indexer.storage.revision_get.return_value = [REVISION]
 
     assert indexer.run([b"foo"]) == {"status": "failed"}
+
+    assert indexer.process_journal_objects({"revision": [REVISION.to_dict()]}) == {
+        "status": "failed"
+    }
 
     indexer.catch_exceptions = False
 
     with pytest.raises(_TestException):
         indexer.run([b"foo"])
+
+    with pytest.raises(_TestException):
+        indexer.process_journal_objects({"revision": [REVISION.to_dict()]})
 
 
 def test_origin_indexer_catch_exceptions():
@@ -104,10 +111,17 @@ def test_origin_indexer_catch_exceptions():
 
     assert indexer.run(["http://example.org"]) == {"status": "failed"}
 
+    assert indexer.process_journal_objects(
+        {"origin": [{"url": "http://example.org"}]}
+    ) == {"status": "failed"}
+
     indexer.catch_exceptions = False
 
     with pytest.raises(_TestException):
         indexer.run(["http://example.org"])
+
+    with pytest.raises(_TestException):
+        indexer.process_journal_objects({"origin": [{"url": "http://example.org"}]})
 
 
 def test_content_partition_indexer_catch_exceptions():
@@ -126,7 +140,10 @@ def test_content_partition_indexer_catch_exceptions():
 def test_content_partition_indexer():
     # TODO: simplify the mocking in this test
     indexer = TrivialContentPartitionIndexer(
-        config={**BASE_TEST_CONFIG, "write_batch_size": 10,}  # doesn't matter
+        config={
+            **BASE_TEST_CONFIG,
+            "write_batch_size": 10,
+        }  # doesn't matter
     )
     indexer.catch_exceptions = False
     indexer._results = []

@@ -49,7 +49,12 @@ class OriginHeadIndexer(OriginIndexer[Dict]):
 
         rev_id = method(snapshot.branches)  # type: ignore
         if rev_id is not None:
-            return [{"origin_url": origin_url, "revision_id": rev_id,}]
+            return [
+                {
+                    "origin_url": origin_url,
+                    "revision_id": rev_id,
+                }
+            ]
 
         # could not find a head revision
         return []

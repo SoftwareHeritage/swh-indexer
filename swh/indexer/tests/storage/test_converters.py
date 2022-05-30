@@ -11,8 +11,18 @@ def test_ctags_to_db() -> None:
         "id": b"some-id",
         "indexer_configuration_id": 100,
         "ctags": [
-            {"name": "some-name", "kind": "some-kind", "line": 10, "lang": "Yaml",},
-            {"name": "main", "kind": "function", "line": 12, "lang": "Yaml",},
+            {
+                "name": "some-name",
+                "kind": "some-kind",
+                "line": 10,
+                "lang": "Yaml",
+            },
+            {
+                "name": "main",
+                "kind": "function",
+                "line": 12,
+                "lang": "Yaml",
+            },
         ],
     }
 
@@ -142,7 +152,12 @@ def test_db_to_fossology_license() -> None:
     expected_license = {
         "id": b"some-id",
         "license": "GPL2.0",
-        "tool": {"id": 20, "name": "nomossa", "version": "5.22", "configuration": {},},
+        "tool": {
+            "id": 20,
+            "name": "nomossa",
+            "version": "5.22",
+            "configuration": {},
+        },
     }
 
     actual_license = converters.db_to_fossology_license(input_license)

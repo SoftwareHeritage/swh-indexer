@@ -14,9 +14,7 @@ DURATION_METRIC = "swh_indexer_storage_request_duration_seconds"
 
 
 def timed(f):
-    """Time that function!
-
-    """
+    """Time that function!"""
 
     @wraps(f)
     def d(*a, **kw):
@@ -68,9 +66,7 @@ def send_metric(metric, count, method_name):
 
 
 def process_metrics(f):
-    """Increment object counters for the decorated function.
-
-    """
+    """Increment object counters for the decorated function."""
 
     @wraps(f)
     def d(*a, **kw):

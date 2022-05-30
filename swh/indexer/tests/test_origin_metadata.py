@@ -23,9 +23,7 @@ from .utils import REVISION, YARN_PARSER_METADATA
 
 @pytest.fixture
 def swh_indexer_config(swh_indexer_config):
-    """Override the default configuration to override the tools entry
-
-    """
+    """Override the default configuration to override the tools entry"""
     cfg = copy.deepcopy(swh_indexer_config)
     cfg["tools"] = TRANSLATOR_TOOL
     return cfg
@@ -45,7 +43,10 @@ def test_origin_metadata_indexer(
 
     rev_id = REVISION.id
     rev_metadata = RevisionIntrinsicMetadataRow(
-        id=rev_id, tool=tool, metadata=YARN_PARSER_METADATA, mappings=["npm"],
+        id=rev_id,
+        tool=tool,
+        metadata=YARN_PARSER_METADATA,
+        mappings=["npm"],
     )
     origin_metadata = OriginIntrinsicMetadataRow(
         id=origin,
@@ -251,5 +252,5 @@ def test_origin_metadata_indexer_unknown_origin(
 ) -> None:
 
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
-    result = indexer.index_list(["https://unknown.org/foo"])
+    result = indexer.index_list([Origin("https://unknown.org/foo")])
     assert not result

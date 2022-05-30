@@ -224,7 +224,8 @@ SNAPSHOTS = [
         id=hash_to_bytes("bb4fd3a836930ce629d912864319637040ff3040"),
         branches={
             b"HEAD": SnapshotBranch(
-                target=REVISION.id, target_type=TargetType.REVISION,
+                target=REVISION.id,
+                target_type=TargetType.REVISION,
             )
         },
     ),
@@ -232,7 +233,8 @@ SNAPSHOTS = [
         id=hash_to_bytes("bb4fd3a836930ce629d912864319637040ff3040"),
         branches={
             b"HEAD": SnapshotBranch(
-                target=REVISION.id, target_type=TargetType.REVISION,
+                target=REVISION.id,
+                target_type=TargetType.REVISION,
             )
         },
     ),
@@ -250,13 +252,28 @@ SHA1_TO_LICENSES = {
 
 SHA1_TO_CTAGS = {
     "01c9379dfc33803963d07c1ccc748d3fe4c96bb5": [
-        {"name": "foo", "kind": "str", "line": 10, "lang": "bar",}
+        {
+            "name": "foo",
+            "kind": "str",
+            "line": 10,
+            "lang": "bar",
+        }
     ],
     "d4c647f0fc257591cc9ba1722484229780d1c607": [
-        {"name": "let", "kind": "int", "line": 100, "lang": "haskell",}
+        {
+            "name": "let",
+            "kind": "int",
+            "line": 100,
+            "lang": "haskell",
+        }
     ],
     "688a5ef812c53907562fe379d4b3851e69c7cb15": [
-        {"name": "symbol", "kind": "float", "line": 99, "lang": "python",}
+        {
+            "name": "symbol",
+            "kind": "float",
+            "line": 99,
+            "lang": "python",
+        }
     ],
 }
 
@@ -525,7 +542,12 @@ class TreeToXmlTest(unittest.TestCase):
     def test_list(self):
         self.assertEqual(
             _tree_to_xml(
-                "root", "http://example.com", [{"foo": "bar"}, {"foo": "baz"},]
+                "root",
+                "http://example.com",
+                [
+                    {"foo": "bar"},
+                    {"foo": "baz"},
+                ],
             ),
             b'<root xmlns="http://example.com">\n'
             b" <foo>\n  bar\n </foo>\n"
@@ -611,9 +633,7 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         self.assertEqual(expected_results, actual_results)
 
     def test_index(self):
-        """Known sha1 have their data indexed
-
-        """
+        """Known sha1 have their data indexed"""
         sha1s = [self.id0, self.id1, self.id2]
 
         # when
@@ -648,9 +668,7 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
 
 
 class CommonContentIndexerPartitionTest:
-    """Allows to factorize tests on range indexer.
-
-    """
+    """Allows to factorize tests on range indexer."""
 
     def setUp(self):
         self.contents = sorted(OBJ_STORAGE_DATA)
@@ -674,9 +692,7 @@ class CommonContentIndexerPartitionTest:
             assert _tool_id == self.indexer.tool["id"]
 
     def test__index_contents(self):
-        """Indexing contents without existing data results in indexed data
-
-        """
+        """Indexing contents without existing data results in indexed data"""
         partition_id = 0
         nb_partitions = 4
 
@@ -687,9 +703,7 @@ class CommonContentIndexerPartitionTest:
         self.assert_results_ok(partition_id, nb_partitions, actual_results)
 
     def test__index_contents_with_indexed_data(self):
-        """Indexing contents with existing data results in less indexed data
-
-        """
+        """Indexing contents with existing data results in less indexed data"""
         partition_id = 3
         nb_partitions = 4
 
@@ -712,9 +726,7 @@ class CommonContentIndexerPartitionTest:
         assert actual_results == []
 
     def test_generate_content_get(self):
-        """Optimal indexing should result in indexed data
-
-        """
+        """Optimal indexing should result in indexed data"""
         partition_id = 0
         nb_partitions = 1
 
@@ -726,6 +738,6 @@ class CommonContentIndexerPartitionTest:
 
     def test_generate_content_get_no_result(self):
         """No result indexed returns False"""
-        actual_results = self.indexer.run(1, 2 ** 512, incremental=False)
+        actual_results = self.indexer.run(1, 2**512, incremental=False)
 
         assert actual_results == {"status": "uneventful"}

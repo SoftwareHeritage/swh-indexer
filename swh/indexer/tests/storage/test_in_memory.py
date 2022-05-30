@@ -12,4 +12,9 @@ from .test_storage import *  # noqa
 
 @pytest.fixture
 def swh_indexer_storage():
-    return get_indexer_storage("memory", journal_writer={"cls": "memory",})
+    return get_indexer_storage(
+        "memory",
+        journal_writer={
+            "cls": "memory",
+        },
+    )
