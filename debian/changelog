@@ -1,3 +1,15 @@
+swh-indexer (1.1.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 1.1.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-05-30 15:56:19 +0200)
+  * Upstream changes:     - v1.1.0     - * Add support for indexing
+    directly from the journal client     - * cff: Do not change
+    yaml.SafeLoader globally     - * add missing sentry captures     - *
+    Change misleading documentation in swh-indexer/cli.py     - * test
+    and typing maintenance
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 30 May 2022 14:03:54 +0000
+
 swh-indexer (1.0.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 1.0.0     - (tagged by David Douard
