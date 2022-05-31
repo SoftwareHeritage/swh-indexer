@@ -24,7 +24,7 @@ from swh.indexer.codemeta import merge_documents
 from swh.indexer.indexer import ContentIndexer, OriginIndexer, RevisionIndexer
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
-from swh.indexer.origin_head import OriginHeadIndexer
+from swh.indexer.origin_head import get_head_swhid
 from swh.indexer.storage import INDEXER_CFG_KEY, Sha1
 from swh.indexer.storage.model import (
     ContentMetadataRow,
@@ -33,6 +33,7 @@ from swh.indexer.storage.model import (
 )
 from swh.model import hashutil
 from swh.model.model import Origin, Revision, Sha1Git
+from swh.model.swhids import ObjectType
 
 REVISION_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
@@ -321,7 +322,6 @@ class OriginMetadataIndexer(
 
     def __init__(self, config=None, **kwargs) -> None:
         super().__init__(config=config, **kwargs)
-        self.origin_head_indexer = OriginHeadIndexer(config=config)
         self.revision_metadata_indexer = RevisionMetadataIndexer(config=config)
 
     def index_list(
@@ -345,11 +345,12 @@ class OriginMetadataIndexer(
         for origin in known_origins:
             if origin is None:
                 continue
-            head_results = self.origin_head_indexer.index(origin.url)
-            if head_results:
-                (head_result,) = head_results
+            head_swhid = get_head_swhid(self.storage, origin.url)
+            if head_swhid:
+                # TODO: add support for releases
+                assert head_swhid.object_type == ObjectType.REVISION, head_swhid
                 origins_with_head.append(origin)
-                head_rev_ids.append(head_result["revision_id"])
+                head_rev_ids.append(head_swhid.object_id)
 
         head_revs = list(
             call_with_batches(

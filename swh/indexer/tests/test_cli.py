@@ -600,8 +600,8 @@ def test_cli_journal_client_index(
     storage.revision_add([REVISION])
 
     mocker.patch(
-        "swh.indexer.origin_head.OriginHeadIndexer.index",
-        return_value=[{"revision_id": REVISION.id}],
+        "swh.indexer.metadata.get_head_swhid",
+        return_value=REVISION.swhid(),
     )
 
     mocker.patch(
