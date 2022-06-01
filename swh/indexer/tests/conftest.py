@@ -23,7 +23,7 @@ from .utils import fill_obj_storage, fill_storage
 
 TASK_NAMES: List[Tuple[str, str]] = [
     # (scheduler-task-type, task-class-test-name)
-    ("index-revision-metadata", "revision_intrinsic_metadata"),
+    ("index-directory-metadata", "directory_intrinsic_metadata"),
     ("index-origin-metadata", "origin_intrinsic_metadata"),
 ]
 

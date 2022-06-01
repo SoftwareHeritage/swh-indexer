@@ -16,7 +16,7 @@ class Db(BaseDb):
     """Proxy to the SWH Indexer DB, with wrappers around stored procedures"""
 
     content_mimetype_hash_keys = ["id", "indexer_configuration_id"]
-    current_version = 133
+    current_version = 134
 
     def _missing_from_list(
         self, table: str, data: Iterable[Dict], hash_keys: List[str], cur=None
@@ -350,18 +350,18 @@ class Db(BaseDb):
             "content_metadata", ids, self.content_metadata_cols, cur=cur
         )
 
-    revision_intrinsic_metadata_hash_keys = ["id", "indexer_configuration_id"]
+    directory_intrinsic_metadata_hash_keys = ["id", "indexer_configuration_id"]
 
-    def revision_intrinsic_metadata_missing_from_list(self, metadata, cur=None):
+    def directory_intrinsic_metadata_missing_from_list(self, metadata, cur=None):
         """List missing metadata."""
         yield from self._missing_from_list(
-            "revision_intrinsic_metadata",
+            "directory_intrinsic_metadata",
             metadata,
-            self.revision_intrinsic_metadata_hash_keys,
+            self.directory_intrinsic_metadata_hash_keys,
             cur=cur,
         )
 
-    revision_intrinsic_metadata_cols = [
+    directory_intrinsic_metadata_cols = [
         "id",
         "metadata",
         "mappings",
@@ -371,27 +371,27 @@ class Db(BaseDb):
         "tool_configuration",
     ]
 
-    @stored_procedure("swh_mktemp_revision_intrinsic_metadata")
-    def mktemp_revision_intrinsic_metadata(self, cur=None):
+    @stored_procedure("swh_mktemp_directory_intrinsic_metadata")
+    def mktemp_directory_intrinsic_metadata(self, cur=None):
         pass
 
-    def revision_intrinsic_metadata_add_from_temp(self, cur=None):
+    def directory_intrinsic_metadata_add_from_temp(self, cur=None):
         cur = self._cursor(cur)
-        cur.execute("select * from swh_revision_intrinsic_metadata_add()")
+        cur.execute("select * from swh_directory_intrinsic_metadata_add()")
         return cur.fetchone()[0]
 
-    def revision_intrinsic_metadata_get_from_list(self, ids, cur=None):
+    def directory_intrinsic_metadata_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
-            "revision_intrinsic_metadata",
+            "directory_intrinsic_metadata",
             ids,
-            self.revision_intrinsic_metadata_cols,
+            self.directory_intrinsic_metadata_cols,
             cur=cur,
         )
 
     origin_intrinsic_metadata_cols = [
         "id",
         "metadata",
-        "from_revision",
+        "from_directory",
         "mappings",
         "tool_id",
         "tool_name",

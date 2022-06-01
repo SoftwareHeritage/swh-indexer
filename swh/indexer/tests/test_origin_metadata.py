@@ -11,14 +11,14 @@ import pytest
 from swh.indexer.metadata import OriginMetadataIndexer
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import (
+    DirectoryIntrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
-    RevisionIntrinsicMetadataRow,
 )
 from swh.model.model import Origin
 from swh.storage.interface import StorageInterface
 
 from .test_metadata import TRANSLATOR_TOOL
-from .utils import REVISION, YARN_PARSER_METADATA
+from .utils import DIRECTORY2, YARN_PARSER_METADATA
 
 
 @pytest.fixture
@@ -41,9 +41,9 @@ def test_origin_metadata_indexer(
 
     tool = swh_indexer_config["tools"]
 
-    rev_id = REVISION.id
-    rev_metadata = RevisionIntrinsicMetadataRow(
-        id=rev_id,
+    dir_id = DIRECTORY2.id
+    dir_metadata = DirectoryIntrinsicMetadataRow(
+        id=dir_id,
         tool=tool,
         metadata=YARN_PARSER_METADATA,
         mappings=["npm"],
@@ -51,16 +51,16 @@ def test_origin_metadata_indexer(
     origin_metadata = OriginIntrinsicMetadataRow(
         id=origin,
         tool=tool,
-        from_revision=rev_id,
+        from_directory=dir_id,
         metadata=YARN_PARSER_METADATA,
         mappings=["npm"],
     )
 
-    rev_results = list(idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    for rev_result in rev_results:
-        assert rev_result.tool
-        del rev_result.tool["id"]
-    assert rev_results == [rev_metadata]
+    dir_results = list(idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    for dir_result in dir_results:
+        assert dir_result.tool
+        del dir_result.tool["id"]
+    assert dir_results == [dir_metadata]
 
     orig_results = list(idx_storage.origin_intrinsic_metadata_get([origin]))
     for orig_result in orig_results:
@@ -82,10 +82,10 @@ def test_origin_metadata_indexer_duplicate_origin(
     indexer.run(["https://github.com/librariesio/yarn-parser"] * 2)
 
     origin = "https://github.com/librariesio/yarn-parser"
-    rev_id = REVISION.id
+    dir_id = DIRECTORY2.id
 
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert len(rev_results) == 1
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert len(dir_results) == 1
 
     orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
     assert len(orig_results) == 1
@@ -121,15 +121,15 @@ def test_origin_metadata_indexer_partial_missing_head(
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     indexer.run([origin1, origin2])
 
-    rev_id = REVISION.id
+    dir_id = DIRECTORY2.id
 
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert rev_results == [
-        RevisionIntrinsicMetadataRow(
-            id=rev_id,
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert dir_results == [
+        DirectoryIntrinsicMetadataRow(
+            id=dir_id,
             metadata=YARN_PARSER_METADATA,
             mappings=["npm"],
-            tool=rev_results[0].tool,
+            tool=dir_results[0].tool,
         )
     ]
 
@@ -140,7 +140,7 @@ def test_origin_metadata_indexer_partial_missing_head(
         assert orig_results == [
             OriginIntrinsicMetadataRow(
                 id=origin2,
-                from_revision=rev_id,
+                from_directory=dir_id,
                 metadata=YARN_PARSER_METADATA,
                 mappings=["npm"],
                 tool=orig_results[0].tool,
@@ -148,7 +148,7 @@ def test_origin_metadata_indexer_partial_missing_head(
         ]
 
 
-def test_origin_metadata_indexer_duplicate_revision(
+def test_origin_metadata_indexer_duplicate_directory(
     swh_indexer_config,
     idx_storage: IndexerStorageInterface,
     storage: StorageInterface,
@@ -162,10 +162,10 @@ def test_origin_metadata_indexer_duplicate_revision(
     origin2 = "https://github.com/librariesio/yarn-parser.git"
     indexer.run([origin1, origin2])
 
-    rev_id = REVISION.id
+    dir_id = DIRECTORY2.id
 
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert len(rev_results) == 1
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert len(dir_results) == 1
 
     orig_results = list(
         indexer.idx_storage.origin_intrinsic_metadata_get([origin1, origin2])
@@ -185,10 +185,10 @@ def test_origin_metadata_indexer_no_metadata_file(
     with patch("swh.indexer.metadata_dictionary.npm.NpmMapping.filename", b"foo.json"):
         indexer.run([origin])
 
-    rev_id = REVISION.id
+    dir_id = DIRECTORY2.id
 
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert rev_results == []
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert dir_results == []
 
     orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
     assert orig_results == []
@@ -204,16 +204,16 @@ def test_origin_metadata_indexer_no_metadata(
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch(
-        "swh.indexer.metadata.RevisionMetadataIndexer"
-        ".translate_revision_intrinsic_metadata",
+        "swh.indexer.metadata.DirectoryMetadataIndexer"
+        ".translate_directory_intrinsic_metadata",
         return_value=(["npm"], {"@context": "foo"}),
     ):
         indexer.run([origin])
 
-    rev_id = REVISION.id
+    dir_id = DIRECTORY2.id
 
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert rev_results == []
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert dir_results == []
 
     orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
     assert orig_results == []
@@ -229,16 +229,16 @@ def test_origin_metadata_indexer_error(
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch(
-        "swh.indexer.metadata.RevisionMetadataIndexer"
-        ".translate_revision_intrinsic_metadata",
+        "swh.indexer.metadata.DirectoryMetadataIndexer"
+        ".translate_directory_intrinsic_metadata",
         return_value=None,
     ):
         indexer.run([origin])
 
-    rev_id = REVISION.id
+    dir_id = DIRECTORY2.id
 
-    rev_results = list(indexer.idx_storage.revision_intrinsic_metadata_get([rev_id]))
-    assert rev_results == []
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert dir_results == []
 
     orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
     assert orig_results == []

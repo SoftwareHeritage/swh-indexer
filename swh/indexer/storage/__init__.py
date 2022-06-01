@@ -30,8 +30,8 @@ from .model import (
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
+    DirectoryIntrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
-    RevisionIntrinsicMetadataRow,
 )
 from .writer import JournalWriter
 
@@ -522,52 +522,52 @@ class IndexerStorage:
 
     @timed
     @db_transaction()
-    def revision_intrinsic_metadata_missing(
+    def directory_intrinsic_metadata_missing(
         self, metadata: Iterable[Dict], db=None, cur=None
     ) -> List[Tuple[Sha1, int]]:
         return [
             obj[0]
-            for obj in db.revision_intrinsic_metadata_missing_from_list(metadata, cur)
+            for obj in db.directory_intrinsic_metadata_missing_from_list(metadata, cur)
         ]
 
     @timed
     @db_transaction()
-    def revision_intrinsic_metadata_get(
+    def directory_intrinsic_metadata_get(
         self, ids: Iterable[Sha1], db=None, cur=None
-    ) -> List[RevisionIntrinsicMetadataRow]:
+    ) -> List[DirectoryIntrinsicMetadataRow]:
         return [
-            RevisionIntrinsicMetadataRow.from_dict(
+            DirectoryIntrinsicMetadataRow.from_dict(
                 converters.db_to_metadata(
-                    dict(zip(db.revision_intrinsic_metadata_cols, c))
+                    dict(zip(db.directory_intrinsic_metadata_cols, c))
                 )
             )
-            for c in db.revision_intrinsic_metadata_get_from_list(ids, cur)
+            for c in db.directory_intrinsic_metadata_get_from_list(ids, cur)
         ]
 
     @timed
     @process_metrics
     @db_transaction()
-    def revision_intrinsic_metadata_add(
+    def directory_intrinsic_metadata_add(
         self,
-        metadata: List[RevisionIntrinsicMetadataRow],
+        metadata: List[DirectoryIntrinsicMetadataRow],
         db=None,
         cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
         metadata.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("revision_intrinsic_metadata", metadata)
+        self.journal_writer.write_additions("directory_intrinsic_metadata", metadata)
 
-        db.mktemp_revision_intrinsic_metadata(cur)
+        db.mktemp_directory_intrinsic_metadata(cur)
 
         db.copy_to(
             [m.to_dict() for m in metadata],
-            "tmp_revision_intrinsic_metadata",
+            "tmp_directory_intrinsic_metadata",
             ["id", "metadata", "mappings", "indexer_configuration_id"],
             cur,
         )
-        count = db.revision_intrinsic_metadata_add_from_temp(cur)
+        count = db.directory_intrinsic_metadata_add_from_temp(cur)
         return {
-            "revision_intrinsic_metadata:add": count,
+            "directory_intrinsic_metadata:add": count,
         }
 
     @timed
@@ -602,7 +602,13 @@ class IndexerStorage:
         db.copy_to(
             [m.to_dict() for m in metadata],
             "tmp_origin_intrinsic_metadata",
-            ["id", "metadata", "indexer_configuration_id", "from_revision", "mappings"],
+            [
+                "id",
+                "metadata",
+                "indexer_configuration_id",
+                "from_directory",
+                "mappings",
+            ],
             cur,
         )
         count = db.origin_intrinsic_metadata_add_from_temp(cur)
