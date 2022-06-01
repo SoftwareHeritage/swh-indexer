@@ -29,7 +29,47 @@ def swh_indexer_config(swh_indexer_config):
     return cfg
 
 
-def test_origin_metadata_indexer(
+def test_origin_metadata_indexer_release(
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
+) -> None:
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    origin = "https://npm.example.org/yarn-parser"
+    indexer.run([origin])
+
+    tool = swh_indexer_config["tools"]
+
+    dir_id = DIRECTORY2.id
+    dir_metadata = DirectoryIntrinsicMetadataRow(
+        id=dir_id,
+        tool=tool,
+        metadata=YARN_PARSER_METADATA,
+        mappings=["npm"],
+    )
+    origin_metadata = OriginIntrinsicMetadataRow(
+        id=origin,
+        tool=tool,
+        from_directory=dir_id,
+        metadata=YARN_PARSER_METADATA,
+        mappings=["npm"],
+    )
+
+    dir_results = list(idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    for dir_result in dir_results:
+        assert dir_result.tool
+        del dir_result.tool["id"]
+    assert dir_results == [dir_metadata]
+
+    orig_results = list(idx_storage.origin_intrinsic_metadata_get([origin]))
+    for orig_result in orig_results:
+        assert orig_result.tool
+        del orig_result.tool["id"]
+    assert orig_results == [origin_metadata]
+
+
+def test_origin_metadata_indexer_revision(
     swh_indexer_config,
     idx_storage: IndexerStorageInterface,
     storage: StorageInterface,

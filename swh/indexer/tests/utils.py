@@ -19,10 +19,12 @@ from swh.model.model import (
     Content,
     Directory,
     DirectoryEntry,
+    ObjectType,
     Origin,
     OriginVisit,
     OriginVisitStatus,
     Person,
+    Release,
     Revision,
     RevisionType,
     Snapshot,
@@ -46,10 +48,15 @@ ORIGIN_VISITS = [
         "type": "deposit",
         "origin": "https://forge.softwareheritage.org/source/jesuisgpl/",
     },
-    {"type": "pypi", "origin": "https://pypi.org/project/limnoria/"},
+    {
+        "type": "pypi",
+        "origin": "https://old-pypi.example.org/project/limnoria/",
+    },  # with rev head
+    {"type": "pypi", "origin": "https://pypi.org/project/limnoria/"},  # with rel head
     {"type": "svn", "origin": "http://0-512-md.googlecode.com/svn/"},
     {"type": "git", "origin": "https://github.com/librariesio/yarn-parser"},
     {"type": "git", "origin": "https://github.com/librariesio/yarn-parser.git"},
+    {"type": "git", "origin": "https://npm.example.org/yarn-parser"},
 ]
 
 ORIGINS = [Origin(url=visit["origin"]) for visit in ORIGIN_VISITS]
@@ -120,7 +127,26 @@ REVISION = Revision(
 
 REVISIONS = [REVISION]
 
+RELEASE = Release(
+    name=b"v0.0.0",
+    message=None,
+    author=Person(
+        name=b"Andrew Nesbitt",
+        fullname=b"Andrew Nesbitt <andrewnez@gmail.com>",
+        email=b"andrewnez@gmail.com",
+    ),
+    synthetic=False,
+    date=TimestampWithTimezone.from_datetime(
+        datetime.datetime(2017, 2, 20, 16, 14, 16, tzinfo=_utc_plus_2)
+    ),
+    target_type=ObjectType.DIRECTORY,
+    target=DIRECTORY2.id,
+)
+
+RELEASES = [RELEASE]
+
 SNAPSHOTS = [
+    # https://github.com/SoftwareHeritage/swh-storage
     Snapshot(
         id=hash_to_bytes("a50fde72265343b7d28cecf6db20d98a81d21965"),
         branches={
@@ -141,6 +167,7 @@ SNAPSHOTS = [
             ),
         },
     ),
+    # rsync://ftp.gnu.org/gnu/3dldf
     Snapshot(
         id=hash_to_bytes("2c67f69a416bca4e1f3fcd848c588fab88ad0642"),
         branches={
@@ -166,6 +193,7 @@ SNAPSHOTS = [
             ),
         },
     ),
+    # https://forge.softwareheritage.org/source/jesuisgpl/",
     Snapshot(
         id=hash_to_bytes("68c0d26104d47e278dd6be07ed61fafb561d0d20"),
         branches={
@@ -175,6 +203,7 @@ SNAPSHOTS = [
             )
         },
     ),
+    # https://old-pypi.example.org/project/limnoria/
     Snapshot(
         id=hash_to_bytes("f255245269e15fc99d284affd79f766668de0b67"),
         branches={
@@ -191,6 +220,23 @@ SNAPSHOTS = [
             ),
         },
     ),
+    # https://pypi.org/project/limnoria/
+    Snapshot(
+        branches={
+            b"HEAD": SnapshotBranch(
+                target=b"releases/2018.09.09", target_type=TargetType.ALIAS
+            ),
+            b"releases/2018.09.01": SnapshotBranch(
+                target=b"<\xee1(\xe8\x8d_\xc1\xc9\xa6rT\xf1\x1d\xbb\xdfF\xfdw\xcf",
+                target_type=TargetType.RELEASE,
+            ),
+            b"releases/2018.09.09": SnapshotBranch(
+                target=b"\x83\xb9\xb6\xc7\x05\xb1%\xd0\xfem\xd8kA\x10\x9d\xc5\xfa2\xf8t",  # noqa
+                target_type=TargetType.RELEASE,
+            ),
+        },
+    ),
+    # http://0-512-md.googlecode.com/svn/
     Snapshot(
         id=hash_to_bytes("a1a28c0ab387a8f9e0618cb705eab81fc448f473"),
         branches={
@@ -200,6 +246,7 @@ SNAPSHOTS = [
             )
         },
     ),
+    # https://github.com/librariesio/yarn-parser
     Snapshot(
         id=hash_to_bytes("bb4fd3a836930ce629d912864319637040ff3040"),
         branches={
@@ -209,16 +256,28 @@ SNAPSHOTS = [
             )
         },
     ),
+    # https://github.com/librariesio/yarn-parser.git
     Snapshot(
         id=hash_to_bytes("bb4fd3a836930ce629d912864319637040ff3040"),
         branches={
             b"HEAD": SnapshotBranch(
                 target=REVISION.id,
                 target_type=TargetType.REVISION,
+            )
+        },
+    ),
+    # https://npm.example.org/yarn-parser
+    Snapshot(
+        branches={
+            b"HEAD": SnapshotBranch(
+                target=RELEASE.id,
+                target_type=TargetType.RELEASE,
             )
         },
     ),
 ]
+
+assert len(SNAPSHOTS) == len(ORIGIN_VISITS)
 
 
 SHA1_TO_LICENSES = {
@@ -562,6 +621,7 @@ def fill_storage(storage):
     storage.origin_add(ORIGINS)
     storage.directory_add([DIRECTORY, DIRECTORY2])
     storage.revision_add(REVISIONS)
+    storage.release_add(RELEASES)
     storage.snapshot_add(SNAPSHOTS)
 
     for visit, snapshot in zip(ORIGIN_VISITS, SNAPSHOTS):

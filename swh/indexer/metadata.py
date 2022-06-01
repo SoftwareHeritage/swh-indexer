@@ -32,10 +32,13 @@ from swh.indexer.storage.model import (
     OriginIntrinsicMetadataRow,
 )
 from swh.model import hashutil
-from swh.model.model import Directory, Origin, Sha1Git
-from swh.model.swhids import ObjectType
+from swh.model.model import Directory
+from swh.model.model import ObjectType as ModelObjectType
+from swh.model.model import Origin, Sha1Git
+from swh.model.swhids import CoreSWHID, ObjectType
 
 REVISION_GET_BATCH_SIZE = 10
+RELEASE_GET_BATCH_SIZE = 10
 ORIGIN_GET_BATCH_SIZE = 10
 
 
@@ -329,7 +332,8 @@ class OriginMetadataIndexer(
         self, origins: List[Origin], check_origin_known: bool = True, **kwargs
     ) -> List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]:
         head_rev_ids = []
-        origins_with_head = []
+        head_rel_ids = []
+        origin_heads: Dict[Origin, CoreSWHID] = {}
 
         # Filter out origins not in the storage
         if check_origin_known:
@@ -348,25 +352,63 @@ class OriginMetadataIndexer(
                 continue
             head_swhid = get_head_swhid(self.storage, origin.url)
             if head_swhid:
-                # TODO: add support for releases
-                assert head_swhid.object_type == ObjectType.REVISION, head_swhid
-                origins_with_head.append(origin)
-                head_rev_ids.append(head_swhid.object_id)
+                origin_heads[origin] = head_swhid
+                if head_swhid.object_type == ObjectType.REVISION:
+                    head_rev_ids.append(head_swhid.object_id)
+                elif head_swhid.object_type == ObjectType.RELEASE:
+                    head_rel_ids.append(head_swhid.object_id)
+                else:
+                    assert False, head_swhid
 
-        head_revs = list(
-            call_with_batches(
-                self.storage.revision_get, head_rev_ids, REVISION_GET_BATCH_SIZE
+        head_revs = dict(
+            zip(
+                head_rev_ids,
+                call_with_batches(
+                    self.storage.revision_get, head_rev_ids, REVISION_GET_BATCH_SIZE
+                ),
             )
         )
-        assert len(head_revs) == len(head_rev_ids)
+        head_rels = dict(
+            zip(
+                head_rel_ids,
+                call_with_batches(
+                    self.storage.release_get, head_rel_ids, RELEASE_GET_BATCH_SIZE
+                ),
+            )
+        )
 
         results = []
-        for (origin, rev) in zip(origins_with_head, head_revs):
-            if not rev:
-                self.log.warning("Missing head revision of origin %r", origin.url)
-                continue
+        for (origin, head_swhid) in origin_heads.items():
+            if head_swhid.object_type == ObjectType.REVISION:
+                rev = head_revs[head_swhid.object_id]
+                if not rev:
+                    self.log.warning(
+                        "Missing head object %s of origin %r", head_swhid, origin.url
+                    )
+                    continue
+                directory_id = rev.directory
+            elif head_swhid.object_type == ObjectType.RELEASE:
+                rel = head_rels[head_swhid.object_id]
+                if not rel:
+                    self.log.warning(
+                        "Missing head object %s of origin %r", head_swhid, origin.url
+                    )
+                    continue
+                if rel.target_type != ModelObjectType.DIRECTORY:
+                    # TODO
+                    self.log.warning(
+                        "Head release %s of %r has unexpected target type %s",
+                        head_swhid,
+                        origin.url,
+                        rel.target_type,
+                    )
+                    continue
+                assert rel.target, rel
+                directory_id = rel.target
+            else:
+                assert False, head_swhid
 
-            for dir_metadata in self.directory_metadata_indexer.index(rev.directory):
+            for dir_metadata in self.directory_metadata_indexer.index(directory_id):
                 # There is at most one dir_metadata
                 orig_metadata = OriginIntrinsicMetadataRow(
                     from_directory=dir_metadata.id,

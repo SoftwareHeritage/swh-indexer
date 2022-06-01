@@ -139,9 +139,14 @@ def test_deposit_missing_snapshot(storage):
 
 
 def test_pypi(storage):
-    origin_url = "https://pypi.org/project/limnoria/"
+    origin_url = "https://old-pypi.example.org/project/limnoria/"
     assert get_head_swhid(storage, origin_url) == CoreSWHID.from_string(
         "swh:1:rev:83b9b6c705b125d0fe6dd86b41109dc5fa32f874"
+    )
+
+    origin_url = "https://pypi.org/project/limnoria/"
+    assert get_head_swhid(storage, origin_url) == CoreSWHID.from_string(
+        "swh:1:rel:83b9b6c705b125d0fe6dd86b41109dc5fa32f874"
     )
 
 

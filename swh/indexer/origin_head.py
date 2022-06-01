@@ -113,7 +113,7 @@ def _try_resolve_target(
         elif branch.target_type == TargetType.DIRECTORY:
             return None  # TODO
         elif branch.target_type == TargetType.RELEASE:
-            return None  # TODO
+            return CoreSWHID(object_type=ObjectType.RELEASE, object_id=branch.target)
         else:
             assert False, branch
     except KeyError:
