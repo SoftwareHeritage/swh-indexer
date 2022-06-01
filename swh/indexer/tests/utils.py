@@ -91,6 +91,8 @@ DIRECTORY2 = Directory(
     ),
 )
 
+_utc_plus_2 = datetime.timezone(datetime.timedelta(minutes=120))
+
 REVISION = Revision(
     id=hash_to_bytes("c6201cb1b9b9df9a7542f9665c3b5dfab85e9775"),
     message=b"Improve search functionality",
@@ -105,28 +107,12 @@ REVISION = Revision(
         email=b"andrewnez@gmail.com",
     ),
     committer_date=TimestampWithTimezone.from_datetime(
-        datetime.datetime(
-            2013,
-            10,
-            4,
-            12,
-            50,
-            49,
-            tzinfo=datetime.timezone(datetime.timedelta(minutes=120)),
-        )
+        datetime.datetime(2013, 10, 4, 12, 50, 49, tzinfo=_utc_plus_2)
     ),
     type=RevisionType.GIT,
     synthetic=False,
     date=TimestampWithTimezone.from_datetime(
-        datetime.datetime(
-            2017,
-            2,
-            20,
-            16,
-            14,
-            16,
-            tzinfo=datetime.timezone(datetime.timedelta(minutes=120)),
-        )
+        datetime.datetime(2017, 2, 20, 16, 14, 16, tzinfo=_utc_plus_2)
     ),
     directory=DIRECTORY2.id,
     parents=(),
