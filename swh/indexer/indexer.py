@@ -541,10 +541,6 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Worker function for ``JournalClient``. Expects ``objects`` to have a single
         key, either ``origin`` or ``"origin_visit_status"``."""
-        # TODO: add support for subscribing to other topics? Currently, this is
-        # not implemented because no indexer would use it.
-        assert set(objects) <= {"origin", "origin_visit_status"}
-
         origins = [
             Origin(url=status["origin"])
             for status in objects.get("origin_visit_status", [])

@@ -527,6 +527,7 @@ def test_cli_journal_client_without_brokers(
         )
 
 
+@pytest.mark.parametrize("indexer_name", ["origin-intrinsic-metadata", "*"])
 def test_cli_journal_client_index(
     cli_runner,
     swh_config,
@@ -537,6 +538,7 @@ def test_cli_journal_client_index(
     storage,
     mocker,
     swh_indexer_config,
+    indexer_name: str,
 ):
     """Test the 'swh indexer journal-client' cli tool."""
     journal_writer = get_journal_writer(
@@ -619,7 +621,7 @@ def test_cli_journal_client_index(
             "-C",
             swh_config,
             "journal-client",
-            "origin-intrinsic-metadata",
+            indexer_name,
             "--broker",
             kafka_server,
             "--prefix",
