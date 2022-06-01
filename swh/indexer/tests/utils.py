@@ -39,26 +39,20 @@ BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
 }
 
 
-ORIGINS = [
-    Origin(url="https://github.com/SoftwareHeritage/swh-storage"),
-    Origin(url="rsync://ftp.gnu.org/gnu/3dldf"),
-    Origin(url="https://forge.softwareheritage.org/source/jesuisgpl/"),
-    Origin(url="https://pypi.org/project/limnoria/"),
-    Origin(url="http://0-512-md.googlecode.com/svn/"),
-    Origin(url="https://github.com/librariesio/yarn-parser"),
-    Origin(url="https://github.com/librariesio/yarn-parser.git"),
-]
-
-
 ORIGIN_VISITS = [
-    {"type": "git", "origin": ORIGINS[0].url},
-    {"type": "ftp", "origin": ORIGINS[1].url},
-    {"type": "deposit", "origin": ORIGINS[2].url},
-    {"type": "pypi", "origin": ORIGINS[3].url},
-    {"type": "svn", "origin": ORIGINS[4].url},
-    {"type": "git", "origin": ORIGINS[5].url},
-    {"type": "git", "origin": ORIGINS[6].url},
+    {"type": "git", "origin": "https://github.com/SoftwareHeritage/swh-storage"},
+    {"type": "ftp", "origin": "rsync://ftp.gnu.org/gnu/3dldf"},
+    {
+        "type": "deposit",
+        "origin": "https://forge.softwareheritage.org/source/jesuisgpl/",
+    },
+    {"type": "pypi", "origin": "https://pypi.org/project/limnoria/"},
+    {"type": "svn", "origin": "http://0-512-md.googlecode.com/svn/"},
+    {"type": "git", "origin": "https://github.com/librariesio/yarn-parser"},
+    {"type": "git", "origin": "https://github.com/librariesio/yarn-parser.git"},
 ]
+
+ORIGINS = [Origin(url=visit["origin"]) for visit in ORIGIN_VISITS]
 
 
 DIRECTORY = Directory(
