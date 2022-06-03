@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2018  The Software Heritage developers
+# Copyright (C) 2015-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -16,7 +16,6 @@ class Db(BaseDb):
     """Proxy to the SWH Indexer DB, with wrappers around stored procedures"""
 
     content_mimetype_hash_keys = ["id", "indexer_configuration_id"]
-    current_version = 134
 
     def _missing_from_list(
         self, table: str, data: Iterable[Dict], hash_keys: List[str], cur=None

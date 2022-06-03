@@ -14,8 +14,7 @@ from pytest_postgresql import factories
 import yaml
 
 from swh.core.db.pytest_plugin import initialize_database_for_module
-from swh.indexer.storage import get_indexer_storage
-from swh.indexer.storage.db import Db as IndexerDb
+from swh.indexer.storage import IndexerStorage, get_indexer_storage
 from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
 
@@ -33,7 +32,7 @@ idx_postgresql_proc = factories.postgresql_proc(
         partial(
             initialize_database_for_module,
             modname="indexer",
-            version=IndexerDb.current_version,
+            version=IndexerStorage.current_version,
         )
     ],
 )

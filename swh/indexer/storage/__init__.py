@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2020  The Software Heritage developers
+# Copyright (C) 2015-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -120,7 +120,9 @@ def check_id_duplicates(data):
 
 
 class IndexerStorage:
-    """SWH Indexer Storage"""
+    """SWH Indexer Storage Datastore"""
+
+    current_version = 134
 
     def __init__(self, db, min_pool_conns=1, max_pool_conns=10, journal_writer=None):
         """
@@ -151,10 +153,6 @@ class IndexerStorage:
     def put_db(self, db):
         if db is not self._db:
             db.put_conn()
-
-    @db_transaction()
-    def get_current_version(self, *, db=None, cur=None):
-        return db.current_version
 
     @timed
     @db_transaction()
