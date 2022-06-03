@@ -10,16 +10,16 @@ from hypothesis import HealthCheck, given, settings, strategies
 import pytest
 
 from swh.indexer.codemeta import CODEMETA_TERMS
-from swh.indexer.metadata import ContentMetadataIndexer, RevisionMetadataIndexer
+from swh.indexer.metadata import ContentMetadataIndexer, DirectoryMetadataIndexer
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_dictionary.maven import MavenMapping
 from swh.indexer.metadata_dictionary.npm import NpmMapping
 from swh.indexer.metadata_dictionary.ruby import GemspecMapping
-from swh.indexer.storage.model import ContentMetadataRow, RevisionIntrinsicMetadataRow
-from swh.indexer.tests.utils import DIRECTORY2, REVISION
+from swh.indexer.storage.model import ContentMetadataRow, DirectoryIntrinsicMetadataRow
+from swh.indexer.tests.utils import DIRECTORY2
 from swh.model.hashutil import hash_to_bytes
-from swh.model.model import Directory, DirectoryEntry, Revision
+from swh.model.model import Directory, DirectoryEntry
 
 from .utils import (
     BASE_TEST_CONFIG,
@@ -43,10 +43,10 @@ class ContentMetadataTestIndexer(ContentMetadataIndexer):
     """
 
     def parse_config_file(self, *args, **kwargs):
-        assert False, "should not be called; the rev indexer configures it."
+        assert False, "should not be called; the dir indexer configures it."
 
 
-REVISION_METADATA_CONFIG = {
+DIRECTORY_METADATA_CONFIG = {
     **BASE_TEST_CONFIG,
     "tools": TRANSLATOR_TOOL,
 }
@@ -1154,8 +1154,8 @@ Gem::Specification.new { |s|
         parts.append(b"end\n")
         self.gemspec_mapping.translate(b"".join(parts))
 
-    def test_revision_metadata_indexer(self):
-        metadata_indexer = RevisionMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    def test_directory_metadata_indexer(self):
+        metadata_indexer = DirectoryMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
         fill_obj_storage(metadata_indexer.objstorage)
         fill_storage(metadata_indexer.storage)
 
@@ -1163,8 +1163,7 @@ Gem::Specification.new { |s|
             {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
         )
         assert tool is not None
-        rev = REVISION
-        assert rev.directory == DIRECTORY2.id
+        dir_ = DIRECTORY2
 
         metadata_indexer.idx_storage.content_metadata_add(
             [
@@ -1176,15 +1175,17 @@ Gem::Specification.new { |s|
             ]
         )
 
-        metadata_indexer.run([rev.id])
+        metadata_indexer.run([dir_.id])
 
         results = list(
-            metadata_indexer.idx_storage.revision_intrinsic_metadata_get([REVISION.id])
+            metadata_indexer.idx_storage.directory_intrinsic_metadata_get(
+                [DIRECTORY2.id]
+            )
         )
 
         expected_results = [
-            RevisionIntrinsicMetadataRow(
-                id=rev.id,
+            DirectoryIntrinsicMetadataRow(
+                id=dir_.id,
                 tool=TRANSLATOR_TOOL,
                 metadata=YARN_PARSER_METADATA,
                 mappings=["npm"],
@@ -1197,33 +1198,27 @@ Gem::Specification.new { |s|
         # then
         assert results == expected_results
 
-    def test_revision_metadata_indexer_single_root_dir(self):
-        metadata_indexer = RevisionMetadataIndexer(config=REVISION_METADATA_CONFIG)
+    def test_directory_metadata_indexer_single_root_dir(self):
+        metadata_indexer = DirectoryMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
         fill_obj_storage(metadata_indexer.objstorage)
         fill_storage(metadata_indexer.storage)
 
         # Add a parent directory, that is the only directory at the root
-        # of the revision
-        rev = REVISION
-        assert rev.directory == DIRECTORY2.id
+        # of the directory
+        dir_ = DIRECTORY2
 
-        directory = Directory(
+        new_dir = Directory(
             entries=(
                 DirectoryEntry(
                     name=b"foobar-1.0.0",
                     type="dir",
-                    target=rev.directory,
+                    target=dir_.id,
                     perms=16384,
                 ),
             ),
         )
-        assert directory.id is not None
-        metadata_indexer.storage.directory_add([directory])
-
-        new_rev_dict = {**rev.to_dict(), "directory": directory.id}
-        new_rev_dict.pop("id")
-        new_rev = Revision.from_dict(new_rev_dict)
-        metadata_indexer.storage.revision_add([new_rev])
+        assert new_dir.id is not None
+        metadata_indexer.storage.directory_add([new_dir])
 
         tool = metadata_indexer.idx_storage.indexer_configuration_get(
             {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
@@ -1240,15 +1235,15 @@ Gem::Specification.new { |s|
             ]
         )
 
-        metadata_indexer.run([new_rev.id])
+        metadata_indexer.run([new_dir.id])
 
         results = list(
-            metadata_indexer.idx_storage.revision_intrinsic_metadata_get([new_rev.id])
+            metadata_indexer.idx_storage.directory_intrinsic_metadata_get([new_dir.id])
         )
 
         expected_results = [
-            RevisionIntrinsicMetadataRow(
-                id=new_rev.id,
+            DirectoryIntrinsicMetadataRow(
+                id=new_dir.id,
                 tool=TRANSLATOR_TOOL,
                 metadata=YARN_PARSER_METADATA,
                 mappings=["npm"],

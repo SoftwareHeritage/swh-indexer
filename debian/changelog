@@ -1,8 +1,19 @@
-swh-indexer (1.2.0-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.0.0-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.0.0     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2022-06-03 15:40:32
+    +0200)
+  * Upstream changes:     - v2.0.0     - Set current_version attribute
+    to postgresql datastore     - Add support for indexing from head
+    releases     - Replace RevisionMetadataIndexer with
+    DirectoryMetadataIndexer     - Add support for running the server
+    with 'postgresql' storage cls     - tests: Shorten definition of
+    REVISION     - tests: Simplify definition of ORIGINS list     -
+    tests: use stock pytest_postgresql factory function     - Rewrite
+    origin_head.py as a normal function instead of an indexer     -
+    Convert test_origin_head from unittest to pytest
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 01 Jun 2022 15:15:30 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 03 Jun 2022 13:59:59 +0000
 
 swh-indexer (1.2.0-1~swh1) unstable-swh; urgency=medium
 

@@ -38,8 +38,8 @@ from .model import (
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
+    DirectoryIntrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
-    RevisionIntrinsicMetadataRow,
 )
 from .writer import JournalWriter
 
@@ -250,8 +250,8 @@ class IndexerStorage:
         self._content_ctags = SubStorage(ContentCtagsRow, *args)
         self._licenses = SubStorage(ContentLicenseRow, *args)
         self._content_metadata = SubStorage(ContentMetadataRow, *args)
-        self._revision_intrinsic_metadata = SubStorage(
-            RevisionIntrinsicMetadataRow, *args
+        self._directory_intrinsic_metadata = SubStorage(
+            DirectoryIntrinsicMetadataRow, *args
         )
         self._origin_intrinsic_metadata = SubStorage(OriginIntrinsicMetadataRow, *args)
 
@@ -369,21 +369,21 @@ class IndexerStorage:
         added = self._content_metadata.add(metadata)
         return {"content_metadata:add": added}
 
-    def revision_intrinsic_metadata_missing(
+    def directory_intrinsic_metadata_missing(
         self, metadata: Iterable[Dict]
     ) -> List[Tuple[Sha1, int]]:
-        return self._revision_intrinsic_metadata.missing(metadata)
+        return self._directory_intrinsic_metadata.missing(metadata)
 
-    def revision_intrinsic_metadata_get(
+    def directory_intrinsic_metadata_get(
         self, ids: Iterable[Sha1]
-    ) -> List[RevisionIntrinsicMetadataRow]:
-        return self._revision_intrinsic_metadata.get(ids)
+    ) -> List[DirectoryIntrinsicMetadataRow]:
+        return self._directory_intrinsic_metadata.get(ids)
 
-    def revision_intrinsic_metadata_add(
-        self, metadata: List[RevisionIntrinsicMetadataRow]
+    def directory_intrinsic_metadata_add(
+        self, metadata: List[DirectoryIntrinsicMetadataRow]
     ) -> Dict[str, int]:
-        added = self._revision_intrinsic_metadata.add(metadata)
-        return {"revision_intrinsic_metadata:add": added}
+        added = self._directory_intrinsic_metadata.add(metadata)
+        return {"directory_intrinsic_metadata:add": added}
 
     def origin_intrinsic_metadata_get(
         self, urls: Iterable[str]

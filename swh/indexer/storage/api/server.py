@@ -86,10 +86,10 @@ def load_and_check_config(
     if type == "local":
         vcfg = cfg["indexer_storage"]
         cls = vcfg.get("cls")
-        if cls != "local":
+        if cls not in ("local", "postgresql"):
             raise ValueError(
                 "The indexer_storage backend can only be started with a "
-                "'local' configuration"
+                "'postgresql' configuration"
             )
 
         if not vcfg.get("db"):

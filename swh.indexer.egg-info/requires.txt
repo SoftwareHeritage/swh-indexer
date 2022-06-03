@@ -5,7 +5,7 @@ pyld
 sentry-sdk
 typing-extensions
 xmltodict
-swh.core[db,http]>=0.14.0
+swh.core[db,http]>=2.9
 swh.model>=0.0.15
 swh.objstorage>=0.2.2
 swh.scheduler>=0.5.2

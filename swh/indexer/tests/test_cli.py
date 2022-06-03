@@ -16,14 +16,14 @@ import pytest
 from swh.indexer.cli import indexer_cli_group
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import (
+    DirectoryIntrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
-    RevisionIntrinsicMetadataRow,
 )
 from swh.journal.writer import get_journal_writer
 from swh.model.hashutil import hash_to_bytes
 from swh.model.model import OriginVisitStatus
 
-from .utils import REVISION
+from .utils import DIRECTORY2, REVISION
 
 
 def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List[int]:
@@ -40,15 +40,15 @@ def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List
     origin_metadata = [
         OriginIntrinsicMetadataRow(
             id="file://dev/%04d" % origin_id,
-            from_revision=hash_to_bytes("abcd{:0>36}".format(origin_id)),
+            from_directory=hash_to_bytes("abcd{:0>36}".format(origin_id)),
             indexer_configuration_id=tools[origin_id % 2]["id"],
             metadata={"name": "origin %d" % origin_id},
             mappings=["mapping%d" % (origin_id % 10)],
         )
         for origin_id in range(nb_rows)
     ]
-    revision_metadata = [
-        RevisionIntrinsicMetadataRow(
+    directory_metadata = [
+        DirectoryIntrinsicMetadataRow(
             id=hash_to_bytes("abcd{:0>36}".format(origin_id)),
             indexer_configuration_id=tools[origin_id % 2]["id"],
             metadata={"name": "origin %d" % origin_id},
@@ -57,7 +57,7 @@ def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List
         for origin_id in range(nb_rows)
     ]
 
-    idx_storage.revision_intrinsic_metadata_add(revision_metadata)
+    idx_storage.directory_intrinsic_metadata_add(directory_metadata)
     idx_storage.origin_intrinsic_metadata_add(origin_metadata)
 
     return [tool["id"] for tool in tools]
@@ -600,15 +600,15 @@ def test_cli_journal_client_index(
     storage.revision_add([REVISION])
 
     mocker.patch(
-        "swh.indexer.origin_head.OriginHeadIndexer.index",
-        return_value=[{"revision_id": REVISION.id}],
+        "swh.indexer.metadata.get_head_swhid",
+        return_value=REVISION.swhid(),
     )
 
     mocker.patch(
-        "swh.indexer.metadata.RevisionMetadataIndexer.index",
+        "swh.indexer.metadata.DirectoryMetadataIndexer.index",
         return_value=[
-            RevisionIntrinsicMetadataRow(
-                id=REVISION.id,
+            DirectoryIntrinsicMetadataRow(
+                id=DIRECTORY2.id,
                 indexer_configuration_id=1,
                 mappings=["cff"],
                 metadata={"foo": "bar"},
@@ -645,7 +645,7 @@ def test_cli_journal_client_index(
     expected_results = [
         OriginIntrinsicMetadataRow(
             id=status.origin,
-            from_revision=REVISION.id,
+            from_directory=DIRECTORY2.id,
             tool={"id": 1, **swh_indexer_config["tools"]},
             mappings=["cff"],
             metadata={"foo": "bar"},

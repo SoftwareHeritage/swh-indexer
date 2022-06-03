@@ -15,8 +15,8 @@ from swh.indexer.storage.model import (
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
+    DirectoryIntrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
-    RevisionIntrinsicMetadataRow,
 )
 
 TResult = TypeVar("TResult")
@@ -341,8 +341,8 @@ class IndexerStorageInterface(Protocol):
         """
         ...
 
-    @remote_api_endpoint("revision_intrinsic_metadata/missing")
-    def revision_intrinsic_metadata_missing(
+    @remote_api_endpoint("directory_intrinsic_metadata/missing")
+    def directory_intrinsic_metadata_missing(
         self, metadata: Iterable[Dict]
     ) -> List[Tuple[Sha1, int]]:
         """List metadata missing from storage.
@@ -350,7 +350,7 @@ class IndexerStorageInterface(Protocol):
         Args:
             metadata (iterable): dictionaries with keys:
 
-               - **id** (bytes): sha1_git revision identifier
+               - **id** (bytes): sha1_git directory identifier
                - **indexer_configuration_id** (int): tool used to compute
                  the results
 
@@ -360,11 +360,11 @@ class IndexerStorageInterface(Protocol):
         """
         ...
 
-    @remote_api_endpoint("revision_intrinsic_metadata")
-    def revision_intrinsic_metadata_get(
+    @remote_api_endpoint("directory_intrinsic_metadata")
+    def directory_intrinsic_metadata_get(
         self, ids: Iterable[Sha1]
-    ) -> List[RevisionIntrinsicMetadataRow]:
-        """Retrieve revision metadata per id.
+    ) -> List[DirectoryIntrinsicMetadataRow]:
+        """Retrieve directory metadata per id.
 
         Args:
             ids (iterable): sha1 checksums
@@ -375,10 +375,10 @@ class IndexerStorageInterface(Protocol):
         """
         ...
 
-    @remote_api_endpoint("revision_intrinsic_metadata/add")
-    def revision_intrinsic_metadata_add(
+    @remote_api_endpoint("directory_intrinsic_metadata/add")
+    def directory_intrinsic_metadata_add(
         self,
-        metadata: List[RevisionIntrinsicMetadataRow],
+        metadata: List[DirectoryIntrinsicMetadataRow],
     ) -> Dict[str, int]:
         """Add metadata not present in storage.
 

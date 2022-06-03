@@ -99,34 +99,34 @@ comment on column content_metadata.id is 'sha1 of content file';
 comment on column content_metadata.metadata is 'result of translation with defined format';
 comment on column content_metadata.indexer_configuration_id is 'tool used for translation';
 
--- The table revision_intrinsic_metadata provides a minimal set of intrinsic
+-- The table directory_intrinsic_metadata provides a minimal set of intrinsic
 -- metadata detected with the detection  tool (indexer_configuration_id) and
 -- aggregated from the content_metadata translation.
-create table revision_intrinsic_metadata(
+create table directory_intrinsic_metadata(
   id                       sha1_git   not null,
   metadata                 jsonb      not null,
   indexer_configuration_id bigint     not null,
   mappings                 text array not null
 );
 
-comment on table revision_intrinsic_metadata is 'metadata semantically detected and translated in a revision';
-comment on column revision_intrinsic_metadata.id is 'sha1_git of revision';
-comment on column revision_intrinsic_metadata.metadata is 'result of detection and translation with defined format';
-comment on column revision_intrinsic_metadata.indexer_configuration_id is 'tool used for detection';
-comment on column revision_intrinsic_metadata.mappings is 'type of metadata files used to obtain this metadata (eg. pkg-info, npm)';
+comment on table directory_intrinsic_metadata is 'metadata semantically detected and translated in a directory';
+comment on column directory_intrinsic_metadata.id is 'sha1_git of directory';
+comment on column directory_intrinsic_metadata.metadata is 'result of detection and translation with defined format';
+comment on column directory_intrinsic_metadata.indexer_configuration_id is 'tool used for detection';
+comment on column directory_intrinsic_metadata.mappings is 'type of metadata files used to obtain this metadata (eg. pkg-info, npm)';
 
 create table origin_intrinsic_metadata(
   id                        text       not null,  -- origin url
   metadata                  jsonb,
   indexer_configuration_id  bigint     not null,
-  from_revision             sha1_git   not null,
+  from_directory             sha1_git   not null,
   metadata_tsvector         tsvector,
   mappings                  text array not null
 );
 
 comment on table origin_intrinsic_metadata is 'keeps intrinsic metadata for an origin';
 comment on column origin_intrinsic_metadata.id is 'url of the origin';
-comment on column origin_intrinsic_metadata.metadata is 'metadata extracted from a revision';
+comment on column origin_intrinsic_metadata.metadata is 'metadata extracted from a directory';
 comment on column origin_intrinsic_metadata.indexer_configuration_id is 'tool used to generate this metadata';
-comment on column origin_intrinsic_metadata.from_revision is 'sha1 of the revision this metadata was copied from.';
+comment on column origin_intrinsic_metadata.from_directory is 'sha1 of the directory this metadata was copied from.';
 comment on column origin_intrinsic_metadata.mappings is 'type of metadata files used to obtain this metadata (eg. pkg-info, npm)';

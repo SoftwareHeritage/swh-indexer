@@ -1,13 +1,12 @@
 from celery import current_app as app
 
-from swh.indexer.metadata import OriginMetadataIndexer, RevisionMetadataIndexer
+from swh.indexer.metadata import DirectoryMetadataIndexer, OriginMetadataIndexer
 
 from .test_metadata import ContentMetadataTestIndexer
-from .test_origin_head import OriginHeadTestIndexer
 from .utils import BASE_TEST_CONFIG
 
 
-class RevisionMetadataTestIndexer(RevisionMetadataIndexer):
+class DirectoryMetadataTestIndexer(DirectoryMetadataIndexer):
     """Specific indexer whose configuration is enough to satisfy the
     indexing tests.
     """
@@ -30,13 +29,12 @@ class OriginMetadataTestIndexer(OriginMetadataIndexer):
         return {**BASE_TEST_CONFIG, "tools": []}
 
     def _prepare_sub_indexers(self):
-        self.origin_head_indexer = OriginHeadTestIndexer()
-        self.revision_metadata_indexer = RevisionMetadataTestIndexer()
+        self.directory_metadata_indexer = DirectoryMetadataTestIndexer()
 
 
 @app.task
-def revision_intrinsic_metadata(*args, **kwargs):
-    indexer = RevisionMetadataTestIndexer()
+def directory_intrinsic_metadata(*args, **kwargs):
+    indexer = DirectoryMetadataTestIndexer()
     indexer.run(*args, **kwargs)
     print("REV RESULT=", indexer.results)
 

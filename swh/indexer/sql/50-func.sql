@@ -273,25 +273,25 @@ comment on function swh_mktemp_content_metadata() is 'Helper table to add conten
 
 -- end content_metadata functions
 
--- add tmp_revision_intrinsic_metadata entries to revision_intrinsic_metadata,
+-- add tmp_directory_intrinsic_metadata entries to directory_intrinsic_metadata,
 -- overwriting duplicates.
 --
 -- If filtering duplicates is in order, the call to
--- swh_revision_intrinsic_metadata_missing must take place before calling this
+-- swh_directory_intrinsic_metadata_missing must take place before calling this
 -- function.
 --
 -- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
--- tmp_revision_intrinsic_metadata, 2. call this function
-create or replace function swh_revision_intrinsic_metadata_add()
+-- tmp_directory_intrinsic_metadata, 2. call this function
+create or replace function swh_directory_intrinsic_metadata_add()
     returns bigint
     language plpgsql
 as $$
 declare
   res bigint;
 begin
-    insert into revision_intrinsic_metadata (id, metadata, mappings, indexer_configuration_id)
+    insert into directory_intrinsic_metadata (id, metadata, mappings, indexer_configuration_id)
     select id, metadata, mappings, indexer_configuration_id
-    from tmp_revision_intrinsic_metadata tcm
+    from tmp_directory_intrinsic_metadata tcm
     on conflict(id, indexer_configuration_id)
     do update set
         metadata = excluded.metadata,
@@ -302,19 +302,19 @@ begin
 end
 $$;
 
-comment on function swh_revision_intrinsic_metadata_add() IS 'Add new revision intrinsic metadata';
+comment on function swh_directory_intrinsic_metadata_add() IS 'Add new directory intrinsic metadata';
 
--- create a temporary table for retrieving revision_intrinsic_metadata
-create or replace function swh_mktemp_revision_intrinsic_metadata()
+-- create a temporary table for retrieving directory_intrinsic_metadata
+create or replace function swh_mktemp_directory_intrinsic_metadata()
     returns void
     language sql
 as $$
-  create temporary table if not exists tmp_revision_intrinsic_metadata (
-    like revision_intrinsic_metadata including defaults
+  create temporary table if not exists tmp_directory_intrinsic_metadata (
+    like directory_intrinsic_metadata including defaults
   ) on commit delete rows;
 $$;
 
-comment on function swh_mktemp_revision_intrinsic_metadata() is 'Helper table to add revision intrinsic metadata';
+comment on function swh_mktemp_directory_intrinsic_metadata() is 'Helper table to add directory intrinsic metadata';
 
 -- create a temporary table for retrieving origin_intrinsic_metadata
 create or replace function swh_mktemp_origin_intrinsic_metadata()
@@ -380,8 +380,8 @@ declare
 begin
     perform swh_origin_intrinsic_metadata_compute_tsvector();
 
-    insert into origin_intrinsic_metadata (id, metadata, indexer_configuration_id, from_revision, metadata_tsvector, mappings)
-    select id, metadata, indexer_configuration_id, from_revision,
+    insert into origin_intrinsic_metadata (id, metadata, indexer_configuration_id, from_directory, metadata_tsvector, mappings)
+    select id, metadata, indexer_configuration_id, from_directory,
            metadata_tsvector, mappings
     from tmp_origin_intrinsic_metadata
     on conflict(id, indexer_configuration_id)
@@ -389,7 +389,7 @@ begin
         metadata = excluded.metadata,
         metadata_tsvector = excluded.metadata_tsvector,
         mappings = excluded.mappings,
-        from_revision = excluded.from_revision;
+        from_directory = excluded.from_directory;
 
     get diagnostics res = ROW_COUNT;
     return res;
