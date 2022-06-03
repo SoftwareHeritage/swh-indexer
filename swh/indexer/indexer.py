@@ -18,6 +18,7 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -31,7 +32,7 @@ from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, Sha1, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model import hashutil
-from swh.model.model import Origin, Revision, Sha1Git
+from swh.model.model import Directory, Origin, Sha1Git
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
 from swh.scheduler import CONFIG as SWH_CONFIG
@@ -40,7 +41,7 @@ from swh.storage.interface import StorageInterface
 
 
 class ObjectsDict(TypedDict, total=False):
-    revision: List[Dict]
+    directory: List[Dict]
     origin: List[Dict]
     origin_visit_status: List[Dict]
 
@@ -109,7 +110,7 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
       content, sha1_git for revision, directory, release, and id for origin
 
     To implement a new concrete indexer, inherit from the object level
-    classes: :class:`ContentIndexer`, :class:`RevisionIndexer`,
+    classes: :class:`ContentIndexer`, :class:`DirectoryIndexer`,
     :class:`OriginIndexer`.
 
     Then you need to implement the following functions:
@@ -583,11 +584,11 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
         return results
 
 
-class RevisionIndexer(BaseIndexer[Sha1Git, Revision, TResult], Generic[TResult]):
+class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult]):
     """An object type indexer, inherits from the :class:`BaseIndexer` and
-    implements Revision indexing using the run method
+    implements Directory indexing using the run method
 
-    Note: the :class:`RevisionIndexer` is not an instantiable object.
+    Note: the :class:`DirectoryIndexer` is not an instantiable object.
     To use it in another context one should inherit from this class
     and override the methods mentioned in the :class:`BaseIndexer`
     class.
@@ -597,7 +598,7 @@ class RevisionIndexer(BaseIndexer[Sha1Git, Revision, TResult], Generic[TResult])
     def run(self, ids: List[Sha1Git], **kwargs) -> Dict:
         """Given a list of sha1_gits:
 
-        - retrieve revisions from storage
+        - retrieve directories from storage
         - execute the indexing computations
         - store the results
 
@@ -612,36 +613,37 @@ class RevisionIndexer(BaseIndexer[Sha1Git, Revision, TResult], Generic[TResult])
             )
             del kwargs["policy_update"]
 
-        revision_ids = [
+        directory_ids = [
             hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
         ]
-        revisions = []
-        for (rev_id, rev) in zip(revision_ids, self.storage.revision_get(revision_ids)):
-            if not rev:
-                # TODO: call self.index() with rev=None?
-                self.log.warning(
-                    "Revision %s not found in storage", hashutil.hash_to_hex(rev_id)
-                )
-                continue
-            revisions.append(rev.to_dict())
 
-        return self.process_journal_objects({"revision": revisions})
+        return self._process_directories([(dir_id, None) for dir_id in directory_ids])
 
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Worker function for ``JournalClient``. Expects ``objects`` to have a single
-        key, ``"revision"``."""
-        assert set(objects) == {"revision"}
+        key, ``"directory"``."""
+        assert set(objects) == {"directory"}
+        return self._process_directories(
+            [(dir_["id"], Directory.from_dict(dir_)) for dir_ in objects["directory"]]
+        )
+
+    def _process_directories(
+        self,
+        directories: Union[List[Tuple[Sha1Git, Directory]], List[Tuple[Sha1Git, None]]],
+    ) -> Dict:
 
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
 
-        for rev in objects["revision"]:
+        # TODO: fetch raw_manifest when useful?
+
+        for (dir_id, dir_) in directories:
             try:
-                results.extend(self.index(rev["id"], Revision.from_dict(rev)))
+                results.extend(self.index(dir_id, dir_))
             except Exception:
                 if not self.catch_exceptions:
                     raise
-                self.log.exception("Problem when processing revision")
+                self.log.exception("Problem when processing directory")
                 sentry_sdk.capture_exception()
                 summary["status"] = "failed"
 

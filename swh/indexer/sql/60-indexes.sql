@@ -25,12 +25,12 @@ alter table content_metadata add primary key using index content_metadata_pkey;
 alter table content_metadata add constraint content_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
 alter table content_metadata validate constraint content_metadata_indexer_configuration_id_fkey;
 
--- revision_intrinsic_metadata
-create unique index revision_intrinsic_metadata_pkey on revision_intrinsic_metadata(id, indexer_configuration_id);
-alter table revision_intrinsic_metadata add primary key using index revision_intrinsic_metadata_pkey;
+-- directory_intrinsic_metadata
+create unique index directory_intrinsic_metadata_pkey on directory_intrinsic_metadata(id, indexer_configuration_id);
+alter table directory_intrinsic_metadata add primary key using index directory_intrinsic_metadata_pkey;
 
-alter table revision_intrinsic_metadata add constraint revision_intrinsic_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
-alter table revision_intrinsic_metadata validate constraint revision_intrinsic_metadata_indexer_configuration_id_fkey;
+alter table directory_intrinsic_metadata add constraint directory_intrinsic_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
+alter table directory_intrinsic_metadata validate constraint directory_intrinsic_metadata_indexer_configuration_id_fkey;
 
 -- content_mimetype
 create unique index content_mimetype_pkey on content_mimetype(id, indexer_configuration_id);

@@ -120,8 +120,8 @@ class ContentMetadataRow(BaseRow):
 
 
 @attr.s
-class RevisionIntrinsicMetadataRow(BaseRow):
-    object_type: Final = "revision_intrinsic_metadata"
+class DirectoryIntrinsicMetadataRow(BaseRow):
+    object_type: Final = "directory_intrinsic_metadata"
 
     id = attr.ib(type=Sha1Git)
     metadata = attr.ib(type=Dict[str, Any])
@@ -134,5 +134,5 @@ class OriginIntrinsicMetadataRow(BaseRow):
 
     id = attr.ib(type=str)
     metadata = attr.ib(type=Dict[str, Any])
-    from_revision = attr.ib(type=Sha1Git)
+    from_directory = attr.ib(type=Sha1Git)
     mappings = attr.ib(type=List[str])

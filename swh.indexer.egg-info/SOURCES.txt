@@ -103,6 +103,7 @@ swh/indexer/sql/upgrades/130.sql
 swh/indexer/sql/upgrades/131.sql
 swh/indexer/sql/upgrades/132.sql
 swh/indexer/sql/upgrades/133.sql
+swh/indexer/sql/upgrades/134.sql
 swh/indexer/storage/__init__.py
 swh/indexer/storage/converters.py
 swh/indexer/storage/db.py
