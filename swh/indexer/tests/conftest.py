@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2020  The Software Heritage developers
+# Copyright (C) 2019-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -13,9 +13,8 @@ import pytest
 from pytest_postgresql import factories
 import yaml
 
-from swh.core.db.pytest_plugin import initialize_database_for_module, postgresql_fact
-from swh.indexer.storage import get_indexer_storage
-from swh.indexer.storage.db import Db as IndexerDb
+from swh.core.db.pytest_plugin import initialize_database_for_module
+from swh.indexer.storage import IndexerStorage, get_indexer_storage
 from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
 
@@ -23,23 +22,22 @@ from .utils import fill_obj_storage, fill_storage
 
 TASK_NAMES: List[Tuple[str, str]] = [
     # (scheduler-task-type, task-class-test-name)
-    ("index-revision-metadata", "revision_intrinsic_metadata"),
+    ("index-directory-metadata", "directory_intrinsic_metadata"),
     ("index-origin-metadata", "origin_intrinsic_metadata"),
 ]
 
 
 idx_postgresql_proc = factories.postgresql_proc(
-    dbname="indexer_storage",
     load=[
         partial(
             initialize_database_for_module,
             modname="indexer",
-            version=IndexerDb.current_version,
+            version=IndexerStorage.current_version,
         )
     ],
 )
 
-idx_storage_postgresql = postgresql_fact("idx_postgresql_proc")
+idx_storage_postgresql = factories.postgresql("idx_postgresql_proc")
 
 
 @pytest.fixture

@@ -11,13 +11,13 @@ import pytest
 from swh.indexer.indexer import (
     ContentIndexer,
     ContentPartitionIndexer,
+    DirectoryIndexer,
     OriginIndexer,
-    RevisionIndexer,
 )
 from swh.indexer.storage import PagedResult, Sha1
 from swh.model.model import Content
 
-from .utils import BASE_TEST_CONFIG, REVISION
+from .utils import BASE_TEST_CONFIG, DIRECTORY2
 
 
 class _TestException(Exception):
@@ -49,7 +49,7 @@ class CrashingContentPartitionIndexer(CrashingIndexerMixin, ContentPartitionInde
     pass
 
 
-class CrashingRevisionIndexer(CrashingIndexerMixin, RevisionIndexer):
+class CrashingDirectoryIndexer(CrashingIndexerMixin, DirectoryIndexer):
     pass
 
 
@@ -86,14 +86,14 @@ def test_content_indexer_catch_exceptions():
         indexer.run([b"foo"])
 
 
-def test_revision_indexer_catch_exceptions():
-    indexer = CrashingRevisionIndexer(config=BASE_TEST_CONFIG)
+def test_directory_indexer_catch_exceptions():
+    indexer = CrashingDirectoryIndexer(config=BASE_TEST_CONFIG)
     indexer.storage = Mock()
-    indexer.storage.revision_get.return_value = [REVISION]
+    indexer.storage.directory_get.return_value = [DIRECTORY2]
 
     assert indexer.run([b"foo"]) == {"status": "failed"}
 
-    assert indexer.process_journal_objects({"revision": [REVISION.to_dict()]}) == {
+    assert indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]}) == {
         "status": "failed"
     }
 
@@ -103,7 +103,7 @@ def test_revision_indexer_catch_exceptions():
         indexer.run([b"foo"])
 
     with pytest.raises(_TestException):
-        indexer.process_journal_objects({"revision": [REVISION.to_dict()]})
+        indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]})
 
 
 def test_origin_indexer_catch_exceptions():

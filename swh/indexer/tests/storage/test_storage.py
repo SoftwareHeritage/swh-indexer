@@ -19,8 +19,8 @@ from swh.indexer.storage.model import (
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
+    DirectoryIntrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
-    RevisionIntrinsicMetadataRow,
 )
 from swh.model.hashutil import hash_to_bytes
 
@@ -289,37 +289,37 @@ class StorageETypeTester:
         etype = self.endpoint_type
         tool = data.tools[self.tool_name]
 
-        data_rev1 = self.row_class.from_dict(
+        data_dir1 = self.row_class.from_dict(
             {
-                "id": data.revision_id_2,
+                "id": data.directory_id_2,
                 **self.example_data[0],
                 "indexer_configuration_id": tool["id"],
             }
         )
 
-        data_rev2 = self.row_class.from_dict(
+        data_dir2 = self.row_class.from_dict(
             {
-                "id": data.revision_id_2,
+                "id": data.directory_id_2,
                 **self.example_data[1],
                 "indexer_configuration_id": tool["id"],
             }
         )
 
         # when
-        summary = endpoint(storage, etype, "add")([data_rev1])
+        summary = endpoint(storage, etype, "add")([data_dir1])
         assert summary == expected_summary(1, etype)
 
         with pytest.raises(DuplicateId):
-            endpoint(storage, etype, "add")([data_rev2, data_rev2])
+            endpoint(storage, etype, "add")([data_dir2, data_dir2])
 
         # then
         actual_data = list(
-            endpoint(storage, etype, "get")([data.revision_id_2, data.revision_id_1])
+            endpoint(storage, etype, "get")([data.directory_id_2, data.directory_id_1])
         )
 
         expected_data = [
             self.row_class.from_dict(
-                {"id": data.revision_id_2, **self.example_data[0], "tool": tool}
+                {"id": data.directory_id_2, **self.example_data[0], "tool": tool}
             )
         ]
         assert actual_data == expected_data
@@ -806,11 +806,11 @@ class TestIndexerStorageContentMetadata(StorageETypeTester):
     row_class = ContentMetadataRow
 
 
-class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
-    """Test Indexer Storage revision_intrinsic_metadata related methods"""
+class TestIndexerStorageDirectoryIntrinsicMetadata(StorageETypeTester):
+    """Test Indexer Storage directory_intrinsic_metadata related methods"""
 
     tool_name = "swh-metadata-detector"
-    endpoint_type = "revision_intrinsic_metadata"
+    endpoint_type = "directory_intrinsic_metadata"
     example_data = [
         {
             "metadata": {
@@ -830,7 +830,7 @@ class TestIndexerStorageRevisionIntrinsicMetadata(StorageETypeTester):
             "mappings": ["mapping2"],
         },
     ]
-    row_class = RevisionIntrinsicMetadataRow
+    row_class = DirectoryIntrinsicMetadataRow
 
 
 class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
@@ -1102,8 +1102,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "version": None,
             "name": None,
         }
-        metadata_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_2,
+        metadata_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_2,
             metadata=metadata,
             mappings=["mapping1"],
             indexer_configuration_id=tool_id,
@@ -1113,11 +1113,11 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata,
             indexer_configuration_id=tool_id,
             mappings=["mapping1"],
-            from_revision=data.revision_id_2,
+            from_directory=data.directory_id_2,
         )
 
         # when
-        storage.revision_intrinsic_metadata_add([metadata_rev])
+        storage.directory_intrinsic_metadata_add([metadata_dir])
         storage.origin_intrinsic_metadata_add([metadata_origin])
 
         # then
@@ -1130,7 +1130,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                 id=data.origin_url_1,
                 metadata=metadata,
                 tool=data.tools["swh-metadata-detector"],
-                from_revision=data.revision_id_2,
+                from_directory=data.directory_id_2,
                 mappings=["mapping1"],
             )
         ]
@@ -1156,8 +1156,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "version": None,
             "name": None,
         }
-        metadata_rev_v1 = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_2,
+        metadata_dir_v1 = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_2,
             metadata=metadata_v1,
             mappings=[],
             indexer_configuration_id=tool_id,
@@ -1167,11 +1167,11 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata_v1.copy(),
             indexer_configuration_id=tool_id,
             mappings=[],
-            from_revision=data.revision_id_2,
+            from_directory=data.directory_id_2,
         )
 
         # given
-        storage.revision_intrinsic_metadata_add([metadata_rev_v1])
+        storage.directory_intrinsic_metadata_add([metadata_dir_v1])
         storage.origin_intrinsic_metadata_add([metadata_origin_v1])
 
         # when
@@ -1185,7 +1185,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                 id=data.origin_url_1,
                 metadata=metadata_v1,
                 tool=data.tools["swh-metadata-detector"],
-                from_revision=data.revision_id_2,
+                from_directory=data.directory_id_2,
                 mappings=[],
             )
         ]
@@ -1199,16 +1199,16 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                 "author": "MG",
             }
         )
-        metadata_rev_v2 = attr.evolve(metadata_rev_v1, metadata=metadata_v2)
+        metadata_dir_v2 = attr.evolve(metadata_dir_v1, metadata=metadata_v2)
         metadata_origin_v2 = OriginIntrinsicMetadataRow(
             id=data.origin_url_1,
             metadata=metadata_v2.copy(),
             indexer_configuration_id=tool_id,
             mappings=["npm"],
-            from_revision=data.revision_id_1,
+            from_directory=data.directory_id_1,
         )
 
-        storage.revision_intrinsic_metadata_add([metadata_rev_v2])
+        storage.directory_intrinsic_metadata_add([metadata_dir_v2])
         storage.origin_intrinsic_metadata_add([metadata_origin_v2])
 
         actual_metadata = list(
@@ -1220,7 +1220,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                 id=data.origin_url_1,
                 metadata=metadata_v2,
                 tool=data.tools["swh-metadata-detector"],
-                from_revision=data.revision_id_1,
+                from_directory=data.directory_id_1,
                 mappings=["npm"],
             )
         ]
@@ -1252,8 +1252,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "mappings": [],
         }
 
-        metadata_rev_v1 = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_2,
+        metadata_dir_v1 = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_2,
             metadata={
                 "version": None,
                 "name": None,
@@ -1265,7 +1265,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         data_v1 = [
             OriginIntrinsicMetadataRow(
                 id=origin,
-                from_revision=data.revision_id_2,
+                from_directory=data.directory_id_2,
                 indexer_configuration_id=tool_id,
                 **example_data1,
             )
@@ -1274,7 +1274,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         data_v2 = [
             OriginIntrinsicMetadataRow(
                 id=origin,
-                from_revision=data.revision_id_2,
+                from_directory=data.directory_id_2,
                 indexer_configuration_id=tool_id,
                 **example_data2,
             )
@@ -1287,7 +1287,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         data_v2b = list(reversed(data_v2[0:-1]))
 
         # given
-        storage.revision_intrinsic_metadata_add([metadata_rev_v1])
+        storage.directory_intrinsic_metadata_add([metadata_dir_v1])
         storage.origin_intrinsic_metadata_add(data_v1)
 
         # when
@@ -1296,7 +1296,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         expected_data_v1 = [
             OriginIntrinsicMetadataRow(
                 id=origin,
-                from_revision=data.revision_id_2,
+                from_directory=data.directory_id_2,
                 tool=data.tools["swh-metadata-detector"],
                 **example_data1,
             )
@@ -1326,7 +1326,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         expected_data_v2 = [
             OriginIntrinsicMetadataRow(
                 id=origin,
-                from_revision=data.revision_id_2,
+                from_directory=data.directory_id_2,
                 tool=data.tools["swh-metadata-detector"],
                 **example_data2,
             )
@@ -1351,8 +1351,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "developmentStatus": None,
             "name": None,
         }
-        metadata_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_2,
+        metadata_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_2,
             metadata=metadata,
             mappings=["mapping1"],
             indexer_configuration_id=tool_id,
@@ -1362,11 +1362,11 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata,
             indexer_configuration_id=tool_id,
             mappings=["mapping1"],
-            from_revision=data.revision_id_2,
+            from_directory=data.directory_id_2,
         )
 
         # when
-        storage.revision_intrinsic_metadata_add([metadata_rev])
+        storage.directory_intrinsic_metadata_add([metadata_dir])
 
         with pytest.raises(DuplicateId):
             storage.origin_intrinsic_metadata_add([metadata_origin, metadata_origin])
@@ -1381,8 +1381,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
         metadata1 = {
             "author": "John Doe",
         }
-        metadata1_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_1,
+        metadata1_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_1,
             metadata=metadata1,
             mappings=[],
             indexer_configuration_id=tool_id,
@@ -1392,13 +1392,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata1,
             mappings=[],
             indexer_configuration_id=tool_id,
-            from_revision=data.revision_id_1,
+            from_directory=data.directory_id_1,
         )
         metadata2 = {
             "author": "Jane Doe",
         }
-        metadata2_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_2,
+        metadata2_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_2,
             metadata=metadata2,
             mappings=[],
             indexer_configuration_id=tool_id,
@@ -1408,13 +1408,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata2,
             mappings=[],
             indexer_configuration_id=tool_id,
-            from_revision=data.revision_id_2,
+            from_directory=data.directory_id_2,
         )
 
         # when
-        storage.revision_intrinsic_metadata_add([metadata1_rev])
+        storage.directory_intrinsic_metadata_add([metadata1_dir])
         storage.origin_intrinsic_metadata_add([metadata1_origin])
-        storage.revision_intrinsic_metadata_add([metadata2_rev])
+        storage.directory_intrinsic_metadata_add([metadata2_dir])
         storage.origin_intrinsic_metadata_add([metadata2_origin])
 
         # then
@@ -1444,8 +1444,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                 "Jane Doe",
             ]
         }
-        metadata1_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_1,
+        metadata1_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_1,
             metadata=metadata1,
             mappings=[],
             indexer_configuration_id=tool_id,
@@ -1455,7 +1455,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata1,
             mappings=[],
             indexer_configuration_id=tool_id,
-            from_revision=data.revision_id_1,
+            from_directory=data.directory_id_1,
         )
         metadata2 = {
             "author": [
@@ -1463,8 +1463,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                 "Jane Doe",
             ]
         }
-        metadata2_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_2,
+        metadata2_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_2,
             metadata=metadata2,
             mappings=[],
             indexer_configuration_id=tool_id,
@@ -1474,13 +1474,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata2,
             mappings=[],
             indexer_configuration_id=tool_id,
-            from_revision=data.revision_id_2,
+            from_directory=data.directory_id_2,
         )
 
         # when
-        storage.revision_intrinsic_metadata_add([metadata1_rev])
+        storage.directory_intrinsic_metadata_add([metadata1_dir])
         storage.origin_intrinsic_metadata_add([metadata1_origin])
-        storage.revision_intrinsic_metadata_add([metadata2_rev])
+        storage.directory_intrinsic_metadata_add([metadata2_dir])
         storage.origin_intrinsic_metadata_add([metadata2_origin])
 
         # then
@@ -1508,8 +1508,8 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "@context": "foo",
             "author": "John Doe",
         }
-        metadata1_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_1,
+        metadata1_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_1,
             metadata=metadata1,
             mappings=["npm"],
             indexer_configuration_id=tool1_id,
@@ -1519,14 +1519,14 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata1,
             mappings=["npm"],
             indexer_configuration_id=tool1_id,
-            from_revision=data.revision_id_1,
+            from_directory=data.directory_id_1,
         )
         metadata2 = {
             "@context": "foo",
             "author": "Jane Doe",
         }
-        metadata2_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_2,
+        metadata2_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_2,
             metadata=metadata2,
             mappings=["npm", "gemspec"],
             indexer_configuration_id=tool2_id,
@@ -1536,13 +1536,13 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata2,
             mappings=["npm", "gemspec"],
             indexer_configuration_id=tool2_id,
-            from_revision=data.revision_id_2,
+            from_directory=data.directory_id_2,
         )
         metadata3 = {
             "@context": "foo",
         }
-        metadata3_rev = RevisionIntrinsicMetadataRow(
-            id=data.revision_id_3,
+        metadata3_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_3,
             metadata=metadata3,
             mappings=["npm", "gemspec"],
             indexer_configuration_id=tool2_id,
@@ -1552,14 +1552,14 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             metadata=metadata3,
             mappings=["pkg-info"],
             indexer_configuration_id=tool2_id,
-            from_revision=data.revision_id_3,
+            from_directory=data.directory_id_3,
         )
 
-        storage.revision_intrinsic_metadata_add([metadata1_rev])
+        storage.directory_intrinsic_metadata_add([metadata1_dir])
         storage.origin_intrinsic_metadata_add([metadata1_origin])
-        storage.revision_intrinsic_metadata_add([metadata2_rev])
+        storage.directory_intrinsic_metadata_add([metadata2_dir])
         storage.origin_intrinsic_metadata_add([metadata2_origin])
-        storage.revision_intrinsic_metadata_add([metadata3_rev])
+        storage.directory_intrinsic_metadata_add([metadata3_dir])
         storage.origin_intrinsic_metadata_add([metadata3_origin])
 
     def test_origin_intrinsic_metadata_search_by_producer(
@@ -1685,7 +1685,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
                     },
                     mappings=["npm", "gemspec"],
                     tool=tool2,
-                    from_revision=data.revision_id_2,
+                    from_directory=data.directory_id_2,
                 )
             ],
             next_page_token=None,

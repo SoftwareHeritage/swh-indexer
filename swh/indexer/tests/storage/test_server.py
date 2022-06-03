@@ -57,13 +57,13 @@ def test_load_and_check_config_wrong_configuration(tmpdir) -> None:
 def test_load_and_check_config_remote_config_local_type_raise(
     class_storage, tmpdir
 ) -> None:
-    """Any other configuration than 'local' (the default) is rejected"""
+    """Any other configuration than 'postgresql' (the default) is rejected"""
     assert class_storage != "local"
     incompatible_config = {"indexer_storage": {"cls": class_storage}}
     config_path = prepare_config_file(tmpdir, incompatible_config)
 
     expected_error = (
-        "The indexer_storage backend can only be started with a 'local' "
+        "The indexer_storage backend can only be started with a 'postgresql' "
         "configuration"
     )
     with pytest.raises(ValueError, match=expected_error):
@@ -82,8 +82,8 @@ def test_load_and_check_config_remote_config_fine(tmpdir) -> None:
 
 
 def test_load_and_check_config_local_incomplete_configuration(tmpdir) -> None:
-    """Incomplete 'local' configuration should raise"""
-    config = {"indexer_storage": {"cls": "local"}}
+    """Incomplete 'postgresql' configuration should raise"""
+    config = {"indexer_storage": {"cls": "postgresql"}}
 
     expected_error = "Invalid configuration; missing 'db' config entry"
     config_path = prepare_config_file(tmpdir, config)
@@ -95,10 +95,10 @@ def test_load_and_check_config_local_config_fine(tmpdir) -> None:
     """'Complete 'local' configuration is fine"""
     config = {
         "indexer_storage": {
-            "cls": "local",
+            "cls": "postgresql",
             "db": "db",
         }
     }
     config_path = prepare_config_file(tmpdir, config)
-    cfg = load_and_check_config(config_path, type="local")
+    cfg = load_and_check_config(config_path, type="postgresql")
     assert cfg == config
