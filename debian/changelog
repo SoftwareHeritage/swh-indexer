@@ -1,3 +1,13 @@
+swh-indexer (2.0.1-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.0.1     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2022-06-10 10:35:15
+    +0200)
+  * Upstream changes:     - v2.0.1     - upgrades/134: Add missing index
+    creation
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 10 Jun 2022 09:17:44 +0000
+
 swh-indexer (2.0.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.0.0     - (tagged by Antoine R. Dumont
