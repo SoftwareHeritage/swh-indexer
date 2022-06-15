@@ -133,6 +133,73 @@ class NpmMapping(JsonMapping):
             author[SCHEMA_URI + "url"] = {"@id": url}
         return {"@list": [author]}
 
+    def normalize_description(self, description):
+        r"""Try to re-decode ``description`` as UTF-16, as this is a somewhat common
+        mistake that causes issues in the database because of null bytes in JSON.
+
+        >>> NpmMapping().normalize_description("foo bar")
+        'foo bar'
+        >>> NpmMapping().normalize_description(
+        ...     "\ufffd\ufffd#\x00 \x00f\x00o\x00o\x00 \x00b\x00a\x00r\x00\r\x00 \x00"
+        ... )
+        'foo bar'
+        >>> NpmMapping().normalize_description(
+        ...     "\ufffd\ufffd\x00#\x00 \x00f\x00o\x00o\x00 \x00b\x00a\x00r\x00\r\x00 "
+        ... )
+        'foo bar'
+        >>> NpmMapping().normalize_description(
+        ...     # invalid UTF-16 and meaningless UTF-8:
+        ...     "\ufffd\ufffd\x00#\x00\x00\x00 \x00\x00\x00\x00f\x00\x00\x00\x00"
+        ... ) is None
+        True
+        >>> NpmMapping().normalize_description(
+        ...     # ditto (ut looks like little-endian at first)
+        ...     "\ufffd\ufffd#\x00\x00\x00 \x00\x00\x00\x00f\x00\x00\x00\x00\x00"
+        ... ) is None
+        True
+        >>> NpmMapping().normalize_description(None) is None
+        True
+        """
+        if description is None:
+            return None
+        # XXX: if this function ever need to support more cases, consider
+        # switching to https://pypi.org/project/ftfy/ instead of adding more hacks
+        if description.startswith("\ufffd\ufffd") and "\x00" in description:
+            # 2 unicode replacement characters followed by '# ' encoded as UTF-16
+            # is a common mistake, which indicates a README.md was saved as UTF-16,
+            # and some NPM tool opened it as UTF-8 and used the first line as
+            # description.
+
+            description_bytes = description.encode()
+
+            # Strip the the two unicode replacement characters
+            assert description_bytes.startswith(b"\xef\xbf\xbd\xef\xbf\xbd")
+            description_bytes = description_bytes[6:]
+
+            # If the following attempts fail to recover the description, discard it
+            # entirely because the current indexer storage backend (postgresql) cannot
+            # store zero bytes in JSON columns.
+            description = None
+
+            if not description_bytes.startswith(b"\x00"):
+                # try UTF-16 little-endian (the most common) first
+                try:
+                    description = description_bytes.decode("utf-16le")
+                except UnicodeDecodeError:
+                    pass
+            if description is None:
+                # if it fails, try UTF-16 big-endian
+                try:
+                    description = description_bytes.decode("utf-16be")
+                except UnicodeDecodeError:
+                    pass
+
+            if description:
+                if description.startswith("# "):
+                    description = description[2:]
+                return description.rstrip()
+        return description
+
     def normalize_license(self, s):
         """https://docs.npmjs.com/files/package.json#license
 
