@@ -159,6 +159,59 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
         # then
         assert expected == result
 
+    def test_compute_metadata_cff_invalid_yaml(self):
+        """
+        test yaml translation for invalid yaml file
+        """
+        # given
+        content = """cff-version: 1.0.3
+message: To cite the SigMF specification, please include the following:
+authors:
+  - name: The GNU Radio Foundation, Inc.
+        """.encode(
+            "utf-8"
+        )
+
+        expected = None
+
+        result = self.cff_mapping.translate(content)
+        # then
+        assert expected == result
+
+    def test_compute_metadata_cff_empty(self):
+        """
+        test yaml translation for empty yaml file
+        """
+        # given
+        content = """
+        """.encode(
+            "utf-8"
+        )
+
+        expected = None
+
+        result = self.cff_mapping.translate(content)
+        # then
+        assert expected == result
+
+    def test_compute_metadata_cff_list(self):
+        """
+        test yaml translation for empty yaml file
+        """
+        # given
+        content = """
+- Foo
+- Bar
+        """.encode(
+            "utf-8"
+        )
+
+        expected = None
+
+        result = self.cff_mapping.translate(content)
+        # then
+        assert expected == result
+
     def test_compute_metadata_npm(self):
         """
         testing only computation of metadata with hard_mapping_npm
