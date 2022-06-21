@@ -253,6 +253,30 @@ authors:
         # then
         assert declared_metadata == result
 
+    def test_compute_metadata_invalid_description_npm(self):
+        """
+        testing only computation of metadata with hard_mapping_npm
+        """
+        # given
+        content = b"""
+            {
+                "name": "test_metadata",
+                "version": "0.0.2",
+                "description": 1234
+        }
+        """
+        declared_metadata = {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "test_metadata",
+            "version": "0.0.2",
+        }
+
+        # when
+        result = self.npm_mapping.translate(content)
+        # then
+        assert declared_metadata == result
+
     def test_index_content_metadata_npm(self):
         """
         testing NPM with package.json

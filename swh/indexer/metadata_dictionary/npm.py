@@ -160,7 +160,7 @@ class NpmMapping(JsonMapping):
         >>> NpmMapping().normalize_description(None) is None
         True
         """
-        if description is None:
+        if not isinstance(description, str):
             return None
         # XXX: if this function ever need to support more cases, consider
         # switching to https://pypi.org/project/ftfy/ instead of adding more hacks
