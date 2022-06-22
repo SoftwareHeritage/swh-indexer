@@ -22,14 +22,19 @@ class CffMapping(DictMapping, SingleFileMapping):
     mapping = CROSSWALK_TABLE["Citation File Format Core (CFF-Core) 1.0.2"]
     string_fields = ["keywords", "license", "abstract", "version", "doi"]
 
-    def translate(self, raw_content: bytes) -> Dict[str, str]:
+    def translate(self, raw_content: bytes) -> Optional[Dict[str, str]]:
         raw_content_string: str = raw_content.decode()
-        content_dict = yaml.load(raw_content_string, Loader=SafeLoader)
-        metadata = self._translate_dict(content_dict)
+        try:
+            content_dict = yaml.load(raw_content_string, Loader=SafeLoader)
+        except yaml.scanner.ScannerError:
+            return None
 
-        metadata["@context"] = CODEMETA_CONTEXT_URL
+        if isinstance(content_dict, dict):
+            metadata = self._translate_dict(content_dict)
+            metadata["@context"] = CODEMETA_CONTEXT_URL
+            return metadata
 
-        return metadata
+        return None
 
     def normalize_authors(self, d: List[dict]) -> Dict[str, list]:
         result = []
