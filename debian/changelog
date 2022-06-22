@@ -1,8 +1,13 @@
-swh-indexer (2.0.1-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.0.2-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.0.2     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-06-22 12:32:41 +0200)
+  * Upstream changes:     - v2.0.2     - * Fix mypy issue with swh-
+    journal>=1.1.0     - * cff: Ignore invalid yaml files     - * npm:
+    Add workaround for mangled package descriptions     - * npm: Fix
+    crash when npm description is not a string
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 10 Jun 2022 09:24:56 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 22 Jun 2022 10:40:25 +0000
 
 swh-indexer (2.0.1-1~swh1) unstable-swh; urgency=medium
 

@@ -159,6 +159,59 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
         # then
         assert expected == result
 
+    def test_compute_metadata_cff_invalid_yaml(self):
+        """
+        test yaml translation for invalid yaml file
+        """
+        # given
+        content = """cff-version: 1.0.3
+message: To cite the SigMF specification, please include the following:
+authors:
+  - name: The GNU Radio Foundation, Inc.
+        """.encode(
+            "utf-8"
+        )
+
+        expected = None
+
+        result = self.cff_mapping.translate(content)
+        # then
+        assert expected == result
+
+    def test_compute_metadata_cff_empty(self):
+        """
+        test yaml translation for empty yaml file
+        """
+        # given
+        content = """
+        """.encode(
+            "utf-8"
+        )
+
+        expected = None
+
+        result = self.cff_mapping.translate(content)
+        # then
+        assert expected == result
+
+    def test_compute_metadata_cff_list(self):
+        """
+        test yaml translation for empty yaml file
+        """
+        # given
+        content = """
+- Foo
+- Bar
+        """.encode(
+            "utf-8"
+        )
+
+        expected = None
+
+        result = self.cff_mapping.translate(content)
+        # then
+        assert expected == result
+
     def test_compute_metadata_npm(self):
         """
         testing only computation of metadata with hard_mapping_npm
@@ -193,6 +246,30 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
                     "email": "moranegg@example.com",
                 }
             ],
+        }
+
+        # when
+        result = self.npm_mapping.translate(content)
+        # then
+        assert declared_metadata == result
+
+    def test_compute_metadata_invalid_description_npm(self):
+        """
+        testing only computation of metadata with hard_mapping_npm
+        """
+        # given
+        content = b"""
+            {
+                "name": "test_metadata",
+                "version": "0.0.2",
+                "description": 1234
+        }
+        """
+        declared_metadata = {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "name": "test_metadata",
+            "version": "0.0.2",
         }
 
         # when
