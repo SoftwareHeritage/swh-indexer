@@ -3,12 +3,12 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Callable, Dict, Iterable
+from typing import Any, Callable, Dict, Iterable, Optional
 
 import attr
 
 try:
-    from swh.journal.writer import get_journal_writer
+    from swh.journal.writer import JournalWriterInterface, get_journal_writer
 except ImportError:
     get_journal_writer = None  # type: ignore
     # mypy limitation, see https://github.com/python/mypy/issues/1153
@@ -21,6 +21,8 @@ class JournalWriter:
     the journal.
 
     """
+
+    journal: Optional[JournalWriterInterface]
 
     def __init__(self, tool_getter: Callable[[int], Dict[str, Any]], journal_writer):
         """
