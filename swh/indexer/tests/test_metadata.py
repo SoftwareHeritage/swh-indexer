@@ -212,6 +212,92 @@ authors:
         # then
         assert expected == result
 
+    def test_cff_empty_fields(self):
+        """
+        testing CITATION.cff translation
+        """
+        # given
+        content = """# YAML 1.2
+  authors:
+  -
+    affiliation: "Hogwarts"
+    family-names:
+    given-names: Harry
+  -
+    affiliation: "Ministry of Magic"
+    family-names: Weasley
+    orcid:
+    given-names: Arthur
+        """.encode(
+            "utf-8"
+        )
+
+        expected = {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "author": [
+                {
+                    "type": "Person",
+                    "affiliation": {
+                        "type": "Organization",
+                        "name": "Hogwarts",
+                    },
+                    "givenName": "Harry",
+                },
+                {
+                    "type": "Person",
+                    "affiliation": {
+                        "type": "Organization",
+                        "name": "Ministry of Magic",
+                    },
+                    "familyName": "Weasley",
+                    "givenName": "Arthur",
+                },
+            ],
+        }
+
+        # when
+        result = self.cff_mapping.translate(content)
+        # then
+        assert expected == result
+
+    def test_cff_invalid_fields(self):
+        """
+        testing CITATION.cff translation
+        """
+        # given
+        content = """# YAML 1.2
+  authors:
+  -
+    affiliation: "Hogwarts"
+    family-names:
+    - Potter
+    - James
+    given-names: Harry
+        """.encode(
+            "utf-8"
+        )
+
+        expected = {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": "SoftwareSourceCode",
+            "author": [
+                {
+                    "type": "Person",
+                    "affiliation": {
+                        "type": "Organization",
+                        "name": "Hogwarts",
+                    },
+                    "givenName": "Harry",
+                },
+            ],
+        }
+
+        # when
+        result = self.cff_mapping.translate(content)
+        # then
+        assert expected == result
+
     def test_compute_metadata_npm(self):
         """
         testing only computation of metadata with hard_mapping_npm

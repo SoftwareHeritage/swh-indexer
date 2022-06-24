@@ -42,16 +42,16 @@ class CffMapping(DictMapping, SingleFileMapping):
             author_data: Dict[str, Optional[Union[str, Dict]]] = {
                 "@type": SCHEMA_URI + "Person"
             }
-            if "orcid" in author:
+            if "orcid" in author and isinstance(author["orcid"], str):
                 author_data["@id"] = author["orcid"]
-            if "affiliation" in author:
+            if "affiliation" in author and isinstance(author["affiliation"], str):
                 author_data[SCHEMA_URI + "affiliation"] = {
                     "@type": SCHEMA_URI + "Organization",
                     SCHEMA_URI + "name": author["affiliation"],
                 }
-            if "family-names" in author:
+            if "family-names" in author and isinstance(author["family-names"], str):
                 author_data[SCHEMA_URI + "familyName"] = author["family-names"]
-            if "given-names" in author:
+            if "given-names" in author and isinstance(author["given-names"], str):
                 author_data[SCHEMA_URI + "givenName"] = author["given-names"]
 
             result.append(author_data)
