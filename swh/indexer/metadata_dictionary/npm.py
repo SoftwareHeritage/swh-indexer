@@ -7,10 +7,10 @@ import re
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import JsonMapping
+from .base import JsonMapping, SingleFileMapping
 
 
-class NpmMapping(JsonMapping):
+class NpmMapping(JsonMapping, SingleFileMapping):
     """
     dedicated class for NPM (package.json) mapping and translation
     """

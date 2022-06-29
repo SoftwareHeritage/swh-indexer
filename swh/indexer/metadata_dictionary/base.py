@@ -153,8 +153,8 @@ class DictMapping(BaseMapping):
             return translated_metadata
 
 
-class JsonMapping(DictMapping, SingleFileMapping):
-    """Base class for all mappings that use a JSON file as input."""
+class JsonMapping(DictMapping):
+    """Base class for all mappings that use JSON data as input."""
 
     def translate(self, raw_content: bytes) -> Optional[Dict]:
         """
