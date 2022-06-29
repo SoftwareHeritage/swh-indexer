@@ -1,16 +1,22 @@
+# Copyright (C) 2017-2022  The Software Heritage developers
+# See the AUTHORS file at the top-level directory of this distribution
+# License: GNU General Public License version 3, or any later version
+# See top-level LICENSE file for more information
+
 import collections
 
 import click
 
-from . import cff, codemeta, maven, npm, python, ruby
+from . import cff, codemeta, github, maven, npm, python, ruby
 
 MAPPINGS = {
+    "CffMapping": cff.CffMapping,
     "CodemetaMapping": codemeta.CodemetaMapping,
+    "GemspecMapping": ruby.GemspecMapping,
+    "GitHubMapping": github.GitHubMapping,
     "MavenMapping": maven.MavenMapping,
     "NpmMapping": npm.NpmMapping,
     "PythonPkginfoMapping": python.PythonPkginfoMapping,
-    "GemspecMapping": ruby.GemspecMapping,
-    "CffMapping": cff.CffMapping,
 }
 
 

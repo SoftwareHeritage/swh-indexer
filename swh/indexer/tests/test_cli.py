@@ -96,6 +96,7 @@ def test_cli_mapping_list(cli_runner, swh_config):
             "cff",
             "codemeta",
             "gemspec",
+            "github",
             "maven",
             "npm",
             "pkg-info",

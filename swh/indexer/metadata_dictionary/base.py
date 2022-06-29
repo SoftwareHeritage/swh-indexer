@@ -1,11 +1,11 @@
-# Copyright (C) 2017-2019  The Software Heritage developers
+# Copyright (C) 2017-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from typing_extensions import TypedDict
 
@@ -48,6 +48,14 @@ class BaseMapping:
         """
         raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
 
+    @classmethod
+    def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
+        """
+        Returns the list of extrinsic metadata formats which can be translated
+        by this mapping
+        """
+        raise NotImplementedError(f"{cls.__name__}.extrinsic_metadata_formats")
+
     def translate(self, file_content: bytes) -> Optional[Dict]:
         raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
@@ -56,7 +64,7 @@ class BaseMapping:
 
 
 class SingleFileMapping(BaseMapping):
-    """Base class for all mappings that use a single file as input."""
+    """Base class for all intrinsic metadata mappings that use a single file as input."""
 
     @property
     def filename(self):
@@ -69,6 +77,11 @@ class SingleFileMapping(BaseMapping):
             if entry["name"].lower() == cls.filename:
                 return [entry["sha1"]]
         return []
+
+    @classmethod
+    def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
+        # this class is only used by intrinsic metadata mappings
+        return ()
 
 
 class DictMapping(BaseMapping):
@@ -94,8 +107,8 @@ class DictMapping(BaseMapping):
             term
             for (key, term) in cls.mapping.items()
             if key in cls.string_fields
-            or hasattr(cls, "translate_" + cls._normalize_method_name(key))
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
+            or hasattr(cls, "translate_" + cls._normalize_method_name(key))
         }
 
     def _translate_dict(
@@ -147,6 +160,7 @@ class DictMapping(BaseMapping):
                     )
                 else:
                     translated_metadata[codemeta_key] = v
+
         if normalize:
             return self.normalize_translation(translated_metadata)
         else:
