@@ -70,21 +70,17 @@ class TestMetadata:
         testing content empty content is empty
         should return None
         """
-        # given
         content = b""
 
         # None if no metadata was found or an error occurred
         declared_metadata = None
-        # when
         result = self.npm_mapping.translate(content)
-        # then
         assert declared_metadata == result
 
     def test_compute_metadata_cff(self):
         """
         testing CITATION.cff translation
         """
-        # given
         content = """# YAML 1.2
 ---
 abstract: "Command line program to convert from Citation File \
@@ -154,16 +150,13 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
             "version": "1.4.0-alpha0",
         }
 
-        # when
         result = self.cff_mapping.translate(content)
-        # then
         assert expected == result
 
     def test_compute_metadata_cff_invalid_yaml(self):
         """
         test yaml translation for invalid yaml file
         """
-        # given
         content = """cff-version: 1.0.3
 message: To cite the SigMF specification, please include the following:
 authors:
@@ -175,14 +168,12 @@ authors:
         expected = None
 
         result = self.cff_mapping.translate(content)
-        # then
         assert expected == result
 
     def test_compute_metadata_cff_empty(self):
         """
         test yaml translation for empty yaml file
         """
-        # given
         content = """
         """.encode(
             "utf-8"
@@ -191,14 +182,12 @@ authors:
         expected = None
 
         result = self.cff_mapping.translate(content)
-        # then
         assert expected == result
 
     def test_compute_metadata_cff_list(self):
         """
         test yaml translation for empty yaml file
         """
-        # given
         content = """
 - Foo
 - Bar
@@ -209,14 +198,12 @@ authors:
         expected = None
 
         result = self.cff_mapping.translate(content)
-        # then
         assert expected == result
 
     def test_cff_empty_fields(self):
         """
         testing CITATION.cff translation
         """
-        # given
         content = """# YAML 1.2
   authors:
   -
@@ -256,16 +243,13 @@ authors:
             ],
         }
 
-        # when
         result = self.cff_mapping.translate(content)
-        # then
         assert expected == result
 
     def test_cff_invalid_fields(self):
         """
         testing CITATION.cff translation
         """
-        # given
         content = """# YAML 1.2
   authors:
   -
@@ -293,16 +277,13 @@ authors:
             ],
         }
 
-        # when
         result = self.cff_mapping.translate(content)
-        # then
         assert expected == result
 
     def test_compute_metadata_npm(self):
         """
         testing only computation of metadata with hard_mapping_npm
         """
-        # given
         content = b"""
             {
                 "name": "test_metadata",
@@ -334,16 +315,13 @@ authors:
             ],
         }
 
-        # when
         result = self.npm_mapping.translate(content)
-        # then
         assert declared_metadata == result
 
     def test_compute_metadata_invalid_description_npm(self):
         """
         testing only computation of metadata with hard_mapping_npm
         """
-        # given
         content = b"""
             {
                 "name": "test_metadata",
@@ -358,9 +336,7 @@ authors:
             "version": "0.0.2",
         }
 
-        # when
         result = self.npm_mapping.translate(content)
-        # then
         assert declared_metadata == result
 
     def test_index_content_metadata_npm(self):
@@ -369,7 +345,6 @@ authors:
         - one sha1 uses a file that can't be translated to metadata and
           should return None in the translated metadata
         """
-        # given
         sha1s = [
             hash_to_bytes("26a9f72a7c87cc9205725cfd879f514ff4f3d8d5"),
             hash_to_bytes("d4c647f0fc257591cc9ba1722484229780d1c607"),
@@ -383,7 +358,6 @@ authors:
         fill_obj_storage(metadata_indexer.objstorage)
         fill_storage(metadata_indexer.storage)
 
-        # when
         metadata_indexer.run(sha1s)
         results = list(metadata_indexer.idx_storage.content_metadata_get(sha1s))
 
@@ -551,7 +525,6 @@ authors:
         "filename", [b"package.json", b"Package.json", b"PACKAGE.json", b"PACKAGE.JSON"]
     )
     def test_detect_metadata_package_json(self, filename):
-        # given
         df = [
             {
                 "sha1_git": b"abc",
@@ -576,15 +549,12 @@ authors:
                 "sha1": b"cde",
             },
         ]
-        # when
         results = detect_metadata(df)
 
         expected_results = {"NpmMapping": [b"cde"]}
-        # then
         assert expected_results == results
 
     def test_detect_metadata_codemeta_json_uppercase(self):
-        # given
         df = [
             {
                 "sha1_git": b"abc",
@@ -609,11 +579,9 @@ authors:
                 "sha1": b"bcd",
             },
         ]
-        # when
         results = detect_metadata(df)
 
         expected_results = {"CodemetaMapping": [b"bcd"]}
-        # then
         assert expected_results == results
 
     def test_compute_metadata_valid_codemeta(self):
@@ -1358,7 +1326,6 @@ Gem::Specification.new { |s|
         for result in results:
             del result.tool["id"]
 
-        # then
         assert results == expected_results
 
     def test_directory_metadata_indexer_single_root_dir(self):
@@ -1416,5 +1383,4 @@ Gem::Specification.new { |s|
         for result in results:
             del result.tool["id"]
 
-        # then
         assert results == expected_results
