@@ -7,7 +7,7 @@ import collections
 
 import click
 
-from . import cff, codemeta, github, maven, npm, python, ruby
+from . import cff, codemeta, composer, github, maven, npm, python, ruby
 
 MAPPINGS = {
     "CffMapping": cff.CffMapping,
@@ -17,6 +17,7 @@ MAPPINGS = {
     "MavenMapping": maven.MavenMapping,
     "NpmMapping": npm.NpmMapping,
     "PythonPkginfoMapping": python.PythonPkginfoMapping,
+    "ComposerMapping": composer.ComposerMapping,
 }
 
 

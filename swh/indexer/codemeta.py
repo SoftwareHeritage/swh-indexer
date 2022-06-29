@@ -71,7 +71,6 @@ def _read_crosstable(fd):
         raise ValueError("empty file")
 
     data_sources = set(header) - {"Parent Type", "Property", "Type", "Description"}
-    assert "codemeta-V1" in data_sources
 
     codemeta_translation = {data_source: {} for data_source in data_sources}
     terms = set()
