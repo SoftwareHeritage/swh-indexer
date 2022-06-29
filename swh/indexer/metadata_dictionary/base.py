@@ -7,7 +7,17 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
+from typing_extensions import TypedDict
+
 from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
+from swh.indexer.storage.interface import Sha1
+
+
+class DirectoryLsEntry(TypedDict):
+    target: Sha1
+    sha1: Sha1
+    name: bytes
+    type: str
 
 
 class BaseMapping:
@@ -32,15 +42,9 @@ class BaseMapping:
         raise NotImplementedError(f"{self.__class__.__name__}.name")
 
     @classmethod
-    def detect_metadata_files(cls, files: List[Dict[str, str]]) -> List[str]:
+    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
         """
-        Detects files potentially containing metadata
-
-        Args:
-            file_entries (list): list of files
-
-        Returns:
-            list: list of sha1 (possibly empty)
+        Returns the sha1 hashes of files which can be translated by this mapping
         """
         raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
 
@@ -60,7 +64,7 @@ class SingleFileMapping(BaseMapping):
         raise NotImplementedError(f"{self.__class__.__name__}.filename")
 
     @classmethod
-    def detect_metadata_files(cls, file_entries: List[Dict[str, str]]) -> List[str]:
+    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
         for entry in file_entries:
             if entry["name"].lower() == cls.filename:
                 return [entry["sha1"]]

@@ -14,6 +14,7 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
+    cast,
 )
 
 import sentry_sdk
@@ -24,6 +25,7 @@ from swh.indexer.codemeta import merge_documents
 from swh.indexer.indexer import ContentIndexer, DirectoryIndexer, OriginIndexer
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
 from swh.indexer.origin_head import get_head_swhid
 from swh.indexer.storage import INDEXER_CFG_KEY, Sha1
 from swh.indexer.storage.model import (
@@ -184,14 +186,12 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
     ) -> List[DirectoryIntrinsicMetadataRow]:
         """Index directory by processing it and organizing result.
 
-        use metadata_detector to iterate on filenames
-
-        - if one filename detected -> sends file to content indexer
-        - if multiple file detected -> translation needed at directory level
+        use metadata_detector to iterate on filenames, passes them to the content
+        indexers, then merges (if more than one)
 
         Args:
           id: sha1_git of the directory
-          data: directory model object from storage
+          data: should always be None
 
         Returns:
             dict: dictionary representing a directory_intrinsic_metadata, with
@@ -202,27 +202,31 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             - metadata: dict of retrieved metadata
 
         """
-        if data is None:
-            dir_ = list(self.storage.directory_ls(id, recursive=False))
-        else:
-            assert isinstance(data, Directory)
-            dir_ = data.to_dict()
+        dir_: List[DirectoryLsEntry]
+        assert data is None, "Unexpected directory object"
+        dir_ = cast(
+            List[DirectoryLsEntry],
+            list(self.storage.directory_ls(id, recursive=False)),
+        )
 
         try:
             if [entry["type"] for entry in dir_] == ["dir"]:
                 # If the root is just a single directory, recurse into it
                 # eg. PyPI packages, GNU tarballs
                 subdir = dir_[0]["target"]
-                dir_ = list(self.storage.directory_ls(subdir, recursive=False))
+                dir_ = cast(
+                    List[DirectoryLsEntry],
+                    list(self.storage.directory_ls(subdir, recursive=False)),
+                )
             files = [entry for entry in dir_ if entry["type"] == "file"]
-            detected_files = detect_metadata(files)
             (mappings, metadata) = self.translate_directory_intrinsic_metadata(
-                detected_files,
+                files,
                 log_suffix="directory=%s" % hashutil.hash_to_hex(id),
             )
         except Exception as e:
             self.log.exception("Problem when indexing dir: %r", e)
             sentry_sdk.capture_exception()
+            return []
         return [
             DirectoryIntrinsicMetadataRow(
                 id=id,
@@ -250,22 +254,20 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         return self.idx_storage.directory_intrinsic_metadata_add(results)
 
     def translate_directory_intrinsic_metadata(
-        self, detected_files: Dict[str, List[Any]], log_suffix: str
+        self, files: List[DirectoryLsEntry], log_suffix: str
     ) -> Tuple[List[Any], Any]:
         """
-        Determine plan of action to translate metadata when containing
-        one or multiple detected files:
+        Determine plan of action to translate metadata in the given root directory
 
         Args:
-            detected_files: dictionary mapping context names (e.g.,
-              "npm", "authors") to list of sha1
+            files: list of file entries, as returned by
+              :meth:`swh.storage.interface.StorageInterface.directory_ls`
 
         Returns:
             (List[str], dict): list of mappings used and dict with
             translated metadata according to the CodeMeta vocabulary
 
         """
-        used_mappings = [MAPPINGS[context].name for context in detected_files]
         metadata = []
         tool = {
             "name": "swh-metadata-translator",
@@ -277,15 +279,15 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         # -> translate each content
         config = {k: self.config[k] for k in [INDEXER_CFG_KEY, "objstorage", "storage"]}
         config["tools"] = [tool]
-        for context in detected_files.keys():
+        all_detected_files = detect_metadata(files)
+        used_mappings = [MAPPINGS[context].name for context in all_detected_files]
+        for (mapping_name, detected_files) in all_detected_files.items():
             cfg = deepcopy(config)
-            cfg["tools"][0]["configuration"]["context"] = context
+            cfg["tools"][0]["configuration"]["context"] = mapping_name
             c_metadata_indexer = ContentMetadataIndexer(config=cfg)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
-            metadata_generator = self.idx_storage.content_metadata_get(
-                detected_files[context]
-            )
+            metadata_generator = self.idx_storage.content_metadata_get(detected_files)
             for c in metadata_generator:
                 # extracting metadata
                 sha1 = c.id
@@ -296,7 +298,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                     metadata.append(local_metadata)
 
             sha1s_filtered = [
-                item for item in detected_files[context] if item not in sha1s_in_storage
+                item for item in detected_files if item not in sha1s_in_storage
             ]
 
             if sha1s_filtered:

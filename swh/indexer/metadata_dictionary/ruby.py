@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2019  The Software Heritage developers
+# Copyright (C) 2018-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,8 +6,11 @@
 import ast
 import itertools
 import re
+from typing import List
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
+from swh.indexer.storage.interface import Sha1
 
 from .base import DictMapping
 
@@ -28,7 +31,7 @@ class GemspecMapping(DictMapping):
     _re_spec_entry = re.compile(r"\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)")
 
     @classmethod
-    def detect_metadata_files(cls, file_entries):
+    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
         for entry in file_entries:
             if entry["name"].endswith(b".gemspec"):
                 return [entry["sha1"]]
