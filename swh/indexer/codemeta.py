@@ -30,6 +30,8 @@ CODEMETA_ALTERNATE_CONTEXT_URLS = {
 }
 CODEMETA_URI = "https://codemeta.github.io/terms/"
 SCHEMA_URI = "http://schema.org/"
+FORGEFED_URI = "https://forgefed.org/ns#"
+ACTIVITYSTREAMS_URI = "https://www.w3.org/ns/activitystreams#"
 
 
 PROPERTY_BLACKLIST = {

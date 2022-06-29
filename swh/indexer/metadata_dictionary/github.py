@@ -3,12 +3,12 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 import json
-from typing import List, Tuple
+from typing import Any, Dict, List, Tuple
 
-from swh.indexer.codemeta import SCHEMA_URI
+from swh.indexer.codemeta import ACTIVITYSTREAMS_URI, FORGEFED_URI, SCHEMA_URI
 from swh.indexer.storage.interface import Sha1
 
-from .base import DirectoryLsEntry, JsonMapping
+from .base import DirectoryLsEntry, JsonMapping, produce_terms
 
 
 def _prettyprint(d):
@@ -30,6 +30,38 @@ class GitHubMapping(JsonMapping):
     @classmethod
     def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
         return ("application/vnd.github.v3+json",)
+
+    def _translate_dict(self, content_dict: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+        d = super()._translate_dict(content_dict, **kwargs)
+        d["type"] = FORGEFED_URI + "Repository"
+        return d
+
+    @produce_terms(FORGEFED_URI, ["forks"])
+    @produce_terms(ACTIVITYSTREAMS_URI, ["totalItems"])
+    def translate_forks_count(
+        self, translated_metadata: Dict[str, Any], v: Any
+    ) -> None:
+        """
+
+        >>> translated_metadata = {}
+        >>> GitHubMapping().translate_forks_count(translated_metadata, 42)
+        >>> _prettyprint(translated_metadata)
+        {
+            "https://forgefed.org/ns#forks": [
+                {
+                    "@type": "https://www.w3.org/ns/activitystreams#OrderedCollection",
+                    "https://www.w3.org/ns/activitystreams#totalItems": 42
+                }
+            ]
+        }
+        """
+        if isinstance(v, int):
+            translated_metadata.setdefault(FORGEFED_URI + "forks", []).append(
+                {
+                    "@type": ACTIVITYSTREAMS_URI + "OrderedCollection",
+                    ACTIVITYSTREAMS_URI + "totalItems": v,
+                }
+            )
 
     def normalize_license(self, d):
         """

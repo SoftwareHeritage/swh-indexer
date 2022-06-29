@@ -5,7 +5,7 @@
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 from typing_extensions import TypedDict
 
@@ -18,6 +18,26 @@ class DirectoryLsEntry(TypedDict):
     sha1: Sha1
     name: bytes
     type: str
+
+
+TTranslateCallable = TypeVar(
+    "TTranslateCallable", bound=Callable[[Any, Dict[str, Any], Any], None]
+)
+
+
+def produce_terms(
+    namespace: str, terms: List[str]
+) -> Callable[[TTranslateCallable], TTranslateCallable]:
+    """Returns a decorator that marks the decorated function as adding
+    the given terms to the ``translated_metadata`` dict"""
+
+    def decorator(f: TTranslateCallable) -> TTranslateCallable:
+        if not hasattr(f, "produced_terms"):
+            f.produced_terms = []  # type: ignore
+        f.produced_terms.extend(namespace + term for term in terms)  # type: ignore
+        return f
+
+    return decorator
 
 
 class BaseMapping:
@@ -103,13 +123,23 @@ class DictMapping(BaseMapping):
 
     @classmethod
     def supported_terms(cls):
-        return {
+        # one-to-one mapping from the original key to a CodeMeta term
+        simple_terms = {
             term
             for (key, term) in cls.mapping.items()
             if key in cls.string_fields
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
-            or hasattr(cls, "translate_" + cls._normalize_method_name(key))
         }
+
+        # more complex mapping from the original key to JSON-LD
+        complex_terms = {
+            term
+            for meth_name in dir(cls)
+            if meth_name.startswith("translate_")
+            for term in getattr(getattr(cls, meth_name), "produced_terms", [])
+        }
+
+        return simple_terms | complex_terms
 
     def _translate_dict(
         self, content_dict: Dict, *, normalize: bool = True
