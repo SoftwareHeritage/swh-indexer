@@ -130,3 +130,19 @@ comment on column origin_intrinsic_metadata.metadata is 'metadata extracted from
 comment on column origin_intrinsic_metadata.indexer_configuration_id is 'tool used to generate this metadata';
 comment on column origin_intrinsic_metadata.from_directory is 'sha1 of the directory this metadata was copied from.';
 comment on column origin_intrinsic_metadata.mappings is 'type of metadata files used to obtain this metadata (eg. pkg-info, npm)';
+
+create table origin_extrinsic_metadata(
+  id                        text       not null,  -- origin url
+  metadata                  jsonb,
+  indexer_configuration_id  bigint     not null,
+  from_remd_id              sha1_git   not null,
+  metadata_tsvector         tsvector,
+  mappings                  text array not null
+);
+
+comment on table origin_extrinsic_metadata is 'keeps extrinsic metadata for an origin';
+comment on column origin_extrinsic_metadata.id is 'url of the origin';
+comment on column origin_extrinsic_metadata.metadata is 'metadata extracted from a directory';
+comment on column origin_extrinsic_metadata.indexer_configuration_id is 'tool used to generate this metadata';
+comment on column origin_extrinsic_metadata.from_remd_id is 'sha1 of the directory this metadata was copied from.';
+comment on column origin_extrinsic_metadata.mappings is 'type of metadata files used to obtain this metadata (eg. github, gitlab)';
