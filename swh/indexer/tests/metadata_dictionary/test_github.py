@@ -118,5 +118,9 @@ def test_compute_metadata_github():
             "type": "https://www.w3.org/ns/activitystreams#OrderedCollection",
         },
         "license": "https://spdx.org/licenses/GPL-3.0",
-        "name": "swh-indexer",
+        "name": "SoftwareHeritage/swh-indexer",
+        "description": "GitHub mirror of Metadata indexer",
+        "schema:codeRepository": "https://github.com/SoftwareHeritage/swh-indexer",
+        "schema:dateCreated": "2017-01-31T13:05:39Z",
+        "schema:dateModified": "2022-06-22T08:02:20Z",
     }

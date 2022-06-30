@@ -5,7 +5,7 @@
 import json
 from typing import Any, Dict, List, Tuple
 
-from swh.indexer.codemeta import ACTIVITYSTREAMS_URI, FORGEFED_URI, SCHEMA_URI
+from swh.indexer.codemeta import ACTIVITYSTREAMS_URI, CROSSWALK_TABLE, FORGEFED_URI
 from swh.indexer.storage.interface import Sha1
 
 from .base import DirectoryLsEntry, JsonMapping, produce_terms
@@ -17,11 +17,16 @@ def _prettyprint(d):
 
 class GitHubMapping(JsonMapping):
     name = "github"
-    mapping = {
-        "name": SCHEMA_URI + "name",
-        "license": SCHEMA_URI + "license",
-    }
-    string_fields = ["name"]
+    mapping = CROSSWALK_TABLE["GitHub"]
+    string_fields = [
+        "archive_url",
+        "created_at",
+        "updated_at",
+        "description",
+        "full_name",
+        "html_url",
+        "issues_url",
+    ]
 
     @classmethod
     def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
