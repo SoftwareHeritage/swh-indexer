@@ -16,13 +16,20 @@ from typing import (
     TypeVar,
     cast,
 )
+from urllib.parse import urlparse
 
 import sentry_sdk
 
 from swh.core.config import merge_configs
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
-from swh.indexer.indexer import ContentIndexer, DirectoryIndexer, OriginIndexer
+from swh.indexer.indexer import (
+    BaseIndexer,
+    ContentIndexer,
+    DirectoryIndexer,
+    ObjectsDict,
+    OriginIndexer,
+)
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
@@ -31,13 +38,14 @@ from swh.indexer.storage import INDEXER_CFG_KEY, Sha1
 from swh.indexer.storage.model import (
     ContentMetadataRow,
     DirectoryIntrinsicMetadataRow,
+    OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
 from swh.model import hashutil
-from swh.model.model import Directory
+from swh.model.model import Directory, MetadataAuthorityType
 from swh.model.model import ObjectType as ModelObjectType
-from swh.model.model import Origin, Sha1Git
-from swh.model.swhids import CoreSWHID, ObjectType
+from swh.model.model import Origin, RawExtrinsicMetadata, Sha1Git
+from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
 
 REVISION_GET_BATCH_SIZE = 10
 RELEASE_GET_BATCH_SIZE = 10
@@ -57,6 +65,99 @@ def call_with_batches(
     groups = grouper(args, batch_size)
     for group in groups:
         yield from f(list(group))
+
+
+class ExtrinsicMetadataIndexer(
+    BaseIndexer[Sha1Git, RawExtrinsicMetadata, OriginExtrinsicMetadataRow]
+):
+    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
+        summary: Dict[str, Any] = {"status": "uneventful"}
+        try:
+            results = []
+            for item in objects.get("raw_extrinsic_metadata", []):
+                results.extend(
+                    self.index(item["id"], data=RawExtrinsicMetadata.from_dict(item))
+                )
+        except Exception:
+            if not self.catch_exceptions:
+                raise
+            summary["status"] = "failed"
+            return summary
+
+        summary_persist = self.persist_index_computations(results)
+        self.results = results
+        if summary_persist:
+            for value in summary_persist.values():
+                if value > 0:
+                    summary["status"] = "eventful"
+            summary.update(summary_persist)
+        return summary
+
+    def index(
+        self,
+        id: Sha1Git,
+        data: Optional[RawExtrinsicMetadata],
+        **kwargs,
+    ) -> List[OriginExtrinsicMetadataRow]:
+        if data is None:
+            raise NotImplementedError(
+                "ExtrinsicMetadataIndexer.index() without RawExtrinsicMetadata data"
+            )
+        if data.target.object_type != ExtendedObjectType.ORIGIN:
+            # other types are not supported yet
+            return []
+
+        if data.authority.type != MetadataAuthorityType.FORGE:
+            # metadata provided by a third-party; don't trust it
+            # (technically this could be handled below, but we check it here
+            # to return early; sparing a translation and origin lookup)
+            # TODO: add ways to define trusted authorities
+            return []
+
+        metadata_items = []
+        mappings = []
+        for (mapping_name, mapping) in MAPPINGS.items():
+            if data.format in mapping.extrinsic_metadata_formats():
+                metadata_item = mapping().translate(data.metadata)
+                if metadata_item is not None:
+                    metadata_items.append(metadata_item)
+                    mappings.append(mapping_name)
+
+        if not metadata_items:
+            # Don't have any mapping to parse it, ignore
+            return []
+
+        # TODO: batch requests to origin_get_by_sha1()
+        origins = self.storage.origin_get_by_sha1([data.target.object_id])
+        try:
+            (origin,) = origins
+            if origin is None:
+                raise ValueError()
+        except ValueError:
+            raise ValueError(f"Unknown origin {data.target}") from None
+
+        if urlparse(data.authority.url).netloc != urlparse(origin["url"]).netloc:
+            # metadata provided by a third-party; don't trust it
+            # TODO: add ways to define trusted authorities
+            return []
+
+        metadata = merge_documents(metadata_items)
+
+        return [
+            OriginExtrinsicMetadataRow(
+                id=origin["url"],
+                indexer_configuration_id=self.tool["id"],
+                from_remd_id=data.id,
+                mappings=mappings,
+                metadata=metadata,
+            )
+        ]
+
+    def persist_index_computations(
+        self, results: List[OriginExtrinsicMetadataRow]
+    ) -> Dict[str, int]:
+        """Persist the results in storage."""
+        return self.idx_storage.origin_extrinsic_metadata_add(results)
 
 
 class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
@@ -129,15 +230,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
     def persist_index_computations(
         self, results: List[ContentMetadataRow]
     ) -> Dict[str, int]:
-        """Persist the results in storage.
-
-        Args:
-            results: list of content_metadata, dict with the
-              following keys:
-              - id (bytes): content's identifier (sha1)
-              - metadata (jsonb): detected metadata
-
-        """
+        """Persist the results in storage."""
         return self.idx_storage.content_metadata_add(results)
 
 
@@ -239,16 +332,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
     def persist_index_computations(
         self, results: List[DirectoryIntrinsicMetadataRow]
     ) -> Dict[str, int]:
-        """Persist the results in storage.
-
-        Args:
-            results: list of content_mimetype, dict with the
-              following keys:
-              - id (bytes): content's identifier (sha1)
-              - mimetype (bytes): mimetype in bytes
-              - encoding (bytes): encoding in bytes
-
-        """
+        """Persist the results in storage."""
         # TODO: add functions in storage to keep data in
         # directory_intrinsic_metadata
         return self.idx_storage.directory_intrinsic_metadata_add(results)

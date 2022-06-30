@@ -6,7 +6,7 @@
 import ast
 import itertools
 import re
-from typing import List
+from typing import List, Tuple
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
@@ -36,6 +36,11 @@ class GemspecMapping(DictMapping):
             if entry["name"].endswith(b".gemspec"):
                 return [entry["sha1"]]
         return []
+
+    @classmethod
+    def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
+        # this class is only used by intrinsic metadata mappings
+        return ()
 
     def translate(self, raw_content):
         try:

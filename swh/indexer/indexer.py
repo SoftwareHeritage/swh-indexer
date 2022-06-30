@@ -44,6 +44,7 @@ class ObjectsDict(TypedDict, total=False):
     directory: List[Dict]
     origin: List[Dict]
     origin_visit_status: List[Dict]
+    raw_extrinsic_metadata: List[Dict]
 
 
 @contextmanager

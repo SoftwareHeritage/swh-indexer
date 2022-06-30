@@ -77,6 +77,7 @@ class BaseMapping:
         raise NotImplementedError(f"{cls.__name__}.extrinsic_metadata_formats")
 
     def translate(self, file_content: bytes) -> Optional[Dict]:
+        """Translates intrinsic metadata, from the content of a file."""
         raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
     def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
