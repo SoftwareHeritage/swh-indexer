@@ -338,30 +338,6 @@ as $$
     alter table tmp_indexer_configuration drop column if exists id;
 $$;
 
-
--- add tmp_indexer_configuration entries to indexer_configuration,
--- overwriting duplicates if any.
---
--- operates in bulk: 0. create temporary tmp_indexer_configuration, 1. COPY to
--- it, 2. call this function to insert and filtering out duplicates
-create or replace function swh_indexer_configuration_add()
-    returns setof indexer_configuration
-    language plpgsql
-as $$
-begin
-      insert into indexer_configuration(tool_name, tool_version, tool_configuration)
-      select tool_name, tool_version, tool_configuration from tmp_indexer_configuration tmp
-      on conflict(tool_name, tool_version, tool_configuration) do nothing;
-
-      return query
-          select id, tool_name, tool_version, tool_configuration
-          from tmp_indexer_configuration join indexer_configuration
-              using(tool_name, tool_version, tool_configuration);
-
-      return;
-end
-$$;
-
 -- add tmp_origin_intrinsic_metadata entries to origin_intrinsic_metadata,
 -- overwriting duplicates.
 --
@@ -410,5 +386,29 @@ as $$
 begin
     update tmp_origin_intrinsic_metadata
         set metadata_tsvector = to_tsvector('pg_catalog.simple', metadata);
+end
+$$;
+
+
+-- add tmp_indexer_configuration entries to indexer_configuration,
+-- overwriting duplicates if any.
+--
+-- operates in bulk: 0. create temporary tmp_indexer_configuration, 1. COPY to
+-- it, 2. call this function to insert and filtering out duplicates
+create or replace function swh_indexer_configuration_add()
+    returns setof indexer_configuration
+    language plpgsql
+as $$
+begin
+      insert into indexer_configuration(tool_name, tool_version, tool_configuration)
+      select tool_name, tool_version, tool_configuration from tmp_indexer_configuration tmp
+      on conflict(tool_name, tool_version, tool_configuration) do nothing;
+
+      return query
+          select id, tool_name, tool_version, tool_configuration
+          from tmp_indexer_configuration join indexer_configuration
+              using(tool_name, tool_version, tool_configuration);
+
+      return;
 end
 $$;
