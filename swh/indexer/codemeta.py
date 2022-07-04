@@ -25,6 +25,11 @@ CODEMETA_CONTEXT_PATH = os.path.join(_DATA_DIR, "codemeta", "codemeta.jsonld")
 with open(CODEMETA_CONTEXT_PATH) as fd:
     CODEMETA_CONTEXT = json.load(fd)
 
+_EMPTY_PROCESSED_CONTEXT: Any = {"mappings": {}}
+_PROCESSED_CODEMETA_CONTEXT = jsonld.JsonLdProcessor().process_context(
+    _EMPTY_PROCESSED_CONTEXT, CODEMETA_CONTEXT, None
+)
+
 CODEMETA_CONTEXT_URL = "https://doi.org/10.5063/schema/codemeta-2.0"
 CODEMETA_ALTERNATE_CONTEXT_URLS = {
     ("https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld")
@@ -56,21 +61,11 @@ def make_absolute_uri(local_name):
     >>> make_absolute_uri("referencePublication")
     'https://codemeta.github.io/terms/referencePublication'
     """
-    definition = CODEMETA_CONTEXT["@context"][local_name]
-    if isinstance(definition, str):
-        return definition
-    elif isinstance(definition, dict):
-        prefixed_name = definition["@id"]
-        (prefix, local_name) = prefixed_name.split(":")
-        if prefix == "schema":
-            canonical_name = SCHEMA_URI + local_name
-        elif prefix == "codemeta":
-            canonical_name = CODEMETA_URI + local_name
-        else:
-            assert False, prefix
-        return canonical_name
-    else:
-        assert False, definition
+    uri = jsonld.JsonLdProcessor.get_context_value(
+        _PROCESSED_CODEMETA_CONTEXT, local_name, "@id"
+    )
+    assert uri.startswith(("@", CODEMETA_URI, SCHEMA_URI)), (local_name, uri)
+    return uri
 
 
 def _read_crosstable(fd):
