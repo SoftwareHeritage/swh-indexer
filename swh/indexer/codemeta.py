@@ -47,6 +47,15 @@ _codemeta_field_separator = re.compile(r"\s*[,/]\s*")
 
 
 def make_absolute_uri(local_name):
+    """Parses codemeta.jsonld, and returns the @id of terms it defines.
+
+    >>> make_absolute_uri("name")
+    'http://schema.org/name'
+    >>> make_absolute_uri("downloadUrl")
+    'http://schema.org/downloadUrl'
+    >>> make_absolute_uri("referencePublication")
+    'https://codemeta.github.io/terms/referencePublication'
+    """
     definition = CODEMETA_CONTEXT["@context"][local_name]
     if isinstance(definition, str):
         return definition
