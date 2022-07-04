@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Union
 
 import yaml
 
-from swh.indexer.codemeta import CODEMETA_CONTEXT_URL, CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
 from .base import DictMapping, SingleFileMapping
 
@@ -30,9 +30,7 @@ class CffMapping(DictMapping, SingleFileMapping):
             return None
 
         if isinstance(content_dict, dict):
-            metadata = self._translate_dict(content_dict)
-            metadata["@context"] = CODEMETA_CONTEXT_URL
-            return metadata
+            return self._translate_dict(content_dict)
 
         return None
 
