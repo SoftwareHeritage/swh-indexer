@@ -134,16 +134,18 @@ classes, with some documentation about your indexer:
 
 .. code-block:: python
 
-	from .base import DictMapping, SingleFileMapping
+	from .base import DictMapping, SingleFileIntrinsicMapping
 	from swh.indexer.codemeta import CROSSWALK_TABLE
 
-	class MyMapping(DictMapping, SingleFileMapping):
+	class MyMapping(DictMapping, SingleFileIntrinsicMapping):
 		"""Dedicated class for ..."""
 		name = 'my-mapping'
 		filename = b'the-filename'
 		mapping = CROSSWALK_TABLE['Name of the CodeMeta crosswalk']
 
 .. _CodeMeta crosswalks: https://github.com/codemeta/codemeta/tree/master/crosswalks
+
+And reference it from :const:`swh.indexer.metadata_dictionary.INTRINSIC_MAPPINGS`.
 
 Then, add a ``string_fields`` attribute, that is the list of all keys whose
 values are simple text values. For instance, to

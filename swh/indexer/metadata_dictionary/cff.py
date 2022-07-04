@@ -4,7 +4,7 @@ import yaml
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import DictMapping, SingleFileMapping
+from .base import DictMapping, SingleFileIntrinsicMapping
 
 
 class SafeLoader(yaml.SafeLoader):
@@ -14,7 +14,7 @@ class SafeLoader(yaml.SafeLoader):
     }
 
 
-class CffMapping(DictMapping, SingleFileMapping):
+class CffMapping(DictMapping, SingleFileIntrinsicMapping):
     """Dedicated class for Citation (CITATION.cff) mapping and translation"""
 
     name = "cff"

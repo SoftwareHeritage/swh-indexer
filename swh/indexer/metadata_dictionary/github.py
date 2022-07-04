@@ -2,20 +2,20 @@
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
+
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Tuple
 
 from swh.indexer.codemeta import ACTIVITYSTREAMS_URI, CROSSWALK_TABLE, FORGEFED_URI
-from swh.indexer.storage.interface import Sha1
 
-from .base import DirectoryLsEntry, JsonMapping, produce_terms
+from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
 
 
 def _prettyprint(d):
     print(json.dumps(d, indent=4))
 
 
-class GitHubMapping(JsonMapping):
+class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
     name = "github"
     mapping = CROSSWALK_TABLE["GitHub"]
     string_fields = [
@@ -27,10 +27,6 @@ class GitHubMapping(JsonMapping):
         "html_url",
         "issues_url",
     ]
-
-    @classmethod
-    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
-        return []
 
     @classmethod
     def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:

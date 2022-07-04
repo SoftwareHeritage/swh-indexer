@@ -6,13 +6,13 @@
 import ast
 import itertools
 import re
-from typing import List, Tuple
+from typing import List
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
 from swh.indexer.storage.interface import Sha1
 
-from .base import DictMapping
+from .base import BaseIntrinsicMapping, DictMapping
 
 
 def name_to_person(name):
@@ -22,7 +22,7 @@ def name_to_person(name):
     }
 
 
-class GemspecMapping(DictMapping):
+class GemspecMapping(BaseIntrinsicMapping, DictMapping):
     name = "gemspec"
     mapping = CROSSWALK_TABLE["Ruby Gem"]
     string_fields = ["name", "version", "description", "summary", "email"]
@@ -36,11 +36,6 @@ class GemspecMapping(DictMapping):
             if entry["name"].endswith(b".gemspec"):
                 return [entry["sha1"]]
         return []
-
-    @classmethod
-    def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
-        # this class is only used by intrinsic metadata mappings
-        return ()
 
     def translate(self, raw_content):
         try:

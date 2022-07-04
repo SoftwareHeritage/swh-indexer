@@ -41,13 +41,8 @@ def produce_terms(
 
 
 class BaseMapping:
-    """Base class for mappings to inherit from
-
-    To implement a new mapping:
-
-    - inherit this class
-    - override translate function
-    """
+    """Base class for :class:`BaseExtrinsicMapping` and :class:`BaseIntrinsicMapping`,
+    not to be inherited directly."""
 
     def __init__(self, log_suffix=""):
         self.log_suffix = log_suffix
@@ -61,12 +56,23 @@ class BaseMapping:
         indexer storage."""
         raise NotImplementedError(f"{self.__class__.__name__}.name")
 
-    @classmethod
-    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
-        """
-        Returns the sha1 hashes of files which can be translated by this mapping
-        """
-        raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
+    def translate(self, file_content: bytes) -> Optional[Dict]:
+        """Translates metadata, from the content of a file or of a RawExtrinsicMetadata
+        object."""
+        raise NotImplementedError(f"{self.__class__.__name__}.translate")
+
+    def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        return compact(metadata)
+
+
+class BaseExtrinsicMapping(BaseMapping):
+    """Base class for extrinsic-metadata mappings to inherit from
+
+    To implement a new mapping:
+
+    - inherit this class
+    - override translate function
+    """
 
     @classmethod
     def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
@@ -76,15 +82,25 @@ class BaseMapping:
         """
         raise NotImplementedError(f"{cls.__name__}.extrinsic_metadata_formats")
 
-    def translate(self, file_content: bytes) -> Optional[Dict]:
-        """Translates intrinsic metadata, from the content of a file."""
-        raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
-    def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        return compact(metadata)
+class BaseIntrinsicMapping(BaseMapping):
+    """Base class for intrinsic-metadata mappings to inherit from
+
+    To implement a new mapping:
+
+    - inherit this class
+    - override translate function
+    """
+
+    @classmethod
+    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
+        """
+        Returns the sha1 hashes of files which can be translated by this mapping
+        """
+        raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
 
 
-class SingleFileMapping(BaseMapping):
+class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
     """Base class for all intrinsic metadata mappings that use a single file as input."""
 
     @property
@@ -98,11 +114,6 @@ class SingleFileMapping(BaseMapping):
             if entry["name"].lower() == cls.filename:
                 return [entry["sha1"]]
         return []
-
-    @classmethod
-    def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
-        # this class is only used by intrinsic metadata mappings
-        return ()
 
 
 class DictMapping(BaseMapping):

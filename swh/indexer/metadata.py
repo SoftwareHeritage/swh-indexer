@@ -31,7 +31,7 @@ from swh.indexer.indexer import (
     OriginIndexer,
 )
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import EXTRINSIC_MAPPINGS, INTRINSIC_MAPPINGS
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
 from swh.indexer.origin_head import get_head_swhid
 from swh.indexer.storage import INDEXER_CFG_KEY, Sha1
@@ -116,7 +116,7 @@ class ExtrinsicMetadataIndexer(
 
         metadata_items = []
         mappings = []
-        for (mapping_name, mapping) in MAPPINGS.items():
+        for (mapping_name, mapping) in EXTRINSIC_MAPPINGS.items():
             if data.format in mapping.extrinsic_metadata_formats():
                 metadata_item = mapping().translate(data.metadata)
                 if metadata_item is not None:
@@ -210,7 +210,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
             log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id)
-            metadata = MAPPINGS[mapping_name](log_suffix).translate(data)
+            metadata = INTRINSIC_MAPPINGS[mapping_name](log_suffix).translate(data)
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
@@ -364,7 +364,9 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         config = {k: self.config[k] for k in [INDEXER_CFG_KEY, "objstorage", "storage"]}
         config["tools"] = [tool]
         all_detected_files = detect_metadata(files)
-        used_mappings = [MAPPINGS[context].name for context in all_detected_files]
+        used_mappings = [
+            INTRINSIC_MAPPINGS[context].name for context in all_detected_files
+        ]
         for (mapping_name, detected_files) in all_detected_files.items():
             cfg = deepcopy(config)
             cfg["tools"][0]["configuration"]["context"] = mapping_name

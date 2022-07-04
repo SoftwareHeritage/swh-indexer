@@ -4,21 +4,29 @@
 # See top-level LICENSE file for more information
 
 import collections
+from typing import Dict, Type
 
 import click
 
 from . import cff, codemeta, composer, github, maven, npm, python, ruby
+from .base import BaseExtrinsicMapping, BaseIntrinsicMapping, BaseMapping
 
-MAPPINGS = {
+INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {
     "CffMapping": cff.CffMapping,
     "CodemetaMapping": codemeta.CodemetaMapping,
     "GemspecMapping": ruby.GemspecMapping,
-    "GitHubMapping": github.GitHubMapping,
     "MavenMapping": maven.MavenMapping,
     "NpmMapping": npm.NpmMapping,
     "PythonPkginfoMapping": python.PythonPkginfoMapping,
     "ComposerMapping": composer.ComposerMapping,
 }
+
+EXTRINSIC_MAPPINGS: Dict[str, Type[BaseExtrinsicMapping]] = {
+    "GitHubMapping": github.GitHubMapping,
+}
+
+
+MAPPINGS: Dict[str, Type[BaseMapping]] = {**INTRINSIC_MAPPINGS, **EXTRINSIC_MAPPINGS}
 
 
 def list_terms():

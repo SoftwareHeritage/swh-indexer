@@ -7,7 +7,7 @@ import os.path
 
 from swh.indexer.codemeta import _DATA_DIR, SCHEMA_URI, _read_crosstable
 
-from .base import JsonMapping, SingleFileMapping
+from .base import JsonMapping, SingleFileIntrinsicMapping
 
 COMPOSER_TABLE_PATH = os.path.join(_DATA_DIR, "composer.csv")
 
@@ -15,7 +15,7 @@ with open(COMPOSER_TABLE_PATH) as fd:
     (CODEMETA_TERMS, COMPOSER_TABLE) = _read_crosstable(fd)
 
 
-class ComposerMapping(JsonMapping, SingleFileMapping):
+class ComposerMapping(JsonMapping, SingleFileIntrinsicMapping):
     """Dedicated class for Packagist(composer.json) mapping and translation"""
 
     name = "composer"
