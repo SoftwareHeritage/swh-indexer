@@ -5,6 +5,14 @@
 
 from swh.indexer.metadata_dictionary import MAPPINGS
 
+CONTEXT = [
+    "https://doi.org/10.5063/schema/codemeta-2.0",
+    {
+        "as": "https://www.w3.org/ns/activitystreams#",
+        "forge": "https://forgefed.org/ns#",
+    },
+]
+
 
 def test_compute_metadata_none():
     """
@@ -111,11 +119,11 @@ def test_compute_metadata_github():
     """
     result = MAPPINGS["GitHubMapping"]().translate(content)
     assert result == {
-        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "@context": CONTEXT,
         "type": "https://forgefed.org/ns#Repository",
-        "https://forgefed.org/ns#forks": {
-            "https://www.w3.org/ns/activitystreams#totalItems": 1,
-            "type": "https://www.w3.org/ns/activitystreams#OrderedCollection",
+        "forge:forks": {
+            "as:totalItems": 1,
+            "type": "as:OrderedCollection",
         },
         "license": "https://spdx.org/licenses/GPL-3.0",
         "name": "SoftwareHeritage/swh-indexer",

@@ -62,7 +62,7 @@ class BaseMapping:
         raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
     def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        return compact(metadata)
+        raise NotImplementedError(f"{self.__class__.__name__}.normalize_translation")
 
 
 class BaseExtrinsicMapping(BaseMapping):
@@ -82,6 +82,9 @@ class BaseExtrinsicMapping(BaseMapping):
         """
         raise NotImplementedError(f"{cls.__name__}.extrinsic_metadata_formats")
 
+    def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        return compact(metadata, forgefed=True)
+
 
 class BaseIntrinsicMapping(BaseMapping):
     """Base class for intrinsic-metadata mappings to inherit from
@@ -98,6 +101,9 @@ class BaseIntrinsicMapping(BaseMapping):
         Returns the sha1 hashes of files which can be translated by this mapping
         """
         raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
+
+    def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        return compact(metadata, forgefed=False)
 
 
 class SingleFileIntrinsicMapping(BaseIntrinsicMapping):

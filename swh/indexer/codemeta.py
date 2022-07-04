@@ -9,6 +9,7 @@ import itertools
 import json
 import os.path
 import re
+from typing import Any, List
 
 from pyld import jsonld
 
@@ -120,11 +121,18 @@ def _document_loader(url, options=None):
         raise Exception(url)
 
 
-def compact(doc):
-    """Same as `pyld.jsonld.compact`, but in the context of CodeMeta."""
-    return jsonld.compact(
-        doc, CODEMETA_CONTEXT_URL, options={"documentLoader": _document_loader}
-    )
+def compact(doc, forgefed: bool):
+    """Same as `pyld.jsonld.compact`, but in the context of CodeMeta.
+
+    Args:
+        forgefed: Whether to add ForgeFed and ActivityStreams as compact URIs.
+          This is typically used for extrinsic metadata documents, which frequently
+          use properties from these namespaces.
+    """
+    contexts: List[Any] = [CODEMETA_CONTEXT_URL]
+    if forgefed:
+        contexts.append({"as": ACTIVITYSTREAMS_URI, "forge": FORGEFED_URI})
+    return jsonld.compact(doc, contexts, options={"documentLoader": _document_loader})
 
 
 def expand(doc):
@@ -202,4 +210,7 @@ def merge_documents(documents):
                     elif value not in merged_document[key]:
                         merged_document[key].append(value)
 
-    return compact(merged_document)
+    # XXX: we should set forgefed=True when merging extrinsic-metadata documents.
+    # however, this function is only used to merge multiple files of the same
+    # directory (which is only for intrinsic-metadata), so it is not an issue for now
+    return compact(merged_document, forgefed=False)
