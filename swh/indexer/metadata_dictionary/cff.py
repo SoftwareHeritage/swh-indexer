@@ -1,38 +1,17 @@
 from typing import Dict, List, Optional, Union
 
-import yaml
-
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import DictMapping, SingleFileIntrinsicMapping
+from .base import YamlMapping
 
 
-class SafeLoader(yaml.SafeLoader):
-    yaml_implicit_resolvers = {
-        k: [r for r in v if r[0] != "tag:yaml.org,2002:timestamp"]
-        for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()
-    }
-
-
-class CffMapping(DictMapping, SingleFileIntrinsicMapping):
+class CffMapping(YamlMapping):
     """Dedicated class for Citation (CITATION.cff) mapping and translation"""
 
     name = "cff"
     filename = b"CITATION.cff"
     mapping = CROSSWALK_TABLE["Citation File Format Core (CFF-Core) 1.0.2"]
     string_fields = ["keywords", "license", "abstract", "version", "doi"]
-
-    def translate(self, raw_content: bytes) -> Optional[Dict[str, str]]:
-        raw_content_string: str = raw_content.decode()
-        try:
-            content_dict = yaml.load(raw_content_string, Loader=SafeLoader)
-        except yaml.scanner.ScannerError:
-            return None
-
-        if isinstance(content_dict, dict):
-            return self._translate_dict(content_dict)
-
-        return None
 
     def normalize_authors(self, d: List[dict]) -> Dict[str, list]:
         result = []

@@ -8,7 +8,7 @@ from typing import Dict, Type
 
 import click
 
-from . import cff, codemeta, composer, github, maven, npm, python, ruby
+from . import cff, codemeta, composer, dart, github, maven, npm, python, ruby
 from .base import BaseExtrinsicMapping, BaseIntrinsicMapping, BaseMapping
 
 INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {
@@ -17,6 +17,7 @@ INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {
     "GemspecMapping": ruby.GemspecMapping,
     "MavenMapping": maven.MavenMapping,
     "NpmMapping": npm.NpmMapping,
+    "PubMapping": dart.PubspecMapping,
     "PythonPkginfoMapping": python.PythonPkginfoMapping,
     "ComposerMapping": composer.ComposerMapping,
 }

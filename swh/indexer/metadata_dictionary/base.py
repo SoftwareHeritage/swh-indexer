@@ -8,6 +8,7 @@ import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 
 from typing_extensions import TypedDict
+import yaml
 
 from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
 from swh.indexer.storage.interface import Sha1
@@ -243,4 +244,27 @@ class JsonMapping(DictMapping):
             return None
         if isinstance(content_dict, dict):
             return self._translate_dict(content_dict)
+        return None
+
+
+class SafeLoader(yaml.SafeLoader):
+    yaml_implicit_resolvers = {
+        k: [r for r in v if r[0] != "tag:yaml.org,2002:timestamp"]
+        for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()
+    }
+
+
+class YamlMapping(DictMapping, SingleFileIntrinsicMapping):
+    """Base class for all mappings that use Yaml data as input."""
+
+    def translate(self, raw_content: bytes) -> Optional[Dict[str, str]]:
+        raw_content_string: str = raw_content.decode()
+        try:
+            content_dict = yaml.load(raw_content_string, Loader=SafeLoader)
+        except yaml.scanner.ScannerError:
+            return None
+
+        if isinstance(content_dict, dict):
+            return self._translate_dict(content_dict)
+
         return None
