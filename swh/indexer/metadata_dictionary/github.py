@@ -64,6 +64,62 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
                 }
             )
 
+    @produce_terms(ACTIVITYSTREAMS_URI, ["likes"])
+    @produce_terms(ACTIVITYSTREAMS_URI, ["totalItems"])
+    def translate_stargazers_count(
+        self, translated_metadata: Dict[str, Any], v: Any
+    ) -> None:
+        """
+
+        >>> translated_metadata = {}
+        >>> GitHubMapping().translate_stargazers_count(translated_metadata, 42)
+        >>> _prettyprint(translated_metadata)
+        {
+            "https://www.w3.org/ns/activitystreams#likes": [
+                {
+                    "@type": "https://www.w3.org/ns/activitystreams#Collection",
+                    "https://www.w3.org/ns/activitystreams#totalItems": 42
+                }
+            ]
+        }
+        """
+        if isinstance(v, int):
+            translated_metadata.setdefault(ACTIVITYSTREAMS_URI + "likes", []).append(
+                {
+                    "@type": ACTIVITYSTREAMS_URI + "Collection",
+                    ACTIVITYSTREAMS_URI + "totalItems": v,
+                }
+            )
+
+    @produce_terms(ACTIVITYSTREAMS_URI, ["followers"])
+    @produce_terms(ACTIVITYSTREAMS_URI, ["totalItems"])
+    def translate_watchers_count(
+        self, translated_metadata: Dict[str, Any], v: Any
+    ) -> None:
+        """
+
+        >>> translated_metadata = {}
+        >>> GitHubMapping().translate_watchers_count(translated_metadata, 42)
+        >>> _prettyprint(translated_metadata)
+        {
+            "https://www.w3.org/ns/activitystreams#followers": [
+                {
+                    "@type": "https://www.w3.org/ns/activitystreams#Collection",
+                    "https://www.w3.org/ns/activitystreams#totalItems": 42
+                }
+            ]
+        }
+        """
+        if isinstance(v, int):
+            translated_metadata.setdefault(
+                ACTIVITYSTREAMS_URI + "followers", []
+            ).append(
+                {
+                    "@type": ACTIVITYSTREAMS_URI + "Collection",
+                    ACTIVITYSTREAMS_URI + "totalItems": v,
+                }
+            )
+
     def normalize_license(self, d):
         """
 

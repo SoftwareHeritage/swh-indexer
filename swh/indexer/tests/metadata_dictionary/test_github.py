@@ -72,7 +72,7 @@ def test_compute_metadata_github():
   "homepage": "https://forge.softwareheritage.org/source/swh-indexer/",
   "size": 2713,
   "stargazers_count": 13,
-  "watchers_count": 13,
+  "watchers_count": 12,
   "language": "Python",
   "has_issues": false,
   "has_projects": false,
@@ -124,6 +124,14 @@ def test_compute_metadata_github():
         "forge:forks": {
             "as:totalItems": 1,
             "type": "as:OrderedCollection",
+        },
+        "as:likes": {
+            "as:totalItems": 13,
+            "type": "as:Collection",
+        },
+        "as:followers": {
+            "as:totalItems": 12,
+            "type": "as:Collection",
         },
         "license": "https://spdx.org/licenses/GPL-3.0",
         "name": "SoftwareHeritage/swh-indexer",
