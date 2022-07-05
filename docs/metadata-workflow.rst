@@ -30,14 +30,14 @@ branch of origin is (the "Head branch") and what revision it points to
 (the "Head").
 Intrinsic metadata for that origin will be extracted from that revision.
 
-It schedules a Revision Metadata Indexer task for that revision, with a
-hint that the revision is the Head of that particular origin.
+It schedules a Directory Metadata Indexer task for the root directory of
+that revision.
 
 
-Revision and Content Metadata Indexers
-______________________________________
+Directory and Content Metadata Indexers
+_______________________________________
 
-These two indexers do the hard part of the work. The Revision Metadata
+These two indexers do the hard part of the work. The Directory Metadata
 Indexer fetches the root directory associated with a revision, then extracts
 the metadata from that directory.
 
@@ -48,24 +48,21 @@ contents and runs them through extraction dictionaries/mappings.
 See below for details.
 
 Their results are saved in a database (the indexer storage), associated with
-the content and revision hashes.
-
-If it received a hint that this revision is the head of an origin, the
-Revision Metadata Indexer then schedules the Origin Metadata Indexer
-to run on that origin.
+the content and directory hashes.
 
 
 Origin Metadata Indexer
 _______________________
 
 The job of this indexer is very simple: it takes an origin identifier and
-a revision hash, and copies the metadata of the former to a new table, to
-associate it with the latter.
+uses the Origin-Head and Directory indexers to get metadata from the head
+directory of an origin, and copies the metadata of the former to a new table,
+to associate it with the latter.
 
 The reason for this is to be able to perform searches on metadata, and
 efficiently find out which origins matched the pattern.
-Running that search on the ``revision_metadata`` table would require either
-a reverse lookup from revisions to origins, which is costly.
+Running that search on the ``directory_metadata`` table would require either
+a reverse lookup from directories to origins, which is costly.
 
 
 Translation from language-specific metadata to CodeMeta
