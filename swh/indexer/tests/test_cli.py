@@ -113,6 +113,7 @@ def test_cli_mapping_list(cli_runner, swh_config):
             "github",
             "maven",
             "npm",
+            "nuget",
             "pkg-info",
             "pubspec",
             "",
