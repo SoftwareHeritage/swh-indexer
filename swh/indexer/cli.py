@@ -215,7 +215,14 @@ def schedule_origin_metadata_reindex(
 @indexer_cli_group.command("journal-client")
 @click.argument(
     "indexer",
-    type=click.Choice(["origin-intrinsic-metadata", "extrinsic-metadata", "*"]),
+    type=click.Choice(
+        [
+            "origin-intrinsic-metadata",
+            "extrinsic-metadata",
+            "content-mimetype",
+            "*",
+        ]
+    ),
     required=False
     # TODO: remove required=False after we stop using it
 )
@@ -318,6 +325,14 @@ def journal_client(
 
         object_types.add("raw_extrinsic_metadata")
         idx = ExtrinsicMetadataIndexer()
+        idx.catch_exceptions = False  # don't commit offsets if indexation failed
+        worker_fns.append(idx.process_journal_objects)
+
+    if indexer in ("content-mimetype", "*"):
+        from swh.indexer.mimetype import MimetypeIndexer
+
+        object_types.add("content")
+        idx = MimetypeIndexer()
         idx.catch_exceptions = False  # don't commit offsets if indexation failed
         worker_fns.append(idx.process_journal_objects)
 
