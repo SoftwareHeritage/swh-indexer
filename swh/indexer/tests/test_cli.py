@@ -9,6 +9,7 @@ import re
 from typing import Any, Dict, List
 from unittest.mock import patch
 
+import attr
 from click.testing import CliRunner
 from confluent_kafka import Consumer
 import pytest
@@ -17,12 +18,14 @@ from swh.indexer.cli import indexer_cli_group
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import (
     DirectoryIntrinsicMetadataRow,
+    OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
 from swh.journal.writer import get_journal_writer
 from swh.model.hashutil import hash_to_bytes
-from swh.model.model import OriginVisitStatus
+from swh.model.model import Origin, OriginVisitStatus
 
+from .test_metadata import REMD
 from .utils import DIRECTORY2, REVISION
 
 
@@ -531,7 +534,7 @@ def test_cli_journal_client_without_brokers(
 
 
 @pytest.mark.parametrize("indexer_name", ["origin-intrinsic-metadata", "*"])
-def test_cli_journal_client_index(
+def test_cli_journal_client_index__origin_intrinsic_metadata(
     cli_runner,
     swh_config,
     kafka_prefix: str,
@@ -654,5 +657,77 @@ def test_cli_journal_client_index(
             metadata={"foo": "bar"},
         )
         for status in sorted(visit_statuses_full, key=lambda r: r.origin)
+    ]
+    assert sorted(results, key=lambda r: r.id) == expected_results
+
+
+@pytest.mark.parametrize("indexer_name", ["extrinsic-metadata", "*"])
+def test_cli_journal_client_index__origin_extrinsic_metadata(
+    cli_runner,
+    swh_config,
+    kafka_prefix: str,
+    kafka_server,
+    consumer: Consumer,
+    idx_storage,
+    storage,
+    mocker,
+    swh_indexer_config,
+    indexer_name: str,
+):
+    """Test the 'swh indexer journal-client' cli tool."""
+    journal_writer = get_journal_writer(
+        "kafka",
+        brokers=[kafka_server],
+        prefix=kafka_prefix,
+        client_id="test producer",
+        value_sanitizer=lambda object_type, value: value,
+        flush_timeout=3,  # fail early if something is going wrong
+    )
+
+    origin = Origin("http://example.org/repo.git")
+    storage.origin_add([origin])
+    raw_extrinsic_metadata = attr.evolve(REMD, target=origin.swhid())
+    raw_extrinsic_metadata = attr.evolve(
+        raw_extrinsic_metadata, id=raw_extrinsic_metadata.compute_hash()
+    )
+    journal_writer.write_additions("raw_extrinsic_metadata", [raw_extrinsic_metadata])
+
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config,
+            "journal-client",
+            indexer_name,
+            "--broker",
+            kafka_server,
+            "--prefix",
+            kafka_prefix,
+            "--group-id",
+            "test-consumer",
+            "--stop-after-objects",
+            1,
+        ],
+        catch_exceptions=False,
+    )
+
+    # Check the output
+    expected_output = "Done.\n"
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output
+
+    results = idx_storage.origin_extrinsic_metadata_get([origin.url])
+    expected_results = [
+        OriginExtrinsicMetadataRow(
+            id=origin.url,
+            from_remd_id=raw_extrinsic_metadata.id,
+            tool={"id": 1, **swh_indexer_config["tools"]},
+            mappings=["github"],
+            metadata={
+                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+                "type": "https://forgefed.org/ns#Repository",
+                "name": "test software",
+            },
+        )
     ]
     assert sorted(results, key=lambda r: r.id) == expected_results
