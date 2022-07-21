@@ -1,17 +1,33 @@
+# Copyright (C) 2017-2022  The Software Heritage developers
+# See the AUTHORS file at the top-level directory of this distribution
+# License: GNU General Public License version 3, or any later version
+# See top-level LICENSE file for more information
+
 import collections
+from typing import Dict, Type
 
 import click
 
-from . import cff, codemeta, maven, npm, python, ruby
+from . import cff, codemeta, composer, dart, github, maven, npm, python, ruby
+from .base import BaseExtrinsicMapping, BaseIntrinsicMapping, BaseMapping
 
-MAPPINGS = {
+INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {
+    "CffMapping": cff.CffMapping,
     "CodemetaMapping": codemeta.CodemetaMapping,
+    "GemspecMapping": ruby.GemspecMapping,
     "MavenMapping": maven.MavenMapping,
     "NpmMapping": npm.NpmMapping,
+    "PubMapping": dart.PubspecMapping,
     "PythonPkginfoMapping": python.PythonPkginfoMapping,
-    "GemspecMapping": ruby.GemspecMapping,
-    "CffMapping": cff.CffMapping,
+    "ComposerMapping": composer.ComposerMapping,
 }
+
+EXTRINSIC_MAPPINGS: Dict[str, Type[BaseExtrinsicMapping]] = {
+    "GitHubMapping": github.GitHubMapping,
+}
+
+
+MAPPINGS: Dict[str, Type[BaseMapping]] = {**INTRINSIC_MAPPINGS, **EXTRINSIC_MAPPINGS}
 
 
 def list_terms():

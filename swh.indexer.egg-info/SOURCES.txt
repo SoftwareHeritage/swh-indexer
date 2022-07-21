@@ -66,6 +66,8 @@ swh/indexer/origin_head.py
 swh/indexer/py.typed
 swh/indexer/rehash.py
 swh/indexer/tasks.py
+swh/indexer/data/composer.csv
+swh/indexer/data/pubspec.csv
 swh/indexer/data/codemeta/CITATION
 swh/indexer/data/codemeta/LICENSE
 swh/indexer/data/codemeta/codemeta.jsonld
@@ -74,6 +76,9 @@ swh/indexer/metadata_dictionary/__init__.py
 swh/indexer/metadata_dictionary/base.py
 swh/indexer/metadata_dictionary/cff.py
 swh/indexer/metadata_dictionary/codemeta.py
+swh/indexer/metadata_dictionary/composer.py
+swh/indexer/metadata_dictionary/dart.py
+swh/indexer/metadata_dictionary/github.py
 swh/indexer/metadata_dictionary/maven.py
 swh/indexer/metadata_dictionary/npm.py
 swh/indexer/metadata_dictionary/python.py
@@ -104,6 +109,7 @@ swh/indexer/sql/upgrades/131.sql
 swh/indexer/sql/upgrades/132.sql
 swh/indexer/sql/upgrades/133.sql
 swh/indexer/sql/upgrades/134.sql
+swh/indexer/sql/upgrades/135.sql
 swh/indexer/storage/__init__.py
 swh/indexer/storage/converters.py
 swh/indexer/storage/db.py
@@ -130,8 +136,17 @@ swh/indexer/tests/test_metadata.py
 swh/indexer/tests/test_mimetype.py
 swh/indexer/tests/test_origin_head.py
 swh/indexer/tests/test_origin_metadata.py
-swh/indexer/tests/test_tasks.py
 swh/indexer/tests/utils.py
+swh/indexer/tests/metadata_dictionary/__init__.py
+swh/indexer/tests/metadata_dictionary/test_cff.py
+swh/indexer/tests/metadata_dictionary/test_codemeta.py
+swh/indexer/tests/metadata_dictionary/test_composer.py
+swh/indexer/tests/metadata_dictionary/test_dart.py
+swh/indexer/tests/metadata_dictionary/test_github.py
+swh/indexer/tests/metadata_dictionary/test_maven.py
+swh/indexer/tests/metadata_dictionary/test_npm.py
+swh/indexer/tests/metadata_dictionary/test_python.py
+swh/indexer/tests/metadata_dictionary/test_ruby.py
 swh/indexer/tests/storage/__init__.py
 swh/indexer/tests/storage/conftest.py
 swh/indexer/tests/storage/generate_data_test.py
@@ -143,3 +158,6 @@ swh/indexer/tests/storage/test_metrics.py
 swh/indexer/tests/storage/test_model.py
 swh/indexer/tests/storage/test_server.py
 swh/indexer/tests/storage/test_storage.py
+swh/indexer/tests/zz_celery/README
+swh/indexer/tests/zz_celery/__init__.py
+swh/indexer/tests/zz_celery/test_tasks.py

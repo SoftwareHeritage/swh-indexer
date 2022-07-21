@@ -31,6 +31,7 @@ from .model import (
     ContentMetadataRow,
     ContentMimetypeRow,
     DirectoryIntrinsicMetadataRow,
+    OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
 from .writer import JournalWriter
@@ -122,7 +123,7 @@ def check_id_duplicates(data):
 class IndexerStorage:
     """SWH Indexer Storage Datastore"""
 
-    current_version = 134
+    current_version = 135
 
     def __init__(self, db, min_pool_conns=1, max_pool_conns=10, journal_writer=None):
         """
@@ -704,6 +705,52 @@ class IndexerStorage:
             "total": results.pop("total"),
             "non_empty": results.pop("non_empty"),
             "per_mapping": results,
+        }
+
+    @timed
+    @db_transaction()
+    def origin_extrinsic_metadata_get(
+        self, urls: Iterable[str], db=None, cur=None
+    ) -> List[OriginExtrinsicMetadataRow]:
+        return [
+            OriginExtrinsicMetadataRow.from_dict(
+                converters.db_to_metadata(
+                    dict(zip(db.origin_extrinsic_metadata_cols, c))
+                )
+            )
+            for c in db.origin_extrinsic_metadata_get_from_list(urls, cur)
+        ]
+
+    @timed
+    @process_metrics
+    @db_transaction()
+    def origin_extrinsic_metadata_add(
+        self,
+        metadata: List[OriginExtrinsicMetadataRow],
+        db=None,
+        cur=None,
+    ) -> Dict[str, int]:
+        check_id_duplicates(metadata)
+        metadata.sort(key=lambda m: m.id)
+        self.journal_writer.write_additions("origin_extrinsic_metadata", metadata)
+
+        db.mktemp_origin_extrinsic_metadata(cur)
+
+        db.copy_to(
+            [m.to_dict() for m in metadata],
+            "tmp_origin_extrinsic_metadata",
+            [
+                "id",
+                "metadata",
+                "indexer_configuration_id",
+                "from_remd_id",
+                "mappings",
+            ],
+            cur,
+        )
+        count = db.origin_extrinsic_metadata_add_from_temp(cur)
+        return {
+            "origin_extrinsic_metadata:add": count,
         }
 
     @timed

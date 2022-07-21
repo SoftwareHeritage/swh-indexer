@@ -9,7 +9,7 @@ import itertools
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import DictMapping, SingleFileMapping
+from .base import DictMapping, SingleFileIntrinsicMapping
 
 _normalize_pkginfo_key = str.lower
 
@@ -22,7 +22,7 @@ class LinebreakPreservingEmailPolicy(email.policy.EmailPolicy):
         return self.header_factory(name, value)
 
 
-class PythonPkginfoMapping(DictMapping, SingleFileMapping):
+class PythonPkginfoMapping(DictMapping, SingleFileIntrinsicMapping):
     """Dedicated class for Python's PKG-INFO mapping and translation.
 
     https://www.python.org/dev/peps/pep-0314/"""

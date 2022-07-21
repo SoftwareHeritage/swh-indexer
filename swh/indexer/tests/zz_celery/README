@@ -1,0 +1,2 @@
+this directory is named "zz_celery" so pytest runs it last, to prevent
+Celery-related fixtures from interfering with other tests

@@ -16,6 +16,7 @@ from swh.indexer.storage.model import (
     ContentMetadataRow,
     ContentMimetypeRow,
     DirectoryIntrinsicMetadataRow,
+    OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
 
@@ -476,6 +477,34 @@ class IndexerStorageInterface(Protocol):
                   keys and number of origins whose indexing used this
                   mapping. Note that indexing a given origin may use
                   0, 1, or many mappings.
+        """
+        ...
+
+    @remote_api_endpoint("origin_extrinsic_metadata")
+    def origin_extrinsic_metadata_get(
+        self, urls: Iterable[str]
+    ) -> List[OriginExtrinsicMetadataRow]:
+        """Retrieve origin metadata per id.
+
+        Args:
+            urls (iterable): origin URLs
+
+        Returns: list of OriginExtrinsicMetadataRow
+        """
+        ...
+
+    @remote_api_endpoint("origin_extrinsic_metadata/add")
+    def origin_extrinsic_metadata_add(
+        self, metadata: List[OriginExtrinsicMetadataRow]
+    ) -> Dict[str, int]:
+        """Add origin metadata not present in storage.
+
+        Args:
+            metadata: list of OriginExtrinsicMetadataRow objects
+
+        Returns:
+            Dict summary of number of rows added
+
         """
         ...
 

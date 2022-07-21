@@ -12,13 +12,13 @@ multiple indexers, which coordinate with each other and save their results
 at each step in the indexer storage.
 
 Indexer architecture
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 .. thumbnail:: images/tasks-metadata-indexers.svg
 
 
 Origin-Head Indexer
-___________________
+^^^^^^^^^^^^^^^^^^^
 
 First, the Origin-Head indexer gets called externally, with an origin as
 argument (or multiple origins, that are handled sequentially).
@@ -30,14 +30,14 @@ branch of origin is (the "Head branch") and what revision it points to
 (the "Head").
 Intrinsic metadata for that origin will be extracted from that revision.
 
-It schedules a Revision Metadata Indexer task for that revision, with a
-hint that the revision is the Head of that particular origin.
+It schedules a Directory Metadata Indexer task for the root directory of
+that revision.
 
 
-Revision and Content Metadata Indexers
-______________________________________
+Directory and Content Metadata Indexers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-These two indexers do the hard part of the work. The Revision Metadata
+These two indexers do the hard part of the work. The Directory Metadata
 Indexer fetches the root directory associated with a revision, then extracts
 the metadata from that directory.
 
@@ -48,30 +48,27 @@ contents and runs them through extraction dictionaries/mappings.
 See below for details.
 
 Their results are saved in a database (the indexer storage), associated with
-the content and revision hashes.
-
-If it received a hint that this revision is the head of an origin, the
-Revision Metadata Indexer then schedules the Origin Metadata Indexer
-to run on that origin.
+the content and directory hashes.
 
 
 Origin Metadata Indexer
-_______________________
+^^^^^^^^^^^^^^^^^^^^^^^
 
 The job of this indexer is very simple: it takes an origin identifier and
-a revision hash, and copies the metadata of the former to a new table, to
-associate it with the latter.
+uses the Origin-Head and Directory indexers to get metadata from the head
+directory of an origin, and copies the metadata of the former to a new table,
+to associate it with the latter.
 
 The reason for this is to be able to perform searches on metadata, and
 efficiently find out which origins matched the pattern.
-Running that search on the ``revision_metadata`` table would require either
-a reverse lookup from revisions to origins, which is costly.
+Running that search on the ``directory_metadata`` table would require either
+a reverse lookup from directories to origins, which is costly.
 
 
-Translation from language-specific metadata to CodeMeta
--------------------------------------------------------
+Translation from ecosystem-specific metadata to CodeMeta
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Intrinsic metadata are extracted from files provided with a project's source
+Intrinsic metadata is extracted from files provided with a project's source
 code, and translated using `CodeMeta`_'s `crosswalk table`_.
 
 All input formats supported so far are straightforward dictionaries (eg. JSON)
@@ -92,8 +89,52 @@ This normalization makes up for most of the code of
 .. _CSV file: https://github.com/codemeta/codemeta/blob/master/crosswalk.csv
 
 
+Extrinsic metadata
+------------------
+
+The :term:`extrinsic metadata` indexer works very differently from
+the :term:`intrinsic metadata` indexers we saw above.
+While the latter extract metadata from software artefacts (files and directories)
+which are already a core part of the archive, the former extracts such data from
+API calls pulled from forges and package managers, or pushed via the
+:ref:`SWORD deposit <swh-deposit>`.
+
+In order to preserve original information verbatim, the Software Heritage itself
+stores the result of these calls, independently of indexers, in their own archive
+as described in the :ref:`extrinsic-metadata-specification`.
+In this section, we assume this information is already present in the archive,
+but in the "raw extrinsic metadata" form, which needs to be translated to a common
+vocabulary to be useful, as with intrinsic metadata.
+
+The common vocabulary we chose is JSON-LD, with both CodeMeta and
+`ForgeFed's vocabulary`_ (including `ActivityStream's vocabulary`_)
+
+.. _ForgeFed's vocabulary: https://forgefed.org/vocabulary.html
+.. _ActivityStream's vocabulary: https://www.w3.org/TR/activitystreams-vocabulary/
+
+Instead of the four-step architecture above, the extrinsic-metadata indexer
+is standalone: it reads "raw extrinsic metadata" from the :ref:`swh-journal`,
+and produces new indexed entries in the database as they come.
+
+The caveat is that, while intrinsic metadata are always unambiguously authoritative
+(they are contained by their own origin repository, therefore they were added by
+the origin's "owners"), extrinsic metadata can be authored by third-parties.
+Support for third-party authorities is currently not implemented for this reason;
+so extrinsic metadata is only indexed when provided by the same
+forge/package-repository as the origin the metadata is about.
+Metadata on non-origin objects (typically, directories), is also ignored for
+this reason, for now.
+
+Assuming the metadata was provided by such an authority, it is then passed
+to metadata mappings; identified by a mimetype (or custom format name)
+they declared rather than filenames.
+
+
+Implementation status
+---------------------
+
 Supported intrinsic metadata
-----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following sources of intrinsic metadata are supported:
 
@@ -109,9 +150,17 @@ The following sources of intrinsic metadata are supported:
 .. _PKG-INFO: https://www.python.org/dev/peps/pep-0314/
 .. _.gemspec: https://guides.rubygems.org/specification-reference/
 
+Supported extrinsic metadata
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following sources of extrinsic metadata are supported:
+
+* GitHub's `"repo" API <https://docs.github.com/en/rest/repos/repos#get-a-repository>`__
+
+
 
 Supported CodeMeta terms
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following terms may be found in the output of the metadata translation
 (other than the `codemeta` mapping, which is the identity function, and
@@ -121,8 +170,18 @@ therefore supports all terms):
     :nostderr:
 
 
-Adding support for additional ecosystem-specific metadata
----------------------------------------------------------
+
+
+Tutorials
+---------
+
+The rest of this page is made of two tutorials: one to index
+:term:`intrinsic metadata` (ie. from a file in a VCS or in a tarball),
+and one to index :term:`extrinsic metadata` (ie. obtained via external means,
+such as GitHub's or GitLab's APIs).
+
+Adding support for additional ecosystem-specific intrinsic metadata
+-------------------------------------------------------------------
 
 This section will guide you through adding code to the metadata indexer to
 detect and translate new metadata formats.
@@ -134,16 +193,18 @@ classes, with some documentation about your indexer:
 
 .. code-block:: python
 
-	from .base import DictMapping, SingleFileMapping
+	from .base import DictMapping, SingleFileIntrinsicMapping
 	from swh.indexer.codemeta import CROSSWALK_TABLE
 
-	class MyMapping(DictMapping, SingleFileMapping):
+	class MyMapping(DictMapping, SingleFileIntrinsicMapping):
 		"""Dedicated class for ..."""
 		name = 'my-mapping'
 		filename = b'the-filename'
 		mapping = CROSSWALK_TABLE['Name of the CodeMeta crosswalk']
 
 .. _CodeMeta crosswalks: https://github.com/codemeta/codemeta/tree/master/crosswalks
+
+And reference it from :const:`swh.indexer.metadata_dictionary.INTRINSIC_MAPPINGS`.
 
 Then, add a ``string_fields`` attribute, that is the list of all keys whose
 values are simple text values. For instance, to
@@ -206,3 +267,8 @@ like this:
 
 This method will automatically get called by ``_translate_dict`` when it
 finds a ``license`` field in ``content_dict``.
+
+Adding support for additional ecosystem-specific extrinsic metadata
+-------------------------------------------------------------------
+
+[this section is a work in progress]
