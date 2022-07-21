@@ -228,7 +228,7 @@ class TestMetadata:
                     "name": "test software",
                 },
                 from_remd_id=REMD.id,
-                mappings=["GitHubMapping"],
+                mappings=["github"],
             )
         ]
 
