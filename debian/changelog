@@ -1,3 +1,17 @@
+swh-indexer (2.1.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.1.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-07-21 10:23:44 +0200)
+  * Upstream changes:     - v2.1.0     - * DirectoryIndexer: Remove
+    incorrect assumption on object types     - * docs: Explain the
+    indexation workflow for extrinsic metadata     - * docs: Update
+    description of the metadata workflow     - * metadata_dictionary:
+    Add mappings for pubspec.yaml     - * Add extrinsic metadata indexer
+    - * Add GitHub metadata mapping     - * Refactor Mapping hierarchy
+    - * cff: Add checks for value types
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 21 Jul 2022 08:32:23 +0000
+
 swh-indexer (2.0.2-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.0.2     - (tagged by Valentin Lorentz
