@@ -1,23 +1,49 @@
-# Copyright (C) 2017-2019  The Software Heritage developers
+# Copyright (C) 2017-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+
+from typing_extensions import TypedDict
+import yaml
 
 from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
+from swh.indexer.storage.interface import Sha1
+
+
+class DirectoryLsEntry(TypedDict):
+    target: Sha1
+    sha1: Sha1
+    name: bytes
+    type: str
+
+
+TTranslateCallable = TypeVar(
+    "TTranslateCallable", bound=Callable[[Any, Dict[str, Any], Any], None]
+)
+
+
+def produce_terms(
+    namespace: str, terms: List[str]
+) -> Callable[[TTranslateCallable], TTranslateCallable]:
+    """Returns a decorator that marks the decorated function as adding
+    the given terms to the ``translated_metadata`` dict"""
+
+    def decorator(f: TTranslateCallable) -> TTranslateCallable:
+        if not hasattr(f, "produced_terms"):
+            f.produced_terms = []  # type: ignore
+        f.produced_terms.extend(namespace + term for term in terms)  # type: ignore
+        return f
+
+    return decorator
 
 
 class BaseMapping:
-    """Base class for mappings to inherit from
-
-    To implement a new mapping:
-
-    - inherit this class
-    - override translate function
-    """
+    """Base class for :class:`BaseExtrinsicMapping` and :class:`BaseIntrinsicMapping`,
+    not to be inherited directly."""
 
     def __init__(self, log_suffix=""):
         self.log_suffix = log_suffix
@@ -31,28 +57,58 @@ class BaseMapping:
         indexer storage."""
         raise NotImplementedError(f"{self.__class__.__name__}.name")
 
-    @classmethod
-    def detect_metadata_files(cls, files: List[Dict[str, str]]) -> List[str]:
-        """
-        Detects files potentially containing metadata
-
-        Args:
-            file_entries (list): list of files
-
-        Returns:
-            list: list of sha1 (possibly empty)
-        """
-        raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
-
     def translate(self, file_content: bytes) -> Optional[Dict]:
+        """Translates metadata, from the content of a file or of a RawExtrinsicMetadata
+        object."""
         raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
     def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        return compact(metadata)
+        raise NotImplementedError(f"{self.__class__.__name__}.normalize_translation")
 
 
-class SingleFileMapping(BaseMapping):
-    """Base class for all mappings that use a single file as input."""
+class BaseExtrinsicMapping(BaseMapping):
+    """Base class for extrinsic-metadata mappings to inherit from
+
+    To implement a new mapping:
+
+    - inherit this class
+    - override translate function
+    """
+
+    @classmethod
+    def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
+        """
+        Returns the list of extrinsic metadata formats which can be translated
+        by this mapping
+        """
+        raise NotImplementedError(f"{cls.__name__}.extrinsic_metadata_formats")
+
+    def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        return compact(metadata, forgefed=True)
+
+
+class BaseIntrinsicMapping(BaseMapping):
+    """Base class for intrinsic-metadata mappings to inherit from
+
+    To implement a new mapping:
+
+    - inherit this class
+    - override translate function
+    """
+
+    @classmethod
+    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
+        """
+        Returns the sha1 hashes of files which can be translated by this mapping
+        """
+        raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
+
+    def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        return compact(metadata, forgefed=False)
+
+
+class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
+    """Base class for all intrinsic metadata mappings that use a single file as input."""
 
     @property
     def filename(self):
@@ -60,7 +116,7 @@ class SingleFileMapping(BaseMapping):
         raise NotImplementedError(f"{self.__class__.__name__}.filename")
 
     @classmethod
-    def detect_metadata_files(cls, file_entries: List[Dict[str, str]]) -> List[str]:
+    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
         for entry in file_entries:
             if entry["name"].lower() == cls.filename:
                 return [entry["sha1"]]
@@ -86,13 +142,23 @@ class DictMapping(BaseMapping):
 
     @classmethod
     def supported_terms(cls):
-        return {
+        # one-to-one mapping from the original key to a CodeMeta term
+        simple_terms = {
             term
             for (key, term) in cls.mapping.items()
             if key in cls.string_fields
-            or hasattr(cls, "translate_" + cls._normalize_method_name(key))
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
         }
+
+        # more complex mapping from the original key to JSON-LD
+        complex_terms = {
+            term
+            for meth_name in dir(cls)
+            if meth_name.startswith("translate_")
+            for term in getattr(getattr(cls, meth_name), "produced_terms", [])
+        }
+
+        return simple_terms | complex_terms
 
     def _translate_dict(
         self, content_dict: Dict, *, normalize: bool = True
@@ -143,14 +209,15 @@ class DictMapping(BaseMapping):
                     )
                 else:
                     translated_metadata[codemeta_key] = v
+
         if normalize:
             return self.normalize_translation(translated_metadata)
         else:
             return translated_metadata
 
 
-class JsonMapping(DictMapping, SingleFileMapping):
-    """Base class for all mappings that use a JSON file as input."""
+class JsonMapping(DictMapping):
+    """Base class for all mappings that use JSON data as input."""
 
     def translate(self, raw_content: bytes) -> Optional[Dict]:
         """
@@ -177,4 +244,27 @@ class JsonMapping(DictMapping, SingleFileMapping):
             return None
         if isinstance(content_dict, dict):
             return self._translate_dict(content_dict)
+        return None
+
+
+class SafeLoader(yaml.SafeLoader):
+    yaml_implicit_resolvers = {
+        k: [r for r in v if r[0] != "tag:yaml.org,2002:timestamp"]
+        for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()
+    }
+
+
+class YamlMapping(DictMapping, SingleFileIntrinsicMapping):
+    """Base class for all mappings that use Yaml data as input."""
+
+    def translate(self, raw_content: bytes) -> Optional[Dict[str, str]]:
+        raw_content_string: str = raw_content.decode()
+        try:
+            content_dict = yaml.load(raw_content_string, Loader=SafeLoader)
+        except yaml.scanner.ScannerError:
+            return None
+
+        if isinstance(content_dict, dict):
+            return self._translate_dict(content_dict)
+
         return None

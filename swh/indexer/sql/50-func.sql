@@ -338,30 +338,6 @@ as $$
     alter table tmp_indexer_configuration drop column if exists id;
 $$;
 
-
--- add tmp_indexer_configuration entries to indexer_configuration,
--- overwriting duplicates if any.
---
--- operates in bulk: 0. create temporary tmp_indexer_configuration, 1. COPY to
--- it, 2. call this function to insert and filtering out duplicates
-create or replace function swh_indexer_configuration_add()
-    returns setof indexer_configuration
-    language plpgsql
-as $$
-begin
-      insert into indexer_configuration(tool_name, tool_version, tool_configuration)
-      select tool_name, tool_version, tool_configuration from tmp_indexer_configuration tmp
-      on conflict(tool_name, tool_version, tool_configuration) do nothing;
-
-      return query
-          select id, tool_name, tool_version, tool_configuration
-          from tmp_indexer_configuration join indexer_configuration
-              using(tool_name, tool_version, tool_configuration);
-
-      return;
-end
-$$;
-
 -- add tmp_origin_intrinsic_metadata entries to origin_intrinsic_metadata,
 -- overwriting duplicates.
 --
@@ -410,5 +386,102 @@ as $$
 begin
     update tmp_origin_intrinsic_metadata
         set metadata_tsvector = to_tsvector('pg_catalog.simple', metadata);
+end
+$$;
+
+-- create a temporary table for retrieving origin_extrinsic_metadata
+create or replace function swh_mktemp_origin_extrinsic_metadata()
+    returns void
+    language sql
+as $$
+  create temporary table if not exists tmp_origin_extrinsic_metadata (
+    like origin_extrinsic_metadata including defaults
+  ) on commit delete rows;
+$$;
+
+comment on function swh_mktemp_origin_extrinsic_metadata() is 'Helper table to add origin extrinsic metadata';
+
+create or replace function swh_mktemp_indexer_configuration()
+    returns void
+    language sql
+as $$
+    create temporary table if not exists tmp_indexer_configuration (
+      like indexer_configuration including defaults
+    ) on commit delete rows;
+    alter table tmp_indexer_configuration drop column if exists id;
+$$;
+
+-- add tmp_origin_extrinsic_metadata entries to origin_extrinsic_metadata,
+-- overwriting duplicates.
+--
+-- If filtering duplicates is in order, the call to
+-- swh_origin_extrinsic_metadata_missing must take place before calling this
+-- function.
+--
+-- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
+-- tmp_origin_extrinsic_metadata, 2. call this function
+create or replace function swh_origin_extrinsic_metadata_add()
+    returns bigint
+    language plpgsql
+as $$
+declare
+  res bigint;
+begin
+    perform swh_origin_extrinsic_metadata_compute_tsvector();
+
+    insert into origin_extrinsic_metadata (id, metadata, indexer_configuration_id, from_remd_id, metadata_tsvector, mappings)
+    select id, metadata, indexer_configuration_id, from_remd_id,
+           metadata_tsvector, mappings
+    from tmp_origin_extrinsic_metadata
+    on conflict(id, indexer_configuration_id)
+    do update set
+        metadata = excluded.metadata,
+        metadata_tsvector = excluded.metadata_tsvector,
+        mappings = excluded.mappings,
+        from_remd_id = excluded.from_remd_id;
+
+    get diagnostics res = ROW_COUNT;
+    return res;
+end
+$$;
+
+comment on function swh_origin_extrinsic_metadata_add() IS 'Add new origin extrinsic metadata';
+
+
+-- Compute the metadata_tsvector column in tmp_origin_extrinsic_metadata.
+--
+-- It uses the "pg_catalog.simple" dictionary, as it has no stopword,
+-- so it should be suitable for proper names and non-English text.
+create or replace function swh_origin_extrinsic_metadata_compute_tsvector()
+    returns void
+    language plpgsql
+as $$
+begin
+    update tmp_origin_extrinsic_metadata
+        set metadata_tsvector = to_tsvector('pg_catalog.simple', metadata);
+end
+$$;
+
+
+-- add tmp_indexer_configuration entries to indexer_configuration,
+-- overwriting duplicates if any.
+--
+-- operates in bulk: 0. create temporary tmp_indexer_configuration, 1. COPY to
+-- it, 2. call this function to insert and filtering out duplicates
+create or replace function swh_indexer_configuration_add()
+    returns setof indexer_configuration
+    language plpgsql
+as $$
+begin
+      insert into indexer_configuration(tool_name, tool_version, tool_configuration)
+      select tool_name, tool_version, tool_configuration from tmp_indexer_configuration tmp
+      on conflict(tool_name, tool_version, tool_configuration) do nothing;
+
+      return query
+          select id, tool_name, tool_version, tool_configuration
+          from tmp_indexer_configuration join indexer_configuration
+              using(tool_name, tool_version, tool_configuration);
+
+      return;
 end
 $$;

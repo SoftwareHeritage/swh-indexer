@@ -44,6 +44,7 @@ class ObjectsDict(TypedDict, total=False):
     directory: List[Dict]
     origin: List[Dict]
     origin_visit_status: List[Dict]
+    raw_extrinsic_metadata: List[Dict]
 
 
 @contextmanager
@@ -540,8 +541,7 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
         return self.process_journal_objects({"origin": origins})
 
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
-        """Worker function for ``JournalClient``. Expects ``objects`` to have a single
-        key, either ``origin`` or ``"origin_visit_status"``."""
+        """Worker function for ``JournalClient``."""
         origins = [
             Origin(url=status["origin"])
             for status in objects.get("origin_visit_status", [])
@@ -620,11 +620,12 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
         return self._process_directories([(dir_id, None) for dir_id in directory_ids])
 
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
-        """Worker function for ``JournalClient``. Expects ``objects`` to have a single
-        key, ``"directory"``."""
-        assert set(objects) == {"directory"}
+        """Worker function for ``JournalClient``."""
         return self._process_directories(
-            [(dir_["id"], Directory.from_dict(dir_)) for dir_ in objects["directory"]]
+            [
+                (dir_["id"], Directory.from_dict(dir_))
+                for dir_ in objects.get("directory", [])
+            ]
         )
 
     def _process_directories(

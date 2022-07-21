@@ -117,9 +117,7 @@ def obj_storage(swh_indexer_config):
     """
     objstorage = get_objstorage(**swh_indexer_config["objstorage"])
     fill_obj_storage(objstorage)
-    with patch.dict(
-        "swh.objstorage.factory._STORAGE_CLASSES", {"memory": lambda: objstorage}
-    ):
+    with patch("swh.indexer.indexer.get_objstorage", return_value=objstorage):
         yield objstorage
 
 

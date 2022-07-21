@@ -11,10 +11,10 @@ import xmltodict
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
-from .base import DictMapping, SingleFileMapping
+from .base import DictMapping, SingleFileIntrinsicMapping
 
 
-class MavenMapping(DictMapping, SingleFileMapping):
+class MavenMapping(DictMapping, SingleFileIntrinsicMapping):
     """
     dedicated class for Maven (pom.xml) mapping and translation
     """

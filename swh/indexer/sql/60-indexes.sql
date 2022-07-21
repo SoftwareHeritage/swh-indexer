@@ -67,3 +67,13 @@ alter table origin_intrinsic_metadata validate constraint origin_intrinsic_metad
 
 create index origin_intrinsic_metadata_fulltext_idx on origin_intrinsic_metadata using gin (metadata_tsvector);
 create index origin_intrinsic_metadata_mappings_idx on origin_intrinsic_metadata using gin (mappings);
+
+-- origin_extrinsic_metadata
+create unique index origin_extrinsic_metadata_pkey on origin_extrinsic_metadata(id, indexer_configuration_id);
+alter table origin_extrinsic_metadata add primary key using index origin_extrinsic_metadata_pkey;
+
+alter table origin_extrinsic_metadata add constraint origin_extrinsic_metadata_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
+alter table origin_extrinsic_metadata validate constraint origin_extrinsic_metadata_indexer_configuration_id_fkey;
+
+create index origin_extrinsic_metadata_fulltext_idx on origin_extrinsic_metadata using gin (metadata_tsvector);
+create index origin_extrinsic_metadata_mappings_idx on origin_extrinsic_metadata using gin (mappings);

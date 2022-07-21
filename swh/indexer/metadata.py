@@ -14,28 +14,38 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
+    cast,
 )
+from urllib.parse import urlparse
 
 import sentry_sdk
 
 from swh.core.config import merge_configs
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
-from swh.indexer.indexer import ContentIndexer, DirectoryIndexer, OriginIndexer
+from swh.indexer.indexer import (
+    BaseIndexer,
+    ContentIndexer,
+    DirectoryIndexer,
+    ObjectsDict,
+    OriginIndexer,
+)
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import EXTRINSIC_MAPPINGS, INTRINSIC_MAPPINGS
+from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
 from swh.indexer.origin_head import get_head_swhid
 from swh.indexer.storage import INDEXER_CFG_KEY, Sha1
 from swh.indexer.storage.model import (
     ContentMetadataRow,
     DirectoryIntrinsicMetadataRow,
+    OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
 from swh.model import hashutil
-from swh.model.model import Directory
+from swh.model.model import Directory, MetadataAuthorityType
 from swh.model.model import ObjectType as ModelObjectType
-from swh.model.model import Origin, Sha1Git
-from swh.model.swhids import CoreSWHID, ObjectType
+from swh.model.model import Origin, RawExtrinsicMetadata, Sha1Git
+from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
 
 REVISION_GET_BATCH_SIZE = 10
 RELEASE_GET_BATCH_SIZE = 10
@@ -55,6 +65,99 @@ def call_with_batches(
     groups = grouper(args, batch_size)
     for group in groups:
         yield from f(list(group))
+
+
+class ExtrinsicMetadataIndexer(
+    BaseIndexer[Sha1Git, RawExtrinsicMetadata, OriginExtrinsicMetadataRow]
+):
+    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
+        summary: Dict[str, Any] = {"status": "uneventful"}
+        try:
+            results = []
+            for item in objects.get("raw_extrinsic_metadata", []):
+                results.extend(
+                    self.index(item["id"], data=RawExtrinsicMetadata.from_dict(item))
+                )
+        except Exception:
+            if not self.catch_exceptions:
+                raise
+            summary["status"] = "failed"
+            return summary
+
+        summary_persist = self.persist_index_computations(results)
+        self.results = results
+        if summary_persist:
+            for value in summary_persist.values():
+                if value > 0:
+                    summary["status"] = "eventful"
+            summary.update(summary_persist)
+        return summary
+
+    def index(
+        self,
+        id: Sha1Git,
+        data: Optional[RawExtrinsicMetadata],
+        **kwargs,
+    ) -> List[OriginExtrinsicMetadataRow]:
+        if data is None:
+            raise NotImplementedError(
+                "ExtrinsicMetadataIndexer.index() without RawExtrinsicMetadata data"
+            )
+        if data.target.object_type != ExtendedObjectType.ORIGIN:
+            # other types are not supported yet
+            return []
+
+        if data.authority.type != MetadataAuthorityType.FORGE:
+            # metadata provided by a third-party; don't trust it
+            # (technically this could be handled below, but we check it here
+            # to return early; sparing a translation and origin lookup)
+            # TODO: add ways to define trusted authorities
+            return []
+
+        metadata_items = []
+        mappings = []
+        for (mapping_name, mapping) in EXTRINSIC_MAPPINGS.items():
+            if data.format in mapping.extrinsic_metadata_formats():
+                metadata_item = mapping().translate(data.metadata)
+                if metadata_item is not None:
+                    metadata_items.append(metadata_item)
+                    mappings.append(mapping_name)
+
+        if not metadata_items:
+            # Don't have any mapping to parse it, ignore
+            return []
+
+        # TODO: batch requests to origin_get_by_sha1()
+        origins = self.storage.origin_get_by_sha1([data.target.object_id])
+        try:
+            (origin,) = origins
+            if origin is None:
+                raise ValueError()
+        except ValueError:
+            raise ValueError(f"Unknown origin {data.target}") from None
+
+        if urlparse(data.authority.url).netloc != urlparse(origin["url"]).netloc:
+            # metadata provided by a third-party; don't trust it
+            # TODO: add ways to define trusted authorities
+            return []
+
+        metadata = merge_documents(metadata_items)
+
+        return [
+            OriginExtrinsicMetadataRow(
+                id=origin["url"],
+                indexer_configuration_id=self.tool["id"],
+                from_remd_id=data.id,
+                mappings=mappings,
+                metadata=metadata,
+            )
+        ]
+
+    def persist_index_computations(
+        self, results: List[OriginExtrinsicMetadataRow]
+    ) -> Dict[str, int]:
+        """Persist the results in storage."""
+        return self.idx_storage.origin_extrinsic_metadata_add(results)
 
 
 class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
@@ -107,7 +210,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
             log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id)
-            metadata = MAPPINGS[mapping_name](log_suffix).translate(data)
+            metadata = INTRINSIC_MAPPINGS[mapping_name](log_suffix).translate(data)
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
@@ -127,15 +230,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
     def persist_index_computations(
         self, results: List[ContentMetadataRow]
     ) -> Dict[str, int]:
-        """Persist the results in storage.
-
-        Args:
-            results: list of content_metadata, dict with the
-              following keys:
-              - id (bytes): content's identifier (sha1)
-              - metadata (jsonb): detected metadata
-
-        """
+        """Persist the results in storage."""
         return self.idx_storage.content_metadata_add(results)
 
 
@@ -184,14 +279,12 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
     ) -> List[DirectoryIntrinsicMetadataRow]:
         """Index directory by processing it and organizing result.
 
-        use metadata_detector to iterate on filenames
-
-        - if one filename detected -> sends file to content indexer
-        - if multiple file detected -> translation needed at directory level
+        use metadata_detector to iterate on filenames, passes them to the content
+        indexers, then merges (if more than one)
 
         Args:
           id: sha1_git of the directory
-          data: directory model object from storage
+          data: should always be None
 
         Returns:
             dict: dictionary representing a directory_intrinsic_metadata, with
@@ -202,27 +295,31 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             - metadata: dict of retrieved metadata
 
         """
-        if data is None:
-            dir_ = list(self.storage.directory_ls(id, recursive=False))
-        else:
-            assert isinstance(data, Directory)
-            dir_ = data.to_dict()
+        dir_: List[DirectoryLsEntry]
+        assert data is None, "Unexpected directory object"
+        dir_ = cast(
+            List[DirectoryLsEntry],
+            list(self.storage.directory_ls(id, recursive=False)),
+        )
 
         try:
             if [entry["type"] for entry in dir_] == ["dir"]:
                 # If the root is just a single directory, recurse into it
                 # eg. PyPI packages, GNU tarballs
                 subdir = dir_[0]["target"]
-                dir_ = list(self.storage.directory_ls(subdir, recursive=False))
+                dir_ = cast(
+                    List[DirectoryLsEntry],
+                    list(self.storage.directory_ls(subdir, recursive=False)),
+                )
             files = [entry for entry in dir_ if entry["type"] == "file"]
-            detected_files = detect_metadata(files)
             (mappings, metadata) = self.translate_directory_intrinsic_metadata(
-                detected_files,
+                files,
                 log_suffix="directory=%s" % hashutil.hash_to_hex(id),
             )
         except Exception as e:
             self.log.exception("Problem when indexing dir: %r", e)
             sentry_sdk.capture_exception()
+            return []
         return [
             DirectoryIntrinsicMetadataRow(
                 id=id,
@@ -235,37 +332,26 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
     def persist_index_computations(
         self, results: List[DirectoryIntrinsicMetadataRow]
     ) -> Dict[str, int]:
-        """Persist the results in storage.
-
-        Args:
-            results: list of content_mimetype, dict with the
-              following keys:
-              - id (bytes): content's identifier (sha1)
-              - mimetype (bytes): mimetype in bytes
-              - encoding (bytes): encoding in bytes
-
-        """
+        """Persist the results in storage."""
         # TODO: add functions in storage to keep data in
         # directory_intrinsic_metadata
         return self.idx_storage.directory_intrinsic_metadata_add(results)
 
     def translate_directory_intrinsic_metadata(
-        self, detected_files: Dict[str, List[Any]], log_suffix: str
+        self, files: List[DirectoryLsEntry], log_suffix: str
     ) -> Tuple[List[Any], Any]:
         """
-        Determine plan of action to translate metadata when containing
-        one or multiple detected files:
+        Determine plan of action to translate metadata in the given root directory
 
         Args:
-            detected_files: dictionary mapping context names (e.g.,
-              "npm", "authors") to list of sha1
+            files: list of file entries, as returned by
+              :meth:`swh.storage.interface.StorageInterface.directory_ls`
 
         Returns:
             (List[str], dict): list of mappings used and dict with
             translated metadata according to the CodeMeta vocabulary
 
         """
-        used_mappings = [MAPPINGS[context].name for context in detected_files]
         metadata = []
         tool = {
             "name": "swh-metadata-translator",
@@ -277,15 +363,17 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         # -> translate each content
         config = {k: self.config[k] for k in [INDEXER_CFG_KEY, "objstorage", "storage"]}
         config["tools"] = [tool]
-        for context in detected_files.keys():
+        all_detected_files = detect_metadata(files)
+        used_mappings = [
+            INTRINSIC_MAPPINGS[context].name for context in all_detected_files
+        ]
+        for (mapping_name, detected_files) in all_detected_files.items():
             cfg = deepcopy(config)
-            cfg["tools"][0]["configuration"]["context"] = context
+            cfg["tools"][0]["configuration"]["context"] = mapping_name
             c_metadata_indexer = ContentMetadataIndexer(config=cfg)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
-            metadata_generator = self.idx_storage.content_metadata_get(
-                detected_files[context]
-            )
+            metadata_generator = self.idx_storage.content_metadata_get(detected_files)
             for c in metadata_generator:
                 # extracting metadata
                 sha1 = c.id
@@ -296,7 +384,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                     metadata.append(local_metadata)
 
             sha1s_filtered = [
-                item for item in detected_files[context] if item not in sha1s_in_storage
+                item for item in detected_files if item not in sha1s_in_storage
             ]
 
             if sha1s_filtered:

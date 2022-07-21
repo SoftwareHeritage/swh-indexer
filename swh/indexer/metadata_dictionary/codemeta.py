@@ -8,10 +8,10 @@ from typing import Any, Dict, List, Optional
 
 from swh.indexer.codemeta import CODEMETA_TERMS, expand
 
-from .base import SingleFileMapping
+from .base import SingleFileIntrinsicMapping
 
 
-class CodemetaMapping(SingleFileMapping):
+class CodemetaMapping(SingleFileIntrinsicMapping):
     """
     dedicated class for CodeMeta (codemeta.json) mapping and translation
     """
