@@ -20,6 +20,7 @@ from swh.indexer.storage.model import (
     ContentMetadataRow,
     ContentMimetypeRow,
     DirectoryIntrinsicMetadataRow,
+    OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
 from swh.model.hashutil import hash_to_bytes
@@ -1710,6 +1711,253 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "total": 3,
             "non_empty": 2,
         }
+
+
+class TestIndexerStorageOriginExtrinsicMetadata:
+    def test_origin_extrinsic_metadata_add(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        storage, data = swh_indexer_storage_with_data
+        # given
+        tool_id = data.tools["swh-metadata-detector"]["id"]
+
+        metadata = {
+            "version": None,
+            "name": None,
+        }
+        metadata_origin = OriginExtrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_remd_id=b"\x02" * 20,
+        )
+
+        # when
+        storage.origin_extrinsic_metadata_add([metadata_origin])
+
+        # then
+        actual_metadata = list(
+            storage.origin_extrinsic_metadata_get([data.origin_url_1, "no://where"])
+        )
+
+        expected_metadata = [
+            OriginExtrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata,
+                tool=data.tools["swh-metadata-detector"],
+                from_remd_id=b"\x02" * 20,
+                mappings=["mapping1"],
+            )
+        ]
+
+        assert actual_metadata == expected_metadata
+
+        journal_objects = storage.journal_writer.journal.objects  # type: ignore
+        actual_journal_metadata = [
+            obj
+            for (obj_type, obj) in journal_objects
+            if obj_type == "origin_extrinsic_metadata"
+        ]
+        assert list(sorted(actual_journal_metadata)) == list(sorted(expected_metadata))
+
+    def test_origin_extrinsic_metadata_add_update_in_place_duplicate(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        storage, data = swh_indexer_storage_with_data
+        # given
+        tool_id = data.tools["swh-metadata-detector"]["id"]
+
+        metadata_v1: Dict[str, Any] = {
+            "version": None,
+            "name": None,
+        }
+        metadata_origin_v1 = OriginExtrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata_v1.copy(),
+            indexer_configuration_id=tool_id,
+            mappings=[],
+            from_remd_id=b"\x02" * 20,
+        )
+
+        # given
+        storage.origin_extrinsic_metadata_add([metadata_origin_v1])
+
+        # when
+        actual_metadata = list(
+            storage.origin_extrinsic_metadata_get([data.origin_url_1])
+        )
+
+        # then
+        expected_metadata_v1 = [
+            OriginExtrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata_v1,
+                tool=data.tools["swh-metadata-detector"],
+                from_remd_id=b"\x02" * 20,
+                mappings=[],
+            )
+        ]
+        assert actual_metadata == expected_metadata_v1
+
+        # given
+        metadata_v2 = metadata_v1.copy()
+        metadata_v2.update(
+            {
+                "name": "test_update_duplicated_metadata",
+                "author": "MG",
+            }
+        )
+        metadata_origin_v2 = OriginExtrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata_v2.copy(),
+            indexer_configuration_id=tool_id,
+            mappings=["github"],
+            from_remd_id=b"\x02" * 20,
+        )
+
+        storage.origin_extrinsic_metadata_add([metadata_origin_v2])
+
+        actual_metadata = list(
+            storage.origin_extrinsic_metadata_get([data.origin_url_1])
+        )
+
+        expected_metadata_v2 = [
+            OriginExtrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata_v2,
+                tool=data.tools["swh-metadata-detector"],
+                from_remd_id=b"\x02" * 20,
+                mappings=["github"],
+            )
+        ]
+
+        # metadata did change as the v2 was used to overwrite v1
+        assert actual_metadata == expected_metadata_v2
+
+    def test_origin_extrinsic_metadata_add__deadlock(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        storage, data = swh_indexer_storage_with_data
+        # given
+        tool_id = data.tools["swh-metadata-detector"]["id"]
+
+        origins = ["file:///tmp/origin{:02d}".format(i) for i in range(100)]
+
+        example_data1: Dict[str, Any] = {
+            "metadata": {
+                "version": None,
+                "name": None,
+            },
+            "mappings": [],
+        }
+        example_data2: Dict[str, Any] = {
+            "metadata": {
+                "version": "v1.1.1",
+                "name": "foo",
+            },
+            "mappings": [],
+        }
+
+        data_v1 = [
+            OriginExtrinsicMetadataRow(
+                id=origin,
+                from_remd_id=b"\x02" * 20,
+                indexer_configuration_id=tool_id,
+                **example_data1,
+            )
+            for origin in origins
+        ]
+        data_v2 = [
+            OriginExtrinsicMetadataRow(
+                id=origin,
+                from_remd_id=b"\x02" * 20,
+                indexer_configuration_id=tool_id,
+                **example_data2,
+            )
+            for origin in origins
+        ]
+
+        # Remove one item from each, so that both queries have to succeed for
+        # all items to be in the DB.
+        data_v2a = data_v2[1:]
+        data_v2b = list(reversed(data_v2[0:-1]))
+
+        # given
+        storage.origin_extrinsic_metadata_add(data_v1)
+
+        # when
+        actual_data = list(storage.origin_extrinsic_metadata_get(origins))
+
+        expected_data_v1 = [
+            OriginExtrinsicMetadataRow(
+                id=origin,
+                from_remd_id=b"\x02" * 20,
+                tool=data.tools["swh-metadata-detector"],
+                **example_data1,
+            )
+            for origin in origins
+        ]
+
+        # then
+        assert actual_data == expected_data_v1
+
+        # given
+        def f1() -> None:
+            storage.origin_extrinsic_metadata_add(data_v2a)
+
+        def f2() -> None:
+            storage.origin_extrinsic_metadata_add(data_v2b)
+
+        t1 = threading.Thread(target=f1)
+        t2 = threading.Thread(target=f2)
+        t2.start()
+        t1.start()
+
+        t1.join()
+        t2.join()
+
+        actual_data = list(storage.origin_extrinsic_metadata_get(origins))
+
+        expected_data_v2 = [
+            OriginExtrinsicMetadataRow(
+                id=origin,
+                from_remd_id=b"\x02" * 20,
+                tool=data.tools["swh-metadata-detector"],
+                **example_data2,
+            )
+            for origin in origins
+        ]
+
+        actual_data.sort(key=lambda item: item.id)
+        assert len(actual_data) == len(expected_data_v1) == len(expected_data_v2)
+        for (item, expected_item_v1, expected_item_v2) in zip(
+            actual_data, expected_data_v1, expected_data_v2
+        ):
+            assert item in (expected_item_v1, expected_item_v2)
+
+    def test_origin_extrinsic_metadata_add__duplicate_twice(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        storage, data = swh_indexer_storage_with_data
+        # given
+        tool_id = data.tools["swh-metadata-detector"]["id"]
+
+        metadata = {
+            "developmentStatus": None,
+            "name": None,
+        }
+        metadata_origin = OriginExtrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_remd_id=b"\x02" * 20,
+        )
+
+        # when
+        with pytest.raises(DuplicateId):
+            storage.origin_extrinsic_metadata_add([metadata_origin, metadata_origin])
 
 
 class TestIndexerStorageIndexerConfiguration:

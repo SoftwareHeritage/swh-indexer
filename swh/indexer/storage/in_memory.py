@@ -39,6 +39,7 @@ from .model import (
     ContentMetadataRow,
     ContentMimetypeRow,
     DirectoryIntrinsicMetadataRow,
+    OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
 from .writer import JournalWriter
@@ -254,6 +255,7 @@ class IndexerStorage:
             DirectoryIntrinsicMetadataRow, *args
         )
         self._origin_intrinsic_metadata = SubStorage(OriginIntrinsicMetadataRow, *args)
+        self._origin_extrinsic_metadata = SubStorage(OriginExtrinsicMetadataRow, *args)
 
     def check_config(self, *, check_write):
         return True
@@ -482,6 +484,17 @@ class IndexerStorage:
             for mapping in data.mappings:
                 mapping_count[mapping] += 1
         return {"per_mapping": mapping_count, "total": total, "non_empty": non_empty}
+
+    def origin_extrinsic_metadata_get(
+        self, urls: Iterable[str]
+    ) -> List[OriginExtrinsicMetadataRow]:
+        return self._origin_extrinsic_metadata.get(urls)
+
+    def origin_extrinsic_metadata_add(
+        self, metadata: List[OriginExtrinsicMetadataRow]
+    ) -> Dict[str, int]:
+        added = self._origin_extrinsic_metadata.add(metadata)
+        return {"origin_extrinsic_metadata:add": added}
 
     def indexer_configuration_add(self, tools):
         inserted = []

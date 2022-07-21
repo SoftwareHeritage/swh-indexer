@@ -136,3 +136,15 @@ class OriginIntrinsicMetadataRow(BaseRow):
     metadata = attr.ib(type=Dict[str, Any])
     from_directory = attr.ib(type=Sha1Git)
     mappings = attr.ib(type=List[str])
+
+
+@attr.s
+class OriginExtrinsicMetadataRow(BaseRow):
+    object_type: Final = "origin_extrinsic_metadata"
+
+    id = attr.ib(type=str)
+    """origin URL"""
+    metadata = attr.ib(type=Dict[str, Any])
+    from_remd_id = attr.ib(type=Sha1Git)
+    """id of the RawExtrinsicMetadata object used as source for indexed metadata"""
+    mappings = attr.ib(type=List[str])

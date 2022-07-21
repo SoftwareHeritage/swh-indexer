@@ -486,6 +486,35 @@ class Db(BaseDb):
         cur.execute(" ".join(query_parts), args)
         yield from cur
 
+    origin_extrinsic_metadata_cols = [
+        "id",
+        "metadata",
+        "from_remd_id",
+        "mappings",
+        "tool_id",
+        "tool_name",
+        "tool_version",
+        "tool_configuration",
+    ]
+
+    @stored_procedure("swh_mktemp_origin_extrinsic_metadata")
+    def mktemp_origin_extrinsic_metadata(self, cur=None):
+        pass
+
+    def origin_extrinsic_metadata_add_from_temp(self, cur=None):
+        cur = self._cursor(cur)
+        cur.execute("select * from swh_origin_extrinsic_metadata_add()")
+        return cur.fetchone()[0]
+
+    def origin_extrinsic_metadata_get_from_list(self, ids, cur=None):
+        yield from self._get_from_list(
+            "origin_extrinsic_metadata",
+            ids,
+            self.origin_extrinsic_metadata_cols,
+            cur=cur,
+            id_col="id",
+        )
+
     indexer_configuration_cols = [
         "id",
         "tool_name",
