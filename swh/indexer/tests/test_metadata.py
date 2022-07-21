@@ -31,6 +31,8 @@ from swh.model.swhids import ExtendedObjectType, ExtendedSWHID
 
 from .utils import (
     BASE_TEST_CONFIG,
+    MAPPING_DESCRIPTION_CONTENT_SHA1,
+    MAPPING_DESCRIPTION_CONTENT_SHA1GIT,
     YARN_PARSER_METADATA,
     fill_obj_storage,
     fill_storage,
@@ -92,10 +94,17 @@ class TestMetadata:
         assert tool is not None
         dir_ = DIRECTORY2
 
+        assert (
+            dir_.entries[0].target
+            == MAPPING_DESCRIPTION_CONTENT_SHA1GIT["json:yarn-parser-package.json"]
+        )
+
         metadata_indexer.idx_storage.content_metadata_add(
             [
                 ContentMetadataRow(
-                    id=DIRECTORY2.entries[0].target,
+                    id=MAPPING_DESCRIPTION_CONTENT_SHA1[
+                        "json:yarn-parser-package.json"
+                    ],
                     indexer_configuration_id=tool["id"],
                     metadata=YARN_PARSER_METADATA,
                 )
@@ -105,9 +114,7 @@ class TestMetadata:
         metadata_indexer.run([dir_.id])
 
         results = list(
-            metadata_indexer.idx_storage.directory_intrinsic_metadata_get(
-                [DIRECTORY2.id]
-            )
+            metadata_indexer.idx_storage.directory_intrinsic_metadata_get([dir_.id])
         )
 
         expected_results = [
@@ -132,6 +139,10 @@ class TestMetadata:
         # Add a parent directory, that is the only directory at the root
         # of the directory
         dir_ = DIRECTORY2
+        assert (
+            dir_.entries[0].target
+            == MAPPING_DESCRIPTION_CONTENT_SHA1GIT["json:yarn-parser-package.json"]
+        )
 
         new_dir = Directory(
             entries=(
@@ -154,7 +165,9 @@ class TestMetadata:
         metadata_indexer.idx_storage.content_metadata_add(
             [
                 ContentMetadataRow(
-                    id=DIRECTORY2.entries[0].target,
+                    id=MAPPING_DESCRIPTION_CONTENT_SHA1[
+                        "json:yarn-parser-package.json"
+                    ],
                     indexer_configuration_id=tool["id"],
                     metadata=YARN_PARSER_METADATA,
                 )

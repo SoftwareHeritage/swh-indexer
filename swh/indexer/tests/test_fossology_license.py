@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2018  The Software Heritage developers
+# Copyright (C) 2017-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -18,6 +18,7 @@ from swh.indexer.fossology_license import (
 from swh.indexer.storage.model import ContentLicenseRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
+    RAW_CONTENT_IDS,
     SHA1_TO_LICENSES,
     CommonContentIndexerPartitionTest,
     CommonContentIndexerTest,
@@ -55,8 +56,8 @@ def mock_compute_license(path):
     if isinstance(id, bytes):
         path = path.decode("utf-8")
     # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
-    path = path.split("/")[-1]
-    return {"licenses": SHA1_TO_LICENSES.get(path, [])}
+    id_ = path.split("/")[-1]
+    return {"licenses": SHA1_TO_LICENSES.get(hash_to_bytes(id_), [])}
 
 
 CONFIG = {
@@ -97,23 +98,18 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 
-        self.id0 = "01c9379dfc33803963d07c1ccc748d3fe4c96bb5"
-        self.id1 = "688a5ef812c53907562fe379d4b3851e69c7cb15"
-        self.id2 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"  # empty content
+        self.id0, self.id1, self.id2 = RAW_CONTENT_IDS
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
+
         # then
         self.expected_results = [
             *[
-                ContentLicenseRow(
-                    id=hash_to_bytes(self.id0), tool=tool, license=license
-                )
+                ContentLicenseRow(id=self.id0, tool=tool, license=license)
                 for license in SHA1_TO_LICENSES[self.id0]
             ],
             *[
-                ContentLicenseRow(
-                    id=hash_to_bytes(self.id1), tool=tool, license=license
-                )
+                ContentLicenseRow(id=self.id1, tool=tool, license=license)
                 for license in SHA1_TO_LICENSES[self.id1]
             ],
             *[],  # self.id2

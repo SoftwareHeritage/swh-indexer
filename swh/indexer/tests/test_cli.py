@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2020  The Software Heritage developers
+# Copyright (C) 2019-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -17,16 +17,17 @@ import pytest
 from swh.indexer.cli import indexer_cli_group
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import (
+    ContentMimetypeRow,
     DirectoryIntrinsicMetadataRow,
     OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
 from swh.journal.writer import get_journal_writer
 from swh.model.hashutil import hash_to_bytes
-from swh.model.model import Origin, OriginVisitStatus
+from swh.model.model import Content, Origin, OriginVisitStatus
 
 from .test_metadata import REMD
-from .utils import DIRECTORY2, REVISION
+from .utils import DIRECTORY2, RAW_CONTENTS, REVISION
 
 
 def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List[int]:
@@ -731,3 +732,88 @@ def test_cli_journal_client_index__origin_extrinsic_metadata(
         )
     ]
     assert sorted(results, key=lambda r: r.id) == expected_results
+
+
+def test_cli_journal_client_index__content_mimetype(
+    cli_runner,
+    swh_config,
+    kafka_prefix: str,
+    kafka_server,
+    consumer: Consumer,
+    idx_storage,
+    obj_storage,
+    storage,
+    mocker,
+    swh_indexer_config,
+):
+    """Test the 'swh indexer journal-client' cli tool."""
+    journal_writer = get_journal_writer(
+        "kafka",
+        brokers=[kafka_server],
+        prefix=kafka_prefix,
+        client_id="test producer",
+        value_sanitizer=lambda object_type, value: value,
+        flush_timeout=3,  # fail early if something is going wrong
+    )
+
+    contents = []
+    expected_results = []
+    content_ids = []
+    for content_id, (raw_content, mimetypes, encoding) in RAW_CONTENTS.items():
+        content = Content.from_data(raw_content)
+        assert content_id == content.sha1
+
+        contents.append(content)
+        content_ids.append(content_id)
+
+        # Older libmagic versions (e.g. buster: 1:5.35-4+deb10u2, bullseye: 1:5.39-3)
+        # returns different results. This allows to deal with such a case when executing
+        # tests on different environments machines (e.g. ci tox, ci debian, dev machine,
+        # ...)
+        all_mimetypes = mimetypes if isinstance(mimetypes, tuple) else [mimetypes]
+
+        expected_results.extend(
+            [
+                ContentMimetypeRow(
+                    id=content.sha1,
+                    tool={"id": 1, **swh_indexer_config["tools"]},
+                    mimetype=mimetype,
+                    encoding=encoding,
+                )
+                for mimetype in all_mimetypes
+            ]
+        )
+
+    assert len(contents) == len(RAW_CONTENTS)
+
+    storage.content_add(contents)
+    journal_writer.write_additions("content", contents)
+
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config,
+            "journal-client",
+            "content-mimetype",
+            "--broker",
+            kafka_server,
+            "--prefix",
+            kafka_prefix,
+            "--group-id",
+            "test-consumer",
+            "--stop-after-objects",
+            len(contents),
+        ],
+        catch_exceptions=False,
+    )
+
+    # Check the output
+    expected_output = "Done.\n"
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output
+
+    results = idx_storage.content_mimetype_get(content_ids)
+    assert len(results) > 0
+    for result in results:
+        assert result in expected_results

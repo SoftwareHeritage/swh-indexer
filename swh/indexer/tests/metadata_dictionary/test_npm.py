@@ -11,13 +11,11 @@ import pytest
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.storage.model import ContentMetadataRow
-from swh.model.hashutil import hash_to_bytes
 
 from ..test_metadata import TRANSLATOR_TOOL, ContentMetadataTestIndexer
 from ..utils import (
     BASE_TEST_CONFIG,
-    fill_obj_storage,
-    fill_storage,
+    MAPPING_DESCRIPTION_CONTENT_SHA1,
     json_document_strategy,
 )
 
@@ -96,31 +94,29 @@ def test_compute_metadata_invalid_description_npm():
     assert declared_metadata == result
 
 
-def test_index_content_metadata_npm():
+def test_index_content_metadata_npm(storage, obj_storage):
     """
     testing NPM with package.json
     - one sha1 uses a file that can't be translated to metadata and
       should return None in the translated metadata
     """
     sha1s = [
-        hash_to_bytes("26a9f72a7c87cc9205725cfd879f514ff4f3d8d5"),
-        hash_to_bytes("d4c647f0fc257591cc9ba1722484229780d1c607"),
-        hash_to_bytes("02fb2c89e14f7fab46701478c83779c7beb7b069"),
+        MAPPING_DESCRIPTION_CONTENT_SHA1["json:test-metadata-package.json"],
+        MAPPING_DESCRIPTION_CONTENT_SHA1["json:npm-package.json"],
+        MAPPING_DESCRIPTION_CONTENT_SHA1["python:code"],
     ]
+
     # this metadata indexer computes only metadata for package.json
     # in npm context with a hard mapping
     config = BASE_TEST_CONFIG.copy()
     config["tools"] = [TRANSLATOR_TOOL]
     metadata_indexer = ContentMetadataTestIndexer(config=config)
-    fill_obj_storage(metadata_indexer.objstorage)
-    fill_storage(metadata_indexer.storage)
-
-    metadata_indexer.run(sha1s)
+    metadata_indexer.run(sha1s, log_suffix="unknown content")
     results = list(metadata_indexer.idx_storage.content_metadata_get(sha1s))
 
     expected_results = [
         ContentMetadataRow(
-            id=hash_to_bytes("26a9f72a7c87cc9205725cfd879f514ff4f3d8d5"),
+            id=sha1s[0],
             tool=TRANSLATOR_TOOL,
             metadata={
                 "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -132,7 +128,7 @@ def test_index_content_metadata_npm():
             },
         ),
         ContentMetadataRow(
-            id=hash_to_bytes("d4c647f0fc257591cc9ba1722484229780d1c607"),
+            id=sha1s[1],
             tool=TRANSLATOR_TOOL,
             metadata={
                 "@context": "https://doi.org/10.5063/schema/codemeta-2.0",

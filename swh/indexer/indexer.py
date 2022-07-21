@@ -41,7 +41,8 @@ from swh.storage.interface import StorageInterface
 
 
 class ObjectsDict(TypedDict, total=False):
-    """Typed objects."""
+    """Typed objects whose keys are names of Kafka topics and values are list of values
+    of messages in that topic."""
 
     content: List[Dict]
     directory: List[Dict]

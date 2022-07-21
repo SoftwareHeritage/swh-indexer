@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2018  The Software Heritage developers
+# Copyright (C) 2017-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -15,6 +15,7 @@ from swh.indexer.storage.model import ContentCtagsRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
     OBJ_STORAGE_DATA,
+    RAW_CONTENT_IDS,
     SHA1_TO_CTAGS,
     CommonContentIndexerTest,
     fill_obj_storage,
@@ -99,16 +100,14 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
         fill_obj_storage(self.indexer.objstorage)
 
         # Prepare test input
-        self.id0 = "01c9379dfc33803963d07c1ccc748d3fe4c96bb5"
-        self.id1 = "d4c647f0fc257591cc9ba1722484229780d1c607"
-        self.id2 = "688a5ef812c53907562fe379d4b3851e69c7cb15"
+        self.id0, self.id1, self.id2 = RAW_CONTENT_IDS
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
 
         self.expected_results = [
             *[
                 ContentCtagsRow(
-                    id=hash_to_bytes(self.id0),
+                    id=self.id0,
                     tool=tool,
                     **kwargs,
                 )
@@ -116,7 +115,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
             ],
             *[
                 ContentCtagsRow(
-                    id=hash_to_bytes(self.id1),
+                    id=self.id1,
                     tool=tool,
                     **kwargs,
                 )
@@ -124,7 +123,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
             ],
             *[
                 ContentCtagsRow(
-                    id=hash_to_bytes(self.id2),
+                    id=self.id2,
                     tool=tool,
                     **kwargs,
                 )
@@ -137,7 +136,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
     def _set_mocks(self):
         def find_ctags_for_content(raw_content):
             for (sha1, ctags) in SHA1_TO_CTAGS.items():
-                if OBJ_STORAGE_DATA[sha1] == raw_content:
+                if OBJ_STORAGE_DATA[hash_to_bytes(sha1)] == raw_content:
                     return ctags
             else:
                 raise ValueError(
@@ -155,7 +154,7 @@ class TestCtagsIndexer(CommonContentIndexerTest, unittest.TestCase):
             id_ = cmd[-1].split("/")[-1]
             return "\n".join(
                 json.dumps({"language": ctag["lang"], **ctag})
-                for ctag in SHA1_TO_CTAGS[id_]
+                for ctag in SHA1_TO_CTAGS[hash_to_bytes(id_)]
             )
 
         self._real_check_output = swh.indexer.ctags.subprocess.check_output
