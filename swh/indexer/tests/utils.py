@@ -791,3 +791,12 @@ class CommonContentIndexerPartitionTest:
         actual_results = self.indexer.run(1, 2**512, incremental=False)
 
         assert actual_results == {"status": "uneventful"}
+
+
+def mock_compute_license(path):
+    """path is the content identifier"""
+    if isinstance(id, bytes):
+        path = path.decode("utf-8")
+    # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
+    id_ = path.split("/")[-1]
+    return {"licenses": SHA1_TO_LICENSES.get(hash_to_bytes(id_), [])}

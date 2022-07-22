@@ -25,8 +25,8 @@ from swh.indexer.tests.utils import (
     fill_obj_storage,
     fill_storage,
     filter_dict,
+    mock_compute_license,
 )
-from swh.model.hashutil import hash_to_bytes
 
 
 class BasicTest(unittest.TestCase):
@@ -49,15 +49,6 @@ class BasicTest(unittest.TestCase):
                     "path": path,
                 },
             )
-
-
-def mock_compute_license(path):
-    """path is the content identifier"""
-    if isinstance(id, bytes):
-        path = path.decode("utf-8")
-    # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
-    id_ = path.split("/")[-1]
-    return {"licenses": SHA1_TO_LICENSES.get(hash_to_bytes(id_), [])}
 
 
 CONFIG = {

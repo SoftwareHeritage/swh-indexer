@@ -14,9 +14,11 @@ from click.testing import CliRunner
 from confluent_kafka import Consumer
 import pytest
 
+from swh.indexer import fossology_license
 from swh.indexer.cli import indexer_cli_group
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import (
+    ContentLicenseRow,
     ContentMimetypeRow,
     DirectoryIntrinsicMetadataRow,
     OriginExtrinsicMetadataRow,
@@ -27,7 +29,14 @@ from swh.model.hashutil import hash_to_bytes
 from swh.model.model import Content, Origin, OriginVisitStatus
 
 from .test_metadata import REMD
-from .utils import DIRECTORY2, RAW_CONTENTS, REVISION
+from .utils import (
+    DIRECTORY2,
+    RAW_CONTENT_IDS,
+    RAW_CONTENTS,
+    REVISION,
+    SHA1_TO_LICENSES,
+    mock_compute_license,
+)
 
 
 def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List[int]:
@@ -786,7 +795,6 @@ def test_cli_journal_client_index__content_mimetype(
 
     assert len(contents) == len(RAW_CONTENTS)
 
-    storage.content_add(contents)
     journal_writer.write_additions("content", contents)
 
     result = cli_runner.invoke(
@@ -814,6 +822,87 @@ def test_cli_journal_client_index__content_mimetype(
     assert result.output == expected_output
 
     results = idx_storage.content_mimetype_get(content_ids)
-    assert len(results) > 0
+    assert len(results) == len(contents)
+    for result in results:
+        assert result in expected_results
+
+
+def test_cli_journal_client_index__fossology_license(
+    cli_runner,
+    swh_config,
+    kafka_prefix: str,
+    kafka_server,
+    consumer: Consumer,
+    idx_storage,
+    obj_storage,
+    storage,
+    mocker,
+    swh_indexer_config,
+):
+    """Test the 'swh indexer journal-client' cli tool."""
+
+    # Patch
+    fossology_license.compute_license = mock_compute_license
+
+    journal_writer = get_journal_writer(
+        "kafka",
+        brokers=[kafka_server],
+        prefix=kafka_prefix,
+        client_id="test producer",
+        value_sanitizer=lambda object_type, value: value,
+        flush_timeout=3,  # fail early if something is going wrong
+    )
+
+    tool = {"id": 1, **swh_indexer_config["tools"]}
+
+    id0, id1, id2 = RAW_CONTENT_IDS
+
+    contents = []
+    content_ids = []
+    expected_results = []
+    for content_id, (raw_content, _, _) in RAW_CONTENTS.items():
+        content = Content.from_data(raw_content)
+        assert content_id == content.sha1
+
+        contents.append(content)
+        content_ids.append(content_id)
+
+        expected_results.extend(
+            [
+                ContentLicenseRow(id=content_id, tool=tool, license=license)
+                for license in SHA1_TO_LICENSES[content_id]
+            ]
+        )
+
+    assert len(contents) == len(RAW_CONTENTS)
+
+    journal_writer.write_additions("content", contents)
+
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config,
+            "journal-client",
+            "content-fossology-license",
+            "--broker",
+            kafka_server,
+            "--prefix",
+            kafka_prefix,
+            "--group-id",
+            "test-consumer",
+            "--stop-after-objects",
+            len(contents),
+        ],
+        catch_exceptions=False,
+    )
+
+    # Check the output
+    expected_output = "Done.\n"
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output
+
+    results = idx_storage.content_fossology_license_get(content_ids)
+    assert len(results) == len(expected_results)
     for result in results:
         assert result in expected_results
