@@ -25,7 +25,6 @@ from .exc import DuplicateId, IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
 from .metrics import process_metrics, send_metric, timed
 from .model import (
-    ContentCtagsRow,
     ContentLanguageRow,
     ContentLicenseRow,
     ContentMetadataRow,
@@ -353,66 +352,6 @@ class IndexerStorage:
 
         count = db.content_language_add_from_temp(cur)
         return {"content_language:add": count}
-
-    @timed
-    @db_transaction()
-    def content_ctags_missing(
-        self, ctags: Iterable[Dict], db=None, cur=None
-    ) -> List[Tuple[Sha1, int]]:
-        return [obj[0] for obj in db.content_ctags_missing_from_list(ctags, cur)]
-
-    @timed
-    @db_transaction()
-    def content_ctags_get(
-        self, ids: Iterable[Sha1], db=None, cur=None
-    ) -> List[ContentCtagsRow]:
-        return [
-            ContentCtagsRow.from_dict(
-                converters.db_to_ctags(dict(zip(db.content_ctags_cols, c)))
-            )
-            for c in db.content_ctags_get_from_list(ids, cur)
-        ]
-
-    @timed
-    @process_metrics
-    @db_transaction()
-    def content_ctags_add(
-        self,
-        ctags: List[ContentCtagsRow],
-        db=None,
-        cur=None,
-    ) -> Dict[str, int]:
-        check_id_duplicates(ctags)
-        ctags.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("content_ctags", ctags)
-
-        db.mktemp_content_ctags(cur)
-        db.copy_to(
-            [ctag.to_dict() for ctag in ctags],
-            tblname="tmp_content_ctags",
-            columns=["id", "name", "kind", "line", "lang", "indexer_configuration_id"],
-            cur=cur,
-        )
-
-        count = db.content_ctags_add_from_temp(cur)
-        return {"content_ctags:add": count}
-
-    @timed
-    @db_transaction()
-    def content_ctags_search(
-        self,
-        expression: str,
-        limit: int = 10,
-        last_sha1: Optional[Sha1] = None,
-        db=None,
-        cur=None,
-    ) -> List[ContentCtagsRow]:
-        return [
-            ContentCtagsRow.from_dict(
-                converters.db_to_ctags(dict(zip(db.content_ctags_cols, obj)))
-            )
-            for obj in db.content_ctags_search(expression, last_sha1, limit, cur=cur)
-        ]
 
     @timed
     @db_transaction()

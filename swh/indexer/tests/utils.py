@@ -241,34 +241,6 @@ SHA1_TO_LICENSES: Dict[bytes, List[str]] = {
 }
 
 
-SHA1_TO_CTAGS: Dict[bytes, List[Dict[str, Any]]] = {
-    RAW_CONTENT_IDS[0]: [
-        {
-            "name": "foo",
-            "kind": "str",
-            "line": 10,
-            "lang": "bar",
-        }
-    ],
-    RAW_CONTENT_IDS[1]: [
-        {
-            "name": "symbol",
-            "kind": "float",
-            "line": 99,
-            "lang": "python",
-        }
-    ],
-    RAW_CONTENT_IDS[2]: [
-        {
-            "name": "let",
-            "kind": "int",
-            "line": 100,
-            "lang": "haskell",
-        }
-    ],
-}
-
-
 DIRECTORY = Directory(
     entries=(
         DirectoryEntry(

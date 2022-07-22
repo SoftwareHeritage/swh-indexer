@@ -7,7 +7,6 @@ from typing import Dict, Iterable, Iterator, List
 
 from swh.core.db import BaseDb
 from swh.core.db.db_utils import execute_values_generator, stored_procedure
-from swh.model import hashutil
 
 from .interface import Sha1
 
@@ -212,75 +211,6 @@ class Db(BaseDb):
         yield from self._get_from_list(
             "content_language", ids, self.content_language_cols, cur=cur
         )
-
-    content_ctags_hash_keys = ["id", "indexer_configuration_id"]
-
-    def content_ctags_missing_from_list(self, ctags, cur=None):
-        """List missing ctags."""
-        yield from self._missing_from_list(
-            "content_ctags", ctags, self.content_ctags_hash_keys, cur=cur
-        )
-
-    content_ctags_cols = [
-        "id",
-        "name",
-        "kind",
-        "line",
-        "lang",
-        "tool_id",
-        "tool_name",
-        "tool_version",
-        "tool_configuration",
-    ]
-
-    @stored_procedure("swh_mktemp_content_ctags")
-    def mktemp_content_ctags(self, cur=None):
-        pass
-
-    def content_ctags_add_from_temp(self, cur=None):
-        cur = self._cursor(cur)
-        cur.execute("select * from swh_content_ctags_add()")
-        return cur.fetchone()[0]
-
-    def content_ctags_get_from_list(self, ids, cur=None):
-        cur = self._cursor(cur)
-        keys = map(self._convert_key, self.content_ctags_cols)
-        yield from execute_values_generator(
-            cur,
-            """
-            select %s
-            from (values %%s) as t(id)
-            inner join content_ctags c
-                on c.id=t.id
-            inner join indexer_configuration i
-                on c.indexer_configuration_id=i.id
-            order by line
-            """
-            % ", ".join(keys),
-            ((_id,) for _id in ids),
-        )
-
-    def content_ctags_search(self, expression, last_sha1, limit, cur=None):
-        cur = self._cursor(cur)
-        if not last_sha1:
-            query = """SELECT %s
-                       FROM swh_content_ctags_search(%%s, %%s)""" % (
-                ",".join(self.content_ctags_cols)
-            )
-            cur.execute(query, (expression, limit))
-        else:
-            if last_sha1 and isinstance(last_sha1, bytes):
-                last_sha1 = "\\x%s" % hashutil.hash_to_hex(last_sha1)
-            elif last_sha1:
-                last_sha1 = "\\x%s" % last_sha1
-
-            query = """SELECT %s
-                       FROM swh_content_ctags_search(%%s, %%s, %%s)""" % (
-                ",".join(self.content_ctags_cols)
-            )
-            cur.execute(query, (expression, limit, last_sha1))
-
-        yield from cur
 
     content_fossology_license_cols = [
         "id",

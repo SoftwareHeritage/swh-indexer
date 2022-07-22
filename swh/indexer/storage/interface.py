@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2020  The Software Heritage developers
+# Copyright (C) 2015-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -10,7 +10,6 @@ from typing_extensions import Protocol, runtime_checkable
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
 from swh.indexer.storage.model import (
-    ContentCtagsRow,
     ContentLanguageRow,
     ContentLicenseRow,
     ContentMetadataRow,
@@ -157,72 +156,6 @@ class IndexerStorageInterface(Protocol):
 
         Returns:
             Dict summary of number of rows added
-
-        """
-        ...
-
-    @remote_api_endpoint("content/ctags/missing")
-    def content_ctags_missing(self, ctags: Iterable[Dict]) -> List[Tuple[Sha1, int]]:
-        """List ctags missing from storage.
-
-        Args:
-            ctags (iterable): dicts with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  the results
-
-        Returns:
-            list of missing id for the tuple (id,
-            indexer_configuration_id)
-
-        """
-        ...
-
-    @remote_api_endpoint("content/ctags")
-    def content_ctags_get(self, ids: Iterable[Sha1]) -> List[ContentCtagsRow]:
-        """Retrieve ctags per id.
-
-        Args:
-            ids (iterable): sha1 checksums
-
-        Returns:
-            list of language rows
-
-
-        """
-        ...
-
-    @remote_api_endpoint("content/ctags/add")
-    def content_ctags_add(self, ctags: List[ContentCtagsRow]) -> Dict[str, int]:
-        """Add ctags not present in storage
-
-        Args:
-            ctags (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1
-                - **ctags** ([list): List of dictionary with keys: name, kind,
-                  line, lang
-
-        Returns:
-            Dict summary of number of rows added
-
-        """
-        ...
-
-    @remote_api_endpoint("content/ctags/search")
-    def content_ctags_search(
-        self, expression: str, limit: int = 10, last_sha1: Optional[Sha1] = None
-    ) -> List[ContentCtagsRow]:
-        """Search through content's raw ctags symbols.
-
-        Args:
-            expression (str): Expression to search for
-            limit (int): Number of rows to return (default to 10).
-            last_sha1 (str): Offset from which retrieving data (default to '').
-
-        Returns:
-            rows of ctags including id, name, lang, kind, line, etc...
 
         """
         ...

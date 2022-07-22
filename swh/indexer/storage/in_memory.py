@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2020  The Software Heritage developers
+# Copyright (C) 2018-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -25,7 +25,7 @@ from typing import (
 
 from swh.core.collections import SortedList
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
-from swh.model.model import SHA1_SIZE, Sha1Git
+from swh.model.model import SHA1_SIZE
 from swh.storage.utils import get_partition_bounds_bytes
 
 from . import MAPPING_NAMES, check_id_duplicates
@@ -33,7 +33,6 @@ from .exc import IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
 from .model import (
     BaseRow,
-    ContentCtagsRow,
     ContentLanguageRow,
     ContentLicenseRow,
     ContentMetadataRow,
@@ -248,7 +247,6 @@ class IndexerStorage:
         args = (self._tools, self.journal_writer)
         self._mimetypes = SubStorage(ContentMimetypeRow, *args)
         self._languages = SubStorage(ContentLanguageRow, *args)
-        self._content_ctags = SubStorage(ContentCtagsRow, *args)
         self._licenses = SubStorage(ContentLicenseRow, *args)
         self._content_metadata = SubStorage(ContentMetadataRow, *args)
         self._directory_intrinsic_metadata = SubStorage(
@@ -299,40 +297,6 @@ class IndexerStorage:
     ) -> Dict[str, int]:
         added = self._languages.add(languages)
         return {"content_language:add": added}
-
-    def content_ctags_missing(self, ctags: Iterable[Dict]) -> List[Tuple[Sha1, int]]:
-        return self._content_ctags.missing(ctags)
-
-    def content_ctags_get(self, ids: Iterable[Sha1]) -> List[ContentCtagsRow]:
-        return self._content_ctags.get(ids)
-
-    def content_ctags_add(self, ctags: List[ContentCtagsRow]) -> Dict[str, int]:
-        added = self._content_ctags.add(ctags)
-        return {"content_ctags:add": added}
-
-    def content_ctags_search(
-        self, expression: str, limit: int = 10, last_sha1: Optional[Sha1] = None
-    ) -> List[ContentCtagsRow]:
-        nb_matches = 0
-        items_per_id: Dict[Tuple[Sha1Git, ToolId], List[ContentCtagsRow]] = {}
-        for item in sorted(self._content_ctags.get_all()):
-            if item.id <= (last_sha1 or bytes(0 for _ in range(SHA1_DIGEST_SIZE))):
-                continue
-            items_per_id.setdefault(
-                (item.id, item.indexer_configuration_id), []
-            ).append(item)
-
-        results = []
-        for items in items_per_id.values():
-            for item in items:
-                if item.name != expression:
-                    continue
-                nb_matches += 1
-                if nb_matches > limit:
-                    break
-                results.append(item)
-
-        return results
 
     def content_fossology_license_get(
         self, ids: Iterable[Sha1]
