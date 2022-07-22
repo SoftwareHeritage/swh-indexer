@@ -22,8 +22,7 @@ class Db(BaseDb):
         """Read from table the data with hash_keys that are missing.
 
         Args:
-            table: Table name (e.g content_mimetype, content_language,
-              etc...)
+            table: Table name (e.g content_mimetype, fossology_license, etc...)
             data: Dict of data to read from
             hash_keys: List of keys to read in the data dict.
 
@@ -85,8 +84,7 @@ class Db(BaseDb):
 
         Expected:
             Tables content_{something} being aliased as 'c' (something
-            in {language, mimetype, ...}), table indexer_configuration
-            being aliased as 'i'.
+            in {mimetype, ...}), table indexer_configuration being aliased as 'i'.
 
         """
         if key == "id":
@@ -179,37 +177,6 @@ class Db(BaseDb):
     def content_mimetype_get_from_list(self, ids, cur=None):
         yield from self._get_from_list(
             "content_mimetype", ids, self.content_mimetype_cols, cur=cur
-        )
-
-    content_language_hash_keys = ["id", "indexer_configuration_id"]
-
-    def content_language_missing_from_list(self, languages, cur=None):
-        """List missing languages."""
-        yield from self._missing_from_list(
-            "content_language", languages, self.content_language_hash_keys, cur=cur
-        )
-
-    content_language_cols = [
-        "id",
-        "lang",
-        "tool_id",
-        "tool_name",
-        "tool_version",
-        "tool_configuration",
-    ]
-
-    @stored_procedure("swh_mktemp_content_language")
-    def mktemp_content_language(self, cur=None):
-        pass
-
-    def content_language_add_from_temp(self, cur=None):
-        cur = self._cursor(cur)
-        cur.execute("select * from swh_content_language_add()")
-        return cur.fetchone()[0]
-
-    def content_language_get_from_list(self, ids, cur=None):
-        yield from self._get_from_list(
-            "content_language", ids, self.content_language_cols, cur=cur
         )
 
     content_fossology_license_cols = [

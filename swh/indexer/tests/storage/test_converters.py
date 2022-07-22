@@ -34,32 +34,6 @@ def test_db_to_mimetype() -> None:
     assert actual_mimetype == expected_mimetype
 
 
-def test_db_to_language() -> None:
-    input_language = {
-        "id": b"some-id",
-        "tool_id": 20,
-        "tool_name": "some-toolname",
-        "tool_version": "some-toolversion",
-        "tool_configuration": {},
-        "lang": b"css",
-    }
-
-    expected_language = {
-        "id": b"some-id",
-        "lang": b"css",
-        "tool": {
-            "id": 20,
-            "name": "some-toolname",
-            "version": "some-toolversion",
-            "configuration": {},
-        },
-    }
-
-    actual_language = converters.db_to_language(input_language)
-
-    assert actual_language == expected_language
-
-
 def test_db_to_fossology_license() -> None:
     input_license = {
         "id": b"some-id",

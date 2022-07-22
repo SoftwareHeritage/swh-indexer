@@ -19,20 +19,6 @@ def db_to_mimetype(mimetype):
     }
 
 
-def db_to_language(language):
-    """Convert a language entry into a ready language output."""
-    return {
-        "id": language["id"],
-        "lang": language["lang"],
-        "tool": {
-            "id": language["tool_id"],
-            "name": language["tool_name"],
-            "version": language["tool_version"],
-            "configuration": language["tool_configuration"],
-        },
-    }
-
-
 def db_to_metadata(metadata):
     """Convert a metadata entry into a ready metadata output."""
     metadata["tool"] = {

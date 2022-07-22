@@ -33,7 +33,6 @@ from .exc import IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
 from .model import (
     BaseRow,
-    ContentLanguageRow,
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
@@ -154,7 +153,7 @@ class SubStorage(Generic[TValue]):
         bound by limit.
 
         Args:
-            **indexer_type**: Type of data content to index (mimetype, language, etc...)
+            **indexer_type**: Type of data content to index (mimetype, etc...)
             **indexer_configuration_id**: The tool used to index data
             **partition_id**: index of the partition to fetch
             **nb_partitions**: total number of partitions to split into
@@ -246,7 +245,6 @@ class IndexerStorage:
         self.journal_writer = JournalWriter(tool_getter, journal_writer)
         args = (self._tools, self.journal_writer)
         self._mimetypes = SubStorage(ContentMimetypeRow, *args)
-        self._languages = SubStorage(ContentLanguageRow, *args)
         self._licenses = SubStorage(ContentLicenseRow, *args)
         self._content_metadata = SubStorage(ContentMetadataRow, *args)
         self._directory_intrinsic_metadata = SubStorage(
@@ -283,20 +281,6 @@ class IndexerStorage:
 
     def content_mimetype_get(self, ids: Iterable[Sha1]) -> List[ContentMimetypeRow]:
         return self._mimetypes.get(ids)
-
-    def content_language_missing(
-        self, languages: Iterable[Dict]
-    ) -> List[Tuple[Sha1, int]]:
-        return self._languages.missing(languages)
-
-    def content_language_get(self, ids: Iterable[Sha1]) -> List[ContentLanguageRow]:
-        return self._languages.get(ids)
-
-    def content_language_add(
-        self, languages: List[ContentLanguageRow]
-    ) -> Dict[str, int]:
-        added = self._languages.add(languages)
-        return {"content_language:add": added}
 
     def content_fossology_license_get(
         self, ids: Iterable[Sha1]

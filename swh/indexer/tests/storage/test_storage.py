@@ -14,7 +14,6 @@ from swh.indexer.storage.exc import DuplicateId, IndexerStorageArgumentException
 from swh.indexer.storage.interface import IndexerStorageInterface, PagedResult
 from swh.indexer.storage.model import (
     BaseRow,
-    ContentLanguageRow,
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
@@ -501,22 +500,6 @@ class TestIndexerStorageContentMimetypes(StorageETypeTester):
         assert len(set(actual_ids)) == len(set(expected_ids))
         for actual_id in actual_ids:
             assert actual_id in expected_ids
-
-
-class TestIndexerStorageContentLanguage(StorageETypeTester):
-    """Test Indexer Storage content_language related methods"""
-
-    endpoint_type = "content_language"
-    tool_name = "pygments"
-    example_data = [
-        {
-            "lang": "haskell",
-        },
-        {
-            "lang": "common-lisp",
-        },
-    ]
-    row_class = ContentLanguageRow
 
 
 class TestIndexerStorageContentMetadata(StorageETypeTester):

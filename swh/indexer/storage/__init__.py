@@ -25,7 +25,6 @@ from .exc import DuplicateId, IndexerStorageArgumentException
 from .interface import PagedResult, Sha1
 from .metrics import process_metrics, send_metric, timed
 from .model import (
-    ContentLanguageRow,
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
@@ -102,16 +101,17 @@ def check_id_duplicates(data):
         data (List[dict]): List of dictionaries to be inserted
 
     >>> check_id_duplicates([
-    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
-    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=32, lang="python"),
+    ...     ContentLicenseRow(id=b'foo', indexer_configuration_id=42, license="GPL"),
+    ...     ContentLicenseRow(id=b'foo', indexer_configuration_id=32, license="GPL"),
     ... ])
     >>> check_id_duplicates([
-    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
-    ...     ContentLanguageRow(id=b'foo', indexer_configuration_id=42, lang="python"),
+    ...     ContentLicenseRow(id=b'foo', indexer_configuration_id=42, license="AGPL"),
+    ...     ContentLicenseRow(id=b'foo', indexer_configuration_id=42, license="AGPL"),
     ... ])
     Traceback (most recent call last):
-      ...
-    swh.indexer.storage.exc.DuplicateId: [{'id': b'foo', 'indexer_configuration_id': 42}]
+    ...
+    swh.indexer.storage.exc.DuplicateId: [{'id': b'foo', 'indexer_configuration_id': 42, 'license': 'AGPL'}]
+
     """  # noqa
     counter = Counter(tuple(sorted(item.unique_key().items())) for item in data)
     duplicates = [id_ for (id_, count) in counter.items() if count >= 2]
@@ -194,7 +194,7 @@ class IndexerStorage:
         bound by limit.
 
         Args:
-            **indexer_type**: Type of data content to index (mimetype, language, etc...)
+            **indexer_type**: Type of data content to index (mimetype, etc...)
             **indexer_configuration_id**: The tool used to index data
             **partition_id**: index of the partition to fetch
             **nb_partitions**: total number of partitions to split into
@@ -302,56 +302,6 @@ class IndexerStorage:
             )
             for c in db.content_mimetype_get_from_list(ids, cur)
         ]
-
-    @timed
-    @db_transaction()
-    def content_language_missing(
-        self, languages: Iterable[Dict], db=None, cur=None
-    ) -> List[Tuple[Sha1, int]]:
-        return [obj[0] for obj in db.content_language_missing_from_list(languages, cur)]
-
-    @timed
-    @db_transaction()
-    def content_language_get(
-        self, ids: Iterable[Sha1], db=None, cur=None
-    ) -> List[ContentLanguageRow]:
-        return [
-            ContentLanguageRow.from_dict(
-                converters.db_to_language(dict(zip(db.content_language_cols, c)))
-            )
-            for c in db.content_language_get_from_list(ids, cur)
-        ]
-
-    @timed
-    @process_metrics
-    @db_transaction()
-    def content_language_add(
-        self,
-        languages: List[ContentLanguageRow],
-        db=None,
-        cur=None,
-    ) -> Dict[str, int]:
-        check_id_duplicates(languages)
-        languages.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("content_language", languages)
-        db.mktemp_content_language(cur)
-        # empty language is mapped to 'unknown'
-        db.copy_to(
-            (
-                {
-                    "id": lang.id,
-                    "lang": lang.lang or "unknown",
-                    "indexer_configuration_id": lang.indexer_configuration_id,
-                }
-                for lang in languages
-            ),
-            "tmp_content_language",
-            ["id", "lang", "indexer_configuration_id"],
-            cur,
-        )
-
-        count = db.content_language_add_from_temp(cur)
-        return {"content_language:add": count}
 
     @timed
     @db_transaction()

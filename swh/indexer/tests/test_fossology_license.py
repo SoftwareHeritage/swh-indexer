@@ -67,7 +67,7 @@ RANGE_CONFIG = dict(list(CONFIG.items()) + [("write_batch_size", 100)])
 
 
 class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
-    """Language indexer test scenarios:
+    """Fossology license indexer test scenarios:
 
     - Known sha1s in the input list have their data indexed
     - Unknown sha1 in the input list are not indexed

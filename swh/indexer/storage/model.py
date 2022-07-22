@@ -76,14 +76,6 @@ class ContentMimetypeRow(BaseRow):
 
 
 @attr.s
-class ContentLanguageRow(BaseRow):
-    object_type: Final = "content_language"
-
-    id = attr.ib(type=Sha1Git)
-    lang = attr.ib(type=str)
-
-
-@attr.s
 class ContentLicenseRow(BaseRow):
     object_type: Final = "content_fossology_license"
     UNIQUE_KEY_FIELDS = ("id", "indexer_configuration_id", "license")

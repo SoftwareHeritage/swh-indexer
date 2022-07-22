@@ -10,7 +10,6 @@ from typing_extensions import Protocol, runtime_checkable
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult
 from swh.indexer.storage.model import (
-    ContentLanguageRow,
     ContentLicenseRow,
     ContentMetadataRow,
     ContentMimetypeRow,
@@ -109,53 +108,6 @@ class IndexerStorageInterface(Protocol):
 
         Returns:
             mimetype row objects
-
-        """
-        ...
-
-    @remote_api_endpoint("content_language/missing")
-    def content_language_missing(
-        self, languages: Iterable[Dict]
-    ) -> List[Tuple[Sha1, int]]:
-        """List languages missing from storage.
-
-        Args:
-            languages (iterable): dictionaries with keys:
-
-                - **id** (bytes): sha1 identifier
-                - **indexer_configuration_id** (int): tool used to compute
-                  the results
-
-        Returns:
-            list of tuple (id, indexer_configuration_id) missing
-
-        """
-        ...
-
-    @remote_api_endpoint("content_language")
-    def content_language_get(self, ids: Iterable[Sha1]) -> List[ContentLanguageRow]:
-        """Retrieve full content language per ids.
-
-        Args:
-            ids (iterable): sha1 identifier
-
-        Returns:
-            language row objects
-
-        """
-        ...
-
-    @remote_api_endpoint("content_language/add")
-    def content_language_add(
-        self, languages: List[ContentLanguageRow]
-    ) -> Dict[str, int]:
-        """Add languages not present in storage.
-
-        Args:
-            languages: language row objects
-
-        Returns:
-            Dict summary of number of rows added
 
         """
         ...
