@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2019  The Software Heritage developers
+# Copyright (C) 2018-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -81,14 +81,6 @@ def gen_content_mimetypes(draw, *, min_size=0, max_size=100):
 
 
 TOOLS = [
-    {
-        "tool_name": "universal-ctags",
-        "tool_version": "~git7859817b",
-        "tool_configuration": {
-            "command_line": "ctags --fields=+lnz --sort=no --links=no "
-            "--output-format=json <filepath>"
-        },
-    },
     {
         "tool_name": "swh-metadata-translator",
         "tool_version": "0.0.1",

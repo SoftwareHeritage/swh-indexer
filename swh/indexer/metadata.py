@@ -115,13 +115,14 @@ class ExtrinsicMetadataIndexer(
             return []
 
         metadata_items = []
-        mappings = []
-        for (mapping_name, mapping) in EXTRINSIC_MAPPINGS.items():
-            if data.format in mapping.extrinsic_metadata_formats():
-                metadata_item = mapping().translate(data.metadata)
+        mappings: List[str] = []
+        for mapping_cls in EXTRINSIC_MAPPINGS.values():
+            if data.format in mapping_cls.extrinsic_metadata_formats():
+                mapping = mapping_cls()
+                metadata_item = mapping.translate(data.metadata)
                 if metadata_item is not None:
                     metadata_items.append(metadata_item)
-                    mappings.append(mapping_name)
+                    mappings.append(mapping.name)
 
         if not metadata_items:
             # Don't have any mapping to parse it, ignore

@@ -1,4 +1,4 @@
-# Copyright (C) 2020  The Software Heritage developers
+# Copyright (C) 2020-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -73,33 +73,6 @@ class ContentMimetypeRow(BaseRow):
     id = attr.ib(type=Sha1Git)
     mimetype = attr.ib(type=str)
     encoding = attr.ib(type=str)
-
-
-@attr.s
-class ContentLanguageRow(BaseRow):
-    object_type: Final = "content_language"
-
-    id = attr.ib(type=Sha1Git)
-    lang = attr.ib(type=str)
-
-
-@attr.s
-class ContentCtagsRow(BaseRow):
-    object_type: Final = "content_ctags"
-    UNIQUE_KEY_FIELDS = (
-        "id",
-        "indexer_configuration_id",
-        "name",
-        "kind",
-        "line",
-        "lang",
-    )
-
-    id = attr.ib(type=Sha1Git)
-    name = attr.ib(type=str)
-    kind = attr.ib(type=str)
-    line = attr.ib(type=int)
-    lang = attr.ib(type=str)
 
 
 @attr.s
