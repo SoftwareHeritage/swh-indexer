@@ -215,7 +215,15 @@ def schedule_origin_metadata_reindex(
 @indexer_cli_group.command("journal-client")
 @click.argument(
     "indexer",
-    type=click.Choice(["origin-intrinsic-metadata", "*"]),
+    type=click.Choice(
+        [
+            "origin-intrinsic-metadata",
+            "extrinsic-metadata",
+            "content-mimetype",
+            "content-fossology-license",
+            "*",
+        ]
+    ),
     required=False
     # TODO: remove required=False after we stop using it
 )
@@ -262,7 +270,7 @@ def journal_client(
     import functools
     import warnings
 
-    from swh.indexer.indexer import ObjectsDict
+    from swh.indexer.indexer import BaseIndexer, ObjectsDict
     from swh.indexer.journal_client import process_journal_objects
     from swh.journal.client import get_journal_client
     from swh.scheduler import get_scheduler
@@ -303,11 +311,37 @@ def journal_client(
             )
         )
 
+    idx: Optional[BaseIndexer] = None
+
     if indexer in ("origin-intrinsic-metadata", "*"):
         from swh.indexer.metadata import OriginMetadataIndexer
 
         object_types.add("origin_visit_status")
         idx = OriginMetadataIndexer()
+        idx.catch_exceptions = False  # don't commit offsets if indexation failed
+        worker_fns.append(idx.process_journal_objects)
+
+    if indexer in ("extrinsic-metadata", "*"):
+        from swh.indexer.metadata import ExtrinsicMetadataIndexer
+
+        object_types.add("raw_extrinsic_metadata")
+        idx = ExtrinsicMetadataIndexer()
+        idx.catch_exceptions = False  # don't commit offsets if indexation failed
+        worker_fns.append(idx.process_journal_objects)
+
+    if indexer in ("content-mimetype", "*"):
+        from swh.indexer.mimetype import MimetypeIndexer
+
+        object_types.add("content")
+        idx = MimetypeIndexer()
+        idx.catch_exceptions = False  # don't commit offsets if indexation failed
+        worker_fns.append(idx.process_journal_objects)
+
+    if indexer in ("content-fossology-license", "*"):
+        from swh.indexer.fossology_license import FossologyLicenseIndexer
+
+        object_types.add("content")
+        idx = FossologyLicenseIndexer()
         idx.catch_exceptions = False  # don't commit offsets if indexation failed
         worker_fns.append(idx.process_journal_objects)
 
