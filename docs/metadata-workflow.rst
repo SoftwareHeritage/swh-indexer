@@ -159,12 +159,12 @@ The following sources of extrinsic metadata are supported:
 
 
 
-Supported CodeMeta terms
-^^^^^^^^^^^^^^^^^^^^^^^^
+Supported JSON-LD properties
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following terms may be found in the output of the metadata translation
 (other than the `codemeta` mapping, which is the identity function, and
-therefore supports all terms):
+therefore supports all properties):
 
 .. program-output:: python3 -m swh.indexer.cli mapping list-terms --exclude-mapping codemeta
     :nostderr:

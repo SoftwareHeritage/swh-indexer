@@ -72,7 +72,9 @@ def idx_storage_backend_config(idx_storage_postgresql):
 
 @pytest.fixture
 def swh_indexer_config(
-    swh_storage_backend_config, idx_storage_backend_config, swh_scheduler_config
+    swh_storage_backend_config,
+    idx_storage_backend_config,
+    swh_scheduler_config,
 ):
     return {
         "storage": swh_storage_backend_config,
