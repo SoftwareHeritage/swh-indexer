@@ -1,3 +1,17 @@
+swh-indexer (2.2.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.2.0     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2022-07-25 16:23:12
+    +0200)
+  * Upstream changes:     - v2.2.0     - cli: Add content mimetype
+    indexer journal client support     - cli: Add fossology license
+    indexer journal client support     - cli: Add extrinsic-metadata
+    indexer journal client support     - docs: Fix incorrect terminology
+    (term -> property)     - mapping: Fix inconsistent name     - Drop
+    decomissioned content indexer: ctags, language
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 25 Jul 2022 14:33:50 +0000
+
 swh-indexer (2.1.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.1.0     - (tagged by Valentin Lorentz
