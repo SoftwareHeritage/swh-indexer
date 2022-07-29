@@ -67,7 +67,7 @@ class BaseMapping:
 
 
 class BaseExtrinsicMapping(BaseMapping):
-    """Base class for extrinsic-metadata mappings to inherit from
+    """Base class for extrinsic_metadata mappings to inherit from
 
     To implement a new mapping:
 
