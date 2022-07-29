@@ -543,7 +543,7 @@ def test_cli_journal_client_without_brokers(
         )
 
 
-@pytest.mark.parametrize("indexer_name", ["origin-intrinsic-metadata", "*"])
+@pytest.mark.parametrize("indexer_name", ["origin_intrinsic_metadata", "*"])
 def test_cli_journal_client_index__origin_intrinsic_metadata(
     cli_runner,
     swh_config,
@@ -671,7 +671,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
     assert sorted(results, key=lambda r: r.id) == expected_results
 
 
-@pytest.mark.parametrize("indexer_name", ["extrinsic-metadata", "*"])
+@pytest.mark.parametrize("indexer_name", ["extrinsic_metadata", "*"])
 def test_cli_journal_client_index__origin_extrinsic_metadata(
     cli_runner,
     swh_config,
@@ -803,7 +803,7 @@ def test_cli_journal_client_index__content_mimetype(
             "-C",
             swh_config,
             "journal-client",
-            "content-mimetype",
+            "content_mimetype",
             "--broker",
             kafka_server,
             "--prefix",
@@ -884,7 +884,7 @@ def test_cli_journal_client_index__fossology_license(
             "-C",
             swh_config,
             "journal-client",
-            "content-fossology-license",
+            "content_fossology_license",
             "--broker",
             kafka_server,
             "--prefix",
