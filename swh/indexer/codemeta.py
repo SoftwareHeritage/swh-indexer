@@ -214,7 +214,7 @@ def merge_documents(documents):
                     elif value not in merged_document[key]:
                         merged_document[key].append(value)
 
-    # XXX: we should set forgefed=True when merging extrinsic-metadata documents.
+    # XXX: we should set forgefed=True when merging extrinsic_metadata documents.
     # however, this function is only used to merge multiple files of the same
     # directory (which is only for intrinsic-metadata), so it is not an issue for now
     return compact(merged_document, forgefed=False)
