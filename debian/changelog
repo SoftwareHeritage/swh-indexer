@@ -1,3 +1,13 @@
+swh-indexer (2.2.1-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.2.1     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2022-07-29 10:56:57
+    +0200)
+  * Upstream changes:     - v2.2.1     - Normalize journal client
+    indexer type names
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 29 Jul 2022 09:07:15 +0000
+
 swh-indexer (2.2.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.2.0     - (tagged by Antoine R. Dumont
