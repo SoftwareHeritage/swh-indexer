@@ -2,8 +2,8 @@ python-magic >= 0.4.13
 click
 # frozendict: dependency of pyld
 # the version 2.1.2 is causing segmentation faults
-# cf T3815
-frozendict < 2.1.2
+# cf https://forge.softwareheritage.org/T3815
+frozendict != 2.1.2
 pyld
 sentry-sdk
 typing-extensions
