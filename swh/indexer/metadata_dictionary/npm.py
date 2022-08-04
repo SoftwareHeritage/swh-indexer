@@ -1,9 +1,10 @@
-# Copyright (C) 2018-2019  The Software Heritage developers
+# Copyright (C) 2018-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import re
+import urllib.parse
 
 from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
 
@@ -91,7 +92,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
     )
 
     def normalize_author(self, d):
-        """https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
+        r"""https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
 
         >>> from pprint import pprint
         >>> pprint(NpmMapping().normalize_author({
@@ -110,6 +111,14 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
                     'http://schema.org/email': 'john.doe@example.org',
                     'http://schema.org/name': 'John Doe',
                     'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
+        >>> pprint(NpmMapping().normalize_author({
+        ...     'name': 'John Doe',
+        ...     'email': 'john.doe@example.org',
+        ...     'url': 'https:\\\\example.invalid/~john.doe',
+        ... }))
+        {'@list': [{'@type': 'http://schema.org/Person',
+                    'http://schema.org/email': 'john.doe@example.org',
+                    'http://schema.org/name': 'John Doe'}]}
         """  # noqa
         author = {"@type": SCHEMA_URI + "Person"}
         if isinstance(d, dict):
@@ -125,12 +134,18 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
             url = match.group("url")
         else:
             return None
+
         if name and isinstance(name, str):
             author[SCHEMA_URI + "name"] = name
         if email and isinstance(email, str):
             author[SCHEMA_URI + "email"] = email
         if url and isinstance(url, str):
-            author[SCHEMA_URI + "url"] = {"@id": url}
+            # Workaround for https://github.com/digitalbazaar/pyld/issues/91 : drop
+            # URLs that are blatantly invalid early, so PyLD does not crash.
+            parsed_url = urllib.parse.urlparse(url)
+            if parsed_url.netloc:
+                author[SCHEMA_URI + "url"] = {"@id": url}
+
         return {"@list": [author]}
 
     def normalize_description(self, description):
