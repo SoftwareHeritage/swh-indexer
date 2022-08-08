@@ -72,18 +72,17 @@ class ExtrinsicMetadataIndexer(
 ):
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         summary: Dict[str, Any] = {"status": "uneventful"}
-        with sentry_sdk.push_scope() as scope:
-            try:
-                results = []
-                for item in objects.get("raw_extrinsic_metadata", []):
-                    remd = RawExtrinsicMetadata.from_dict(item)
-                    scope.set_tag("swh-indexer-remd-swhid", remd.swhid())
-                    results.extend(self.index(remd.id, data=remd))
-            except Exception:
-                if not self.catch_exceptions:
-                    raise
-                summary["status"] = "failed"
-                return summary
+        try:
+            results = []
+            for item in objects.get("raw_extrinsic_metadata", []):
+                remd = RawExtrinsicMetadata.from_dict(item)
+                sentry_sdk.set_tag("swh-indexer-remd-swhid", remd.swhid())
+                results.extend(self.index(remd.id, data=remd))
+        except Exception:
+            if not self.catch_exceptions:
+                raise
+            summary["status"] = "failed"
+            return summary
 
         summary_persist = self.persist_index_computations(results)
         self.results = results
@@ -423,7 +422,6 @@ class OriginMetadataIndexer(
         origins: List[Origin],
         *,
         check_origin_known: bool = True,
-        sentry_scope=None,
         **kwargs,
     ) -> List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]:
         head_rev_ids = []
@@ -474,8 +472,8 @@ class OriginMetadataIndexer(
 
         results = []
         for (origin, head_swhid) in origin_heads.items():
-            sentry_scope.set_tag("swh-indexer-origin-url", origin.url)
-            sentry_scope.set_tag("swh-indexer-origin-head-swhid", str(head_swhid))
+            sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
+            sentry_sdk.set_tag("swh-indexer-origin-head-swhid", str(head_swhid))
             if head_swhid.object_type == ObjectType.REVISION:
                 rev = head_revs[head_swhid.object_id]
                 if not rev:

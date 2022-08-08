@@ -1,4 +1,4 @@
-# Copyright (C) 2020  The Software Heritage developers
+# Copyright (C) 2020-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from unittest.mock import Mock
 
 import pytest
+import sentry_sdk
 
 from swh.indexer.indexer import (
     ContentIndexer,
@@ -107,10 +108,17 @@ def test_content_indexer_catch_exceptions(sentry_events):
 
     # As journal client, not catching exceptions
     with pytest.raises(_TestException):
-        assert indexer.process_journal_objects({"content": [{"sha1": sha1}]}) == {
-            "status": "failed"
-        }
+        indexer.process_journal_objects({"content": [{"sha1": sha1}]})
     assert sentry_events == []
+
+    # As journal client, check the frontend will be able to get the tag when reporting
+    try:
+        indexer.process_journal_objects({"content": [{"sha1": sha1}]})
+    except Exception:
+        sentry_sdk.capture_exception()
+    else:
+        assert False
+    check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
 
 
 def test_directory_indexer_catch_exceptions(sentry_events):
@@ -143,6 +151,15 @@ def test_directory_indexer_catch_exceptions(sentry_events):
         indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]})
     assert sentry_events == []
 
+    # As journal client, check the frontend will be able to get the tag when reporting
+    try:
+        indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]})
+    except Exception:
+        sentry_sdk.capture_exception()
+    else:
+        assert False
+    check_sentry(sentry_events, {"swh-indexer-directory-swhid": swhid})
+
 
 def test_origin_indexer_catch_exceptions(sentry_events):
     indexer = CrashingOriginIndexer(config=BASE_TEST_CONFIG)
@@ -170,6 +187,15 @@ def test_origin_indexer_catch_exceptions(sentry_events):
     with pytest.raises(_TestException):
         indexer.process_journal_objects({"origin": [{"url": origin_url}]})
     assert sentry_events == []
+
+    # As journal client, check the frontend will be able to get the tag when reporting
+    try:
+        indexer.process_journal_objects({"origin": [{"url": origin_url}]})
+    except Exception:
+        sentry_sdk.capture_exception()
+    else:
+        assert False
+    check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
 
 
 def test_content_partition_indexer_catch_exceptions():

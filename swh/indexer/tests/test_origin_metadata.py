@@ -259,16 +259,20 @@ def test_origin_metadata_indexer_no_metadata(
     assert orig_results == []
 
 
+@pytest.mark.parametrize("catch_exceptions", [True, False])
 def test_origin_metadata_indexer_directory_error(
     swh_indexer_config,
     idx_storage: IndexerStorageInterface,
     storage: StorageInterface,
     obj_storage,
     sentry_events,
+    catch_exceptions,
 ) -> None:
 
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
+
+    indexer.catch_exceptions = catch_exceptions
 
     with patch(
         "swh.indexer.metadata.DirectoryMetadataIndexer"
@@ -296,16 +300,20 @@ def test_origin_metadata_indexer_directory_error(
     assert orig_results == []
 
 
+@pytest.mark.parametrize("catch_exceptions", [True, False])
 def test_origin_metadata_indexer_content_exception(
     swh_indexer_config,
     idx_storage: IndexerStorageInterface,
     storage: StorageInterface,
     obj_storage,
     sentry_events,
+    catch_exceptions,
 ) -> None:
 
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
+
+    indexer.catch_exceptions = catch_exceptions
 
     class TestException(Exception):
         pass
