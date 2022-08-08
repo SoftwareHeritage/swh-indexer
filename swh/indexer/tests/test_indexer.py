@@ -73,9 +73,10 @@ class TrivialContentPartitionIndexer(ContentPartitionIndexer[str]):
         return {"nb_added": len(results)}
 
 
-def check_sentry(sentry_events):
+def check_sentry(sentry_events, tags):
     assert len(sentry_events) == 1
     sentry_event = sentry_events.pop()
+    assert sentry_event.get("tags") == tags
     assert "'_TestException'" in str(sentry_event)
 
 
@@ -89,13 +90,13 @@ def test_content_indexer_catch_exceptions(sentry_events):
 
     # As task, catching exceptions
     assert indexer.run([sha1]) == {"status": "failed"}
-    check_sentry(sentry_events)
+    check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
 
     # As journal client, catching exceptions
     assert indexer.process_journal_objects({"content": [{"sha1": sha1}]}) == {
         "status": "failed"
     }
-    check_sentry(sentry_events)
+    check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
 
     indexer.catch_exceptions = False
 
@@ -118,16 +119,17 @@ def test_directory_indexer_catch_exceptions(sentry_events):
     indexer.storage.directory_get.return_value = [DIRECTORY2]
 
     sha1 = DIRECTORY2.id
+    swhid = str(DIRECTORY2.swhid())
 
     # As task, catching exceptions
     assert indexer.run([sha1]) == {"status": "failed"}
-    check_sentry(sentry_events)
+    check_sentry(sentry_events, {"swh-indexer-directory-swhid": swhid})
 
     # As journal client, catching exceptions
     assert indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]}) == {
         "status": "failed"
     }
-    check_sentry(sentry_events)
+    check_sentry(sentry_events, {"swh-indexer-directory-swhid": swhid})
 
     indexer.catch_exceptions = False
 
@@ -149,13 +151,13 @@ def test_origin_indexer_catch_exceptions(sentry_events):
 
     # As task, catching exceptions
     assert indexer.run([origin_url]) == {"status": "failed"}
-    check_sentry(sentry_events)
+    check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
 
     # As journal client, catching exceptions
     assert indexer.process_journal_objects({"origin": [{"url": origin_url}]}) == {
         "status": "failed"
     }
-    check_sentry(sentry_events)
+    check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
 
     indexer.catch_exceptions = False
 

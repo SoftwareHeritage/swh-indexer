@@ -319,27 +319,30 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
 
         """
         summary: Dict[str, Any] = {"status": "uneventful"}
-        try:
-            results = []
-            contents = objects.get("content", [])
-            # FIXME: with swh.objstorage > v2.0: self.objstorage.get_batch(contents)
-            content_data = self.objstorage.get_batch(c["sha1"] for c in contents)
-            for item, raw_content in zip(contents, content_data):
-                id_ = item["sha1"]
-                if not raw_content:
-                    self.log.warning(
-                        "Content %s not found in objstorage", hashutil.hash_to_hex(id_)
-                    )
-                    continue
+        with sentry_sdk.push_scope() as scope:
+            try:
+                results = []
+                contents = objects.get("content", [])
+                # FIXME: with swh.objstorage > v2.0: self.objstorage.get_batch(contents)
+                content_data = self.objstorage.get_batch(c["sha1"] for c in contents)
+                for item, raw_content in zip(contents, content_data):
+                    id_ = item["sha1"]
+                    scope.set_tag("swh-indexer-content-sha1", hashutil.hash_to_hex(id_))
+                    if not raw_content:
+                        self.log.warning(
+                            "Content %s not found in objstorage",
+                            hashutil.hash_to_hex(id_),
+                        )
+                        continue
 
-                results.extend(self.index(id_, data=raw_content))
-        except Exception:
-            if not self.catch_exceptions:
-                raise
-            self.log.exception("Problem when reading contents metadata.")
-            sentry_sdk.capture_exception()
-            summary["status"] = "failed"
-            return summary
+                    results.extend(self.index(id_, data=raw_content))
+            except Exception:
+                if not self.catch_exceptions:
+                    raise
+                self.log.exception("Problem when reading contents metadata.")
+                sentry_sdk.capture_exception()
+                summary["status"] = "failed"
+                return summary
 
         summary_persist = self.persist_index_computations(results)
         self.results = results
@@ -377,28 +380,32 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
         ]
         results = []
         summary: Dict = {"status": "uneventful"}
-        try:
-            for sha1 in sha1s:
-                try:
-                    raw_content = self.objstorage.get(sha1)
-                except ObjNotFoundError:
-                    self.log.warning(
-                        "Content %s not found in objstorage"
-                        % hashutil.hash_to_hex(sha1)
+        with sentry_sdk.push_scope() as scope:
+            try:
+                for sha1 in sha1s:
+                    scope.set_tag(
+                        "swh-indexer-content-sha1", hashutil.hash_to_hex(sha1)
                     )
-                    continue
-                res = self.index(sha1, raw_content, **kwargs)
-                if res:  # If no results, skip it
-                    results.extend(res)
-                    summary["status"] = "eventful"
-            summary = self.persist_index_computations(results)
-            self.results = results
-        except Exception:
-            if not self.catch_exceptions:
-                raise
-            self.log.exception("Problem when reading contents metadata.")
-            sentry_sdk.capture_exception()
-            summary["status"] = "failed"
+                    try:
+                        raw_content = self.objstorage.get(sha1)
+                    except ObjNotFoundError:
+                        self.log.warning(
+                            "Content %s not found in objstorage"
+                            % hashutil.hash_to_hex(sha1)
+                        )
+                        continue
+                    res = self.index(sha1, raw_content, **kwargs)
+                    if res:  # If no results, skip it
+                        results.extend(res)
+                        summary["status"] = "eventful"
+                summary = self.persist_index_computations(results)
+                self.results = results
+            except Exception:
+                if not self.catch_exceptions:
+                    raise
+                self.log.exception("Problem when reading contents metadata.")
+                sentry_sdk.capture_exception()
+                summary["status"] = "failed"
         return summary
 
 
@@ -478,13 +485,17 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
             indexing result as dict to persist in the indexer backend
 
         """
-        for sha1 in self._list_contents_to_index(partition_id, nb_partitions, indexed):
-            try:
-                raw_content = self.objstorage.get(sha1)
-            except ObjNotFoundError:
-                self.log.warning(f"Content {sha1.hex()} not found in objstorage")
-                continue
-            yield from self.index(sha1, raw_content, **kwargs)
+        with sentry_sdk.push_scope() as scope:
+            for sha1 in self._list_contents_to_index(
+                partition_id, nb_partitions, indexed
+            ):
+                try:
+                    raw_content = self.objstorage.get(sha1)
+                except ObjNotFoundError:
+                    self.log.warning(f"Content {sha1.hex()} not found in objstorage")
+                    continue
+                scope.set_tag("swh-indexer-content-sha1", sha1)
+                yield from self.index(sha1, raw_content, **kwargs)
 
     def _index_with_skipping_already_done(
         self, partition_id: int, nb_partitions: int
@@ -604,20 +615,23 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
         ] + [Origin(url=origin["url"]) for origin in objects.get("origin", [])]
 
         summary: Dict[str, Any] = {"status": "uneventful"}
-        try:
-            results = self.index_list(
-                origins,
-                check_origin_known=False,
-                # no need to check they exist, as we just received either an origin or
-                # visit status; which cannot be created by swh-storage unless the origin
-                # already exists
-            )
-        except Exception:
-            if not self.catch_exceptions:
-                raise
-
-            summary["status"] = "failed"
-            return summary
+        with sentry_sdk.push_scope() as scope:
+            try:
+                results = self.index_list(
+                    origins,
+                    # no need to check they exist, as we just received either an origin
+                    # or visit status; which cannot be created by swh-storage unless
+                    # the origin already exists
+                    check_origin_known=False,
+                    sentry_scope=scope,
+                )
+            except Exception:
+                if not self.catch_exceptions:
+                    raise
+                self.log.exception("Problem when processing origins")
+                sentry_sdk.capture_exception()
+                summary["status"] = "failed"
+                return summary
 
         summary_persist = self.persist_index_computations(results)
         self.results = results
@@ -628,17 +642,14 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
             summary.update(summary_persist)
         return summary
 
-    def index_list(self, origins: List[Origin], **kwargs) -> List[TResult]:
+    def index_list(
+        self, origins: List[Origin], *, sentry_scope=None, **kwargs
+    ) -> List[TResult]:
         results = []
         for origin in origins:
-            try:
-                results.extend(self.index(origin.url, **kwargs))
-            except Exception:
-                if not self.catch_exceptions:
-                    raise
-                self.log.exception("Problem when processing origin %s", origin.url)
-                sentry_sdk.capture_exception()
-                raise
+            if sentry_scope is not None:
+                sentry_scope.set_tag("swh-indexer-origin-url", origin.url)
+            results.extend(self.index(origin.url, **kwargs))
         return results
 
 
@@ -696,15 +707,18 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
 
         # TODO: fetch raw_manifest when useful?
 
-        for (dir_id, dir_) in directories:
-            try:
-                results.extend(self.index(dir_id, dir_))
-            except Exception:
-                if not self.catch_exceptions:
-                    raise
-                self.log.exception("Problem when processing directory")
-                sentry_sdk.capture_exception()
-                summary["status"] = "failed"
+        with sentry_sdk.push_scope() as scope:
+            for (dir_id, dir_) in directories:
+                swhid = f"swh:1:dir:{hashutil.hash_to_hex(dir_id)}"
+                scope.set_tag("swh-indexer-directory-swhid", swhid)
+                try:
+                    results.extend(self.index(dir_id, dir_))
+                except Exception:
+                    if not self.catch_exceptions:
+                        raise
+                    self.log.exception("Problem when processing directory")
+                    sentry_sdk.capture_exception()
+                    summary["status"] = "failed"
 
         summary_persist = self.persist_index_computations(results)
         if summary_persist:
