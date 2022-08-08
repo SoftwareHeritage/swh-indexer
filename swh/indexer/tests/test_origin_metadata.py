@@ -259,21 +259,60 @@ def test_origin_metadata_indexer_no_metadata(
     assert orig_results == []
 
 
-def test_origin_metadata_indexer_error(
+def test_origin_metadata_indexer_directory_error(
     swh_indexer_config,
     idx_storage: IndexerStorageInterface,
     storage: StorageInterface,
     obj_storage,
+    sentry_events,
 ) -> None:
 
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
+
     with patch(
         "swh.indexer.metadata.DirectoryMetadataIndexer"
         ".translate_directory_intrinsic_metadata",
         return_value=None,
     ):
         indexer.run([origin])
+
+    assert len(sentry_events) == 1
+    sentry_event = sentry_events.pop()
+    assert "'TypeError'" in str(sentry_event)
+
+    dir_id = DIRECTORY2.id
+
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert dir_results == []
+
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert orig_results == []
+
+
+def test_origin_metadata_indexer_content_exception(
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
+    sentry_events,
+) -> None:
+
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    origin = "https://github.com/librariesio/yarn-parser"
+
+    class TestException(Exception):
+        pass
+
+    with patch(
+        "swh.indexer.metadata.ContentMetadataRow",
+        side_effect=TestException(),
+    ):
+        indexer.run([origin])
+
+    assert len(sentry_events) == 1
+    sentry_event = sentry_events.pop()
+    assert ".TestException'" in str(sentry_event), sentry_event
 
     dir_id = DIRECTORY2.id
 

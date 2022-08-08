@@ -73,55 +73,101 @@ class TrivialContentPartitionIndexer(ContentPartitionIndexer[str]):
         return {"nb_added": len(results)}
 
 
-def test_content_indexer_catch_exceptions():
+def check_sentry(sentry_events):
+    assert len(sentry_events) == 1
+    sentry_event = sentry_events.pop()
+    assert "'_TestException'" in str(sentry_event)
+
+
+def test_content_indexer_catch_exceptions(sentry_events):
     indexer = CrashingContentIndexer(config=BASE_TEST_CONFIG)
     indexer.objstorage = Mock()
     indexer.objstorage.get.return_value = b"content"
+    indexer.objstorage.get_batch.return_value = [b"content"]
 
-    assert indexer.run([b"foo"]) == {"status": "failed"}
+    sha1 = b"\x12" * 20
+
+    # As task, catching exceptions
+    assert indexer.run([sha1]) == {"status": "failed"}
+    check_sentry(sentry_events)
+
+    # As journal client, catching exceptions
+    assert indexer.process_journal_objects({"content": [{"sha1": sha1}]}) == {
+        "status": "failed"
+    }
+    check_sentry(sentry_events)
 
     indexer.catch_exceptions = False
 
+    # As task, not catching exceptions
     with pytest.raises(_TestException):
-        indexer.run([b"foo"])
+        indexer.run([sha1])
+    assert sentry_events == []
+
+    # As journal client, not catching exceptions
+    with pytest.raises(_TestException):
+        assert indexer.process_journal_objects({"content": [{"sha1": sha1}]}) == {
+            "status": "failed"
+        }
+    assert sentry_events == []
 
 
-def test_directory_indexer_catch_exceptions():
+def test_directory_indexer_catch_exceptions(sentry_events):
     indexer = CrashingDirectoryIndexer(config=BASE_TEST_CONFIG)
     indexer.storage = Mock()
     indexer.storage.directory_get.return_value = [DIRECTORY2]
 
-    assert indexer.run([b"foo"]) == {"status": "failed"}
+    sha1 = DIRECTORY2.id
 
+    # As task, catching exceptions
+    assert indexer.run([sha1]) == {"status": "failed"}
+    check_sentry(sentry_events)
+
+    # As journal client, catching exceptions
     assert indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]}) == {
         "status": "failed"
     }
+    check_sentry(sentry_events)
 
     indexer.catch_exceptions = False
 
+    # As task, not catching exceptions
     with pytest.raises(_TestException):
         indexer.run([b"foo"])
+    assert sentry_events == []
 
+    # As journal client, not catching exceptions
     with pytest.raises(_TestException):
         indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]})
+    assert sentry_events == []
 
 
-def test_origin_indexer_catch_exceptions():
+def test_origin_indexer_catch_exceptions(sentry_events):
     indexer = CrashingOriginIndexer(config=BASE_TEST_CONFIG)
 
-    assert indexer.run(["http://example.org"]) == {"status": "failed"}
+    origin_url = "http://example.org"
 
-    assert indexer.process_journal_objects(
-        {"origin": [{"url": "http://example.org"}]}
-    ) == {"status": "failed"}
+    # As task, catching exceptions
+    assert indexer.run([origin_url]) == {"status": "failed"}
+    check_sentry(sentry_events)
+
+    # As journal client, catching exceptions
+    assert indexer.process_journal_objects({"origin": [{"url": origin_url}]}) == {
+        "status": "failed"
+    }
+    check_sentry(sentry_events)
 
     indexer.catch_exceptions = False
 
+    # As task, not catching exceptions
     with pytest.raises(_TestException):
-        indexer.run(["http://example.org"])
+        indexer.run([origin_url])
+    assert sentry_events == []
 
+    # As journal client, not catching exceptions
     with pytest.raises(_TestException):
-        indexer.process_journal_objects({"origin": [{"url": "http://example.org"}]})
+        indexer.process_journal_objects({"origin": [{"url": origin_url}]})
+    assert sentry_events == []
 
 
 def test_content_partition_indexer_catch_exceptions():

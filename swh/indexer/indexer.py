@@ -336,6 +336,8 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
         except Exception:
             if not self.catch_exceptions:
                 raise
+            self.log.exception("Problem when reading contents metadata.")
+            sentry_sdk.capture_exception()
             summary["status"] = "failed"
             return summary
 
@@ -613,6 +615,7 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
         except Exception:
             if not self.catch_exceptions:
                 raise
+
             summary["status"] = "failed"
             return summary
 
@@ -631,6 +634,8 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
             try:
                 results.extend(self.index(origin.url, **kwargs))
             except Exception:
+                if not self.catch_exceptions:
+                    raise
                 self.log.exception("Problem when processing origin %s", origin.url)
                 sentry_sdk.capture_exception()
                 raise
