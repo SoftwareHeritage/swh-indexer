@@ -75,13 +75,8 @@ class ExtrinsicMetadataIndexer(
         try:
             results = []
             for item in objects.get("raw_extrinsic_metadata", []):
-                id_ = item.get("id")
-                if not id_:
-                    self.log.warning("Missing 'id' key entry in item %r", item)
-                    continue
-                results.extend(
-                    self.index(item["id"], data=RawExtrinsicMetadata.from_dict(item))
-                )
+                remd = RawExtrinsicMetadata.from_dict(item)
+                results.extend(self.index(remd.id, data=remd))
         except Exception:
             if not self.catch_exceptions:
                 raise
