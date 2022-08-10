@@ -75,13 +75,9 @@ class ExtrinsicMetadataIndexer(
         try:
             results = []
             for item in objects.get("raw_extrinsic_metadata", []):
-                id_ = item.get("id")
-                if not id_:
-                    self.log.warning("Missing 'id' key entry in item %r", item)
-                    continue
-                results.extend(
-                    self.index(item["id"], data=RawExtrinsicMetadata.from_dict(item))
-                )
+                remd = RawExtrinsicMetadata.from_dict(item)
+                sentry_sdk.set_tag("swh-indexer-remd-swhid", remd.swhid())
+                results.extend(self.index(remd.id, data=remd))
         except Exception:
             if not self.catch_exceptions:
                 raise
@@ -422,7 +418,11 @@ class OriginMetadataIndexer(
         self.directory_metadata_indexer = DirectoryMetadataIndexer(config=config)
 
     def index_list(
-        self, origins: List[Origin], check_origin_known: bool = True, **kwargs
+        self,
+        origins: List[Origin],
+        *,
+        check_origin_known: bool = True,
+        **kwargs,
     ) -> List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]:
         head_rev_ids = []
         head_rel_ids = []
@@ -472,6 +472,8 @@ class OriginMetadataIndexer(
 
         results = []
         for (origin, head_swhid) in origin_heads.items():
+            sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
+            sentry_sdk.set_tag("swh-indexer-origin-head-swhid", str(head_swhid))
             if head_swhid.object_type == ObjectType.REVISION:
                 rev = head_revs[head_swhid.object_id]
                 if not rev:
