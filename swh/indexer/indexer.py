@@ -326,9 +326,13 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
             content_data = self.objstorage.get_batch(c["sha1"] for c in contents)
             for item, raw_content in zip(contents, content_data):
                 id_ = item["sha1"]
+                sentry_sdk.set_tag(
+                    "swh-indexer-content-sha1", hashutil.hash_to_hex(id_)
+                )
                 if not raw_content:
                     self.log.warning(
-                        "Content %s not found in objstorage", hashutil.hash_to_hex(id_)
+                        "Content %s not found in objstorage",
+                        hashutil.hash_to_hex(id_),
                     )
                     continue
 
@@ -336,6 +340,8 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
         except Exception:
             if not self.catch_exceptions:
                 raise
+            self.log.exception("Problem when reading contents metadata.")
+            sentry_sdk.capture_exception()
             summary["status"] = "failed"
             return summary
 
@@ -377,6 +383,9 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
         summary: Dict = {"status": "uneventful"}
         try:
             for sha1 in sha1s:
+                sentry_sdk.set_tag(
+                    "swh-indexer-content-sha1", hashutil.hash_to_hex(sha1)
+                )
                 try:
                     raw_content = self.objstorage.get(sha1)
                 except ObjNotFoundError:
@@ -482,6 +491,7 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
             except ObjNotFoundError:
                 self.log.warning(f"Content {sha1.hex()} not found in objstorage")
                 continue
+            sentry_sdk.set_tag("swh-indexer-content-sha1", sha1)
             yield from self.index(sha1, raw_content, **kwargs)
 
     def _index_with_skipping_already_done(
@@ -605,14 +615,16 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
         try:
             results = self.index_list(
                 origins,
+                # no need to check they exist, as we just received either an origin
+                # or visit status; which cannot be created by swh-storage unless
+                # the origin already exists
                 check_origin_known=False,
-                # no need to check they exist, as we just received either an origin or
-                # visit status; which cannot be created by swh-storage unless the origin
-                # already exists
             )
         except Exception:
             if not self.catch_exceptions:
                 raise
+            self.log.exception("Problem when processing origins")
+            sentry_sdk.capture_exception()
             summary["status"] = "failed"
             return summary
 
@@ -628,12 +640,8 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
     def index_list(self, origins: List[Origin], **kwargs) -> List[TResult]:
         results = []
         for origin in origins:
-            try:
-                results.extend(self.index(origin.url, **kwargs))
-            except Exception:
-                self.log.exception("Problem when processing origin %s", origin.url)
-                sentry_sdk.capture_exception()
-                raise
+            sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
+            results.extend(self.index(origin.url, **kwargs))
         return results
 
 
@@ -692,6 +700,8 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
         # TODO: fetch raw_manifest when useful?
 
         for (dir_id, dir_) in directories:
+            swhid = f"swh:1:dir:{hashutil.hash_to_hex(dir_id)}"
+            sentry_sdk.set_tag("swh-indexer-directory-swhid", swhid)
             try:
                 results.extend(self.index(dir_id, dir_))
             except Exception:

@@ -49,6 +49,21 @@ SERVER_IMPLEMENTATIONS: Dict[str, str] = {
 }
 
 
+def sanitize_json(doc):
+    """Recursively replaces NUL characters, as postgresql does not allow
+    them in text fields."""
+    if isinstance(doc, str):
+        return doc.replace("\x00", "")
+    elif not hasattr(doc, "__iter__"):
+        return doc
+    elif isinstance(doc, dict):
+        return {sanitize_json(k): sanitize_json(v) for (k, v) in doc.items()}
+    elif isinstance(doc, (list, tuple)):
+        return [sanitize_json(v) for v in doc]
+    else:
+        raise TypeError(f"Unexpected object type in sanitize_json: {doc}")
+
+
 def get_indexer_storage(cls: str, **kwargs) -> IndexerStorageInterface:
     """Instantiate an indexer storage implementation of class `cls` with arguments
     `kwargs`.
@@ -397,8 +412,12 @@ class IndexerStorage:
 
         db.mktemp_content_metadata(cur)
 
+        rows = [m.to_dict() for m in metadata]
+        for row in rows:
+            row["metadata"] = sanitize_json(row["metadata"])
+
         db.copy_to(
-            [m.to_dict() for m in metadata],
+            rows,
             "tmp_content_metadata",
             ["id", "metadata", "indexer_configuration_id"],
             cur,
@@ -447,8 +466,12 @@ class IndexerStorage:
 
         db.mktemp_directory_intrinsic_metadata(cur)
 
+        rows = [m.to_dict() for m in metadata]
+        for row in rows:
+            row["metadata"] = sanitize_json(row["metadata"])
+
         db.copy_to(
-            [m.to_dict() for m in metadata],
+            rows,
             "tmp_directory_intrinsic_metadata",
             ["id", "metadata", "mappings", "indexer_configuration_id"],
             cur,
@@ -487,8 +510,12 @@ class IndexerStorage:
 
         db.mktemp_origin_intrinsic_metadata(cur)
 
+        rows = [m.to_dict() for m in metadata]
+        for row in rows:
+            row["metadata"] = sanitize_json(row["metadata"])
+
         db.copy_to(
-            [m.to_dict() for m in metadata],
+            rows,
             "tmp_origin_intrinsic_metadata",
             [
                 "id",
@@ -625,8 +652,12 @@ class IndexerStorage:
 
         db.mktemp_origin_extrinsic_metadata(cur)
 
+        rows = [m.to_dict() for m in metadata]
+        for row in rows:
+            row["metadata"] = sanitize_json(row["metadata"])
+
         db.copy_to(
-            [m.to_dict() for m in metadata],
+            rows,
             "tmp_origin_extrinsic_metadata",
             [
                 "id",

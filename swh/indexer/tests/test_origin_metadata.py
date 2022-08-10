@@ -259,21 +259,81 @@ def test_origin_metadata_indexer_no_metadata(
     assert orig_results == []
 
 
-def test_origin_metadata_indexer_error(
+@pytest.mark.parametrize("catch_exceptions", [True, False])
+def test_origin_metadata_indexer_directory_error(
     swh_indexer_config,
     idx_storage: IndexerStorageInterface,
     storage: StorageInterface,
     obj_storage,
+    sentry_events,
+    catch_exceptions,
 ) -> None:
 
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
+
+    indexer.catch_exceptions = catch_exceptions
+
     with patch(
         "swh.indexer.metadata.DirectoryMetadataIndexer"
         ".translate_directory_intrinsic_metadata",
         return_value=None,
     ):
         indexer.run([origin])
+
+    assert len(sentry_events) == 1
+    sentry_event = sentry_events.pop()
+    assert sentry_event.get("tags") == {
+        "swh-indexer-origin-head-swhid": (
+            "swh:1:rev:179fd041d75edab00feba8e4439897422f3bdfa1"
+        ),
+        "swh-indexer-origin-url": origin,
+    }
+    assert "'TypeError'" in str(sentry_event)
+
+    dir_id = DIRECTORY2.id
+
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert dir_results == []
+
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert orig_results == []
+
+
+@pytest.mark.parametrize("catch_exceptions", [True, False])
+def test_origin_metadata_indexer_content_exception(
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
+    sentry_events,
+    catch_exceptions,
+) -> None:
+
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    origin = "https://github.com/librariesio/yarn-parser"
+
+    indexer.catch_exceptions = catch_exceptions
+
+    class TestException(Exception):
+        pass
+
+    with patch(
+        "swh.indexer.metadata.ContentMetadataRow",
+        side_effect=TestException(),
+    ):
+        indexer.run([origin])
+
+    assert len(sentry_events) == 1
+    sentry_event = sentry_events.pop()
+    assert sentry_event.get("tags") == {
+        "swh-indexer-content-sha1": "d8f40c3ca9cc30ddaca25c55b5dff18271ff030e",
+        "swh-indexer-origin-head-swhid": (
+            "swh:1:rev:179fd041d75edab00feba8e4439897422f3bdfa1"
+        ),
+        "swh-indexer-origin-url": origin,
+    }
+    assert ".TestException'" in str(sentry_event), sentry_event
 
     dir_id = DIRECTORY2.id
 
