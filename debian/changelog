@@ -1,3 +1,14 @@
+swh-indexer (2.3.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.3.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-08-10 12:16:48 +0200)
+  * Upstream changes:     - v2.3.0     - * Tag Sentry events with object
+    ids     - * Fix crashes on incorrect URLs in `@id`     - * Fix crash
+    on null characters in JSON     - * Fix support of old
+    RawExtrinsicMetadata objects with no id
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 10 Aug 2022 10:26:27 +0000
+
 swh-indexer (2.2.2-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.2.2     - (tagged by Antoine R. Dumont
