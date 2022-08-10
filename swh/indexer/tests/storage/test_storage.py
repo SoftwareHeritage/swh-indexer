@@ -526,6 +526,60 @@ class TestIndexerStorageContentMetadata(StorageETypeTester):
     ]
     row_class = ContentMetadataRow
 
+    def test_add_with_null(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ) -> None:
+        storage, data = swh_indexer_storage_with_data
+        etype = self.endpoint_type
+        tool = data.tools[self.tool_name]
+
+        # conftest fills it with mimetypes
+        storage.journal_writer.journal.objects = []  # type: ignore
+
+        query = [data.sha1_2, data.sha1_1]
+        data1 = self.row_class.from_dict(
+            {
+                "id": data.sha1_2,
+                "metadata": {"description": "with\u0000nul"},
+                "indexer_configuration_id": tool["id"],
+            }
+        )
+
+        # when
+        summary = endpoint(storage, etype, "add")([data1])
+        assert summary == expected_summary(1, etype)
+
+        # then
+        actual_data = list(endpoint(storage, etype, "get")(query))
+
+        # then
+        expected_data_postgresql = [
+            self.row_class.from_dict(
+                {
+                    "id": data.sha1_2,
+                    "metadata": {"description": "withnul"},
+                    "tool": tool,
+                }
+            )
+        ]
+        expected_data_verbatim = [
+            self.row_class.from_dict(
+                {
+                    "id": data.sha1_2,
+                    "metadata": {"description": "with\u0000nul"},
+                    "tool": tool,
+                }
+            )
+        ]
+
+        assert actual_data in (expected_data_postgresql, expected_data_verbatim)
+
+        journal_objects = storage.journal_writer.journal.objects  # type: ignore
+        actual_journal_data = [
+            obj for (obj_type, obj) in journal_objects if obj_type == self.endpoint_type
+        ]
+        assert list(sorted(actual_journal_data)) == list(sorted(expected_data_verbatim))
+
 
 class TestIndexerStorageDirectoryIntrinsicMetadata(StorageETypeTester):
     """Test Indexer Storage directory_intrinsic_metadata related methods"""
