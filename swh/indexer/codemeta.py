@@ -109,7 +109,10 @@ def _document_loader(url, options=None):
 
     Reads the local codemeta.jsonld file instead of fetching it
     from the Internet every single time."""
-    if url == CODEMETA_CONTEXT_URL or url in CODEMETA_ALTERNATE_CONTEXT_URLS:
+    if (
+        url.lower() == CODEMETA_CONTEXT_URL.lower()
+        or url in CODEMETA_ALTERNATE_CONTEXT_URLS
+    ):
         return {
             "contextUrl": None,
             "documentUrl": url,

@@ -173,3 +173,174 @@ def test_detect_metadata_codemeta_json_uppercase():
 
     expected_results = {"CodemetaMapping": [b"bcd"]}
     assert expected_results == results
+
+
+def test_sword_default_xmlns():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0">
+      <name>My Software</name>
+      <author>
+        <name>Author 1</name>
+        <email>foo@example.org</email>
+      </author>
+      <author>
+        <name>Author 2</name>
+      </author>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "author": [
+            {"name": "Author 1", "email": "foo@example.org"},
+            {"name": "Author 2"},
+        ],
+    }
+
+
+def test_sword_basics():
+    content = """<?xml version="1.0"?>
+    <entry xmlns="http://www.w3.org/2005/Atom"
+           xmlns:codemeta="https://doi.org/10.5063/schema/codemeta-2.0">
+      <codemeta:name>My Software</codemeta:name>
+      <codemeta:author>
+        <codemeta:name>Author 1</codemeta:name>
+        <codemeta:email>foo@example.org</codemeta:email>
+      </codemeta:author>
+      <codemeta:author>
+        <codemeta:name>Author 2</codemeta:name>
+      </codemeta:author>
+    </entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "author": [
+            {"name": "Author 1", "email": "foo@example.org"},
+            {"name": "Author 2"},
+        ],
+    }
+
+
+def test_sword_mixed():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      blah
+      <schema:version>1.2.3</schema:version>
+      blih
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "version": "1.2.3",
+    }
+
+
+def test_sword_schemaorg_in_codemeta():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <schema:version>1.2.3</schema:version>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "version": "1.2.3",
+    }
+
+
+def test_sword_schemaorg_in_codemeta_constrained():
+    """Resulting property has the compact URI 'schema:url' instead of just
+    the term 'url', because term 'url' is defined by the Codemeta schema
+    has having type '@id'."""
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <schema:url>http://example.org/my-software</schema:url>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "schema:url": "http://example.org/my-software",
+    }
+
+
+def test_sword_schemaorg_not_in_codemeta():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <schema:sameAs>http://example.org/my-software</schema:sameAs>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "schema:sameAs": "http://example.org/my-software",
+    }
+
+
+def test_sword_atom_name():
+    content = """<?xml version="1.0"?>
+    <entry xmlns="http://www.w3.org/2005/Atom"
+           xmlns:codemeta="https://doi.org/10.5063/schema/codemeta-2.0">
+      <name>My Software</name>
+    </entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+    }
+
+
+def test_sword_multiple_names():
+    content = """<?xml version="1.0"?>
+    <entry xmlns="http://www.w3.org/2005/Atom"
+           xmlns:codemeta="https://doi.org/10.5063/schema/codemeta-2.0">
+      <name>Atom Name 1</name>
+      <name>Atom Name 2</name>
+      <title>Atom Title 1</title>
+      <title>Atom Title 2</title>
+      <codemeta:name>Codemeta Name 1</codemeta:name>
+      <codemeta:name>Codemeta Name 2</codemeta:name>
+    </entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": [
+            "Atom Name 1",
+            "Atom Name 2",
+            "Atom Title 1",
+            "Atom Title 2",
+            "Codemeta Name 1",
+            "Codemeta Name 2",
+        ],
+    }

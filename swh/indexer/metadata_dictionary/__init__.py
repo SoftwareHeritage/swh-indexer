@@ -25,6 +25,7 @@ INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {
 
 EXTRINSIC_MAPPINGS: Dict[str, Type[BaseExtrinsicMapping]] = {
     "GitHubMapping": github.GitHubMapping,
+    "SwordCodemetaMapping": codemeta.SwordCodemetaMapping,
 }
 
 
