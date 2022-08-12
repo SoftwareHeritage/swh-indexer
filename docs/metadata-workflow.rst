@@ -166,7 +166,7 @@ The following terms may be found in the output of the metadata translation
 (other than the `codemeta` mapping, which is the identity function, and
 therefore supports all properties):
 
-.. program-output:: python3 -m swh.indexer.cli mapping list-terms --exclude-mapping codemeta --exclude-mapping sword-codemeta
+.. program-output:: python3 -m swh.indexer.cli mapping list-terms --exclude-mapping codemeta --exclude-mapping json-sword-codemeta --exclude-mapping sword-codemeta
     :nostderr:
 
 

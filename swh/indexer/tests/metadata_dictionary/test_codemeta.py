@@ -349,3 +349,19 @@ def test_sword_multiple_names():
             "Codemeta Name 2",
         ],
     }
+
+
+def test_json_sword():
+    content = """{"id": "hal-01243573", "@xmlns": "http://www.w3.org/2005/Atom", "author": {"name": "Author 1", "email": "foo@example.org"}, "client": "hal", "codemeta:url": "http://example.org/", "codemeta:name": "The assignment problem", "@xmlns:codemeta": "https://doi.org/10.5063/SCHEMA/CODEMETA-2.0", "codemeta:author": {"codemeta:name": "Author 2"}, "codemeta:license": {"codemeta:name": "GNU General Public License v3.0 or later"}}"""  # noqa
+    result = MAPPINGS["JsonSwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "author": [
+            {"name": "Author 1", "email": "foo@example.org"},
+            {"name": "Author 2"},
+        ],
+        "license": {"name": "GNU General Public License v3.0 or later"},
+        "name": "The assignment problem",
+        "schema:url": "http://example.org/",
+        "name": "The assignment problem",
+    }
