@@ -213,6 +213,10 @@ def test_sword_basics():
       <codemeta:author>
         <codemeta:name>Author 2</codemeta:name>
       </codemeta:author>
+      <author>
+        <name>Author 3</name>
+        <email>bar@example.org</email>
+      </author>
     </entry>
     """
 
@@ -223,6 +227,7 @@ def test_sword_basics():
         "author": [
             {"name": "Author 1", "email": "foo@example.org"},
             {"name": "Author 2"},
+            {"name": "Author 3", "email": "bar@example.org"},
         ],
     }
 

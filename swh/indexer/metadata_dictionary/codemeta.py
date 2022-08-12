@@ -67,9 +67,13 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
             namespace = m.group("namespace")
             localname = m.group("localname")
             if namespace == ATOM_URI and localname in ("title", "name"):
-                # Convert Atom name/title to Codemeta name; in case codemeta:name
+                # Convert Atom to Codemeta name; in case codemeta:name
                 # is not provided or different
                 doc["name"].append(self.xml_to_jsonld(child))
+            elif namespace == ATOM_URI and localname in ("author", "email"):
+                # ditto for these author properties (note that author email is also
+                # covered by the previous test)
+                doc[localname].append(self.xml_to_jsonld(child))
             elif namespace in _IGNORED_NAMESPACES:
                 # SWORD-specific namespace that is not interesting to translate
                 pass
