@@ -5,7 +5,8 @@
 
 import os.path
 
-from swh.indexer.codemeta import _DATA_DIR, SCHEMA_URI, _read_crosstable
+from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
+from swh.indexer.namespaces import SCHEMA
 
 from .base import JsonMapping, SingleFileIntrinsicMapping
 
@@ -43,13 +44,13 @@ class ComposerMapping(JsonMapping, SingleFileIntrinsicMapping):
     def normalize_authors(self, author_list):
         authors = []
         for author in author_list:
-            author_obj = {"@type": SCHEMA_URI + "Person"}
+            author_obj = {"@type": SCHEMA.Person}
 
             if isinstance(author, dict):
                 if isinstance(author.get("name", None), str):
-                    author_obj[SCHEMA_URI + "name"] = author.get("name", None)
+                    author_obj[SCHEMA.name] = author.get("name", None)
                 if isinstance(author.get("email", None), str):
-                    author_obj[SCHEMA_URI + "email"] = author.get("email", None)
+                    author_obj[SCHEMA.email] = author.get("email", None)
 
                 authors.append(author_obj)
 

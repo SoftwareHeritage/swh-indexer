@@ -8,8 +8,9 @@ import itertools
 import re
 from typing import List
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
+from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
 from .base import BaseIntrinsicMapping, DictMapping
@@ -17,8 +18,8 @@ from .base import BaseIntrinsicMapping, DictMapping
 
 def name_to_person(name):
     return {
-        "@type": SCHEMA_URI + "Person",
-        SCHEMA_URI + "name": name,
+        "@type": SCHEMA.Person,
+        SCHEMA.name: name,
     }
 
 

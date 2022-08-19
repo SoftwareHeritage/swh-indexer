@@ -9,7 +9,8 @@ import xml.parsers.expat
 
 import xmltodict
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.codemeta import CROSSWALK_TABLE
+from swh.indexer.namespaces import SCHEMA
 
 from .base import DictMapping, SingleFileIntrinsicMapping
 
@@ -41,8 +42,8 @@ class MavenMapping(DictMapping, SingleFileIntrinsicMapping):
             self.log.warning("Skipping ill-formed XML content: %s", content)
             return None
         metadata = self._translate_dict(d, normalize=False)
-        metadata[SCHEMA_URI + "codeRepository"] = self.parse_repositories(d)
-        metadata[SCHEMA_URI + "license"] = self.parse_licenses(d)
+        metadata[SCHEMA.codeRepository] = self.parse_repositories(d)
+        metadata[SCHEMA.license] = self.parse_licenses(d)
         return self.normalize_translation(metadata)
 
     _default_repository = {"url": "https://repo.maven.apache.org/maven2/"}

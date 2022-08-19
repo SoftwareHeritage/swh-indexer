@@ -9,7 +9,8 @@ from typing import Any, Dict, List, Optional
 
 import xmltodict
 
-from swh.indexer.codemeta import _DATA_DIR, SCHEMA_URI, _read_crosstable
+from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
+from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
 from .base import DictMapping, DirectoryLsEntry, SingleFileIntrinsicMapping
@@ -93,8 +94,7 @@ class NuGetMapping(DictMapping, SingleFileIntrinsicMapping):
         if isinstance(s, str):
             author_names = [a.strip() for a in s.split(",")]
             authors = [
-                {"@type": SCHEMA_URI + "Person", SCHEMA_URI + "name": name}
-                for name in author_names
+                {"@type": SCHEMA.Person, SCHEMA.name: name} for name in author_names
             ]
             return {"@list": authors}
 

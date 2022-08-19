@@ -6,7 +6,8 @@
 import re
 import urllib.parse
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.codemeta import CROSSWALK_TABLE
+from swh.indexer.namespaces import SCHEMA
 
 from .base import JsonMapping, SingleFileIntrinsicMapping
 
@@ -120,7 +121,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
                     'http://schema.org/email': 'john.doe@example.org',
                     'http://schema.org/name': 'John Doe'}]}
         """  # noqa
-        author = {"@type": SCHEMA_URI + "Person"}
+        author = {"@type": SCHEMA.Person}
         if isinstance(d, dict):
             name = d.get("name", None)
             email = d.get("email", None)
@@ -136,15 +137,15 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
             return None
 
         if name and isinstance(name, str):
-            author[SCHEMA_URI + "name"] = name
+            author[SCHEMA.name] = name
         if email and isinstance(email, str):
-            author[SCHEMA_URI + "email"] = email
+            author[SCHEMA.email] = email
         if url and isinstance(url, str):
             # Workaround for https://github.com/digitalbazaar/pyld/issues/91 : drop
             # URLs that are blatantly invalid early, so PyLD does not crash.
             parsed_url = urllib.parse.urlparse(url)
             if parsed_url.netloc:
-                author[SCHEMA_URI + "url"] = {"@id": url}
+                author[SCHEMA.url] = {"@id": url}
 
         return {"@list": [author]}
 

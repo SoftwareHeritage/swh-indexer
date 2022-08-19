@@ -7,7 +7,8 @@ import email.parser
 import email.policy
 import itertools
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.codemeta import CROSSWALK_TABLE
+from swh.indexer.namespaces import SCHEMA
 
 from .base import DictMapping, SingleFileIntrinsicMapping
 
@@ -52,15 +53,13 @@ class PythonPkginfoMapping(DictMapping, SingleFileIntrinsicMapping):
             if value != "UNKNOWN":
                 d.setdefault(key, []).append(value)
         metadata = self._translate_dict(d, normalize=False)
-        if SCHEMA_URI + "author" in metadata or SCHEMA_URI + "email" in metadata:
-            metadata[SCHEMA_URI + "author"] = {
+        if SCHEMA.author in metadata or SCHEMA.email in metadata:
+            metadata[SCHEMA.author] = {
                 "@list": [
                     {
-                        "@type": SCHEMA_URI + "Person",
-                        SCHEMA_URI
-                        + "name": metadata.pop(SCHEMA_URI + "author", [None])[0],
-                        SCHEMA_URI
-                        + "email": metadata.pop(SCHEMA_URI + "email", [None])[0],
+                        "@type": SCHEMA.Person,
+                        SCHEMA.name: metadata.pop(SCHEMA.author, [None])[0],
+                        SCHEMA.email: metadata.pop(SCHEMA.email, [None])[0],
                     }
                 ]
             }

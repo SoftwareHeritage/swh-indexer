@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Union
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from swh.indexer.codemeta import CROSSWALK_TABLE
+from swh.indexer.namespaces import SCHEMA
 
 from .base import YamlMapping
 
@@ -17,19 +18,19 @@ class CffMapping(YamlMapping):
         result = []
         for author in d:
             author_data: Dict[str, Optional[Union[str, Dict]]] = {
-                "@type": SCHEMA_URI + "Person"
+                "@type": SCHEMA.Person
             }
             if "orcid" in author and isinstance(author["orcid"], str):
                 author_data["@id"] = author["orcid"]
             if "affiliation" in author and isinstance(author["affiliation"], str):
-                author_data[SCHEMA_URI + "affiliation"] = {
-                    "@type": SCHEMA_URI + "Organization",
-                    SCHEMA_URI + "name": author["affiliation"],
+                author_data[SCHEMA.affiliation] = {
+                    "@type": SCHEMA.Organization,
+                    SCHEMA.name: author["affiliation"],
                 }
             if "family-names" in author and isinstance(author["family-names"], str):
-                author_data[SCHEMA_URI + "familyName"] = author["family-names"]
+                author_data[SCHEMA.familyName] = author["family-names"]
             if "given-names" in author and isinstance(author["given-names"], str):
-                author_data[SCHEMA_URI + "givenName"] = author["given-names"]
+                author_data[SCHEMA.givenName] = author["given-names"]
 
             result.append(author_data)
 
@@ -50,4 +51,4 @@ class CffMapping(YamlMapping):
 
     def normalize_date_released(self, s: str) -> Dict[str, str]:
         if isinstance(s, str):
-            return {"@value": s, "@type": SCHEMA_URI + "Date"}
+            return {"@value": s, "@type": SCHEMA.Date}

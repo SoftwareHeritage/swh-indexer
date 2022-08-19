@@ -6,7 +6,8 @@
 import json
 from typing import Any, Dict, Tuple
 
-from swh.indexer.codemeta import ACTIVITYSTREAMS_URI, CROSSWALK_TABLE, FORGEFED_URI
+from swh.indexer.codemeta import CROSSWALK_TABLE
+from swh.indexer.namespaces import ACTIVITYSTREAMS, FORGEFED
 
 from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
 
@@ -34,11 +35,10 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
 
     def _translate_dict(self, content_dict: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         d = super()._translate_dict(content_dict, **kwargs)
-        d["type"] = FORGEFED_URI + "Repository"
+        d["type"] = FORGEFED.Repository
         return d
 
-    @produce_terms(FORGEFED_URI, ["forks"])
-    @produce_terms(ACTIVITYSTREAMS_URI, ["totalItems"])
+    @produce_terms(FORGEFED.forks, ACTIVITYSTREAMS.totalItems)
     def translate_forks_count(
         self, translated_metadata: Dict[str, Any], v: Any
     ) -> None:
@@ -57,15 +57,14 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         }
         """
         if isinstance(v, int):
-            translated_metadata.setdefault(FORGEFED_URI + "forks", []).append(
+            translated_metadata.setdefault(FORGEFED.forks, []).append(
                 {
-                    "@type": ACTIVITYSTREAMS_URI + "OrderedCollection",
-                    ACTIVITYSTREAMS_URI + "totalItems": v,
+                    "@type": ACTIVITYSTREAMS.OrderedCollection,
+                    ACTIVITYSTREAMS.totalItems: v,
                 }
             )
 
-    @produce_terms(ACTIVITYSTREAMS_URI, ["likes"])
-    @produce_terms(ACTIVITYSTREAMS_URI, ["totalItems"])
+    @produce_terms(ACTIVITYSTREAMS.likes, ACTIVITYSTREAMS.totalItems)
     def translate_stargazers_count(
         self, translated_metadata: Dict[str, Any], v: Any
     ) -> None:
@@ -84,15 +83,14 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         }
         """
         if isinstance(v, int):
-            translated_metadata.setdefault(ACTIVITYSTREAMS_URI + "likes", []).append(
+            translated_metadata.setdefault(ACTIVITYSTREAMS.likes, []).append(
                 {
-                    "@type": ACTIVITYSTREAMS_URI + "Collection",
-                    ACTIVITYSTREAMS_URI + "totalItems": v,
+                    "@type": ACTIVITYSTREAMS.Collection,
+                    ACTIVITYSTREAMS.totalItems: v,
                 }
             )
 
-    @produce_terms(ACTIVITYSTREAMS_URI, ["followers"])
-    @produce_terms(ACTIVITYSTREAMS_URI, ["totalItems"])
+    @produce_terms(ACTIVITYSTREAMS.followers, ACTIVITYSTREAMS.totalItems)
     def translate_watchers_count(
         self, translated_metadata: Dict[str, Any], v: Any
     ) -> None:
@@ -111,12 +109,10 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         }
         """
         if isinstance(v, int):
-            translated_metadata.setdefault(
-                ACTIVITYSTREAMS_URI + "followers", []
-            ).append(
+            translated_metadata.setdefault(ACTIVITYSTREAMS.followers, []).append(
                 {
-                    "@type": ACTIVITYSTREAMS_URI + "Collection",
-                    ACTIVITYSTREAMS_URI + "totalItems": v,
+                    "@type": ACTIVITYSTREAMS.Collection,
+                    ACTIVITYSTREAMS.totalItems: v,
                 }
             )
 

@@ -10,7 +10,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
 from typing_extensions import TypedDict
 import yaml
 
-from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
+from swh.indexer.codemeta import compact, merge_values
+from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
 
@@ -26,16 +27,14 @@ TTranslateCallable = TypeVar(
 )
 
 
-def produce_terms(
-    namespace: str, terms: List[str]
-) -> Callable[[TTranslateCallable], TTranslateCallable]:
+def produce_terms(*uris: str) -> Callable[[TTranslateCallable], TTranslateCallable]:
     """Returns a decorator that marks the decorated function as adding
     the given terms to the ``translated_metadata`` dict"""
 
     def decorator(f: TTranslateCallable) -> TTranslateCallable:
         if not hasattr(f, "produced_terms"):
             f.produced_terms = []  # type: ignore
-        f.produced_terms.extend(namespace + term for term in terms)  # type: ignore
+        f.produced_terms.extend(uris)  # type: ignore
         return f
 
     return decorator
@@ -175,7 +174,7 @@ class DictMapping(BaseMapping):
             the indexer
 
         """
-        translated_metadata = {"@type": SCHEMA_URI + "SoftwareSourceCode"}
+        translated_metadata = {"@type": SCHEMA.SoftwareSourceCode}
         for k, v in content_dict.items():
             # First, check if there is a specific translation
             # method for this key

@@ -14,6 +14,7 @@ from typing import Any, List
 from pyld import jsonld
 
 import swh.indexer
+from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA
 
 _DATA_DIR = os.path.join(os.path.dirname(swh.indexer.__file__), "data")
 
@@ -34,18 +35,14 @@ CODEMETA_CONTEXT_URL = "https://doi.org/10.5063/schema/codemeta-2.0"
 CODEMETA_ALTERNATE_CONTEXT_URLS = {
     ("https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld")
 }
-CODEMETA_URI = "https://codemeta.github.io/terms/"
-SCHEMA_URI = "http://schema.org/"
-FORGEFED_URI = "https://forgefed.org/ns#"
-ACTIVITYSTREAMS_URI = "https://www.w3.org/ns/activitystreams#"
 
 
 PROPERTY_BLACKLIST = {
     # CodeMeta properties that we cannot properly represent.
-    SCHEMA_URI + "softwareRequirements",
-    CODEMETA_URI + "softwareSuggestions",
+    SCHEMA.softwareRequirements,
+    CODEMETA.softwareSuggestions,
     # Duplicate of 'author'
-    SCHEMA_URI + "creator",
+    SCHEMA.creator,
 }
 
 _codemeta_field_separator = re.compile(r"\s*[,/]\s*")
@@ -64,7 +61,7 @@ def make_absolute_uri(local_name):
     uri = jsonld.JsonLdProcessor.get_context_value(
         _PROCESSED_CODEMETA_CONTEXT, local_name, "@id"
     )
-    assert uri.startswith(("@", CODEMETA_URI, SCHEMA_URI)), (local_name, uri)
+    assert uri.startswith(("@", CODEMETA._uri, SCHEMA._uri)), (local_name, uri)
     return uri
 
 
@@ -115,10 +112,10 @@ def _document_loader(url, options=None):
             "documentUrl": url,
             "document": CODEMETA_CONTEXT,
         }
-    elif url == CODEMETA_URI:
+    elif url == CODEMETA._uri:
         raise Exception(
             "{} is CodeMeta's URI, use {} as context url".format(
-                CODEMETA_URI, CODEMETA_CONTEXT_URL
+                CODEMETA._uri, CODEMETA_CONTEXT_URL
             )
         )
     else:
@@ -135,7 +132,7 @@ def compact(doc, forgefed: bool):
     """
     contexts: List[Any] = [CODEMETA_CONTEXT_URL]
     if forgefed:
-        contexts.append({"as": ACTIVITYSTREAMS_URI, "forge": FORGEFED_URI})
+        contexts.append({"as": ACTIVITYSTREAMS._uri, "forge": FORGEFED._uri})
     return jsonld.compact(doc, contexts, options={"documentLoader": _document_loader})
 
 
@@ -195,8 +192,8 @@ def merge_documents(documents):
                 if "@id" not in merged_document:
                     merged_document["@id"] = value
                 elif value != merged_document["@id"]:
-                    if value not in merged_document[SCHEMA_URI + "sameAs"]:
-                        merged_document[SCHEMA_URI + "sameAs"].append(value)
+                    if value not in merged_document[SCHEMA.sameAs]:
+                        merged_document[SCHEMA.sameAs].append(value)
             else:
                 for value in values:
                     if isinstance(value, dict) and set(value) == {"@list"}:

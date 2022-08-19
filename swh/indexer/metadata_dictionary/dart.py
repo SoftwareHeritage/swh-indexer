@@ -6,7 +6,8 @@
 import os.path
 import re
 
-from swh.indexer.codemeta import _DATA_DIR, SCHEMA_URI, _read_crosstable
+from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
+from swh.indexer.namespaces import SCHEMA
 
 from .base import YamlMapping
 
@@ -18,8 +19,8 @@ with open(PUB_TABLE_PATH) as fd:
 
 def name_to_person(name):
     return {
-        "@type": SCHEMA_URI + "Person",
-        SCHEMA_URI + "name": name,
+        "@type": SCHEMA.Person,
+        SCHEMA.name: name,
     }
 
 
@@ -50,17 +51,17 @@ class PubspecMapping(YamlMapping):
 
     def normalize_author(self, s):
         name_email_regex = "(?P<name>.*?)( <(?P<email>.*)>)"
-        author = {"@type": SCHEMA_URI + "Person"}
+        author = {"@type": SCHEMA.Person}
         if isinstance(s, str):
             match = re.search(name_email_regex, s)
             if match:
                 name = match.group("name")
                 email = match.group("email")
-                author[SCHEMA_URI + "email"] = email
+                author[SCHEMA.email] = email
             else:
                 name = s
 
-            author[SCHEMA_URI + "name"] = name
+            author[SCHEMA.name] = name
 
             return {"@list": [author]}
 
