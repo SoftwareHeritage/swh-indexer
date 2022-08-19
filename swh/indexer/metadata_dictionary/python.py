@@ -53,13 +53,16 @@ class PythonPkginfoMapping(DictMapping, SingleFileIntrinsicMapping):
             if value != "UNKNOWN":
                 d.setdefault(key, []).append(value)
         metadata = self._translate_dict(d, normalize=False)
-        if SCHEMA.author in metadata or SCHEMA.email in metadata:
+
+        author_name = metadata.pop(SCHEMA.author, None)
+        author_email = metadata.pop(SCHEMA.email, None)
+        if author_name or author_email:
             metadata[SCHEMA.author] = {
                 "@list": [
                     {
                         "@type": SCHEMA.Person,
-                        SCHEMA.name: metadata.pop(SCHEMA.author, [None])[0],
-                        SCHEMA.email: metadata.pop(SCHEMA.email, [None])[0],
+                        SCHEMA.name: author_name,
+                        SCHEMA.email: author_email,
                     }
                 ]
             }
