@@ -159,9 +159,7 @@ class DictMapping(BaseMapping):
 
         return simple_terms | complex_terms
 
-    def _translate_dict(
-        self, content_dict: Dict, *, normalize: bool = True
-    ) -> Dict[str, str]:
+    def _translate_dict(self, content_dict: Dict) -> Dict[str, str]:
         """
         Translates content  by parsing content from a dict object
         and translating with the appropriate mapping
@@ -209,10 +207,15 @@ class DictMapping(BaseMapping):
                 else:
                     translated_metadata[codemeta_key] = v
 
-        if normalize:
-            return self.normalize_translation(translated_metadata)
-        else:
-            return translated_metadata
+        self.extra_translation(translated_metadata, content_dict)
+
+        return self.normalize_translation(translated_metadata)
+
+    def extra_translation(self, translated_metadata: Dict[str, Any], d: Dict[str, Any]):
+        """Called at the end of the translation process, and may add arbitrary keys
+        to ``translated_metadata`` based on the input dictionary (passed as ``d``).
+        """
+        pass
 
 
 class JsonMapping(DictMapping):

@@ -52,12 +52,13 @@ class PythonPkginfoMapping(DictMapping, SingleFileIntrinsicMapping):
             key = _normalize_pkginfo_key(key)
             if value != "UNKNOWN":
                 d.setdefault(key, []).append(value)
-        metadata = self._translate_dict(d, normalize=False)
+        return self._translate_dict(d)
 
-        author_name = metadata.pop(SCHEMA.author, None)
-        author_email = metadata.pop(SCHEMA.email, None)
+    def extra_translation(self, translated_metadata, d):
+        author_name = translated_metadata.pop(SCHEMA.author, None)
+        author_email = translated_metadata.pop(SCHEMA.email, None)
         if author_name or author_email:
-            metadata[SCHEMA.author] = {
+            translated_metadata[SCHEMA.author] = {
                 "@list": [
                     {
                         "@type": SCHEMA.Person,
@@ -66,7 +67,6 @@ class PythonPkginfoMapping(DictMapping, SingleFileIntrinsicMapping):
                     }
                 ]
             }
-        return self.normalize_translation(metadata)
 
     def normalize_home_page(self, urls):
         return [{"@id": url} for url in urls]

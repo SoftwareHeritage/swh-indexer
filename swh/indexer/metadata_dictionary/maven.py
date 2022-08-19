@@ -41,12 +41,14 @@ class MavenMapping(DictMapping, SingleFileIntrinsicMapping):
         if not isinstance(d, dict):
             self.log.warning("Skipping ill-formed XML content: %s", content)
             return None
-        metadata = self._translate_dict(d, normalize=False)
-        metadata[SCHEMA.codeRepository] = self.parse_repositories(d)
-        metadata[SCHEMA.license] = self.parse_licenses(d)
-        return self.normalize_translation(metadata)
+        return self._translate_dict(d)
 
     _default_repository = {"url": "https://repo.maven.apache.org/maven2/"}
+
+    def extra_translation(self, translated_metadata, d):
+        repositories = self.parse_repositories(d)
+        if repositories:
+            translated_metadata[SCHEMA.codeRepository] = repositories
 
     def parse_repositories(self, d):
         """https://maven.apache.org/pom.html#Repositories
@@ -102,7 +104,12 @@ class MavenMapping(DictMapping, SingleFileIntrinsicMapping):
         if isinstance(id_, str):
             return {"@id": id_}
 
-    def parse_licenses(self, d):
+    def translate_licenses(self, translated_metadata, d):
+        licenses = self.parse_licenses(d)
+        if licenses:
+            translated_metadata[SCHEMA.license] = licenses
+
+    def parse_licenses(self, licenses):
         """https://maven.apache.org/pom.html#Licenses
 
         >>> import xmltodict
@@ -124,7 +131,7 @@ class MavenMapping(DictMapping, SingleFileIntrinsicMapping):
                 }
             }
         }
-        >>> MavenMapping().parse_licenses(d)
+        >>> MavenMapping().parse_licenses(d["licenses"])
         [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'}]
 
         or, if there are more than one license:
@@ -143,12 +150,11 @@ class MavenMapping(DictMapping, SingleFileIntrinsicMapping):
         ...   </license>
         ... </licenses>
         ... ''')
-        >>> pprint(MavenMapping().parse_licenses(d))
+        >>> pprint(MavenMapping().parse_licenses(d["licenses"]))
         [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'},
          {'@id': 'https://opensource.org/licenses/MIT'}]
         """
 
-        licenses = d.get("licenses")
         if not isinstance(licenses, dict):
             return
         licenses = licenses.get("license")
