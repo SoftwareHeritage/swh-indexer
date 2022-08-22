@@ -4,18 +4,15 @@
 # See top-level LICENSE file for more information
 
 import os
-from typing import Any, Dict, Optional
-import xml.parsers.expat
-
-import xmltodict
+from typing import Any, Dict
 
 from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.namespaces import SCHEMA
 
-from .base import DictMapping, SingleFileIntrinsicMapping
+from .base import SingleFileIntrinsicMapping, XmlMapping
 
 
-class MavenMapping(DictMapping, SingleFileIntrinsicMapping):
+class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
     """
     dedicated class for Maven (pom.xml) mapping and translation
     """
@@ -25,25 +22,10 @@ class MavenMapping(DictMapping, SingleFileIntrinsicMapping):
     mapping = CROSSWALK_TABLE["Java (Maven)"]
     string_fields = ["name", "version", "description", "email"]
 
-    def translate(self, content: bytes) -> Optional[Dict[str, Any]]:
-        try:
-            d = xmltodict.parse(content).get("project") or {}
-        except xml.parsers.expat.ExpatError:
-            self.log.warning("Error parsing XML from %s", self.log_suffix)
-            return None
-        except UnicodeDecodeError:
-            self.log.warning("Error unidecoding XML from %s", self.log_suffix)
-            return None
-        except (LookupError, ValueError):
-            # unknown encoding or multi-byte encoding
-            self.log.warning("Error detecting XML encoding from %s", self.log_suffix)
-            return None
-        if not isinstance(d, dict):
-            self.log.warning("Skipping ill-formed XML content: %s", content)
-            return None
-        return self._translate_dict(d)
-
     _default_repository = {"url": "https://repo.maven.apache.org/maven2/"}
+
+    def _translate_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
+        return super()._translate_dict(d.get("project") or {})
 
     def extra_translation(self, translated_metadata, d):
         repositories = self.parse_repositories(d)

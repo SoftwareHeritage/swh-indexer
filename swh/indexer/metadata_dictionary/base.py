@@ -6,8 +6,10 @@
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+import xml.parsers.expat
 
 from typing_extensions import TypedDict
+import xmltodict
 import yaml
 
 from swh.indexer.codemeta import compact, merge_values
@@ -159,7 +161,7 @@ class DictMapping(BaseMapping):
 
         return simple_terms | complex_terms
 
-    def _translate_dict(self, content_dict: Dict) -> Dict[str, str]:
+    def _translate_dict(self, content_dict: Dict) -> Dict[str, Any]:
         """
         Translates content  by parsing content from a dict object
         and translating with the appropriate mapping
@@ -247,6 +249,40 @@ class JsonMapping(DictMapping):
         if isinstance(content_dict, dict):
             return self._translate_dict(content_dict)
         return None
+
+
+class XmlMapping(DictMapping):
+    """Base class for all mappings that use XML data as input."""
+
+    def translate(self, raw_content: bytes) -> Optional[Dict]:
+        """
+        Translates content by parsing content from a bytestring containing
+        XML data and translating with the appropriate mapping
+
+        Args:
+            raw_content (bytes): raw content to translate
+
+        Returns:
+            dict: translated metadata in json-friendly form needed for
+            the indexer
+
+        """
+        try:
+            d = xmltodict.parse(raw_content)
+        except xml.parsers.expat.ExpatError:
+            self.log.warning("Error parsing XML from %s", self.log_suffix)
+            return None
+        except UnicodeDecodeError:
+            self.log.warning("Error unidecoding XML from %s", self.log_suffix)
+            return None
+        except (LookupError, ValueError):
+            # unknown encoding or multi-byte encoding
+            self.log.warning("Error detecting XML encoding from %s", self.log_suffix)
+            return None
+        if not isinstance(d, dict):
+            self.log.warning("Skipping ill-formed XML content: %s", raw_content)
+            return None
+        return self._translate_dict(d)
 
 
 class SafeLoader(yaml.SafeLoader):

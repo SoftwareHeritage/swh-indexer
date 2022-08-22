@@ -5,15 +5,13 @@
 
 import os.path
 import re
-from typing import Any, Dict, List, Optional
-
-import xmltodict
+from typing import Any, Dict, List
 
 from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
 from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
-from .base import BaseIntrinsicMapping, DictMapping, DirectoryLsEntry
+from .base import BaseIntrinsicMapping, DirectoryLsEntry, XmlMapping
 
 NUGET_TABLE_PATH = os.path.join(_DATA_DIR, "nuget.csv")
 
@@ -21,7 +19,7 @@ with open(NUGET_TABLE_PATH) as fd:
     (CODEMETA_TERMS, NUGET_TABLE) = _read_crosstable(fd)
 
 
-class NuGetMapping(DictMapping, BaseIntrinsicMapping):
+class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
     """
     dedicated class for NuGet (.nuspec) mapping and translation
     """
@@ -50,13 +48,8 @@ class NuGetMapping(DictMapping, BaseIntrinsicMapping):
                 return [entry["sha1"]]
         return []
 
-    def translate(self, content: bytes) -> Optional[Dict[str, Any]]:
-        d = xmltodict.parse(content).get("package", {}).get("metadata", {})
-        if not isinstance(d, dict):
-            self.log.warning("Skipping ill-formed XML content: %s", content)
-            return None
-
-        return self._translate_dict(d)
+    def _translate_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
+        return super()._translate_dict(d.get("package", {}).get("metadata", {}))
 
     def normalize_projectUrl(self, s):
         if isinstance(s, str):
