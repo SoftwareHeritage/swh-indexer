@@ -51,11 +51,7 @@ class NuGetMapping(DictMapping, BaseIntrinsicMapping):
         return []
 
     def translate(self, content: bytes) -> Optional[Dict[str, Any]]:
-        d = (
-            xmltodict.parse(content.strip(b" \n "))
-            .get("package", {})
-            .get("metadata", {})
-        )
+        d = xmltodict.parse(content).get("package", {}).get("metadata", {})
         if not isinstance(d, dict):
             self.log.warning("Skipping ill-formed XML content: %s", content)
             return None
