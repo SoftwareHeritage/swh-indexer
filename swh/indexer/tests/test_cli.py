@@ -117,10 +117,13 @@ def test_cli_mapping_list(cli_runner, swh_config):
             "nuget",
             "pkg-info",
             "pubspec",
+            "podspec",
             "sword-codemeta",
             "",
         ]  # must be sorted for test to pass
     )
+    # "podspec",
+
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
 
