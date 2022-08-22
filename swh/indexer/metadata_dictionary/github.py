@@ -3,17 +3,17 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import json
-from typing import Any, Dict, Tuple
+from typing import Any, Tuple
+
+from rdflib import RDF, BNode, Graph, Literal, URIRef
 
 from swh.indexer.codemeta import CROSSWALK_TABLE
-from swh.indexer.namespaces import ACTIVITYSTREAMS, FORGEFED
+from swh.indexer.namespaces import ACTIVITYSTREAMS, FORGEFED, SCHEMA
 
 from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
+from .utils import prettyprint_graph  # noqa
 
-
-def _prettyprint(d):
-    print(json.dumps(d, indent=4))
+SPDX = URIRef("https://spdx.org/licenses/")
 
 
 class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
@@ -33,94 +33,81 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
     def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
         return ("application/vnd.github.v3+json",)
 
-    def _translate_dict(self, content_dict: Dict[str, Any], **kwargs) -> Dict[str, Any]:
-        d = super()._translate_dict(content_dict, **kwargs)
-        d["type"] = FORGEFED.Repository
-        return d
+    def extra_translation(self, graph, root, content_dict):
+        graph.remove((root, RDF.type, SCHEMA.SoftwareSourceCode))
+        graph.add((root, RDF.type, FORGEFED.Repository))
 
     @produce_terms(FORGEFED.forks, ACTIVITYSTREAMS.totalItems)
-    def translate_forks_count(
-        self, translated_metadata: Dict[str, Any], v: Any
-    ) -> None:
+    def translate_forks_count(self, graph: Graph, root: BNode, v: Any) -> None:
         """
 
-        >>> translated_metadata = {}
-        >>> GitHubMapping().translate_forks_count(translated_metadata, 42)
-        >>> _prettyprint(translated_metadata)
+        >>> graph = Graph()
+        >>> root = URIRef("http://example.org/test-software")
+        >>> GitHubMapping().translate_forks_count(graph, root, 42)
+        >>> prettyprint_graph(graph, root)
         {
-            "https://forgefed.org/ns#forks": [
-                {
-                    "@type": "https://www.w3.org/ns/activitystreams#OrderedCollection",
-                    "https://www.w3.org/ns/activitystreams#totalItems": 42
-                }
-            ]
+            "@id": ...,
+            "https://forgefed.org/ns#forks": {
+                "@type": "https://www.w3.org/ns/activitystreams#OrderedCollection",
+                "https://www.w3.org/ns/activitystreams#totalItems": 42
+            }
         }
         """
         if isinstance(v, int):
-            translated_metadata.setdefault(FORGEFED.forks, []).append(
-                {
-                    "@type": ACTIVITYSTREAMS.OrderedCollection,
-                    ACTIVITYSTREAMS.totalItems: v,
-                }
-            )
+            collection = BNode()
+            graph.add((root, FORGEFED.forks, collection))
+            graph.add((collection, RDF.type, ACTIVITYSTREAMS.OrderedCollection))
+            graph.add((collection, ACTIVITYSTREAMS.totalItems, Literal(v)))
 
     @produce_terms(ACTIVITYSTREAMS.likes, ACTIVITYSTREAMS.totalItems)
-    def translate_stargazers_count(
-        self, translated_metadata: Dict[str, Any], v: Any
-    ) -> None:
+    def translate_stargazers_count(self, graph: Graph, root: BNode, v: Any) -> None:
         """
 
-        >>> translated_metadata = {}
-        >>> GitHubMapping().translate_stargazers_count(translated_metadata, 42)
-        >>> _prettyprint(translated_metadata)
+        >>> graph = Graph()
+        >>> root = URIRef("http://example.org/test-software")
+        >>> GitHubMapping().translate_stargazers_count(graph, root, 42)
+        >>> prettyprint_graph(graph, root)
         {
-            "https://www.w3.org/ns/activitystreams#likes": [
-                {
-                    "@type": "https://www.w3.org/ns/activitystreams#Collection",
-                    "https://www.w3.org/ns/activitystreams#totalItems": 42
-                }
-            ]
+            "@id": ...,
+            "https://www.w3.org/ns/activitystreams#likes": {
+                "@type": "https://www.w3.org/ns/activitystreams#Collection",
+                "https://www.w3.org/ns/activitystreams#totalItems": 42
+            }
         }
         """
         if isinstance(v, int):
-            translated_metadata.setdefault(ACTIVITYSTREAMS.likes, []).append(
-                {
-                    "@type": ACTIVITYSTREAMS.Collection,
-                    ACTIVITYSTREAMS.totalItems: v,
-                }
-            )
+            collection = BNode()
+            graph.add((root, ACTIVITYSTREAMS.likes, collection))
+            graph.add((collection, RDF.type, ACTIVITYSTREAMS.Collection))
+            graph.add((collection, ACTIVITYSTREAMS.totalItems, Literal(v)))
 
     @produce_terms(ACTIVITYSTREAMS.followers, ACTIVITYSTREAMS.totalItems)
-    def translate_watchers_count(
-        self, translated_metadata: Dict[str, Any], v: Any
-    ) -> None:
+    def translate_watchers_count(self, graph: Graph, root: BNode, v: Any) -> None:
         """
 
-        >>> translated_metadata = {}
-        >>> GitHubMapping().translate_watchers_count(translated_metadata, 42)
-        >>> _prettyprint(translated_metadata)
+        >>> graph = Graph()
+        >>> root = URIRef("http://example.org/test-software")
+        >>> GitHubMapping().translate_watchers_count(graph, root, 42)
+        >>> prettyprint_graph(graph, root)
         {
-            "https://www.w3.org/ns/activitystreams#followers": [
-                {
-                    "@type": "https://www.w3.org/ns/activitystreams#Collection",
-                    "https://www.w3.org/ns/activitystreams#totalItems": 42
-                }
-            ]
+            "@id": ...,
+            "https://www.w3.org/ns/activitystreams#followers": {
+                "@type": "https://www.w3.org/ns/activitystreams#Collection",
+                "https://www.w3.org/ns/activitystreams#totalItems": 42
+            }
         }
         """
         if isinstance(v, int):
-            translated_metadata.setdefault(ACTIVITYSTREAMS.followers, []).append(
-                {
-                    "@type": ACTIVITYSTREAMS.Collection,
-                    ACTIVITYSTREAMS.totalItems: v,
-                }
-            )
+            collection = BNode()
+            graph.add((root, ACTIVITYSTREAMS.followers, collection))
+            graph.add((collection, RDF.type, ACTIVITYSTREAMS.Collection))
+            graph.add((collection, ACTIVITYSTREAMS.totalItems, Literal(v)))
 
     def normalize_license(self, d):
         """
 
         >>> GitHubMapping().normalize_license({'spdx_id': 'MIT'})
-        {'@id': 'https://spdx.org/licenses/MIT'}
+        rdflib.term.URIRef('https://spdx.org/licenses/MIT')
         """
         if isinstance(d, dict) and isinstance(d.get("spdx_id"), str):
-            return {"@id": "https://spdx.org/licenses/" + d["spdx_id"]}
+            return SPDX + d["spdx_id"]

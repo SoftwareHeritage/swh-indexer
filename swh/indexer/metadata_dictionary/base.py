@@ -6,14 +6,17 @@
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+import uuid
 import xml.parsers.expat
 
+from pyld import jsonld
+import rdflib
 from typing_extensions import TypedDict
 import xmltodict
 import yaml
 
-from swh.indexer.codemeta import compact, merge_values
-from swh.indexer.namespaces import SCHEMA
+from swh.indexer.codemeta import _document_loader, compact
+from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
 
 
@@ -25,7 +28,8 @@ class DirectoryLsEntry(TypedDict):
 
 
 TTranslateCallable = TypeVar(
-    "TTranslateCallable", bound=Callable[[Any, Dict[str, Any], Any], None]
+    "TTranslateCallable",
+    bound=Callable[[Any, rdflib.Graph, rdflib.term.BNode, Any], None],
 )
 
 
@@ -145,7 +149,7 @@ class DictMapping(BaseMapping):
     def supported_terms(cls):
         # one-to-one mapping from the original key to a CodeMeta term
         simple_terms = {
-            term
+            str(term)
             for (key, term) in cls.mapping.items()
             if key in cls.string_fields
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
@@ -153,7 +157,7 @@ class DictMapping(BaseMapping):
 
         # more complex mapping from the original key to JSON-LD
         complex_terms = {
-            term
+            str(term)
             for meth_name in dir(cls)
             if meth_name.startswith("translate_")
             for term in getattr(getattr(cls, meth_name), "produced_terms", [])
@@ -174,7 +178,20 @@ class DictMapping(BaseMapping):
             the indexer
 
         """
-        translated_metadata = {"@type": SCHEMA.SoftwareSourceCode}
+        graph = rdflib.Graph()
+
+        # The main object being described (the SoftwareSourceCode) does not necessarily
+        # may or may not have an id.
+        # Either way, we temporarily use this URI to identify it. Unfortunately,
+        # we cannot use a blank node as we need to use it for JSON-LD framing later,
+        # and blank nodes cannot be used for framing in JSON-LD >= 1.1
+        root_id = (
+            "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
+            + str(uuid.uuid4())
+        )
+        root = rdflib.URIRef(root_id)
+        graph.add((root, RDF.type, SCHEMA.SoftwareSourceCode))
+
         for k, v in content_dict.items():
             # First, check if there is a specific translation
             # method for this key
@@ -182,40 +199,66 @@ class DictMapping(BaseMapping):
                 self, "translate_" + self._normalize_method_name(k), None
             )
             if translation_method:
-                translation_method(translated_metadata, v)
+                translation_method(graph, root, v)
             elif k in self.mapping:
                 # if there is no method, but the key is known from the
                 # crosswalk table
                 codemeta_key = self.mapping[k]
 
-                # if there is a normalization method, use it on the value
+                # if there is a normalization method, use it on the value,
+                # and add its results to the triples
                 normalization_method = getattr(
                     self, "normalize_" + self._normalize_method_name(k), None
                 )
                 if normalization_method:
                     v = normalization_method(v)
+                    if v is None:
+                        pass
+                    elif isinstance(v, list):
+                        for item in reversed(v):
+                            graph.add((root, codemeta_key, item))
+                    else:
+                        graph.add((root, codemeta_key, v))
                 elif k in self.string_fields and isinstance(v, str):
-                    pass
+                    graph.add((root, codemeta_key, rdflib.Literal(v)))
                 elif k in self.string_fields and isinstance(v, list):
-                    v = [x for x in v if isinstance(x, str)]
+                    for item in v:
+                        graph.add((root, codemeta_key, rdflib.Literal(item)))
                 else:
                     continue
 
-                # set the translation metadata with the normalized value
-                if codemeta_key in translated_metadata:
-                    translated_metadata[codemeta_key] = merge_values(
-                        translated_metadata[codemeta_key], v
-                    )
-                else:
-                    translated_metadata[codemeta_key] = v
+        self.extra_translation(graph, root, content_dict)
 
-        self.extra_translation(translated_metadata, content_dict)
+        # Convert from rdflib's internal graph representation to JSON
+        s = graph.serialize(format="application/ld+json")
+
+        # Load from JSON to a list of Python objects
+        jsonld_graph = json.loads(s)
+
+        # Use JSON-LD framing to turn the graph into a rooted tree
+        # frame = {"@type": str(SCHEMA.SoftwareSourceCode)}
+        translated_metadata = jsonld.frame(
+            jsonld_graph,
+            {"@id": root_id},
+            options={
+                "documentLoader": _document_loader,
+                "processingMode": "json-ld-1.1",
+            },
+        )
+
+        # Remove the temporary id we added at the beginning
+        if isinstance(translated_metadata["@id"], list):
+            translated_metadata["@id"].remove(root_id)
+        else:
+            del translated_metadata["@id"]
 
         return self.normalize_translation(translated_metadata)
 
-    def extra_translation(self, translated_metadata: Dict[str, Any], d: Dict[str, Any]):
-        """Called at the end of the translation process, and may add arbitrary keys
-        to ``translated_metadata`` based on the input dictionary (passed as ``d``).
+    def extra_translation(
+        self, graph: rdflib.Graph, root: rdflib.term.Node, d: Dict[str, Any]
+    ):
+        """Called at the end of the translation process, and may add arbitrary triples
+        to ``graph`` based on the input dictionary (passed as ``d``).
         """
         pass
 

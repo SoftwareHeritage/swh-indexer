@@ -4,11 +4,18 @@
 # See top-level LICENSE file for more information
 
 import os.path
+from typing import Optional
+
+from rdflib import BNode, Graph, Literal, URIRef
 
 from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
-from swh.indexer.namespaces import SCHEMA
+from swh.indexer.namespaces import RDF, SCHEMA
 
 from .base import JsonMapping, SingleFileIntrinsicMapping
+from .utils import add_map
+
+SPDX = URIRef("https://spdx.org/licenses/")
+
 
 COMPOSER_TABLE_PATH = os.path.join(_DATA_DIR, "composer.csv")
 
@@ -35,23 +42,24 @@ class ComposerMapping(JsonMapping, SingleFileIntrinsicMapping):
 
     def normalize_homepage(self, s):
         if isinstance(s, str):
-            return {"@id": s}
+            return URIRef(s)
 
     def normalize_license(self, s):
         if isinstance(s, str):
-            return {"@id": "https://spdx.org/licenses/" + s}
+            return SPDX + s
 
-    def normalize_authors(self, author_list):
-        authors = []
-        for author in author_list:
-            author_obj = {"@type": SCHEMA.Person}
+    def _translate_author(self, graph: Graph, author) -> Optional[BNode]:
+        if not isinstance(author, dict):
+            return None
+        node = BNode()
+        graph.add((node, RDF.type, SCHEMA.Person))
 
-            if isinstance(author, dict):
-                if isinstance(author.get("name", None), str):
-                    author_obj[SCHEMA.name] = author.get("name", None)
-                if isinstance(author.get("email", None), str):
-                    author_obj[SCHEMA.email] = author.get("email", None)
+        if isinstance(author.get("name"), str):
+            graph.add((node, SCHEMA.name, Literal(author["name"])))
+        if isinstance(author.get("email"), str):
+            graph.add((node, SCHEMA.email, Literal(author["email"])))
 
-                authors.append(author_obj)
+        return node
 
-        return {"@list": authors}
+    def translate_authors(self, graph: Graph, root: URIRef, authors) -> None:
+        add_map(graph, root, SCHEMA.author, self._translate_author, authors)

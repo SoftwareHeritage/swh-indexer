@@ -6,10 +6,15 @@
 import re
 import urllib.parse
 
+from rdflib import RDF, BNode, Graph, Literal, URIRef
+
 from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.namespaces import SCHEMA
 
 from .base import JsonMapping, SingleFileIntrinsicMapping
+from .utils import add_list, prettyprint_graph  # noqa
+
+SPDX = URIRef("https://spdx.org/licenses/")
 
 
 class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
@@ -38,13 +43,13 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         ...     'type': 'git',
         ...     'url': 'https://example.org/foo.git'
         ... })
-        {'@id': 'git+https://example.org/foo.git'}
+        rdflib.term.URIRef('git+https://example.org/foo.git')
         >>> NpmMapping().normalize_repository(
         ...     'gitlab:foo/bar')
-        {'@id': 'git+https://gitlab.com/foo/bar.git'}
+        rdflib.term.URIRef('git+https://gitlab.com/foo/bar.git')
         >>> NpmMapping().normalize_repository(
         ...     'foo/bar')
-        {'@id': 'git+https://github.com/foo/bar.git'}
+        rdflib.term.URIRef('git+https://github.com/foo/bar.git')
         """
         if (
             isinstance(d, dict)
@@ -67,7 +72,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         else:
             return None
 
-        return {"@id": url}
+        return URIRef(url)
 
     def normalize_bugs(self, d):
         """https://docs.npmjs.com/files/package.json#bugs
@@ -76,15 +81,15 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         ...     'url': 'https://example.org/bugs/',
         ...     'email': 'bugs@example.org'
         ... })
-        {'@id': 'https://example.org/bugs/'}
+        rdflib.term.URIRef('https://example.org/bugs/')
         >>> NpmMapping().normalize_bugs(
         ...     'https://example.org/bugs/')
-        {'@id': 'https://example.org/bugs/'}
+        rdflib.term.URIRef('https://example.org/bugs/')
         """
         if isinstance(d, dict) and isinstance(d.get("url"), str):
-            return {"@id": d["url"]}
+            return URIRef(d["url"])
         elif isinstance(d, str):
-            return {"@id": d}
+            return URIRef(d)
         else:
             return None
 
@@ -92,36 +97,75 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         r"^ *" r"(?P<name>.*?)" r"( +<(?P<email>.*)>)?" r"( +\((?P<url>.*)\))?" r" *$"
     )
 
-    def normalize_author(self, d):
+    def translate_author(self, graph: Graph, root, d):
         r"""https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
 
         >>> from pprint import pprint
-        >>> pprint(NpmMapping().normalize_author({
+        >>> root = URIRef("http://example.org/test-software")
+        >>> graph = Graph()
+        >>> NpmMapping().translate_author(graph, root, {
         ...     'name': 'John Doe',
         ...     'email': 'john.doe@example.org',
         ...     'url': 'https://example.org/~john.doe',
-        ... }))
-        {'@list': [{'@type': 'http://schema.org/Person',
-                    'http://schema.org/email': 'john.doe@example.org',
-                    'http://schema.org/name': 'John Doe',
-                    'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
-        >>> pprint(NpmMapping().normalize_author(
+        ... })
+        >>> prettyprint_graph(graph, root)
+        {
+            "@id": ...,
+            "http://schema.org/author": {
+                "@list": [
+                    {
+                        "@type": "http://schema.org/Person",
+                        "http://schema.org/email": "john.doe@example.org",
+                        "http://schema.org/name": "John Doe",
+                        "http://schema.org/url": {
+                            "@id": "https://example.org/~john.doe"
+                        }
+                    }
+                ]
+            }
+        }
+        >>> graph = Graph()
+        >>> NpmMapping().translate_author(graph, root,
         ...     'John Doe <john.doe@example.org> (https://example.org/~john.doe)'
-        ... ))
-        {'@list': [{'@type': 'http://schema.org/Person',
-                    'http://schema.org/email': 'john.doe@example.org',
-                    'http://schema.org/name': 'John Doe',
-                    'http://schema.org/url': {'@id': 'https://example.org/~john.doe'}}]}
-        >>> pprint(NpmMapping().normalize_author({
+        ... )
+        >>> prettyprint_graph(graph, root)
+        {
+            "@id": ...,
+            "http://schema.org/author": {
+                "@list": [
+                    {
+                        "@type": "http://schema.org/Person",
+                        "http://schema.org/email": "john.doe@example.org",
+                        "http://schema.org/name": "John Doe",
+                        "http://schema.org/url": {
+                            "@id": "https://example.org/~john.doe"
+                        }
+                    }
+                ]
+            }
+        }
+        >>> graph = Graph()
+        >>> NpmMapping().translate_author(graph, root, {
         ...     'name': 'John Doe',
         ...     'email': 'john.doe@example.org',
         ...     'url': 'https:\\\\example.invalid/~john.doe',
-        ... }))
-        {'@list': [{'@type': 'http://schema.org/Person',
-                    'http://schema.org/email': 'john.doe@example.org',
-                    'http://schema.org/name': 'John Doe'}]}
+        ... })
+        >>> prettyprint_graph(graph, root)
+        {
+            "@id": ...,
+            "http://schema.org/author": {
+                "@list": [
+                    {
+                        "@type": "http://schema.org/Person",
+                        "http://schema.org/email": "john.doe@example.org",
+                        "http://schema.org/name": "John Doe"
+                    }
+                ]
+            }
+        }
         """  # noqa
-        author = {"@type": SCHEMA.Person}
+        author = BNode()
+        graph.add((author, RDF.type, SCHEMA.Person))
         if isinstance(d, dict):
             name = d.get("name", None)
             email = d.get("email", None)
@@ -137,32 +181,32 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
             return None
 
         if name and isinstance(name, str):
-            author[SCHEMA.name] = name
+            graph.add((author, SCHEMA.name, Literal(name)))
         if email and isinstance(email, str):
-            author[SCHEMA.email] = email
+            graph.add((author, SCHEMA.email, Literal(email)))
         if url and isinstance(url, str):
             # Workaround for https://github.com/digitalbazaar/pyld/issues/91 : drop
             # URLs that are blatantly invalid early, so PyLD does not crash.
             parsed_url = urllib.parse.urlparse(url)
             if parsed_url.netloc:
-                author[SCHEMA.url] = {"@id": url}
+                graph.add((author, SCHEMA.url, URIRef(url)))
 
-        return {"@list": [author]}
+        add_list(graph, root, SCHEMA.author, [author])
 
     def normalize_description(self, description):
         r"""Try to re-decode ``description`` as UTF-16, as this is a somewhat common
         mistake that causes issues in the database because of null bytes in JSON.
 
         >>> NpmMapping().normalize_description("foo bar")
-        'foo bar'
+        rdflib.term.Literal('foo bar')
         >>> NpmMapping().normalize_description(
         ...     "\ufffd\ufffd#\x00 \x00f\x00o\x00o\x00 \x00b\x00a\x00r\x00\r\x00 \x00"
         ... )
-        'foo bar'
+        rdflib.term.Literal('foo bar')
         >>> NpmMapping().normalize_description(
         ...     "\ufffd\ufffd\x00#\x00 \x00f\x00o\x00o\x00 \x00b\x00a\x00r\x00\r\x00 "
         ... )
-        'foo bar'
+        rdflib.term.Literal('foo bar')
         >>> NpmMapping().normalize_description(
         ...     # invalid UTF-16 and meaningless UTF-8:
         ...     "\ufffd\ufffd\x00#\x00\x00\x00 \x00\x00\x00\x00f\x00\x00\x00\x00"
@@ -213,32 +257,34 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
             if description:
                 if description.startswith("# "):
                     description = description[2:]
-                return description.rstrip()
-        return description
+                return Literal(description.rstrip())
+            else:
+                return None
+        return Literal(description)
 
     def normalize_license(self, s):
         """https://docs.npmjs.com/files/package.json#license
 
         >>> NpmMapping().normalize_license('MIT')
-        {'@id': 'https://spdx.org/licenses/MIT'}
+        rdflib.term.URIRef('https://spdx.org/licenses/MIT')
         """
         if isinstance(s, str):
-            return {"@id": "https://spdx.org/licenses/" + s}
+            return SPDX + s
 
     def normalize_homepage(self, s):
         """https://docs.npmjs.com/files/package.json#homepage
 
         >>> NpmMapping().normalize_homepage('https://example.org/~john.doe')
-        {'@id': 'https://example.org/~john.doe'}
+        rdflib.term.URIRef('https://example.org/~john.doe')
         """
         if isinstance(s, str):
-            return {"@id": s}
+            return URIRef(s)
 
     def normalize_keywords(self, lst):
         """https://docs.npmjs.com/files/package.json#homepage
 
         >>> NpmMapping().normalize_keywords(['foo', 'bar'])
-        ['foo', 'bar']
+        [rdflib.term.Literal('foo'), rdflib.term.Literal('bar')]
         """
         if isinstance(lst, list):
-            return [x for x in lst if isinstance(x, str)]
+            return [Literal(x) for x in lst if isinstance(x, str)]

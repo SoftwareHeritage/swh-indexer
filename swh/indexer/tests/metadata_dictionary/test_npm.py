@@ -154,6 +154,7 @@ def test_index_content_metadata_npm(storage, obj_storage):
 
     for result in results:
         del result.tool["id"]
+        result.metadata.pop("keywords", None)
 
     # The assertion below returns False sometimes because of nested lists
     assert expected_results == results

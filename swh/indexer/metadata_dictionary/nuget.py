@@ -7,16 +7,21 @@ import os.path
 import re
 from typing import Any, Dict, List
 
+from rdflib import RDF, BNode, Graph, Literal, URIRef
+
 from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
 from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
 from .base import BaseIntrinsicMapping, DirectoryLsEntry, XmlMapping
+from .utils import add_list
 
 NUGET_TABLE_PATH = os.path.join(_DATA_DIR, "nuget.csv")
 
 with open(NUGET_TABLE_PATH) as fd:
     (CODEMETA_TERMS, NUGET_TABLE) = _read_crosstable(fd)
+
+SPDX = URIRef("https://spdx.org/licenses/")
 
 
 class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
@@ -26,8 +31,8 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
 
     name = "nuget"
     mapping = NUGET_TABLE["NuGet"]
-    mapping["copyright"] = "http://schema.org/copyrightNotice"
-    mapping["language"] = "http://schema.org/inLanguage"
+    mapping["copyright"] = URIRef("http://schema.org/copyrightNotice")
+    mapping["language"] = URIRef("http://schema.org/inLanguage")
     string_fields = [
         "description",
         "version",
@@ -53,12 +58,12 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
 
     def normalize_projectUrl(self, s):
         if isinstance(s, str):
-            return {"@id": s}
+            return URIRef(s)
 
-    def translate_repository(self, translated_metadata, v):
+    def translate_repository(self, graph, root, v):
         if isinstance(v, dict) and isinstance(v["@url"], str):
-            codemeta_key = self.mapping["repository.url"]
-            translated_metadata[codemeta_key] = {"@id": v["@url"]}
+            codemeta_key = URIRef(self.mapping["repository.url"])
+            graph.add((root, codemeta_key, URIRef(v["@url"])))
 
     def normalize_license(self, v):
         if isinstance(v, dict) and v["@type"] == "expression":
@@ -67,7 +72,7 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
                 re.search(r" with |\(|\)| and ", license_string, re.IGNORECASE)
             ):
                 return [
-                    {"@id": "https://spdx.org/licenses/" + license_type.strip()}
+                    SPDX + license_type.strip()
                     for license_type in re.split(
                         r" or ", license_string, flags=re.IGNORECASE
                     )
@@ -77,22 +82,23 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
 
     def normalize_licenseUrl(self, s):
         if isinstance(s, str):
-            return {"@id": s}
+            return URIRef(s)
 
-    def normalize_authors(self, s):
+    def translate_authors(self, graph: Graph, root, s):
         if isinstance(s, str):
-            author_names = [a.strip() for a in s.split(",")]
-            authors = [
-                {"@type": SCHEMA.Person, SCHEMA.name: name} for name in author_names
-            ]
-            return {"@list": authors}
+            authors = []
+            for author_name in s.split(","):
+                author_name = author_name.strip()
+                author = BNode()
+                graph.add((author, RDF.type, SCHEMA.Person))
+                graph.add((author, SCHEMA.name, Literal(author_name)))
+                authors.append(author)
+            add_list(graph, root, SCHEMA.author, authors)
 
-    def translate_releaseNotes(self, translated_metadata, s):
+    def translate_releaseNotes(self, graph: Graph, root, s):
         if isinstance(s, str):
-            translated_metadata.setdefault("http://schema.org/releaseNotes", []).append(
-                s
-            )
+            graph.add((root, SCHEMA.releaseNotes, Literal(s)))
 
     def normalize_tags(self, s):
         if isinstance(s, str):
-            return s.split(" ")
+            return [Literal(tag) for tag in s.split(" ")]

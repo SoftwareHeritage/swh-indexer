@@ -3,6 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import pytest
+
 from swh.indexer.metadata_dictionary import MAPPINGS
 
 
@@ -41,17 +43,17 @@ dev_dependencies:
 
     result = MAPPINGS["PubMapping"]().translate(raw_content)
 
+    assert set(result.pop("keywords")) == {
+        "polyfill",
+        "shim",
+        "compatibility",
+        "portable",
+        "mbstring",
+    }, result
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "newtify",
-        "keywords": [
-            "polyfill",
-            "shim",
-            "compatibility",
-            "portable",
-            "mbstring",
-        ],
         "description": """Have you been turned into a newt?  Would you like to be? \
 This package can help. It has all of the \
 newt-transmogrification functionality you have been looking \
@@ -109,6 +111,7 @@ def test_normalize_authors_pubspec():
     assert result == expected
 
 
+@pytest.mark.xfail(reason="https://github.com/w3c/json-ld-api/issues/547")
 def test_normalize_author_authors_pubspec():
     raw_content = """
     authors:

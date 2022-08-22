@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2021  The Software Heritage developers
+# Copyright (C) 2018-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,10 +6,13 @@
 import os
 from typing import Any, Dict
 
+from rdflib import Graph, Literal, URIRef
+
 from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.namespaces import SCHEMA
 
 from .base import SingleFileIntrinsicMapping, XmlMapping
+from .utils import prettyprint_graph  # noqa
 
 
 class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
@@ -27,14 +30,13 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
     def _translate_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
         return super()._translate_dict(d.get("project") or {})
 
-    def extra_translation(self, translated_metadata, d):
-        repositories = self.parse_repositories(d)
-        if repositories:
-            translated_metadata[SCHEMA.codeRepository] = repositories
+    def extra_translation(self, graph: Graph, root, d):
+        self.parse_repositories(graph, root, d)
 
-    def parse_repositories(self, d):
+    def parse_repositories(self, graph: Graph, root, d):
         """https://maven.apache.org/pom.html#Repositories
 
+        >>> import rdflib
         >>> import xmltodict
         >>> from pprint import pprint
         >>> d = xmltodict.parse('''
@@ -47,21 +49,19 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
         ...   </repository>
         ... </repositories>
         ... ''')
-        >>> MavenMapping().parse_repositories(d)
+        >>> MavenMapping().parse_repositories(rdflib.Graph(), rdflib.BNode(), d)
         """
         repositories = d.get("repositories")
         if not repositories:
-            results = [self.parse_repository(d, self._default_repository)]
+            self.parse_repository(graph, root, d, self._default_repository)
         elif isinstance(repositories, dict):
             repositories = repositories.get("repository") or []
             if not isinstance(repositories, list):
                 repositories = [repositories]
-            results = [self.parse_repository(d, repo) for repo in repositories]
-        else:
-            results = []
-        return [res for res in results if res] or None
+            for repo in repositories:
+                self.parse_repository(graph, root, d, repo)
 
-    def parse_repository(self, d, repo):
+    def parse_repository(self, graph: Graph, root, d, repo):
         if not isinstance(repo, dict):
             return
         if repo.get("layout", "default") != "default":
@@ -75,23 +75,18 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
             and isinstance(artifact_id, str)
         ):
             repo = os.path.join(url, *group_id.split("."), artifact_id)
-            return {"@id": repo}
+            graph.add((root, SCHEMA.codeRepository, URIRef(repo)))
 
     def normalize_groupId(self, id_):
         """https://maven.apache.org/pom.html#Maven_Coordinates
 
         >>> MavenMapping().normalize_groupId('org.example')
-        {'@id': 'org.example'}
+        rdflib.term.Literal('org.example')
         """
         if isinstance(id_, str):
-            return {"@id": id_}
+            return Literal(id_)
 
-    def translate_licenses(self, translated_metadata, d):
-        licenses = self.parse_licenses(d)
-        if licenses:
-            translated_metadata[SCHEMA.license] = licenses
-
-    def parse_licenses(self, licenses):
+    def translate_licenses(self, graph, root, licenses):
         """https://maven.apache.org/pom.html#Licenses
 
         >>> import xmltodict
@@ -113,8 +108,16 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
                 }
             }
         }
-        >>> MavenMapping().parse_licenses(d["licenses"])
-        [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'}]
+        >>> graph = Graph()
+        >>> root = URIRef("http://example.org/test-software")
+        >>> MavenMapping().translate_licenses(graph, root, d["licenses"])
+        >>> prettyprint_graph(graph, root)
+        {
+            "@id": ...,
+            "http://schema.org/license": {
+                "@id": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+        }
 
         or, if there are more than one license:
 
@@ -132,9 +135,16 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
         ...   </license>
         ... </licenses>
         ... ''')
-        >>> pprint(MavenMapping().parse_licenses(d["licenses"]))
-        [{'@id': 'https://www.apache.org/licenses/LICENSE-2.0.txt'},
-         {'@id': 'https://opensource.org/licenses/MIT'}]
+        >>> graph = Graph()
+        >>> root = URIRef("http://example.org/test-software")
+        >>> MavenMapping().translate_licenses(graph, root, d["licenses"])
+        >>> pprint(set(graph.triples((root, URIRef("http://schema.org/license"), None))))
+        {(rdflib.term.URIRef('http://example.org/test-software'),
+          rdflib.term.URIRef('http://schema.org/license'),
+          rdflib.term.URIRef('https://opensource.org/licenses/MIT')),
+         (rdflib.term.URIRef('http://example.org/test-software'),
+          rdflib.term.URIRef('http://schema.org/license'),
+          rdflib.term.URIRef('https://www.apache.org/licenses/LICENSE-2.0.txt'))}
         """
 
         if not isinstance(licenses, dict):
@@ -144,8 +154,6 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
             licenses = [licenses]
         elif not isinstance(licenses, list):
             return
-        return [
-            {"@id": license["url"]}
-            for license in licenses
-            if isinstance(license, dict) and isinstance(license.get("url"), str)
-        ] or None
+        for license in licenses:
+            if isinstance(license, dict) and isinstance(license.get("url"), str):
+                graph.add((root, SCHEMA.license, URIRef(license["url"])))

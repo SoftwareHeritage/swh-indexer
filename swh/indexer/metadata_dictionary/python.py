@@ -1,16 +1,18 @@
-# Copyright (C) 2018-2019  The Software Heritage developers
+# Copyright (C) 2018-2021  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import email.parser
 import email.policy
-import itertools
+
+from rdflib import BNode, Literal, URIRef
 
 from swh.indexer.codemeta import CROSSWALK_TABLE
-from swh.indexer.namespaces import SCHEMA
+from swh.indexer.namespaces import RDF, SCHEMA
 
 from .base import DictMapping, SingleFileIntrinsicMapping
+from .utils import add_list
 
 _normalize_pkginfo_key = str.lower
 
@@ -54,25 +56,25 @@ class PythonPkginfoMapping(DictMapping, SingleFileIntrinsicMapping):
                 d.setdefault(key, []).append(value)
         return self._translate_dict(d)
 
-    def extra_translation(self, translated_metadata, d):
-        author_name = translated_metadata.pop(SCHEMA.author, None)
-        author_email = translated_metadata.pop(SCHEMA.email, None)
-        if author_name or author_email:
-            translated_metadata[SCHEMA.author] = {
-                "@list": [
-                    {
-                        "@type": SCHEMA.Person,
-                        SCHEMA.name: author_name,
-                        SCHEMA.email: author_email,
-                    }
-                ]
-            }
+    def extra_translation(self, graph, root, d):
+        author_names = list(graph.triples((root, SCHEMA.author, None)))
+        author_emails = list(graph.triples((root, SCHEMA.email, None)))
+        graph.remove((root, SCHEMA.author, None))
+        graph.remove((root, SCHEMA.email, None))
+        if author_names or author_emails:
+            author = BNode()
+            graph.add((author, RDF.type, SCHEMA.Person))
+            for (_, _, author_name) in author_names:
+                graph.add((author, SCHEMA.name, author_name))
+            for (_, _, author_email) in author_emails:
+                graph.add((author, SCHEMA.email, author_email))
+            add_list(graph, root, SCHEMA.author, [author])
 
     def normalize_home_page(self, urls):
-        return [{"@id": url} for url in urls]
+        return [URIRef(url) for url in urls]
 
     def normalize_keywords(self, keywords):
-        return list(itertools.chain.from_iterable(s.split(" ") for s in keywords))
+        return [Literal(keyword) for s in keywords for keyword in s.split(" ")]
 
     def normalize_license(self, licenses):
-        return [{"@id": license} for license in licenses]
+        return [URIRef("https://spdx.org/licenses/" + license) for license in licenses]

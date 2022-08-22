@@ -35,7 +35,26 @@ def test_compute_metadata_nuget():
             <file src="bin\\Debug\\*.dll" target="lib" />
         </files>
     </package>"""
+
     result = MAPPINGS["NuGetMapping"]().translate(raw_content)
+
+    assert set(result.pop("keywords")) == {
+        "python3",
+        "java",
+        "cpp",
+        "search-tag",
+    }, result
+
+    assert set(result.pop("license")) == {
+        "https://spdx.org/licenses/MIT",
+        "https://raw.github.com/timrwood/moment/master/LICENSE",
+    }, result
+
+    assert set(result.pop("description")) == {
+        "Sample exists only to show a sample .nuspec file.",
+        "Summary is being deprecated. Use description instead.",
+    }, result
+
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -44,25 +63,11 @@ def test_compute_metadata_nuget():
             {"type": "Person", "name": "Franck Halmaert"},
         ],
         "codeRepository": "https://github.com/NuGet/NuGet.Client.git",
-        "description": [
-            "Sample exists only to show a sample .nuspec file.",
-            "Summary is being deprecated. Use description instead.",
-        ],
-        "license": [
-            "https://spdx.org/licenses/MIT",
-            "https://raw.github.com/timrwood/moment/master/LICENSE",
-        ],
         "url": "http://example.org/",
         "version": "1.2.3",
         "schema:releaseNotes": (
             "See the [changelog](https://github.com/httpie/httpie/releases/tag/3.2.0)."
         ),
-        "keywords": [
-            "python3",
-            "java",
-            "cpp",
-            "search-tag",
-        ],
     }
 
     assert result == expected
@@ -114,13 +119,13 @@ def test_normalize_license_multiple_licenses_or_delimiter():
         </files>
     </package>"""
     result = MAPPINGS["NuGetMapping"]().translate(raw_content)
+    assert set(result.pop("license")) == {
+        "https://spdx.org/licenses/BitTorrent-1.0",
+        "https://spdx.org/licenses/GPL-3.0-with-GCC-exception",
+    }
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
-        "license": [
-            "https://spdx.org/licenses/BitTorrent-1.0",
-            "https://spdx.org/licenses/GPL-3.0-with-GCC-exception",
-        ],
     }
 
     assert result == expected

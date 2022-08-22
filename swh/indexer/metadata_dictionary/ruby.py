@@ -8,19 +8,26 @@ import itertools
 import re
 from typing import List
 
+from rdflib import RDF, BNode, Graph, Literal, URIRef
+
 from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
 from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
 from .base import BaseIntrinsicMapping, DictMapping
+from .utils import add_map
+
+SPDX = URIRef("https://spdx.org/licenses/")
 
 
-def name_to_person(name):
-    return {
-        "@type": SCHEMA.Person,
-        SCHEMA.name: name,
-    }
+def name_to_person(graph: Graph, name):
+    if not isinstance(name, str):
+        return None
+    author = BNode()
+    graph.add((author, RDF.type, SCHEMA.Person))
+    graph.add((author, SCHEMA.name, Literal(name)))
+    return author
 
 
 class GemspecMapping(BaseIntrinsicMapping, DictMapping):
@@ -107,30 +114,20 @@ class GemspecMapping(BaseIntrinsicMapping, DictMapping):
 
     def normalize_homepage(self, s):
         if isinstance(s, str):
-            return {"@id": s}
+            return URIRef(s)
 
     def normalize_license(self, s):
         if isinstance(s, str):
-            return [{"@id": "https://spdx.org/licenses/" + s}]
+            return SPDX + s
 
     def normalize_licenses(self, licenses):
         if isinstance(licenses, list):
-            return [
-                {"@id": "https://spdx.org/licenses/" + license}
-                for license in licenses
-                if isinstance(license, str)
-            ]
+            return [SPDX + license for license in licenses if isinstance(license, str)]
 
-    def normalize_author(self, author):
+    def translate_author(self, graph: Graph, root, author):
         if isinstance(author, str):
-            return {"@list": [name_to_person(author)]}
+            add_map(graph, root, SCHEMA.author, name_to_person, [author])
 
-    def normalize_authors(self, authors):
+    def translate_authors(self, graph: Graph, root, authors):
         if isinstance(authors, list):
-            return {
-                "@list": [
-                    name_to_person(author)
-                    for author in authors
-                    if isinstance(author, str)
-                ]
-            }
+            add_map(graph, root, SCHEMA.author, name_to_person, authors)

@@ -60,11 +60,16 @@ def test_compute_metadata_composer():
 
     result = MAPPINGS["ComposerMapping"]().translate(raw_content)
 
+    assert set(result.pop("keywords")) == {
+        "polyfill",
+        "shim",
+        "compatibility",
+        "portable",
+    }, result
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "symfony/polyfill-mbstring",
-        "keywords": ["polyfill", "shim", "compatibility", "portable"],
         "description": "Symfony polyfill for the Mbstring extension",
         "url": "https://symfony.com",
         "license": "https://spdx.org/licenses/MIT",
