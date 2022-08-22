@@ -34,15 +34,11 @@ class ComposerMapping(JsonMapping, SingleFileIntrinsicMapping):
         "description",
         "version",
         "keywords",
-        "homepage",
         "license",
         "author",
         "authors",
     ]
-
-    def normalize_homepage(self, s):
-        if isinstance(s, str):
-            return URIRef(s)
+    uri_fields = ["homepage"]
 
     def normalize_license(self, s):
         if isinstance(s, str):

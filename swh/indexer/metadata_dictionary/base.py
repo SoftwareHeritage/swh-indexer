@@ -132,8 +132,12 @@ class DictMapping(BaseMapping):
     """Base class for mappings that take as input a file that is mostly
     a key-value store (eg. a shallow JSON dict)."""
 
-    string_fields = []  # type: List[str]
+    string_fields: List[str] = []
     """List of fields that are simple strings, and don't need any
+    normalization."""
+
+    uri_fields: List[str] = []
+    """List of fields that are simple URIs, and don't need any
     normalization."""
 
     @property
@@ -151,7 +155,7 @@ class DictMapping(BaseMapping):
         simple_terms = {
             str(term)
             for (key, term) in cls.mapping.items()
-            if key in cls.string_fields
+            if key in cls.string_fields + cls.uri_fields
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
         }
 
@@ -224,6 +228,11 @@ class DictMapping(BaseMapping):
                 elif k in self.string_fields and isinstance(v, list):
                     for item in v:
                         graph.add((root, codemeta_key, rdflib.Literal(item)))
+                elif k in self.uri_fields and isinstance(v, str):
+                    graph.add((root, codemeta_key, rdflib.URIRef(v)))
+                elif k in self.uri_fields and isinstance(v, list):
+                    for item in v:
+                        graph.add((root, codemeta_key, rdflib.URIRef(item)))
                 else:
                     continue
 

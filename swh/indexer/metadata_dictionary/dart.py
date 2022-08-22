@@ -39,20 +39,16 @@ class PubspecMapping(YamlMapping):
         "keywords",
         "description",
         "name",
-        "homepage",
         "issue_tracker",
         "platforms",
         "license"
         # license will only be used with the SPDX Identifier
     ]
+    uri_fields = ["homepage"]
 
     def normalize_license(self, s):
         if isinstance(s, str):
             return SPDX + s
-
-    def normalize_homepage(self, s):
-        if isinstance(s, str):
-            return URIRef(s)
 
     def _translate_author(self, graph, s):
         name_email_re = re.compile("(?P<name>.*?)( <(?P<email>.*)>)")

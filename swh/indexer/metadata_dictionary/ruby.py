@@ -34,6 +34,7 @@ class GemspecMapping(BaseIntrinsicMapping, DictMapping):
     name = "gemspec"
     mapping = CROSSWALK_TABLE["Ruby Gem"]
     string_fields = ["name", "version", "description", "summary", "email"]
+    uri_fields = ["homepage"]
 
     _re_spec_new = re.compile(r".*Gem::Specification.new +(do|\{) +\|.*\|.*")
     _re_spec_entry = re.compile(r"\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)")
@@ -111,10 +112,6 @@ class GemspecMapping(BaseIntrinsicMapping, DictMapping):
             return
         if isinstance(tree, ast.Expression):
             return evaluator(tree.body)
-
-    def normalize_homepage(self, s):
-        if isinstance(s, str):
-            return URIRef(s)
 
     def normalize_license(self, s):
         if isinstance(s, str):

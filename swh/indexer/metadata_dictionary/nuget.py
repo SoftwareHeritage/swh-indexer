@@ -36,15 +36,14 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
     string_fields = [
         "description",
         "version",
-        "projectUrl",
         "name",
         "tags",
         "license",
-        "licenseUrl",
         "summary",
         "copyright",
         "language",
     ]
+    uri_fields = ["projectUrl", "licenseUrl"]
 
     @classmethod
     def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
@@ -55,10 +54,6 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
 
     def _translate_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
         return super()._translate_dict(d.get("package", {}).get("metadata", {}))
-
-    def normalize_projectUrl(self, s):
-        if isinstance(s, str):
-            return URIRef(s)
 
     def translate_repository(self, graph, root, v):
         if isinstance(v, dict) and isinstance(v["@url"], str):
@@ -79,10 +74,6 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
                 ]
             else:
                 return None
-
-    def normalize_licenseUrl(self, s):
-        if isinstance(s, str):
-            return URIRef(s)
 
     def translate_authors(self, graph: Graph, root, s):
         if isinstance(s, str):

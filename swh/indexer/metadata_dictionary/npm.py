@@ -25,7 +25,8 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
     name = "npm"
     mapping = CROSSWALK_TABLE["NodeJS"]
     filename = b"package.json"
-    string_fields = ["name", "version", "homepage", "description", "email"]
+    string_fields = ["name", "version", "description", "email"]
+    uri_fields = ["homepage"]
 
     _schema_shortcuts = {
         "github": "git+https://github.com/%s.git",
@@ -270,15 +271,6 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         """
         if isinstance(s, str):
             return SPDX + s
-
-    def normalize_homepage(self, s):
-        """https://docs.npmjs.com/files/package.json#homepage
-
-        >>> NpmMapping().normalize_homepage('https://example.org/~john.doe')
-        rdflib.term.URIRef('https://example.org/~john.doe')
-        """
-        if isinstance(s, str):
-            return URIRef(s)
 
     def normalize_keywords(self, lst):
         """https://docs.npmjs.com/files/package.json#homepage
