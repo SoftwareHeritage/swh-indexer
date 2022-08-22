@@ -13,7 +13,7 @@ from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
 from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
-from .base import DictMapping, DirectoryLsEntry, SingleFileIntrinsicMapping
+from .base import BaseIntrinsicMapping, DictMapping, DirectoryLsEntry
 
 NUGET_TABLE_PATH = os.path.join(_DATA_DIR, "nuget.csv")
 
@@ -21,7 +21,7 @@ with open(NUGET_TABLE_PATH) as fd:
     (CODEMETA_TERMS, NUGET_TABLE) = _read_crosstable(fd)
 
 
-class NuGetMapping(DictMapping, SingleFileIntrinsicMapping):
+class NuGetMapping(DictMapping, BaseIntrinsicMapping):
     """
     dedicated class for NuGet (.nuspec) mapping and translation
     """
