@@ -62,9 +62,20 @@ class BaseMapping:
         indexer storage."""
         raise NotImplementedError(f"{self.__class__.__name__}.name")
 
-    def translate(self, file_content: bytes) -> Optional[Dict]:
-        """Translates metadata, from the content of a file or of a RawExtrinsicMetadata
-        object."""
+    def translate(self, raw_content: bytes) -> Optional[Dict]:
+        """
+        Translates content by parsing content from a bytestring containing
+        mapping-specific data and translating with the appropriate mapping
+        to JSON-LD using the Codemeta and ForgeFed vocabularies.
+
+        Args:
+            raw_content: raw content to translate
+
+        Returns:
+            translated metadata in JSON friendly form needed for the content
+            if parseable, :const:`None` otherwise.
+
+        """
         raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
     def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -276,18 +287,6 @@ class JsonMapping(DictMapping):
     """Base class for all mappings that use JSON data as input."""
 
     def translate(self, raw_content: bytes) -> Optional[Dict]:
-        """
-        Translates content by parsing content from a bytestring containing
-        json data and translating with the appropriate mapping
-
-        Args:
-            raw_content (bytes): raw content to translate
-
-        Returns:
-            dict: translated metadata in json-friendly form needed for
-            the indexer
-
-        """
         try:
             raw_content_string: str = raw_content.decode()
         except UnicodeDecodeError:
@@ -307,18 +306,6 @@ class XmlMapping(DictMapping):
     """Base class for all mappings that use XML data as input."""
 
     def translate(self, raw_content: bytes) -> Optional[Dict]:
-        """
-        Translates content by parsing content from a bytestring containing
-        XML data and translating with the appropriate mapping
-
-        Args:
-            raw_content (bytes): raw content to translate
-
-        Returns:
-            dict: translated metadata in json-friendly form needed for
-            the indexer
-
-        """
         try:
             d = xmltodict.parse(raw_content)
         except xml.parsers.expat.ExpatError:
