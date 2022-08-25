@@ -243,7 +243,8 @@ class DictMapping(BaseMapping):
                     graph.add((root, codemeta_key, rdflib.URIRef(v)))
                 elif k in self.uri_fields and isinstance(v, list):
                     for item in v:
-                        graph.add((root, codemeta_key, rdflib.URIRef(item)))
+                        if isinstance(item, str):
+                            graph.add((root, codemeta_key, rdflib.URIRef(item)))
                 else:
                     continue
 
