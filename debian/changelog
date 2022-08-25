@@ -1,3 +1,11 @@
+swh-indexer (2.4.2-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.4.2     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-08-25 13:24:10 +0200)
+  * Upstream changes:     - v2.4.2     - * Re-trigger Debian build
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 25 Aug 2022 11:33:19 +0000
+
 swh-indexer (2.4.1-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.4.1     - (tagged by Valentin Lorentz
