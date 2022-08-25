@@ -1,8 +1,21 @@
-from typing import Dict, List, Optional, Union
+# Copyright (C) 2021-2022  The Software Heritage developers
+# See the AUTHORS file at the top-level directory of this distribution
+# License: GNU General Public License version 3, or any later version
+# See top-level LICENSE file for more information
 
-from swh.indexer.codemeta import CROSSWALK_TABLE, SCHEMA_URI
+from typing import List
+
+from rdflib import BNode, Graph, Literal, URIRef
+import rdflib.term
+
+from swh.indexer.codemeta import CROSSWALK_TABLE
+from swh.indexer.namespaces import RDF, SCHEMA
 
 from .base import YamlMapping
+from .utils import add_map
+
+DOI = URIRef("https://doi.org/")
+SPDX = URIRef("https://spdx.org/licenses/")
 
 
 class CffMapping(YamlMapping):
@@ -12,42 +25,39 @@ class CffMapping(YamlMapping):
     filename = b"CITATION.cff"
     mapping = CROSSWALK_TABLE["Citation File Format Core (CFF-Core) 1.0.2"]
     string_fields = ["keywords", "license", "abstract", "version", "doi"]
+    uri_fields = ["repository-code"]
 
-    def normalize_authors(self, d: List[dict]) -> Dict[str, list]:
-        result = []
-        for author in d:
-            author_data: Dict[str, Optional[Union[str, Dict]]] = {
-                "@type": SCHEMA_URI + "Person"
-            }
-            if "orcid" in author and isinstance(author["orcid"], str):
-                author_data["@id"] = author["orcid"]
-            if "affiliation" in author and isinstance(author["affiliation"], str):
-                author_data[SCHEMA_URI + "affiliation"] = {
-                    "@type": SCHEMA_URI + "Organization",
-                    SCHEMA_URI + "name": author["affiliation"],
-                }
-            if "family-names" in author and isinstance(author["family-names"], str):
-                author_data[SCHEMA_URI + "familyName"] = author["family-names"]
-            if "given-names" in author and isinstance(author["given-names"], str):
-                author_data[SCHEMA_URI + "givenName"] = author["given-names"]
+    def _translate_author(self, graph: Graph, author: dict) -> rdflib.term.Node:
+        node: rdflib.term.Node
+        if "orcid" in author and isinstance(author["orcid"], str):
+            node = URIRef(author["orcid"])
+        else:
+            node = BNode()
+        graph.add((node, RDF.type, SCHEMA.Person))
+        if "affiliation" in author and isinstance(author["affiliation"], str):
+            affiliation = BNode()
+            graph.add((node, SCHEMA.affiliation, affiliation))
+            graph.add((affiliation, RDF.type, SCHEMA.Organization))
+            graph.add((affiliation, SCHEMA.name, Literal(author["affiliation"])))
+        if "family-names" in author and isinstance(author["family-names"], str):
+            graph.add((node, SCHEMA.familyName, Literal(author["family-names"])))
+        if "given-names" in author and isinstance(author["given-names"], str):
+            graph.add((node, SCHEMA.givenName, Literal(author["given-names"])))
+        return node
 
-            result.append(author_data)
+    def translate_authors(
+        self, graph: Graph, root: URIRef, authors: List[dict]
+    ) -> None:
+        add_map(graph, root, SCHEMA.author, self._translate_author, authors)
 
-        result_final = {"@list": result}
-        return result_final
-
-    def normalize_doi(self, s: str) -> Dict[str, str]:
+    def normalize_doi(self, s: str) -> URIRef:
         if isinstance(s, str):
-            return {"@id": "https://doi.org/" + s}
+            return DOI + s
 
-    def normalize_license(self, s: str) -> Dict[str, str]:
+    def normalize_license(self, s: str) -> URIRef:
         if isinstance(s, str):
-            return {"@id": "https://spdx.org/licenses/" + s}
+            return SPDX + s
 
-    def normalize_repository_code(self, s: str) -> Dict[str, str]:
+    def normalize_date_released(self, s: str) -> Literal:
         if isinstance(s, str):
-            return {"@id": s}
-
-    def normalize_date_released(self, s: str) -> Dict[str, str]:
-        if isinstance(s, str):
-            return {"@value": s, "@type": SCHEMA_URI + "Date"}
+            return Literal(s, datatype=SCHEMA.Date)

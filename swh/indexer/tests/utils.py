@@ -108,12 +108,6 @@ OBJ_STORAGE_RAW_CONTENT: Dict[str, bytes] = {
       "version": "5.0.3",
       "name": "npm",
       "description": "a package manager for JavaScript",
-      "keywords": [
-        "install",
-        "modules",
-        "package manager",
-        "package.json"
-      ],
       "preferGlobal": true,
       "config": {
         "publishtest": false
@@ -165,12 +159,6 @@ OBJ_STORAGE_RAW_CONTENT: Dict[str, bytes] = {
         "type": "git",
         "url": "git+https://github.com/librariesio/yarn-parser.git"
       },
-      "keywords": [
-        "yarn",
-        "parse",
-        "lock",
-        "dependencies"
-      ],
       "author": "Andrew Nesbitt",
       "license": "AGPL-3.0",
       "bugs": {
@@ -461,7 +449,6 @@ YARN_PARSER_METADATA = {
     "description": "Tiny web service for parsing yarn.lock files",
     "issueTracker": "https://github.com/librariesio/yarn-parser/issues",
     "name": "yarn-parser",
-    "keywords": ["yarn", "parse", "lock", "dependencies"],
     "type": "SoftwareSourceCode",
 }
 

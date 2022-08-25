@@ -3,13 +3,11 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import pytest
-
-from swh.indexer.codemeta import CROSSWALK_TABLE, merge_documents, merge_values
+from swh.indexer.codemeta import CROSSWALK_TABLE, merge_documents
 
 
 def test_crosstable():
-    assert CROSSWALK_TABLE["NodeJS"] == {
+    assert {k: str(v) for (k, v) in CROSSWALK_TABLE["NodeJS"].items()} == {
         "repository": "http://schema.org/codeRepository",
         "os": "http://schema.org/operatingSystem",
         "cpu": "http://schema.org/processorRequirements",
@@ -26,32 +24,6 @@ def test_crosstable():
         "bugs": "https://codemeta.github.io/terms/issueTracker",
         "homepage": "http://schema.org/url",
     }
-
-
-def test_merge_values():
-    assert merge_values("a", "b") == ["a", "b"]
-    assert merge_values(["a", "b"], "c") == ["a", "b", "c"]
-    assert merge_values("a", ["b", "c"]) == ["a", "b", "c"]
-
-    assert merge_values({"@list": ["a"]}, {"@list": ["b"]}) == {"@list": ["a", "b"]}
-    assert merge_values({"@list": ["a", "b"]}, {"@list": ["c"]}) == {
-        "@list": ["a", "b", "c"]
-    }
-
-    with pytest.raises(ValueError):
-        merge_values({"@list": ["a"]}, "b")
-    with pytest.raises(ValueError):
-        merge_values("a", {"@list": ["b"]})
-    with pytest.raises(ValueError):
-        merge_values({"@list": ["a"]}, ["b"])
-    with pytest.raises(ValueError):
-        merge_values(["a"], {"@list": ["b"]})
-
-    assert merge_values("a", None) == "a"
-    assert merge_values(["a", "b"], None) == ["a", "b"]
-    assert merge_values(None, ["b", "c"]) == ["b", "c"]
-    assert merge_values({"@list": ["a"]}, None) == {"@list": ["a"]}
-    assert merge_values(None, {"@list": ["a"]}) == {"@list": ["a"]}
 
 
 def test_merge_documents():

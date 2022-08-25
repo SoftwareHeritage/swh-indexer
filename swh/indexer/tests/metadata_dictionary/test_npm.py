@@ -147,12 +147,6 @@ def test_index_content_metadata_npm(storage, obj_storage):
                 "license": "https://spdx.org/licenses/Artistic-2.0",
                 "version": "5.0.3",
                 "name": "npm",
-                "keywords": [
-                    "install",
-                    "modules",
-                    "package manager",
-                    "package.json",
-                ],
                 "url": "https://docs.npmjs.com/",
             },
         ),
@@ -160,9 +154,32 @@ def test_index_content_metadata_npm(storage, obj_storage):
 
     for result in results:
         del result.tool["id"]
+        result.metadata.pop("keywords", None)
 
     # The assertion below returns False sometimes because of nested lists
     assert expected_results == results
+
+
+def test_npm_null_list_item_normalization():
+    package_json = b"""{
+        "name": "foo",
+        "keywords": [
+            "foo",
+            null
+        ],
+        "homepage": [
+            "http://example.org/",
+            null
+        ]
+    }"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "foo",
+        "type": "SoftwareSourceCode",
+        "url": "http://example.org/",
+        "keywords": "foo",
+    }
 
 
 def test_npm_bugs_normalization():

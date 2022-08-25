@@ -1,4 +1,4 @@
-# Copyright (C) 2018  The Software Heritage developers
+# Copyright (C) 2018-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -12,8 +12,10 @@ import re
 from typing import Any, List
 
 from pyld import jsonld
+import rdflib
 
 import swh.indexer
+from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA
 
 _DATA_DIR = os.path.join(os.path.dirname(swh.indexer.__file__), "data")
 
@@ -34,18 +36,14 @@ CODEMETA_CONTEXT_URL = "https://doi.org/10.5063/schema/codemeta-2.0"
 CODEMETA_ALTERNATE_CONTEXT_URLS = {
     ("https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld")
 }
-CODEMETA_URI = "https://codemeta.github.io/terms/"
-SCHEMA_URI = "http://schema.org/"
-FORGEFED_URI = "https://forgefed.org/ns#"
-ACTIVITYSTREAMS_URI = "https://www.w3.org/ns/activitystreams#"
 
 
 PROPERTY_BLACKLIST = {
     # CodeMeta properties that we cannot properly represent.
-    SCHEMA_URI + "softwareRequirements",
-    CODEMETA_URI + "softwareSuggestions",
+    SCHEMA.softwareRequirements,
+    CODEMETA.softwareSuggestions,
     # Duplicate of 'author'
-    SCHEMA_URI + "creator",
+    SCHEMA.creator,
 }
 
 _codemeta_field_separator = re.compile(r"\s*[,/]\s*")
@@ -64,7 +62,7 @@ def make_absolute_uri(local_name):
     uri = jsonld.JsonLdProcessor.get_context_value(
         _PROCESSED_CODEMETA_CONTEXT, local_name, "@id"
     )
-    assert uri.startswith(("@", CODEMETA_URI, SCHEMA_URI)), (local_name, uri)
+    assert uri.startswith(("@", CODEMETA, SCHEMA)), (local_name, uri)
     return uri
 
 
@@ -85,7 +83,7 @@ def _read_crosstable(fd):
         if not local_name:
             continue
         canonical_name = make_absolute_uri(local_name)
-        if canonical_name in PROPERTY_BLACKLIST:
+        if rdflib.URIRef(canonical_name) in PROPERTY_BLACKLIST:
             continue
         terms.add(canonical_name)
         for (col, value) in zip(header, line):  # For each cell in the row
@@ -95,7 +93,9 @@ def _read_crosstable(fd):
                     # For each of the data source's properties that maps
                     # to this canonical name
                     if local_name.strip():
-                        codemeta_translation[col][local_name.strip()] = canonical_name
+                        codemeta_translation[col][local_name.strip()] = rdflib.URIRef(
+                            canonical_name
+                        )
 
     return (terms, codemeta_translation)
 
@@ -109,16 +109,19 @@ def _document_loader(url, options=None):
 
     Reads the local codemeta.jsonld file instead of fetching it
     from the Internet every single time."""
-    if url == CODEMETA_CONTEXT_URL or url in CODEMETA_ALTERNATE_CONTEXT_URLS:
+    if (
+        url.lower() == CODEMETA_CONTEXT_URL.lower()
+        or url in CODEMETA_ALTERNATE_CONTEXT_URLS
+    ):
         return {
             "contextUrl": None,
             "documentUrl": url,
             "document": CODEMETA_CONTEXT,
         }
-    elif url == CODEMETA_URI:
+    elif url == CODEMETA:
         raise Exception(
             "{} is CodeMeta's URI, use {} as context url".format(
-                CODEMETA_URI, CODEMETA_CONTEXT_URL
+                CODEMETA, CODEMETA_CONTEXT_URL
             )
         )
     else:
@@ -135,47 +138,13 @@ def compact(doc, forgefed: bool):
     """
     contexts: List[Any] = [CODEMETA_CONTEXT_URL]
     if forgefed:
-        contexts.append({"as": ACTIVITYSTREAMS_URI, "forge": FORGEFED_URI})
+        contexts.append({"as": str(ACTIVITYSTREAMS), "forge": str(FORGEFED)})
     return jsonld.compact(doc, contexts, options={"documentLoader": _document_loader})
 
 
 def expand(doc):
     """Same as `pyld.jsonld.expand`, but in the context of CodeMeta."""
     return jsonld.expand(doc, options={"documentLoader": _document_loader})
-
-
-def merge_values(v1, v2):
-    """If v1 and v2 are of the form `{"@list": l1}` and `{"@list": l2}`,
-    returns `{"@list": l1 + l2}`.
-    Otherwise, make them lists (if they are not already) and concatenate
-    them.
-
-    >>> merge_values('a', 'b')
-    ['a', 'b']
-    >>> merge_values(['a', 'b'], 'c')
-    ['a', 'b', 'c']
-    >>> merge_values({'@list': ['a', 'b']}, {'@list': ['c']})
-    {'@list': ['a', 'b', 'c']}
-    """
-    if v1 is None:
-        return v2
-    elif v2 is None:
-        return v1
-    elif isinstance(v1, dict) and set(v1) == {"@list"}:
-        assert isinstance(v1["@list"], list)
-        if isinstance(v2, dict) and set(v2) == {"@list"}:
-            assert isinstance(v2["@list"], list)
-            return {"@list": v1["@list"] + v2["@list"]}
-        else:
-            raise ValueError("Cannot merge %r and %r" % (v1, v2))
-    else:
-        if isinstance(v2, dict) and "@list" in v2:
-            raise ValueError("Cannot merge %r and %r" % (v1, v2))
-        if not isinstance(v1, list):
-            v1 = [v1]
-        if not isinstance(v2, list):
-            v2 = [v2]
-        return v1 + v2
 
 
 def merge_documents(documents):
@@ -195,8 +164,8 @@ def merge_documents(documents):
                 if "@id" not in merged_document:
                     merged_document["@id"] = value
                 elif value != merged_document["@id"]:
-                    if value not in merged_document[SCHEMA_URI + "sameAs"]:
-                        merged_document[SCHEMA_URI + "sameAs"].append(value)
+                    if value not in merged_document[SCHEMA.sameAs]:
+                        merged_document[SCHEMA.sameAs].append(value)
             else:
                 for value in values:
                     if isinstance(value, dict) and set(value) == {"@list"}:

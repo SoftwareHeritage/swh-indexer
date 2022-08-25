@@ -1,8 +1,23 @@
-swh-indexer (2.3.0-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.4.1-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.4.1     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-08-25 12:22:48 +0200)
+  * Upstream changes:     - v2.4.1     - * metadata_dictionary: Fix
+    crash on null list item in an uri_field.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 10 Aug 2022 10:34:00 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 25 Aug 2022 10:32:04 +0000
+
+swh-indexer (2.4.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.4.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-08-25 11:58:05 +0200)
+  * Upstream changes:     - v2.4.0     - * metadata_dictionary: Add
+    mappings for "*.nuspec" files     - * Refactor metadata mappings
+    using rdflib.Graph instead of JSON-LD internally     - * Other
+    internal refactorings     - * metadata_dictionary: Add mapping for
+    SWORD/Atom with Codemeta
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 25 Aug 2022 10:09:34 +0000
 
 swh-indexer (2.3.0-1~swh1) unstable-swh; urgency=medium
 

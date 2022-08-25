@@ -285,7 +285,7 @@ def test_origin_metadata_indexer_directory_error(
     sentry_event = sentry_events.pop()
     assert sentry_event.get("tags") == {
         "swh-indexer-origin-head-swhid": (
-            "swh:1:rev:179fd041d75edab00feba8e4439897422f3bdfa1"
+            "swh:1:rev:a78410ce2f78f5078fd4ee7edb8c82c02a4a712c"
         ),
         "swh-indexer-origin-url": origin,
     }
@@ -327,9 +327,9 @@ def test_origin_metadata_indexer_content_exception(
     assert len(sentry_events) == 1
     sentry_event = sentry_events.pop()
     assert sentry_event.get("tags") == {
-        "swh-indexer-content-sha1": "d8f40c3ca9cc30ddaca25c55b5dff18271ff030e",
+        "swh-indexer-content-sha1": "df9d3bcc0158faa446bd1af225f8e2e4afa576d7",
         "swh-indexer-origin-head-swhid": (
-            "swh:1:rev:179fd041d75edab00feba8e4439897422f3bdfa1"
+            "swh:1:rev:a78410ce2f78f5078fd4ee7edb8c82c02a4a712c"
         ),
         "swh-indexer-origin-url": origin,
     }

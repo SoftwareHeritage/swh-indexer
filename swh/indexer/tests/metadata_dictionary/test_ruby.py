@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 from hypothesis import HealthCheck, given, settings, strategies
+import pytest
 
 from swh.indexer.metadata_dictionary import MAPPINGS
 
@@ -39,6 +40,7 @@ end"""
     }
 
 
+@pytest.mark.xfail(reason="https://github.com/w3c/json-ld-api/issues/547")
 def test_gemspec_two_author_fields():
     raw_content = b"""
 Gem::Specification.new do |s|
