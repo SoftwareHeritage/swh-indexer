@@ -6,11 +6,17 @@
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+import uuid
+import xml.parsers.expat
 
+from pyld import jsonld
+import rdflib
 from typing_extensions import TypedDict
+import xmltodict
 import yaml
 
-from swh.indexer.codemeta import SCHEMA_URI, compact, merge_values
+from swh.indexer.codemeta import _document_loader, compact
+from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
 
 
@@ -22,20 +28,19 @@ class DirectoryLsEntry(TypedDict):
 
 
 TTranslateCallable = TypeVar(
-    "TTranslateCallable", bound=Callable[[Any, Dict[str, Any], Any], None]
+    "TTranslateCallable",
+    bound=Callable[[Any, rdflib.Graph, rdflib.term.BNode, Any], None],
 )
 
 
-def produce_terms(
-    namespace: str, terms: List[str]
-) -> Callable[[TTranslateCallable], TTranslateCallable]:
+def produce_terms(*uris: str) -> Callable[[TTranslateCallable], TTranslateCallable]:
     """Returns a decorator that marks the decorated function as adding
     the given terms to the ``translated_metadata`` dict"""
 
     def decorator(f: TTranslateCallable) -> TTranslateCallable:
         if not hasattr(f, "produced_terms"):
             f.produced_terms = []  # type: ignore
-        f.produced_terms.extend(namespace + term for term in terms)  # type: ignore
+        f.produced_terms.extend(uris)  # type: ignore
         return f
 
     return decorator
@@ -57,9 +62,20 @@ class BaseMapping:
         indexer storage."""
         raise NotImplementedError(f"{self.__class__.__name__}.name")
 
-    def translate(self, file_content: bytes) -> Optional[Dict]:
-        """Translates metadata, from the content of a file or of a RawExtrinsicMetadata
-        object."""
+    def translate(self, raw_content: bytes) -> Optional[Dict]:
+        """
+        Translates content by parsing content from a bytestring containing
+        mapping-specific data and translating with the appropriate mapping
+        to JSON-LD using the Codemeta and ForgeFed vocabularies.
+
+        Args:
+            raw_content: raw content to translate
+
+        Returns:
+            translated metadata in JSON friendly form needed for the content
+            if parseable, :const:`None` otherwise.
+
+        """
         raise NotImplementedError(f"{self.__class__.__name__}.translate")
 
     def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
@@ -127,8 +143,12 @@ class DictMapping(BaseMapping):
     """Base class for mappings that take as input a file that is mostly
     a key-value store (eg. a shallow JSON dict)."""
 
-    string_fields = []  # type: List[str]
+    string_fields: List[str] = []
     """List of fields that are simple strings, and don't need any
+    normalization."""
+
+    uri_fields: List[str] = []
+    """List of fields that are simple URIs, and don't need any
     normalization."""
 
     @property
@@ -144,15 +164,15 @@ class DictMapping(BaseMapping):
     def supported_terms(cls):
         # one-to-one mapping from the original key to a CodeMeta term
         simple_terms = {
-            term
+            str(term)
             for (key, term) in cls.mapping.items()
-            if key in cls.string_fields
+            if key in cls.string_fields + cls.uri_fields
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
         }
 
         # more complex mapping from the original key to JSON-LD
         complex_terms = {
-            term
+            str(term)
             for meth_name in dir(cls)
             if meth_name.startswith("translate_")
             for term in getattr(getattr(cls, meth_name), "produced_terms", [])
@@ -160,9 +180,7 @@ class DictMapping(BaseMapping):
 
         return simple_terms | complex_terms
 
-    def _translate_dict(
-        self, content_dict: Dict, *, normalize: bool = True
-    ) -> Dict[str, str]:
+    def _translate_dict(self, content_dict: Dict) -> Dict[str, Any]:
         """
         Translates content  by parsing content from a dict object
         and translating with the appropriate mapping
@@ -175,7 +193,20 @@ class DictMapping(BaseMapping):
             the indexer
 
         """
-        translated_metadata = {"@type": SCHEMA_URI + "SoftwareSourceCode"}
+        graph = rdflib.Graph()
+
+        # The main object being described (the SoftwareSourceCode) does not necessarily
+        # may or may not have an id.
+        # Either way, we temporarily use this URI to identify it. Unfortunately,
+        # we cannot use a blank node as we need to use it for JSON-LD framing later,
+        # and blank nodes cannot be used for framing in JSON-LD >= 1.1
+        root_id = (
+            "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
+            + str(uuid.uuid4())
+        )
+        root = rdflib.URIRef(root_id)
+        graph.add((root, RDF.type, SCHEMA.SoftwareSourceCode))
+
         for k, v in content_dict.items():
             # First, check if there is a specific translation
             # method for this key
@@ -183,55 +214,79 @@ class DictMapping(BaseMapping):
                 self, "translate_" + self._normalize_method_name(k), None
             )
             if translation_method:
-                translation_method(translated_metadata, v)
+                translation_method(graph, root, v)
             elif k in self.mapping:
                 # if there is no method, but the key is known from the
                 # crosswalk table
                 codemeta_key = self.mapping[k]
 
-                # if there is a normalization method, use it on the value
+                # if there is a normalization method, use it on the value,
+                # and add its results to the triples
                 normalization_method = getattr(
                     self, "normalize_" + self._normalize_method_name(k), None
                 )
                 if normalization_method:
                     v = normalization_method(v)
+                    if v is None:
+                        pass
+                    elif isinstance(v, list):
+                        for item in reversed(v):
+                            graph.add((root, codemeta_key, item))
+                    else:
+                        graph.add((root, codemeta_key, v))
                 elif k in self.string_fields and isinstance(v, str):
-                    pass
+                    graph.add((root, codemeta_key, rdflib.Literal(v)))
                 elif k in self.string_fields and isinstance(v, list):
-                    v = [x for x in v if isinstance(x, str)]
+                    for item in v:
+                        graph.add((root, codemeta_key, rdflib.Literal(item)))
+                elif k in self.uri_fields and isinstance(v, str):
+                    graph.add((root, codemeta_key, rdflib.URIRef(v)))
+                elif k in self.uri_fields and isinstance(v, list):
+                    for item in v:
+                        graph.add((root, codemeta_key, rdflib.URIRef(item)))
                 else:
                     continue
 
-                # set the translation metadata with the normalized value
-                if codemeta_key in translated_metadata:
-                    translated_metadata[codemeta_key] = merge_values(
-                        translated_metadata[codemeta_key], v
-                    )
-                else:
-                    translated_metadata[codemeta_key] = v
+        self.extra_translation(graph, root, content_dict)
 
-        if normalize:
-            return self.normalize_translation(translated_metadata)
+        # Convert from rdflib's internal graph representation to JSON
+        s = graph.serialize(format="application/ld+json")
+
+        # Load from JSON to a list of Python objects
+        jsonld_graph = json.loads(s)
+
+        # Use JSON-LD framing to turn the graph into a rooted tree
+        # frame = {"@type": str(SCHEMA.SoftwareSourceCode)}
+        translated_metadata = jsonld.frame(
+            jsonld_graph,
+            {"@id": root_id},
+            options={
+                "documentLoader": _document_loader,
+                "processingMode": "json-ld-1.1",
+            },
+        )
+
+        # Remove the temporary id we added at the beginning
+        if isinstance(translated_metadata["@id"], list):
+            translated_metadata["@id"].remove(root_id)
         else:
-            return translated_metadata
+            del translated_metadata["@id"]
+
+        return self.normalize_translation(translated_metadata)
+
+    def extra_translation(
+        self, graph: rdflib.Graph, root: rdflib.term.Node, d: Dict[str, Any]
+    ):
+        """Called at the end of the translation process, and may add arbitrary triples
+        to ``graph`` based on the input dictionary (passed as ``d``).
+        """
+        pass
 
 
 class JsonMapping(DictMapping):
     """Base class for all mappings that use JSON data as input."""
 
     def translate(self, raw_content: bytes) -> Optional[Dict]:
-        """
-        Translates content by parsing content from a bytestring containing
-        json data and translating with the appropriate mapping
-
-        Args:
-            raw_content (bytes): raw content to translate
-
-        Returns:
-            dict: translated metadata in json-friendly form needed for
-            the indexer
-
-        """
         try:
             raw_content_string: str = raw_content.decode()
         except UnicodeDecodeError:
@@ -245,6 +300,28 @@ class JsonMapping(DictMapping):
         if isinstance(content_dict, dict):
             return self._translate_dict(content_dict)
         return None
+
+
+class XmlMapping(DictMapping):
+    """Base class for all mappings that use XML data as input."""
+
+    def translate(self, raw_content: bytes) -> Optional[Dict]:
+        try:
+            d = xmltodict.parse(raw_content)
+        except xml.parsers.expat.ExpatError:
+            self.log.warning("Error parsing XML from %s", self.log_suffix)
+            return None
+        except UnicodeDecodeError:
+            self.log.warning("Error unidecoding XML from %s", self.log_suffix)
+            return None
+        except (LookupError, ValueError):
+            # unknown encoding or multi-byte encoding
+            self.log.warning("Error detecting XML encoding from %s", self.log_suffix)
+            return None
+        if not isinstance(d, dict):
+            self.log.warning("Skipping ill-formed XML content: %s", raw_content)
+            return None
+        return self._translate_dict(d)
 
 
 class SafeLoader(yaml.SafeLoader):

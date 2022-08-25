@@ -38,7 +38,7 @@ Description-Content-Type: text/markdown
 Provides-Extra: testing
 """  # noqa
     result = MAPPINGS["PythonPkginfoMapping"]().translate(raw_content)
-    assert result["description"] == [
+    assert set(result.pop("description")) == {
         "Software Heritage core utilities",  # note the comma here
         "swh-core\n"
         "========\n"
@@ -49,8 +49,7 @@ Provides-Extra: testing
         "- serialization\n"
         "- logging mechanism\n"
         "",
-    ], result
-    del result["description"]
+    }, result
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -91,11 +90,11 @@ Name: foo
 Keywords: foo bar baz
 """  # noqa
     result = MAPPINGS["PythonPkginfoMapping"]().translate(raw_content)
+    assert set(result.pop("keywords")) == {"foo", "bar", "baz"}, result
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "foo",
-        "keywords": ["foo", "bar", "baz"],
     }
 
 
@@ -110,5 +109,5 @@ License: MIT
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "foo",
-        "license": "MIT",
+        "license": "https://spdx.org/licenses/MIT",
     }

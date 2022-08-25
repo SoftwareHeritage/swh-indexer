@@ -111,10 +111,13 @@ def test_cli_mapping_list(cli_runner, swh_config):
             "composer",
             "gemspec",
             "github",
+            "json-sword-codemeta",
             "maven",
             "npm",
+            "nuget",
             "pkg-info",
             "pubspec",
+            "sword-codemeta",
             "",
         ]  # must be sorted for test to pass
     )
@@ -140,7 +143,18 @@ def test_cli_mapping_list_terms(cli_runner, swh_config):
 def test_cli_mapping_list_terms_exclude(cli_runner, swh_config):
     result = cli_runner.invoke(
         indexer_cli_group,
-        ["-C", swh_config, "mapping", "list-terms", "--exclude-mapping", "codemeta"],
+        [
+            "-C",
+            swh_config,
+            "mapping",
+            "list-terms",
+            "--exclude-mapping",
+            "codemeta",
+            "--exclude-mapping",
+            "json-sword-codemeta",
+            "--exclude-mapping",
+            "sword-codemeta",
+        ],
         catch_exceptions=False,
     )
     assert result.exit_code == 0, result.output

@@ -166,7 +166,7 @@ The following terms may be found in the output of the metadata translation
 (other than the `codemeta` mapping, which is the identity function, and
 therefore supports all properties):
 
-.. program-output:: python3 -m swh.indexer.cli mapping list-terms --exclude-mapping codemeta
+.. program-output:: python3 -m swh.indexer.cli mapping list-terms --exclude-mapping codemeta --exclude-mapping json-sword-codemeta --exclude-mapping sword-codemeta
     :nostderr:
 
 
@@ -263,7 +263,7 @@ like this:
 
     def normalize_license(self, s):
         if isinstance(s, str):
-            return {"@id": "https://spdx.org/licenses/" + s}
+            return rdflib.URIRef("https://spdx.org/licenses/" + s)
 
 This method will automatically get called by ``_translate_dict`` when it
 finds a ``license`` field in ``content_dict``.

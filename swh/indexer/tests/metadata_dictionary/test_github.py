@@ -120,7 +120,7 @@ def test_compute_metadata_github():
     result = MAPPINGS["GitHubMapping"]().translate(content)
     assert result == {
         "@context": CONTEXT,
-        "type": "https://forgefed.org/ns#Repository",
+        "type": "forge:Repository",
         "forge:forks": {
             "as:totalItems": 1,
             "type": "as:OrderedCollection",

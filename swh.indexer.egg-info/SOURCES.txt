@@ -61,11 +61,13 @@ swh/indexer/journal_client.py
 swh/indexer/metadata.py
 swh/indexer/metadata_detector.py
 swh/indexer/mimetype.py
+swh/indexer/namespaces.py
 swh/indexer/origin_head.py
 swh/indexer/py.typed
 swh/indexer/rehash.py
 swh/indexer/tasks.py
 swh/indexer/data/composer.csv
+swh/indexer/data/nuget.csv
 swh/indexer/data/pubspec.csv
 swh/indexer/data/codemeta/CITATION
 swh/indexer/data/codemeta/LICENSE
@@ -80,8 +82,10 @@ swh/indexer/metadata_dictionary/dart.py
 swh/indexer/metadata_dictionary/github.py
 swh/indexer/metadata_dictionary/maven.py
 swh/indexer/metadata_dictionary/npm.py
+swh/indexer/metadata_dictionary/nuget.py
 swh/indexer/metadata_dictionary/python.py
 swh/indexer/metadata_dictionary/ruby.py
+swh/indexer/metadata_dictionary/utils.py
 swh/indexer/sql/10-superuser-init.sql
 swh/indexer/sql/20-enums.sql
 swh/indexer/sql/30-schema.sql
@@ -143,6 +147,7 @@ swh/indexer/tests/metadata_dictionary/test_dart.py
 swh/indexer/tests/metadata_dictionary/test_github.py
 swh/indexer/tests/metadata_dictionary/test_maven.py
 swh/indexer/tests/metadata_dictionary/test_npm.py
+swh/indexer/tests/metadata_dictionary/test_nuget.py
 swh/indexer/tests/metadata_dictionary/test_python.py
 swh/indexer/tests/metadata_dictionary/test_ruby.py
 swh/indexer/tests/storage/__init__.py
