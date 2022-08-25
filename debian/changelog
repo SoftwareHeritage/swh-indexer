@@ -1,8 +1,16 @@
-swh-indexer (2.4.1-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.4.2-1~swh2) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * Bump new release
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 25 Aug 2022 10:38:59 +0000
+ -- Antoine R. Dumont (@ardumont) <ardumont@softwareheritage.org>  Thu, 25 Aug 2022 14:30:54 +0200
+
+swh-indexer (2.4.2-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.4.2     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-08-25 13:24:10 +0200)
+  * Upstream changes:     - v2.4.2     - * Re-trigger Debian build
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 25 Aug 2022 11:33:19 +0000
 
 swh-indexer (2.4.1-1~swh1) unstable-swh; urgency=medium
 
@@ -66,7 +74,7 @@ swh-indexer (2.2.0-1~swh1) unstable-swh; urgency=medium
     indexer journal client support     - cli: Add extrinsic-metadata
     indexer journal client support     - docs: Fix incorrect terminology
     (term -> property)     - mapping: Fix inconsistent name     - Drop
-    decomissioned content indexer: ctags, language
+    decommissioned content indexer: ctags, language
 
  -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 25 Jul 2022 14:33:50 +0000
 
@@ -703,7 +711,7 @@ swh-indexer (0.0.148-1~swh1) unstable-swh; urgency=medium
     +0200)
   * Upstream changes:     - v0.0.148     - Manipulate origin URLs
     instead of origin ids     - journal: create tasks for multiple
-    origins     - Tests: Improvments
+    origins     - Tests: Improvements
 
  -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 01 Jul 2019 10:34:26 +0000
 
@@ -1322,7 +1330,7 @@ swh-indexer (0.0.24-1~swh1) unstable-swh; urgency=medium
 swh-indexer (0.0.23-1~swh1) unstable-swh; urgency=medium
 
   * v0.0.23
-  * Improve producer to optionally make it synchroneous
+  * Improve producer to optionally make it synchronous
 
  -- Antoine R. Dumont (@ardumont) <antoine.romain.dumont@gmail.com>  Wed, 03 May 2017 15:29:44 +0200
 
