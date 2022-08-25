@@ -147,12 +147,6 @@ def test_index_content_metadata_npm(storage, obj_storage):
                 "license": "https://spdx.org/licenses/Artistic-2.0",
                 "version": "5.0.3",
                 "name": "npm",
-                "keywords": [
-                    "install",
-                    "modules",
-                    "package manager",
-                    "package.json",
-                ],
                 "url": "https://docs.npmjs.com/",
             },
         ),
@@ -160,6 +154,7 @@ def test_index_content_metadata_npm(storage, obj_storage):
 
     for result in results:
         del result.tool["id"]
+        result.metadata.pop("keywords", None)
 
     # The assertion below returns False sometimes because of nested lists
     assert expected_results == results

@@ -45,7 +45,7 @@ def test_compute_metadata_maven():
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "Maven Default Project",
-        "identifier": "com.mycompany.app",
+        "schema:identifier": "com.mycompany.app",
         "version": "1.2.3",
         "license": "https://www.apache.org/licenses/LICENSE-2.0.txt",
         "codeRepository": ("http://repo1.maven.org/maven2/com/mycompany/app/my-app"),
@@ -167,7 +167,7 @@ def test_compute_metadata_maven_minimal():
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "Maven Default Project",
-        "identifier": "com.mycompany.app",
+        "schema:identifier": "com.mycompany.app",
         "version": "1.2.3",
         "codeRepository": (
             "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
@@ -191,7 +191,7 @@ def test_compute_metadata_maven_empty_nodes():
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "Maven Default Project",
-        "identifier": "com.mycompany.app",
+        "schema:identifier": "com.mycompany.app",
         "version": "1.2.3",
         "codeRepository": (
             "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
@@ -211,7 +211,7 @@ def test_compute_metadata_maven_empty_nodes():
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "Maven Default Project",
-        "identifier": "com.mycompany.app",
+        "schema:identifier": "com.mycompany.app",
         "codeRepository": (
             "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
         ),
@@ -229,7 +229,7 @@ def test_compute_metadata_maven_empty_nodes():
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
-        "identifier": "com.mycompany.app",
+        "schema:identifier": "com.mycompany.app",
         "version": "1.2.3",
         "codeRepository": (
             "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
@@ -251,7 +251,7 @@ def test_compute_metadata_maven_empty_nodes():
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "Maven Default Project",
-        "identifier": "com.mycompany.app",
+        "schema:identifier": "com.mycompany.app",
         "version": "1.2.3",
         "codeRepository": (
             "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
@@ -288,7 +288,7 @@ def test_compute_metadata_maven_invalid_licenses():
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "Maven Default Project",
-        "identifier": "com.mycompany.app",
+        "schema:identifier": "com.mycompany.app",
         "version": "1.2.3",
         "codeRepository": (
             "https://repo.maven.apache.org/maven2/com/mycompany/app/my-app"
@@ -336,20 +336,20 @@ def test_compute_metadata_maven_multiple():
       </licenses>
     </project>"""
     result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    assert set(result.pop("license")) == {
+        "https://www.apache.org/licenses/LICENSE-2.0.txt",
+        "https://opensource.org/licenses/MIT",
+    }, result
+    assert set(result.pop("codeRepository")) == {
+        "http://repo1.maven.org/maven2/com/mycompany/app/my-app",
+        "http://example.org/maven2/com/mycompany/app/my-app",
+    }, result
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "name": "Maven Default Project",
-        "identifier": "com.mycompany.app",
+        "schema:identifier": "com.mycompany.app",
         "version": "1.2.3",
-        "license": [
-            "https://www.apache.org/licenses/LICENSE-2.0.txt",
-            "https://opensource.org/licenses/MIT",
-        ],
-        "codeRepository": [
-            "http://repo1.maven.org/maven2/com/mycompany/app/my-app",
-            "http://example.org/maven2/com/mycompany/app/my-app",
-        ],
     }
 
 

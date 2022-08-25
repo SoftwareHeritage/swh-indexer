@@ -5,6 +5,7 @@ click
 # cf https://forge.softwareheritage.org/T3815
 frozendict != 2.1.2
 pyld
+rdflib
 sentry-sdk
 typing-extensions
 xmltodict

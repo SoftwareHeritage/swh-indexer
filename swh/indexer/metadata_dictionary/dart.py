@@ -6,9 +6,15 @@
 import os.path
 import re
 
-from swh.indexer.codemeta import _DATA_DIR, SCHEMA_URI, _read_crosstable
+from rdflib import RDF, BNode, Graph, Literal, URIRef
+
+from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
+from swh.indexer.namespaces import SCHEMA
 
 from .base import YamlMapping
+from .utils import add_map
+
+SPDX = URIRef("https://spdx.org/licenses/")
 
 PUB_TABLE_PATH = os.path.join(_DATA_DIR, "pubspec.csv")
 
@@ -18,8 +24,8 @@ with open(PUB_TABLE_PATH) as fd:
 
 def name_to_person(name):
     return {
-        "@type": SCHEMA_URI + "Person",
-        SCHEMA_URI + "name": name,
+        "@type": SCHEMA.Person,
+        SCHEMA.name: name,
     }
 
 
@@ -33,42 +39,37 @@ class PubspecMapping(YamlMapping):
         "keywords",
         "description",
         "name",
-        "homepage",
         "issue_tracker",
         "platforms",
         "license"
         # license will only be used with the SPDX Identifier
     ]
+    uri_fields = ["homepage"]
 
     def normalize_license(self, s):
         if isinstance(s, str):
-            return {"@id": "https://spdx.org/licenses/" + s}
+            return SPDX + s
 
-    def normalize_homepage(self, s):
+    def _translate_author(self, graph, s):
+        name_email_re = re.compile("(?P<name>.*?)( <(?P<email>.*)>)")
         if isinstance(s, str):
-            return {"@id": s}
-
-    def normalize_author(self, s):
-        name_email_regex = "(?P<name>.*?)( <(?P<email>.*)>)"
-        author = {"@type": SCHEMA_URI + "Person"}
-        if isinstance(s, str):
-            match = re.search(name_email_regex, s)
+            author = BNode()
+            graph.add((author, RDF.type, SCHEMA.Person))
+            match = name_email_re.search(s)
             if match:
                 name = match.group("name")
                 email = match.group("email")
-                author[SCHEMA_URI + "email"] = email
+                graph.add((author, SCHEMA.email, Literal(email)))
             else:
                 name = s
 
-            author[SCHEMA_URI + "name"] = name
+            graph.add((author, SCHEMA.name, Literal(name)))
 
-            return {"@list": [author]}
+            return author
 
-    def normalize_authors(self, authors_list):
-        authors = {"@list": []}
+    def translate_author(self, graph: Graph, root, s) -> None:
+        add_map(graph, root, SCHEMA.author, self._translate_author, [s])
 
-        if isinstance(authors_list, list):
-            for s in authors_list:
-                author = self.normalize_author(s)["@list"]
-                authors["@list"] += author
-            return authors
+    def translate_authors(self, graph: Graph, root, authors) -> None:
+        if isinstance(authors, list):
+            add_map(graph, root, SCHEMA.author, self._translate_author, authors)

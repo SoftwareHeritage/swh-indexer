@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2021-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -44,6 +44,13 @@ version: "1.4.0-alpha0"
         "utf-8"
     )
 
+    result = MAPPINGS["CffMapping"]().translate(content)
+    assert set(result.pop("keywords")) == {
+        "citation",
+        "bibliography",
+        "cff",
+        "CITATION.cff",
+    }
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -76,12 +83,10 @@ version: "1.4.0-alpha0"
 Citation File Format to various other formats such as BibTeX, EndNote, \
 RIS, schema.org, CodeMeta, and .zenodo.json.""",
         "identifier": "https://doi.org/10.5281/zenodo.1162057",
-        "keywords": ["citation", "bibliography", "cff", "CITATION.cff"],
         "license": "https://spdx.org/licenses/Apache-2.0",
         "version": "1.4.0-alpha0",
     }
 
-    result = MAPPINGS["CffMapping"]().translate(content)
     assert expected == result
 
 
