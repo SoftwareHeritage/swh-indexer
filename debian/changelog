@@ -1,3 +1,9 @@
+swh-indexer (2.4.2-1~swh2~bpo10+1) buster-swh; urgency=medium
+
+  * Rebuild for buster-swh
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 25 Aug 2022 12:43:26 +0000
+
 swh-indexer (2.4.2-1~swh2) unstable-swh; urgency=medium
 
   * Bump new release
