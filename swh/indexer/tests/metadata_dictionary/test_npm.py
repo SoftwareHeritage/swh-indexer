@@ -160,6 +160,28 @@ def test_index_content_metadata_npm(storage, obj_storage):
     assert expected_results == results
 
 
+def test_npm_null_list_item_normalization():
+    package_json = b"""{
+        "name": "foo",
+        "keywords": [
+            "foo",
+            null
+        ],
+        "homepage": [
+            "http://example.org/",
+            null
+        ]
+    }"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "foo",
+        "type": "SoftwareSourceCode",
+        "url": "http://example.org/",
+        "keywords": "foo",
+    }
+
+
 def test_npm_bugs_normalization():
     # valid dictionary
     package_json = b"""{
