@@ -1,3 +1,9 @@
+swh-indexer (2.4.3-1~swh2) unstable-swh; urgency=medium
+
+  * Drop blocking dependency constraint and bump new version.
+
+ -- Antoine R. Dumont (@ardumont) <ardumont@softwareheritage.org>  Tue, 30 Aug 2022 15:37:01 +0200
+
 swh-indexer (2.4.3-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.4.3     - (tagged by Antoine R. Dumont
