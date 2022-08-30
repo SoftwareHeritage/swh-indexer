@@ -1,3 +1,13 @@
+swh-indexer (2.4.3-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.4.3     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2022-08-30 11:09:04
+    +0200)
+  * Upstream changes:     - v2.4.3     - metadata: Drop unsupported key
+    'type'
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 30 Aug 2022 09:25:28 +0000
+
 swh-indexer (2.4.2-1~swh2) unstable-swh; urgency=medium
 
   * Bump new release
