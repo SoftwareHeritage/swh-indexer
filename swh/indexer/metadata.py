@@ -75,6 +75,8 @@ class ExtrinsicMetadataIndexer(
         try:
             results = []
             for item in objects.get("raw_extrinsic_metadata", []):
+                # Drop attribute 'type' (from older model versions) no longer allowed.
+                item.pop("type", None)
                 remd = RawExtrinsicMetadata.from_dict(item)
                 sentry_sdk.set_tag("swh-indexer-remd-swhid", remd.swhid())
                 results.extend(self.index(remd.id, data=remd))
