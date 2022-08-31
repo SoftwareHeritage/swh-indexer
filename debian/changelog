@@ -1,3 +1,13 @@
+swh-indexer (2.4.4-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.4.4     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-08-31 11:26:51 +0200)
+  * Upstream changes:     - v2.4.4     - * Revert "metadata: Drop
+    unsupported key 'type'"     - * rehash: Call
+    objstorage.content_get() with a HashDict instead of single hash
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 31 Aug 2022 09:36:21 +0000
+
 swh-indexer (2.4.3-1~swh2) unstable-swh; urgency=medium
 
   * Drop blocking dependency constraint and bump new version.
