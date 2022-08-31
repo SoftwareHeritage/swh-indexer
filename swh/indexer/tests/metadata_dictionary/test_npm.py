@@ -294,7 +294,7 @@ def test_npm_repository_normalization():
     }
 
 
-def test_npm_empty_uris():
+def test_npm_invalid_uris():
     package_json = rb"""{
   "version": "1.0.0",
   "homepage": "",
@@ -334,6 +334,22 @@ def test_npm_empty_uris():
   "author": {
     "name": "foo",
     "url": ""
+  }
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "foo", "type": "Person"}],
+        "version": "1.0.0",
+    }
+
+    package_json = rb"""{
+  "version": "1.0.0",
+  "homepage": "http:example.org",
+  "author": {
+    "name": "foo",
+    "url": "http:example.com"
   }
 }"""
     result = MAPPINGS["NpmMapping"]().translate(package_json)

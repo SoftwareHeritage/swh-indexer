@@ -6,6 +6,7 @@
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+import urllib.parse
 import uuid
 import xml.parsers.expat
 
@@ -240,11 +241,18 @@ class DictMapping(BaseMapping):
                     for item in v:
                         graph.add((root, codemeta_key, rdflib.Literal(item)))
                 elif k in self.uri_fields and isinstance(v, str):
-                    graph.add((root, codemeta_key, rdflib.URIRef(v)))
+                    # Workaround for https://github.com/digitalbazaar/pyld/issues/91 : drop
+                    # URLs that are blatantly invalid early, so PyLD does not crash.
+                    parsed_url = urllib.parse.urlparse(v)
+                    if parsed_url.netloc:
+                        graph.add((root, codemeta_key, rdflib.URIRef(v)))
                 elif k in self.uri_fields and isinstance(v, list):
                     for item in v:
                         if isinstance(item, str):
-                            graph.add((root, codemeta_key, rdflib.URIRef(item)))
+                            # ditto
+                            parsed_url = urllib.parse.urlparse(item)
+                            if parsed_url.netloc:
+                                graph.add((root, codemeta_key, rdflib.URIRef(item)))
                 else:
                     continue
 
