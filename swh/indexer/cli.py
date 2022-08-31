@@ -247,6 +247,13 @@ def schedule_origin_metadata_reindex(
     type=int,
     help="Maximum number of objects to replay. Default is to run forever.",
 )
+@click.option(
+    "--batch-size",
+    "-b",
+    default=None,
+    type=int,
+    help="Batch size. Default is 200.",
+)
 @click.pass_context
 def journal_client(
     ctx,
@@ -257,6 +264,7 @@ def journal_client(
     prefix: str,
     group_id: str,
     stop_after_objects: Optional[int],
+    batch_size: Optional[int],
 ):
     """
     Listens for new objects from the SWH Journal, and either:
@@ -290,6 +298,7 @@ def journal_client(
         "origin_metadata_task_type"
     )
     stop_after_objects = stop_after_objects or journal_cfg.get("stop_after_objects")
+    batch_size = batch_size or journal_cfg.get("batch_size", 200)
 
     object_types = set()
     worker_fns: List[Callable[[ObjectsDict], Dict]] = []
@@ -355,6 +364,7 @@ def journal_client(
         group_id=group_id,
         object_types=list(object_types),
         stop_after_objects=stop_after_objects,
+        batch_size=batch_size,
     )
 
     def worker_fn(objects: ObjectsDict):
