@@ -1,8 +1,12 @@
-swh-indexer (2.4.4-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.5.0-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.5.0     - (tagged by Antoine R. Dumont
+    (@ardumont) <ardumont@softwareheritage.org> on 2022-08-31 18:10:38
+    +0200)
+  * Upstream changes:     - v2.5.0     - indexer.cli: Allow batch_size
+    configuration on journal client
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 31 Aug 2022 12:59:40 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 31 Aug 2022 16:20:18 +0000
 
 swh-indexer (2.4.4-1~swh1) unstable-swh; urgency=medium
 
