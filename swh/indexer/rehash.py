@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2020  The Software Heritage developers
+# Copyright (C) 2017-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,7 +6,7 @@
 from collections import defaultdict
 import itertools
 import logging
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 
 import sentry_sdk
 
@@ -16,6 +16,7 @@ from swh.model import hashutil
 from swh.model.model import Content
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
+from swh.objstorage.interface import ObjId
 from swh.storage import get_storage
 
 DEFAULT_CONFIG: Dict[str, Any] = {
@@ -103,10 +104,9 @@ class RecomputeChecksums:
                 sentry_sdk.capture_exception()
                 continue
 
-            for sha1, content_model in zip(sha1s, content_metadata):
-                if not content_model:
+            for content in content_metadata:
+                if not content:
                     continue
-                content: Dict = content_model.to_dict()
                 # Recompute checksums provided in compute_checksums options
                 if self.recompute_checksums:
                     checksums_to_compute = list(self.compute_checksums)
@@ -114,23 +114,26 @@ class RecomputeChecksums:
                     # Compute checksums provided in compute_checksums
                     # options not already defined for that content
                     checksums_to_compute = [
-                        h for h in self.compute_checksums if not content.get(h)
+                        h for h in self.compute_checksums if not content.get_hash(h)
                     ]
 
                 if not checksums_to_compute:  # Nothing to recompute
                     continue
 
                 try:
-                    raw_content = self.objstorage.get(sha1)
+                    raw_content = self.objstorage.get(cast(ObjId, content.hashes()))
                 except ObjNotFoundError:
-                    self.log.warning("Content %s not found in objstorage!", sha1)
+                    self.log.warning(
+                        "Content %s not found in objstorage!", content.hashes()
+                    )
                     continue
 
                 content_hashes = hashutil.MultiHash.from_data(
                     raw_content, hash_names=checksums_to_compute
                 ).digest()
-                content.update(content_hashes)
-                yield content, checksums_to_compute
+                content_dict = content.to_dict()
+                content_dict.update(content_hashes)
+                yield content_dict, checksums_to_compute
 
     def run(self, contents: List[Dict[str, Any]]) -> Dict:
         """Given a list of content:
