@@ -361,6 +361,24 @@ def test_npm_invalid_uris():
     }
 
 
+def test_npm_invalid_licenses():
+    package_json = rb"""{
+  "version": "1.0.0",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "author": {
+    "name": "foo",
+    "url": "http://example.org"
+  }
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "foo", "type": "Person", "url": "http://example.org"}],
+        "version": "1.0.0",
+    }
+
+
 @settings(suppress_health_check=[HealthCheck.too_slow])
 @given(json_document_strategy(keys=list(MAPPINGS["NpmMapping"].mapping)))  # type: ignore
 def test_npm_adversarial(doc):
