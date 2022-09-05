@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
+import itertools
 from typing import (
     Any,
     Callable,
@@ -73,19 +74,19 @@ class ExtrinsicMetadataIndexer(
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
-            results = []
+            results = {}
             for item in objects.get("raw_extrinsic_metadata", []):
                 remd = RawExtrinsicMetadata.from_dict(item)
                 sentry_sdk.set_tag("swh-indexer-remd-swhid", remd.swhid())
-                results.extend(self.index(remd.id, data=remd))
+                results[remd.target] = self.index(remd.id, data=remd)
         except Exception:
             if not self.catch_exceptions:
                 raise
             summary["status"] = "failed"
             return summary
 
-        summary_persist = self.persist_index_computations(results)
-        self.results = results
+        self.results = list(itertools.chain.from_iterable(results.values()))
+        summary_persist = self.persist_index_computations(self.results)
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
