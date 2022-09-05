@@ -5,6 +5,8 @@
 
 from copy import deepcopy
 import itertools
+import logging
+import time
 from typing import (
     Any,
     Callable,
@@ -55,6 +57,8 @@ ORIGIN_GET_BATCH_SIZE = 10
 
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")
+
+logger = logging.getLogger(__name__)
 
 
 def call_with_batches(
@@ -130,12 +134,21 @@ class ExtrinsicMetadataIndexer(
             return []
 
         # TODO: batch requests to origin_get_by_sha1()
-        origins = self.storage.origin_get_by_sha1([data.target.object_id])
-        try:
-            (origin,) = origins
-            if origin is None:
-                raise ValueError()
-        except ValueError:
+        for _ in range(6):
+            origins = self.storage.origin_get_by_sha1([data.target.object_id])
+            try:
+                (origin,) = origins
+                if origin is not None:
+                    break
+            except ValueError:
+                pass
+            # The origin does not exist. This may be due to some replication lag
+            # between the loader's DB/journal and the DB we are consuming from.
+            # Wait a bit and try again
+            logger.debug("Origin %s not found, sleeping for 10s.", data.target)
+            time.sleep(10)
+        else:
+            # Does not exist, or replication lag > 60s.
             raise ValueError(f"Unknown origin {data.target}") from None
 
         if urlparse(data.authority.url).netloc != urlparse(origin["url"]).netloc:
