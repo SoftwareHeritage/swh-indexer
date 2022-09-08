@@ -535,25 +535,27 @@ class OriginMetadataIndexer(
         results: List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]],
     ) -> Dict[str, int]:
         # Deduplicate directories
-        dir_metadata: List[DirectoryIntrinsicMetadataRow] = []
-        orig_metadata: List[OriginIntrinsicMetadataRow] = []
+        dir_metadata: Dict[bytes, DirectoryIntrinsicMetadataRow] = {}
+        orig_metadata: Dict[str, OriginIntrinsicMetadataRow] = {}
         summary: Dict = {}
         for (orig_item, dir_item) in results:
             assert dir_item.metadata == orig_item.metadata
             if dir_item.metadata and not (dir_item.metadata.keys() <= {"@context"}):
                 # Only store non-empty metadata sets
-                if dir_item not in dir_metadata:
-                    dir_metadata.append(dir_item)
-                if orig_item not in orig_metadata:
-                    orig_metadata.append(orig_item)
+                if dir_item.id not in dir_metadata:
+                    dir_metadata[dir_item.id] = dir_item
+                if orig_item.id not in orig_metadata:
+                    orig_metadata[orig_item.id] = orig_item
 
         if dir_metadata:
             summary_dir = self.idx_storage.directory_intrinsic_metadata_add(
-                dir_metadata
+                list(dir_metadata.values())
             )
             summary.update(summary_dir)
         if orig_metadata:
-            summary_ori = self.idx_storage.origin_intrinsic_metadata_add(orig_metadata)
+            summary_ori = self.idx_storage.origin_intrinsic_metadata_add(
+                list(orig_metadata.values())
+            )
             summary.update(summary_ori)
 
         return summary
