@@ -81,7 +81,7 @@ class ExtrinsicMetadataIndexer(
             results = {}
             for item in objects.get("raw_extrinsic_metadata", []):
                 remd = RawExtrinsicMetadata.from_dict(item)
-                sentry_sdk.set_tag("swh-indexer-remd-swhid", remd.swhid())
+                sentry_sdk.set_tag("swh-indexer-remd-swhid", str(remd.swhid()))
                 results[remd.target] = self.index(remd.id, data=remd)
         except Exception:
             if not self.catch_exceptions:
