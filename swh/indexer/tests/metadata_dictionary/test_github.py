@@ -38,9 +38,6 @@ def test_supported_terms():
 
 
 def test_compute_metadata_github():
-    """
-    testing only computation of metadata with hard_mapping_npm
-    """
     content = b"""
 {
   "id": 80521091,
@@ -139,4 +136,21 @@ def test_compute_metadata_github():
         "schema:codeRepository": "https://github.com/SoftwareHeritage/swh-indexer",
         "schema:dateCreated": "2017-01-31T13:05:39Z",
         "schema:dateModified": "2022-06-22T08:02:20Z",
+    }
+
+
+def test_github_topics():
+    content = b"""
+{
+  "topics": [
+    "foo",
+    "bar"
+  ]
+}
+    """
+    result = MAPPINGS["GitHubMapping"]().translate(content)
+    assert set(result.pop("keywords", [])) == {"foo", "bar"}, result
+    assert result == {
+        "@context": CONTEXT,
+        "type": "forge:Repository",
     }
