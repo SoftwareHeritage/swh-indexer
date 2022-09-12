@@ -1,8 +1,14 @@
-swh-indexer (2.5.0-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.6.0-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.6.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-09-12 10:55:11 +0200)
+  * Upstream changes:     - v2.6.0     - * Convert SWHID to str before
+    passing to sentry_sdk.set_tag     - * Fix various crashes     - *
+    github: Add support for 'topics'     - * npm, maven: ignore
+    blatantly invalid licenses and URLs     - * cli: Pass all
+    journal_client config keys to the JournalClient
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 31 Aug 2022 16:27:19 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 12 Sep 2022 09:07:01 +0000
 
 swh-indexer (2.5.0-1~swh1) unstable-swh; urgency=medium
 

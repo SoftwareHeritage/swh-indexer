@@ -6,6 +6,7 @@
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+import urllib.parse
 import uuid
 import xml.parsers.expat
 
@@ -240,15 +241,24 @@ class DictMapping(BaseMapping):
                     for item in v:
                         graph.add((root, codemeta_key, rdflib.Literal(item)))
                 elif k in self.uri_fields and isinstance(v, str):
-                    graph.add((root, codemeta_key, rdflib.URIRef(v)))
+                    # Workaround for https://github.com/digitalbazaar/pyld/issues/91 : drop
+                    # URLs that are blatantly invalid early, so PyLD does not crash.
+                    parsed_url = urllib.parse.urlparse(v)
+                    if parsed_url.netloc:
+                        graph.add((root, codemeta_key, rdflib.URIRef(v)))
                 elif k in self.uri_fields and isinstance(v, list):
                     for item in v:
                         if isinstance(item, str):
-                            graph.add((root, codemeta_key, rdflib.URIRef(item)))
+                            # ditto
+                            parsed_url = urllib.parse.urlparse(item)
+                            if parsed_url.netloc:
+                                graph.add((root, codemeta_key, rdflib.URIRef(item)))
                 else:
                     continue
 
         self.extra_translation(graph, root, content_dict)
+
+        self.sanitize(graph)
 
         # Convert from rdflib's internal graph representation to JSON
         s = graph.serialize(format="application/ld+json")
@@ -275,9 +285,22 @@ class DictMapping(BaseMapping):
 
         return self.normalize_translation(translated_metadata)
 
+    def sanitize(self, graph: rdflib.Graph) -> None:
+        # Remove triples that make PyLD crash
+        for (subject, predicate, _) in graph.triples((None, None, rdflib.URIRef(""))):
+            graph.remove((subject, predicate, rdflib.URIRef("")))
+
+        # Should not happen, but we's better check as this may lead to incorrect data
+        invalid = False
+        for triple in graph.triples((rdflib.URIRef(""), None, None)):
+            invalid = True
+            logging.error("Empty triple subject URI: %r", triple)
+        if invalid:
+            raise ValueError("Empty triple subject(s)")
+
     def extra_translation(
         self, graph: rdflib.Graph, root: rdflib.term.Node, d: Dict[str, Any]
-    ):
+    ) -> None:
         """Called at the end of the translation process, and may add arbitrary triples
         to ``graph`` based on the input dictionary (passed as ``d``).
         """
