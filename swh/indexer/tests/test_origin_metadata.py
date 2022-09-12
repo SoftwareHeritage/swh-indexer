@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2020  The Software Heritage developers
+# Copyright (C) 2018-2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,6 +6,7 @@
 import copy
 from unittest.mock import patch
 
+import attr
 import pytest
 
 from swh.indexer.metadata import OriginMetadataIndexer
@@ -200,6 +201,58 @@ def test_origin_metadata_indexer_duplicate_directory(
     indexer.catch_exceptions = False
     origin1 = "https://github.com/librariesio/yarn-parser"
     origin2 = "https://github.com/librariesio/yarn-parser.git"
+    indexer.run([origin1, origin2])
+
+    dir_id = DIRECTORY2.id
+
+    dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
+    assert len(dir_results) == 1
+
+    orig_results = list(
+        indexer.idx_storage.origin_intrinsic_metadata_get([origin1, origin2])
+    )
+    assert len(orig_results) == 2
+
+
+def test_origin_metadata_indexer_duplicate_directory_different_result(
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
+    mocker,
+) -> None:
+    """Same as above, but indexing the same directory twice resulted in different
+    data (because list order differs).
+    """
+    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer.storage = storage
+    indexer.idx_storage = idx_storage
+    indexer.catch_exceptions = False
+    origin1 = "https://github.com/librariesio/yarn-parser"
+    origin2 = "https://github.com/librariesio/yarn-parser.git"
+
+    directory_index = indexer.directory_metadata_indexer.index
+
+    nb_calls = 0
+
+    def side_effect(dir_id):
+        nonlocal nb_calls
+        if nb_calls == 0:
+            keywords = ["foo", "bar"]
+        elif nb_calls == 1:
+            keywords = ["bar", "foo"]
+        else:
+            assert False, nb_calls
+        nb_calls += 1
+        return [
+            attr.evolve(row, metadata={**row.metadata, "keywords": keywords})
+            for row in directory_index(dir_id)
+        ]
+
+    mocker.patch.object(
+        indexer.directory_metadata_indexer, "index", side_effect=side_effect
+    )
+
     indexer.run([origin1, origin2])
 
     dir_id = DIRECTORY2.id

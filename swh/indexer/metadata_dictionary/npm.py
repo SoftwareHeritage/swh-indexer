@@ -270,6 +270,16 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         rdflib.term.URIRef('https://spdx.org/licenses/MIT')
         """
         if isinstance(s, str):
+            if s.startswith("SEE LICENSE IN "):
+                # Very common pattern, because it is an example in the specification.
+                # It is followed by the filename; and the indexer architecture currently
+                # does not allow accessing that from metadata mappings.
+                # (Plus, an hypothetical license mapping would eventually pick it up)
+                return
+            if " " in s:
+                # Either an SPDX expression, or unusable data
+                # TODO: handle it
+                return
             return SPDX + s
 
     def normalize_keywords(self, lst):
