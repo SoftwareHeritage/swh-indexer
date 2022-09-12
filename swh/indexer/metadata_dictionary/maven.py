@@ -75,6 +75,9 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
             and isinstance(artifact_id, str)
         ):
             repo = os.path.join(url, *group_id.split("."), artifact_id)
+            if "${" in repo:
+                # Often use as templating in pom.xml files collected from VCSs
+                return
             graph.add((root, SCHEMA.codeRepository, URIRef(repo)))
 
     def normalize_groupId(self, id_):

@@ -18,7 +18,10 @@ SPDX = URIRef("https://spdx.org/licenses/")
 
 class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
     name = "github"
-    mapping = CROSSWALK_TABLE["GitHub"]
+    mapping = {
+        **CROSSWALK_TABLE["GitHub"],
+        "topics": SCHEMA.keywords,  # TODO: submit this to the official crosswalk
+    }
     string_fields = [
         "archive_url",
         "created_at",
@@ -27,6 +30,7 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         "full_name",
         "html_url",
         "issues_url",
+        "topics",
     ]
 
     @classmethod

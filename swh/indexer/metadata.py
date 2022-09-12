@@ -4,6 +4,9 @@
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
+import itertools
+import logging
+import time
 from typing import (
     Any,
     Callable,
@@ -55,6 +58,8 @@ ORIGIN_GET_BATCH_SIZE = 10
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")
 
+logger = logging.getLogger(__name__)
+
 
 def call_with_batches(
     f: Callable[[List[T1]], Iterable[T2]],
@@ -73,19 +78,19 @@ class ExtrinsicMetadataIndexer(
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
-            results = []
+            results = {}
             for item in objects.get("raw_extrinsic_metadata", []):
                 remd = RawExtrinsicMetadata.from_dict(item)
-                sentry_sdk.set_tag("swh-indexer-remd-swhid", remd.swhid())
-                results.extend(self.index(remd.id, data=remd))
+                sentry_sdk.set_tag("swh-indexer-remd-swhid", str(remd.swhid()))
+                results[remd.target] = self.index(remd.id, data=remd)
         except Exception:
             if not self.catch_exceptions:
                 raise
             summary["status"] = "failed"
             return summary
 
-        summary_persist = self.persist_index_computations(results)
-        self.results = results
+        self.results = list(itertools.chain.from_iterable(results.values()))
+        summary_persist = self.persist_index_computations(self.results)
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
@@ -129,12 +134,21 @@ class ExtrinsicMetadataIndexer(
             return []
 
         # TODO: batch requests to origin_get_by_sha1()
-        origins = self.storage.origin_get_by_sha1([data.target.object_id])
-        try:
-            (origin,) = origins
-            if origin is None:
-                raise ValueError()
-        except ValueError:
+        for _ in range(6):
+            origins = self.storage.origin_get_by_sha1([data.target.object_id])
+            try:
+                (origin,) = origins
+                if origin is not None:
+                    break
+            except ValueError:
+                pass
+            # The origin does not exist. This may be due to some replication lag
+            # between the loader's DB/journal and the DB we are consuming from.
+            # Wait a bit and try again
+            logger.debug("Origin %s not found, sleeping for 10s.", data.target)
+            time.sleep(10)
+        else:
+            # Does not exist, or replication lag > 60s.
             raise ValueError(f"Unknown origin {data.target}") from None
 
         if urlparse(data.authority.url).netloc != urlparse(origin["url"]).netloc:
@@ -521,25 +535,27 @@ class OriginMetadataIndexer(
         results: List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]],
     ) -> Dict[str, int]:
         # Deduplicate directories
-        dir_metadata: List[DirectoryIntrinsicMetadataRow] = []
-        orig_metadata: List[OriginIntrinsicMetadataRow] = []
+        dir_metadata: Dict[bytes, DirectoryIntrinsicMetadataRow] = {}
+        orig_metadata: Dict[str, OriginIntrinsicMetadataRow] = {}
         summary: Dict = {}
         for (orig_item, dir_item) in results:
             assert dir_item.metadata == orig_item.metadata
             if dir_item.metadata and not (dir_item.metadata.keys() <= {"@context"}):
                 # Only store non-empty metadata sets
-                if dir_item not in dir_metadata:
-                    dir_metadata.append(dir_item)
-                if orig_item not in orig_metadata:
-                    orig_metadata.append(orig_item)
+                if dir_item.id not in dir_metadata:
+                    dir_metadata[dir_item.id] = dir_item
+                if orig_item.id not in orig_metadata:
+                    orig_metadata[orig_item.id] = orig_item
 
         if dir_metadata:
             summary_dir = self.idx_storage.directory_intrinsic_metadata_add(
-                dir_metadata
+                list(dir_metadata.values())
             )
             summary.update(summary_dir)
         if orig_metadata:
-            summary_ori = self.idx_storage.origin_intrinsic_metadata_add(orig_metadata)
+            summary_ori = self.idx_storage.origin_intrinsic_metadata_add(
+                list(orig_metadata.values())
+            )
             summary.update(summary_ori)
 
         return summary
