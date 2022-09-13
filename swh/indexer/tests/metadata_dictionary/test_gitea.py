@@ -121,6 +121,7 @@ def test_compute_metadata_gitea():
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",
+        "id": "https://codeberg.org/ForgeFed/ForgeFed",
         "forge:forks": {
             "as:totalItems": 6,
             "type": "as:OrderedCollection",
@@ -135,7 +136,7 @@ def test_compute_metadata_gitea():
         },
         "name": "ForgeFed",
         "description": "ActivityPub-based forge federation protocol specification",
-        "codeRepository": "https://codeberg.org/ForgeFed/ForgeFed",
+        "codeRepository": "https://codeberg.org/ForgeFed/ForgeFed.git",
         "dateCreated": "2022-06-13T18:54:26+02:00",
         "dateModified": "2022-09-02T03:57:22+02:00",
         "url": "https://forgefed.org",

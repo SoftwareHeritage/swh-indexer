@@ -74,7 +74,7 @@ REMD = RawExtrinsicMetadata(
         version="1.0.0",
     ),
     format="application/vnd.github.v3+json",
-    metadata=b'{"full_name": "test software"}',
+    metadata=b'{"full_name": "test software", "html_url": "http://example.org/"}',
 )
 
 
@@ -237,6 +237,7 @@ class TestMetadata:
                 tool={"id": tool["id"], **TRANSLATOR_TOOL},
                 metadata={
                     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+                    "id": "http://example.org/",
                     "type": "https://forgefed.org/ns#Repository",
                     "name": "test software",
                 },

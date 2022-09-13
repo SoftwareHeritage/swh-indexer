@@ -21,10 +21,11 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
     mapping = {
         **CROSSWALK_TABLE["GitHub"],
         "topics": SCHEMA.keywords,  # TODO: submit this to the official crosswalk
+        "clone_url": SCHEMA.codeRepository,
     }
     uri_fields = [
         "archive_url",
-        "html_url",
+        "clone_url",
         "issues_url",
     ]
     date_fields = [
@@ -44,6 +45,14 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
     def extra_translation(self, graph, root, content_dict):
         graph.remove((root, RDF.type, SCHEMA.SoftwareSourceCode))
         graph.add((root, RDF.type, FORGEFED.Repository))
+
+    def get_root_uri(self, content_dict: dict) -> URIRef:
+        if isinstance(content_dict.get("html_url"), str):
+            return URIRef(content_dict["html_url"])
+        else:
+            raise ValueError(
+                f"GitHub metadata has missing/invalid html_url: {content_dict}"
+            )
 
     @produce_terms(FORGEFED.forks, ACTIVITYSTREAMS.totalItems)
     def translate_forks_count(self, graph: Graph, root: BNode, v: Any) -> None:

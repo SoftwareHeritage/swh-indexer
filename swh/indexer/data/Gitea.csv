@@ -1,5 +1,5 @@
 Property,Gitea
-codeRepository,html_url
+codeRepository,clone_url
 programmingLanguage,languages
 runtimePlatform,
 targetProduct,

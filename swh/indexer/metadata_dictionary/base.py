@@ -20,6 +20,9 @@ from swh.indexer.codemeta import _document_loader, compact
 from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
 
+TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
+"""Prefix used to generate temporary URIs for root nodes being translated."""
+
 
 class DirectoryLsEntry(TypedDict):
     target: Sha1
@@ -185,6 +188,21 @@ class DictMapping(BaseMapping):
 
         return simple_terms | complex_terms
 
+    def get_root_uri(self, content_dict: Dict) -> rdflib.URIRef:
+        """Returns an URI for the SoftwareSourceCode or Repository being described.
+
+        The default implementation uses a temporary URI that is stripped before
+        normalization by :meth:`_translate_dict`.
+        """
+        # The main object being described (the SoftwareSourceCode) does not necessarily
+        # may or may not have an id.
+        # If it does, it will need to be set by a subclass.
+        # If it doesn't we temporarily use this URI to identify it. Unfortunately,
+        # we cannot use a blank node as we need to use it for JSON-LD framing later,
+        # and blank nodes cannot be used for framing in JSON-LD >= 1.1
+        root_id = TMP_ROOT_URI_PREFIX + str(uuid.uuid4())
+        return rdflib.URIRef(root_id)
+
     def _translate_dict(self, content_dict: Dict) -> Dict[str, Any]:
         """
         Translates content  by parsing content from a dict object
@@ -200,16 +218,47 @@ class DictMapping(BaseMapping):
         """
         graph = rdflib.Graph()
 
-        # The main object being described (the SoftwareSourceCode) does not necessarily
-        # may or may not have an id.
-        # Either way, we temporarily use this URI to identify it. Unfortunately,
-        # we cannot use a blank node as we need to use it for JSON-LD framing later,
-        # and blank nodes cannot be used for framing in JSON-LD >= 1.1
-        root_id = (
-            "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
-            + str(uuid.uuid4())
+        root = self.get_root_uri(content_dict)
+
+        self._translate_to_graph(graph, root, content_dict)
+
+        self.sanitize(graph)
+
+        # Convert from rdflib's internal graph representation to JSON
+        s = graph.serialize(format="application/ld+json")
+
+        # Load from JSON to a list of Python objects
+        jsonld_graph = json.loads(s)
+
+        # Use JSON-LD framing to turn the graph into a rooted tree
+        # frame = {"@type": str(SCHEMA.SoftwareSourceCode)}
+        translated_metadata = jsonld.frame(
+            jsonld_graph,
+            {"@id": str(root)},
+            options={
+                "documentLoader": _document_loader,
+                "processingMode": "json-ld-1.1",
+            },
         )
-        root = rdflib.URIRef(root_id)
+
+        # Remove the temporary id we added at the beginning
+        assert isinstance(translated_metadata["@id"], str)
+        if translated_metadata["@id"].startswith(TMP_ROOT_URI_PREFIX):
+            del translated_metadata["@id"]
+
+        return self.normalize_translation(translated_metadata)
+
+    def _translate_to_graph(
+        self, graph: rdflib.Graph, root: rdflib.term.Identifier, content_dict: Dict
+    ) -> None:
+        """
+        Translates content  by parsing content from a dict object
+        and translating with the appropriate mapping to the graph passed as parameter
+
+        Args:
+            content_dict (dict): content dict to translate
+
+        """
         graph.add((root, RDF.type, SCHEMA.SoftwareSourceCode))
 
         for k, v in content_dict.items():
@@ -269,33 +318,6 @@ class DictMapping(BaseMapping):
                     continue
 
         self.extra_translation(graph, root, content_dict)
-
-        self.sanitize(graph)
-
-        # Convert from rdflib's internal graph representation to JSON
-        s = graph.serialize(format="application/ld+json")
-
-        # Load from JSON to a list of Python objects
-        jsonld_graph = json.loads(s)
-
-        # Use JSON-LD framing to turn the graph into a rooted tree
-        # frame = {"@type": str(SCHEMA.SoftwareSourceCode)}
-        translated_metadata = jsonld.frame(
-            jsonld_graph,
-            {"@id": root_id},
-            options={
-                "documentLoader": _document_loader,
-                "processingMode": "json-ld-1.1",
-            },
-        )
-
-        # Remove the temporary id we added at the beginning
-        if isinstance(translated_metadata["@id"], list):
-            translated_metadata["@id"].remove(root_id)
-        else:
-            del translated_metadata["@id"]
-
-        return self.normalize_translation(translated_metadata)
 
     def sanitize(self, graph: rdflib.Graph) -> None:
         # Remove triples that make PyLD crash

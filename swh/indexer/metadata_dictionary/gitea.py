@@ -27,8 +27,8 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
     name = "gitea"
     mapping = GITEA_TABLE["Gitea"]
     uri_fields = [
-        "html_url",
         "website",
+        "clone_url",
     ]
     date_fields = [
         "created_at",
@@ -48,6 +48,14 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
     def extra_translation(self, graph, root, content_dict):
         graph.remove((root, RDF.type, SCHEMA.SoftwareSourceCode))
         graph.add((root, RDF.type, FORGEFED.Repository))
+
+    def get_root_uri(self, content_dict: dict) -> URIRef:
+        if isinstance(content_dict.get("html_url"), str):
+            return URIRef(content_dict["html_url"])
+        else:
+            raise ValueError(
+                f"Gitea/Gogs metadata has invalid/missing html_url: {content_dict}"
+            )
 
     @produce_terms(FORGEFED.forks, ACTIVITYSTREAMS.totalItems)
     def translate_forks_count(self, graph: Graph, root: BNode, v: Any) -> None:

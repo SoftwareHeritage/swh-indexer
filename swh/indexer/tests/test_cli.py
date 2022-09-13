@@ -750,6 +750,7 @@ def test_cli_journal_client_index__origin_extrinsic_metadata(
             mappings=["github"],
             metadata={
                 "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+                "id": "http://example.org/",
                 "type": "https://forgefed.org/ns#Repository",
                 "name": "test software",
             },

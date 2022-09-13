@@ -119,6 +119,7 @@ def test_compute_metadata_github():
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",
+        "id": "https://github.com/SoftwareHeritage/swh-indexer",
         "forge:forks": {
             "as:totalItems": 1,
             "type": "as:OrderedCollection",
@@ -134,7 +135,7 @@ def test_compute_metadata_github():
         "license": "https://spdx.org/licenses/GPL-3.0",
         "name": "SoftwareHeritage/swh-indexer",
         "description": "GitHub mirror of Metadata indexer",
-        "codeRepository": "https://github.com/SoftwareHeritage/swh-indexer",
+        "codeRepository": "https://github.com/SoftwareHeritage/swh-indexer.git",
         "dateCreated": "2017-01-31T13:05:39Z",
         "dateModified": "2022-06-22T08:02:20Z",
     }
@@ -143,6 +144,7 @@ def test_compute_metadata_github():
 def test_github_topics():
     content = b"""
 {
+  "html_url": "https://github.com/SoftwareHeritage/swh-indexer",
   "topics": [
     "foo",
     "bar"
@@ -154,4 +156,5 @@ def test_github_topics():
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",
+        "id": "https://github.com/SoftwareHeritage/swh-indexer",
     }
