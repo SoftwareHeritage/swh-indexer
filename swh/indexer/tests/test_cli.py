@@ -110,6 +110,7 @@ def test_cli_mapping_list(cli_runner, swh_config):
             "codemeta",
             "composer",
             "gemspec",
+            "gitea",
             "github",
             "json-sword-codemeta",
             "maven",
