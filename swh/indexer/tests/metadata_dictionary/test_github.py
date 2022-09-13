@@ -32,6 +32,7 @@ def test_supported_terms():
     assert {
         "http://schema.org/name",
         "http://schema.org/license",
+        "http://schema.org/dateCreated",
         "https://forgefed.org/ns#forks",
         "https://www.w3.org/ns/activitystreams#totalItems",
     } <= terms
@@ -133,9 +134,9 @@ def test_compute_metadata_github():
         "license": "https://spdx.org/licenses/GPL-3.0",
         "name": "SoftwareHeritage/swh-indexer",
         "description": "GitHub mirror of Metadata indexer",
-        "schema:codeRepository": "https://github.com/SoftwareHeritage/swh-indexer",
-        "schema:dateCreated": "2017-01-31T13:05:39Z",
-        "schema:dateModified": "2022-06-22T08:02:20Z",
+        "codeRepository": "https://github.com/SoftwareHeritage/swh-indexer",
+        "dateCreated": "2017-01-31T13:05:39Z",
+        "dateModified": "2022-06-22T08:02:20Z",
     }
 
 

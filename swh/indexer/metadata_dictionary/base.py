@@ -148,6 +148,10 @@ class DictMapping(BaseMapping):
     """List of fields that are simple strings, and don't need any
     normalization."""
 
+    date_fields: List[str] = []
+    """List of fields that are strings that should be typed as http://schema.org/Date
+    """
+
     uri_fields: List[str] = []
     """List of fields that are simple URIs, and don't need any
     normalization."""
@@ -167,7 +171,7 @@ class DictMapping(BaseMapping):
         simple_terms = {
             str(term)
             for (key, term) in cls.mapping.items()
-            if key in cls.string_fields + cls.uri_fields
+            if key in cls.string_fields + cls.date_fields + cls.uri_fields
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
         }
 
@@ -240,6 +244,14 @@ class DictMapping(BaseMapping):
                 elif k in self.string_fields and isinstance(v, list):
                     for item in v:
                         graph.add((root, codemeta_key, rdflib.Literal(item)))
+                elif k in self.date_fields and isinstance(v, str):
+                    typed_v = rdflib.Literal(v, datatype=SCHEMA.Date)
+                    graph.add((root, codemeta_key, typed_v))
+                elif k in self.date_fields and isinstance(v, list):
+                    for item in v:
+                        if isinstance(item, str):
+                            typed_item = rdflib.Literal(item, datatype=SCHEMA.Date)
+                            graph.add((root, codemeta_key, typed_item))
                 elif k in self.uri_fields and isinstance(v, str):
                     # Workaround for https://github.com/digitalbazaar/pyld/issues/91 : drop
                     # URLs that are blatantly invalid early, so PyLD does not crash.

@@ -22,14 +22,18 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         **CROSSWALK_TABLE["GitHub"],
         "topics": SCHEMA.keywords,  # TODO: submit this to the official crosswalk
     }
-    string_fields = [
+    uri_fields = [
         "archive_url",
-        "created_at",
-        "updated_at",
-        "description",
-        "full_name",
         "html_url",
         "issues_url",
+    ]
+    date_fields = [
+        "created_at",
+        "updated_at",
+    ]
+    string_fields = [
+        "description",
+        "full_name",
         "topics",
     ]
 
