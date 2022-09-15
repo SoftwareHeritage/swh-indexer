@@ -294,6 +294,20 @@ def test_npm_repository_normalization():
     }
 
 
+def test_npm_author():
+    package_json = rb"""{
+  "version": "1.0.0",
+  "author": "Foo Bar (@example)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "Foo Bar", "type": "Person"}],
+        "version": "1.0.0",
+    }
+
+
 def test_npm_invalid_uris():
     package_json = rb"""{
   "version": "1.0.0",
