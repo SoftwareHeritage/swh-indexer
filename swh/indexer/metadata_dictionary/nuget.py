@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
-from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
+from swh.indexer.codemeta import _DATA_DIR, read_crosstable
 from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
@@ -19,7 +19,7 @@ from .utils import add_list
 NUGET_TABLE_PATH = os.path.join(_DATA_DIR, "nuget.csv")
 
 with open(NUGET_TABLE_PATH) as fd:
-    (CODEMETA_TERMS, NUGET_TABLE) = _read_crosstable(fd)
+    (CODEMETA_TERMS, NUGET_TABLE) = read_crosstable(fd)
 
 SPDX = URIRef("https://spdx.org/licenses/")
 

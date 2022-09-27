@@ -8,7 +8,7 @@ from typing import Any, Tuple
 
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
-from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
+from swh.indexer.codemeta import _DATA_DIR, read_crosstable
 from swh.indexer.namespaces import ACTIVITYSTREAMS, FORGEFED, SCHEMA
 
 from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
@@ -20,7 +20,7 @@ SPDX = URIRef("https://spdx.org/licenses/")
 GITEA_TABLE_PATH = os.path.join(_DATA_DIR, "Gitea.csv")
 
 with open(GITEA_TABLE_PATH) as fd:
-    (CODEMETA_TERMS, GITEA_TABLE) = _read_crosstable(fd)
+    (CODEMETA_TERMS, GITEA_TABLE) = read_crosstable(fd)
 
 
 class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
