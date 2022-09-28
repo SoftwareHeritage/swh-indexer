@@ -28,7 +28,7 @@ from swh.journal.writer import get_journal_writer
 from swh.model.hashutil import hash_to_bytes
 from swh.model.model import Content, Origin, OriginVisitStatus
 
-from .test_metadata import REMD
+from .test_metadata import GITHUB_REMD
 from .utils import (
     DIRECTORY2,
     RAW_CONTENT_IDS,
@@ -711,7 +711,7 @@ def test_cli_journal_client_index__origin_extrinsic_metadata(
 
     origin = Origin("http://example.org/repo.git")
     storage.origin_add([origin])
-    raw_extrinsic_metadata = attr.evolve(REMD, target=origin.swhid())
+    raw_extrinsic_metadata = attr.evolve(GITHUB_REMD, target=origin.swhid())
     raw_extrinsic_metadata = attr.evolve(
         raw_extrinsic_metadata, id=raw_extrinsic_metadata.compute_hash()
     )
