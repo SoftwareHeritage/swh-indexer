@@ -8,7 +8,7 @@ from typing import Any, Tuple
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
 from swh.indexer.codemeta import CROSSWALK_TABLE
-from swh.indexer.namespaces import ACTIVITYSTREAMS, FORGEFED, SCHEMA
+from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA
 
 from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
 from .utils import prettyprint_graph  # noqa
@@ -24,9 +24,7 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         "clone_url": SCHEMA.codeRepository,
     }
     uri_fields = [
-        "archive_url",
         "clone_url",
-        "issues_url",
     ]
     date_fields = [
         "created_at",
@@ -45,6 +43,15 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
     def extra_translation(self, graph, root, content_dict):
         graph.remove((root, RDF.type, SCHEMA.SoftwareSourceCode))
         graph.add((root, RDF.type, FORGEFED.Repository))
+
+        if content_dict.get("has_issues"):
+            graph.add(
+                (
+                    root,
+                    CODEMETA.issueTracker,
+                    URIRef(content_dict["html_url"] + "/issues"),
+                )
+            )
 
     def get_root_uri(self, content_dict: dict) -> URIRef:
         if isinstance(content_dict.get("html_url"), str):

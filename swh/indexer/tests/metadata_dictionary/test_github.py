@@ -63,6 +63,8 @@ def test_compute_metadata_github():
   "created_at": "2017-01-31T13:05:39Z",
   "updated_at": "2022-06-22T08:02:20Z",
   "pushed_at": "2022-06-29T09:01:08Z",
+  "archive_url": "https://api.github.com/repos/SoftwareHeritage/swh-indexer/{archive_format}{/ref}",
+  "issues_url": "https://api.github.com/repos/SoftwareHeritage/swh-indexer/issues{/number}",
   "git_url": "git://github.com/SoftwareHeritage/swh-indexer.git",
   "ssh_url": "git@github.com:SoftwareHeritage/swh-indexer.git",
   "clone_url": "https://github.com/SoftwareHeritage/swh-indexer.git",
@@ -114,7 +116,7 @@ def test_compute_metadata_github():
   "subscribers_count": 6
 }
 
-    """
+    """  # noqa
     result = MAPPINGS["GitHubMapping"]().translate(content)
     assert result == {
         "@context": CONTEXT,
@@ -157,4 +159,20 @@ def test_github_topics():
         "@context": CONTEXT,
         "type": "forge:Repository",
         "id": "https://github.com/SoftwareHeritage/swh-indexer",
+    }
+
+
+def test_github_issues():
+    content = b"""
+{
+  "html_url": "https://github.com/SoftwareHeritage/swh-indexer",
+  "has_issues": true
+}
+    """
+    result = MAPPINGS["GitHubMapping"]().translate(content)
+    assert result == {
+        "@context": CONTEXT,
+        "type": "forge:Repository",
+        "id": "https://github.com/SoftwareHeritage/swh-indexer",
+        "issueTracker": "https://github.com/SoftwareHeritage/swh-indexer/issues",
     }
