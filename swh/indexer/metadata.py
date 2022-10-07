@@ -112,7 +112,7 @@ class ExtrinsicMetadataIndexer(
             # other types are not supported yet
             return []
 
-        if data.authority.type != MetadataAuthorityType.FORGE:
+        if data.authority.type == MetadataAuthorityType.REGISTRY:
             # metadata provided by a third-party; don't trust it
             # (technically this could be handled below, but we check it here
             # to return early; sparing a translation and origin lookup)

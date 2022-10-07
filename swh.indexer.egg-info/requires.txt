@@ -6,7 +6,7 @@ rdflib
 sentry-sdk
 typing-extensions
 xmltodict
-swh.core[db,http]>=2.9
+swh.core[db,http]>=2.14.1
 swh.model>=0.0.15
 swh.objstorage>=0.2.2
 swh.scheduler>=0.5.2

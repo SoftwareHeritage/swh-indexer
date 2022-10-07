@@ -83,7 +83,14 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
                 # It is a term defined by the context; write is as-is and JSON-LD
                 # expansion will convert it to a full URI based on
                 # "@context": CODEMETA_CONTEXT_URL
-                doc[localname].append(self.xml_to_jsonld(child))
+                jsonld_child = self.xml_to_jsonld(child)
+                if localname == "type" and isinstance(jsonld_child, dict):
+                    # With a codemeta context, this is later translated to a JSON-LD
+                    # @type, which must be either an array of strings or a string.
+                    if set(jsonld_child) != {"@value"}:
+                        raise ValueError(f'Unexpected value for "type": {jsonld_child}')
+                    jsonld_child = jsonld_child["@value"]
+                doc[localname].append(jsonld_child)
             else:
                 # Otherwise, we already know the URI
                 doc[f"{namespace}{localname}"].append(self.xml_to_jsonld(child))

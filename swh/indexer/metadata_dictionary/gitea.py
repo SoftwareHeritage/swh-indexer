@@ -3,12 +3,13 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import os
 from typing import Any, Tuple
 
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
-from swh.indexer.codemeta import CROSSWALK_TABLE
-from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA
+from swh.indexer.codemeta import _DATA_DIR, read_crosstable
+from swh.indexer.namespaces import ACTIVITYSTREAMS, FORGEFED, SCHEMA
 
 from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
 from .utils import prettyprint_graph  # noqa
@@ -16,14 +17,17 @@ from .utils import prettyprint_graph  # noqa
 SPDX = URIRef("https://spdx.org/licenses/")
 
 
-class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
-    name = "github"
-    mapping = {
-        **CROSSWALK_TABLE["GitHub"],
-        "topics": SCHEMA.keywords,  # TODO: submit this to the official crosswalk
-        "clone_url": SCHEMA.codeRepository,
-    }
+GITEA_TABLE_PATH = os.path.join(_DATA_DIR, "Gitea.csv")
+
+with open(GITEA_TABLE_PATH) as fd:
+    (CODEMETA_TERMS, GITEA_TABLE) = read_crosstable(fd)
+
+
+class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
+    name = "gitea"
+    mapping = GITEA_TABLE["Gitea"]
     uri_fields = [
+        "website",
         "clone_url",
     ]
     date_fields = [
@@ -31,34 +35,26 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         "updated_at",
     ]
     string_fields = [
-        "description",
+        "name",
         "full_name",
-        "topics",
+        "languages",
+        "description",
     ]
 
     @classmethod
     def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
-        return ("application/vnd.github.v3+json",)
+        return ("gitea-project-json", "gogs-project-json")
 
     def extra_translation(self, graph, root, content_dict):
         graph.remove((root, RDF.type, SCHEMA.SoftwareSourceCode))
         graph.add((root, RDF.type, FORGEFED.Repository))
-
-        if content_dict.get("has_issues"):
-            graph.add(
-                (
-                    root,
-                    CODEMETA.issueTracker,
-                    URIRef(content_dict["html_url"] + "/issues"),
-                )
-            )
 
     def get_root_uri(self, content_dict: dict) -> URIRef:
         if isinstance(content_dict.get("html_url"), str):
             return URIRef(content_dict["html_url"])
         else:
             raise ValueError(
-                f"GitHub metadata has missing/invalid html_url: {content_dict}"
+                f"Gitea/Gogs metadata has invalid/missing html_url: {content_dict}"
             )
 
     @produce_terms(FORGEFED.forks, ACTIVITYSTREAMS.totalItems)
@@ -67,7 +63,7 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
 
         >>> graph = Graph()
         >>> root = URIRef("http://example.org/test-software")
-        >>> GitHubMapping().translate_forks_count(graph, root, 42)
+        >>> GiteaMapping().translate_forks_count(graph, root, 42)
         >>> prettyprint_graph(graph, root)
         {
             "@id": ...,
@@ -84,12 +80,12 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
             graph.add((collection, ACTIVITYSTREAMS.totalItems, Literal(v)))
 
     @produce_terms(ACTIVITYSTREAMS.likes, ACTIVITYSTREAMS.totalItems)
-    def translate_stargazers_count(self, graph: Graph, root: BNode, v: Any) -> None:
+    def translate_stars_count(self, graph: Graph, root: BNode, v: Any) -> None:
         """
 
         >>> graph = Graph()
         >>> root = URIRef("http://example.org/test-software")
-        >>> GitHubMapping().translate_stargazers_count(graph, root, 42)
+        >>> GiteaMapping().translate_stars_count(graph, root, 42)
         >>> prettyprint_graph(graph, root)
         {
             "@id": ...,
@@ -111,7 +107,7 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
 
         >>> graph = Graph()
         >>> root = URIRef("http://example.org/test-software")
-        >>> GitHubMapping().translate_watchers_count(graph, root, 42)
+        >>> GiteaMapping().translate_watchers_count(graph, root, 42)
         >>> prettyprint_graph(graph, root)
         {
             "@id": ...,
@@ -126,12 +122,3 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
             graph.add((root, ACTIVITYSTREAMS.followers, collection))
             graph.add((collection, RDF.type, ACTIVITYSTREAMS.Collection))
             graph.add((collection, ACTIVITYSTREAMS.totalItems, Literal(v)))
-
-    def normalize_license(self, d):
-        """
-
-        >>> GitHubMapping().normalize_license({'spdx_id': 'MIT'})
-        rdflib.term.URIRef('https://spdx.org/licenses/MIT')
-        """
-        if isinstance(d, dict) and isinstance(d.get("spdx_id"), str):
-            return SPDX + d["spdx_id"]

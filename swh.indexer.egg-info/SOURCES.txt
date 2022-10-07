@@ -66,6 +66,7 @@ swh/indexer/origin_head.py
 swh/indexer/py.typed
 swh/indexer/rehash.py
 swh/indexer/tasks.py
+swh/indexer/data/Gitea.csv
 swh/indexer/data/composer.csv
 swh/indexer/data/nuget.csv
 swh/indexer/data/pubspec.csv
@@ -79,6 +80,7 @@ swh/indexer/metadata_dictionary/cff.py
 swh/indexer/metadata_dictionary/codemeta.py
 swh/indexer/metadata_dictionary/composer.py
 swh/indexer/metadata_dictionary/dart.py
+swh/indexer/metadata_dictionary/gitea.py
 swh/indexer/metadata_dictionary/github.py
 swh/indexer/metadata_dictionary/maven.py
 swh/indexer/metadata_dictionary/npm.py
@@ -144,6 +146,7 @@ swh/indexer/tests/metadata_dictionary/test_cff.py
 swh/indexer/tests/metadata_dictionary/test_codemeta.py
 swh/indexer/tests/metadata_dictionary/test_composer.py
 swh/indexer/tests/metadata_dictionary/test_dart.py
+swh/indexer/tests/metadata_dictionary/test_gitea.py
 swh/indexer/tests/metadata_dictionary/test_github.py
 swh/indexer/tests/metadata_dictionary/test_maven.py
 swh/indexer/tests/metadata_dictionary/test_npm.py
