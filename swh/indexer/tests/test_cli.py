@@ -28,7 +28,7 @@ from swh.journal.writer import get_journal_writer
 from swh.model.hashutil import hash_to_bytes
 from swh.model.model import Content, Origin, OriginVisitStatus
 
-from .test_metadata import REMD
+from .test_metadata import GITHUB_REMD
 from .utils import (
     DIRECTORY2,
     RAW_CONTENT_IDS,
@@ -110,6 +110,7 @@ def test_cli_mapping_list(cli_runner, swh_config):
             "codemeta",
             "composer",
             "gemspec",
+            "gitea",
             "github",
             "json-sword-codemeta",
             "maven",
@@ -710,7 +711,7 @@ def test_cli_journal_client_index__origin_extrinsic_metadata(
 
     origin = Origin("http://example.org/repo.git")
     storage.origin_add([origin])
-    raw_extrinsic_metadata = attr.evolve(REMD, target=origin.swhid())
+    raw_extrinsic_metadata = attr.evolve(GITHUB_REMD, target=origin.swhid())
     raw_extrinsic_metadata = attr.evolve(
         raw_extrinsic_metadata, id=raw_extrinsic_metadata.compute_hash()
     )
@@ -749,6 +750,7 @@ def test_cli_journal_client_index__origin_extrinsic_metadata(
             mappings=["github"],
             metadata={
                 "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+                "id": "http://example.org/",
                 "type": "https://forgefed.org/ns#Repository",
                 "name": "test software",
             },

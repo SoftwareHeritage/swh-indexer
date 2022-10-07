@@ -25,6 +25,7 @@ class CffMapping(YamlMapping):
     filename = b"CITATION.cff"
     mapping = CROSSWALK_TABLE["Citation File Format Core (CFF-Core) 1.0.2"]
     string_fields = ["keywords", "license", "abstract", "version", "doi"]
+    date_fields = ["date-released"]
     uri_fields = ["repository-code"]
 
     def _translate_author(self, graph: Graph, author: dict) -> rdflib.term.Node:
@@ -57,7 +58,3 @@ class CffMapping(YamlMapping):
     def normalize_license(self, s: str) -> URIRef:
         if isinstance(s, str):
             return SPDX + s
-
-    def normalize_date_released(self, s: str) -> Literal:
-        if isinstance(s, str):
-            return Literal(s, datatype=SCHEMA.Date)

@@ -88,9 +88,15 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         rdflib.term.URIRef('https://example.org/bugs/')
         """
         if isinstance(d, dict) and isinstance(d.get("url"), str):
-            return URIRef(d["url"])
+            url = d["url"]
         elif isinstance(d, str):
-            return URIRef(d)
+            url = d
+        else:
+            url = ""
+
+        parsed_url = urllib.parse.urlparse(url)
+        if parsed_url.netloc:
+            return URIRef(url)
         else:
             return None
 
