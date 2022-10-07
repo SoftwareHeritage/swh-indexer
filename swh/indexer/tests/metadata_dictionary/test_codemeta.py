@@ -351,6 +351,32 @@ def test_sword_multiple_names():
     }
 
 
+def test_sword_propertyvalue():
+    content = """<?xml version="1.0"?>
+    <entry xmlns="http://www.w3.org/2005/Atom"
+           xmlns:codemeta="https://doi.org/10.5063/schema/codemeta-2.0"
+           xmlns:schema="http://schema.org/">
+      <name>Name</name>
+      <schema:identifier>
+          <codemeta:type>schema:PropertyValue</codemeta:type>
+          <schema:propertyID>HAL-ID</schema:propertyID>
+          <schema:value>hal-03780423</schema:value>
+      </schema:identifier>
+    </entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "Name",
+        "identifier": {
+            "schema:propertyID": "HAL-ID",
+            "schema:value": "hal-03780423",
+            "type": "schema:PropertyValue",
+        },
+    }
+
+
 def test_json_sword():
     content = """{"id": "hal-01243573", "@xmlns": "http://www.w3.org/2005/Atom", "author": {"name": "Author 1", "email": "foo@example.org"}, "client": "hal", "codemeta:url": "http://example.org/", "codemeta:name": "The assignment problem", "@xmlns:codemeta": "https://doi.org/10.5063/SCHEMA/CODEMETA-2.0", "codemeta:author": {"codemeta:name": "Author 2"}, "codemeta:license": {"codemeta:name": "GNU General Public License v3.0 or later"}}"""  # noqa
     result = MAPPINGS["JsonSwordCodemetaMapping"]().translate(content)

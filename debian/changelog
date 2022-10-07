@@ -1,8 +1,11 @@
-swh-indexer (2.6.0-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.7.1-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.7.1     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-10-07 12:01:09 +0200)
+  * Upstream changes:     - v2.7.1     - * npm: Fix crash on invalid
+    URLs in 'bugs' field.
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 12 Sep 2022 09:14:04 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 07 Oct 2022 10:10:37 +0000
 
 swh-indexer (2.6.0-1~swh1) unstable-swh; urgency=medium
 

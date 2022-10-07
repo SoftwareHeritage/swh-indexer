@@ -8,7 +8,7 @@ from typing import Optional
 
 from rdflib import BNode, Graph, Literal, URIRef
 
-from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
+from swh.indexer.codemeta import _DATA_DIR, read_crosstable
 from swh.indexer.namespaces import RDF, SCHEMA
 
 from .base import JsonMapping, SingleFileIntrinsicMapping
@@ -20,7 +20,7 @@ SPDX = URIRef("https://spdx.org/licenses/")
 COMPOSER_TABLE_PATH = os.path.join(_DATA_DIR, "composer.csv")
 
 with open(COMPOSER_TABLE_PATH) as fd:
-    (CODEMETA_TERMS, COMPOSER_TABLE) = _read_crosstable(fd)
+    (CODEMETA_TERMS, COMPOSER_TABLE) = read_crosstable(fd)
 
 
 class ComposerMapping(JsonMapping, SingleFileIntrinsicMapping):

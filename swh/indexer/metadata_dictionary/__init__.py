@@ -8,7 +8,19 @@ from typing import Dict, Type
 
 import click
 
-from . import cff, codemeta, composer, dart, github, maven, npm, nuget, python, ruby
+from . import (
+    cff,
+    codemeta,
+    composer,
+    dart,
+    gitea,
+    github,
+    maven,
+    npm,
+    nuget,
+    python,
+    ruby,
+)
 from .base import BaseExtrinsicMapping, BaseIntrinsicMapping, BaseMapping
 
 INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {
@@ -24,6 +36,7 @@ INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {
 }
 
 EXTRINSIC_MAPPINGS: Dict[str, Type[BaseExtrinsicMapping]] = {
+    "GiteaMapping": gitea.GiteaMapping,
     "GitHubMapping": github.GitHubMapping,
     "JsonSwordCodemetaMapping": codemeta.JsonSwordCodemetaMapping,
     "SwordCodemetaMapping": codemeta.SwordCodemetaMapping,

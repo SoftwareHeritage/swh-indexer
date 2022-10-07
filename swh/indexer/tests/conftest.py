@@ -11,7 +11,6 @@ from unittest.mock import patch
 
 import pytest
 from pytest_postgresql import factories
-import sentry_sdk
 import yaml
 
 from swh.core.db.pytest_plugin import initialize_database_for_module
@@ -131,40 +130,3 @@ def swh_config(swh_indexer_config, monkeypatch, tmp_path):
         f.write(yaml.dump(swh_indexer_config))
     monkeypatch.setenv("SWH_CONFIG_FILENAME", conffile)
     return conffile
-
-
-@pytest.fixture
-def sentry_init():
-    # Inspired by
-    # https://github.com/getsentry/sentry-python/blob/1.5.9/tests/conftest.py#L168-L184
-
-    initialized = False
-
-    def inner(*a, **kw):
-        nonlocal initialized
-        assert not initialized, "already initialized"
-        initialized = True
-        hub = sentry_sdk.Hub.current
-        client = sentry_sdk.Client(*a, **kw)
-        hub.bind_client(client)
-        client.transport = TestTransport()
-
-    class TestTransport:
-        def __init__(self):
-            self.events = []
-            self.envelopes = []
-
-        def capture_event(self, event):
-            self.events.append(event)
-
-        def capture_envelope(self, envelope):
-            self.envelopes.append(envelope)
-
-    with sentry_sdk.Hub(None):
-        yield inner
-
-
-@pytest.fixture
-def sentry_events(monkeypatch, sentry_init):
-    sentry_init()
-    return sentry_sdk.Hub.current.client.transport.events

@@ -69,7 +69,11 @@ Translation from ecosystem-specific metadata to CodeMeta
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Intrinsic metadata is extracted from files provided with a project's source
-code, and translated using `CodeMeta`_'s `crosswalk table`_.
+code, and translated using `CodeMeta`_'s `crosswalk table`_; which is vendored
+in :file:`swh/indexer/data/codemeta/codemeta.csv`.
+Ecosystems not yet included in Codemeta's crosswalk have their own
+:file:`swh/indexer/data/*.csv` file, with one row for each CodeMeta property,
+even when not supported by the ecosystem.
 
 All input formats supported so far are straightforward dictionaries (eg. JSON)
 or can be accessed as such (eg. XML); and the first part of the translation is
