@@ -348,7 +348,8 @@ def test_npm_invalid_uris():
   "author": {
     "name": "foo",
     "url": ""
-  }
+  },
+  "bugs": ""
 }"""
     result = MAPPINGS["NpmMapping"]().translate(package_json)
     assert result == {
@@ -363,6 +364,9 @@ def test_npm_invalid_uris():
   "homepage": "http:example.org",
   "author": {
     "name": "foo",
+    "url": "http:example.com"
+  },
+  "bugs": {
     "url": "http:example.com"
   }
 }"""
