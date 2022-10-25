@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 from typing import List
+import urllib.parse
 
 from rdflib import BNode, Graph, Literal, URIRef
 import rdflib.term
@@ -30,7 +31,11 @@ class CffMapping(YamlMapping):
 
     def _translate_author(self, graph: Graph, author: dict) -> rdflib.term.Node:
         node: rdflib.term.Node
-        if "orcid" in author and isinstance(author["orcid"], str):
+        if (
+            "orcid" in author
+            and isinstance(author["orcid"], str)
+            and urllib.parse.urlparse(author["orcid"]).netloc
+        ):
             node = URIRef(author["orcid"])
         else:
             node = BNode()

@@ -378,6 +378,17 @@ def test_npm_invalid_uris():
         "version": "1.0.0",
     }
 
+    package_json = rb"""{
+  "version": "1.0.0",
+  "repository": "git+https://g ithub.com/foo/bar.git"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "version": "1.0.0",
+    }
+
 
 def test_npm_invalid_licenses():
     package_json = rb"""{
