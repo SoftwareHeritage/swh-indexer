@@ -213,6 +213,7 @@ def test_sword_basics():
       <codemeta:author>
         <codemeta:name>Author 2</codemeta:name>
       </codemeta:author>
+      <codemeta:dateCreated>2022-10-26</codemeta:dateCreated>
       <author>
         <name>Author 3</name>
         <email>bar@example.org</email>
@@ -229,6 +230,7 @@ def test_sword_basics():
             {"name": "Author 2"},
             {"name": "Author 3", "email": "bar@example.org"},
         ],
+        "dateCreated": "2022-10-26",
     }
 
 
@@ -273,13 +275,16 @@ def test_sword_schemaorg_in_codemeta():
 def test_sword_schemaorg_in_codemeta_constrained():
     """Resulting property has the compact URI 'schema:url' instead of just
     the term 'url', because term 'url' is defined by the Codemeta schema
-    has having type '@id'."""
+    has having type '@id'.
+    Ditto for dates (with type http://schema.org/Date)."""
     content = """<?xml version="1.0"?>
     <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
                 xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
                 xmlns:schema="http://schema.org/">
       <name>My Software</name>
       <schema:url>http://example.org/my-software</schema:url>
+      <schema:dateCreated>foo</schema:dateCreated>
+      <schema:dateModified>2022-10-26</schema:dateModified>
     </atom:entry>
     """
 
@@ -288,6 +293,8 @@ def test_sword_schemaorg_in_codemeta_constrained():
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
         "schema:url": "http://example.org/my-software",
+        "schema:dateCreated": "foo",
+        "schema:dateModified": "2022-10-26",
     }
 
 
@@ -388,6 +395,6 @@ def test_json_sword():
         ],
         "license": {"name": "GNU General Public License v3.0 or later"},
         "name": "The assignment problem",
-        "schema:url": "http://example.org/",
+        "url": "http://example.org/",
         "name": "The assignment problem",
     }
