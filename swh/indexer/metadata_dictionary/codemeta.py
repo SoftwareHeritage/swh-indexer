@@ -9,6 +9,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 import xml.etree.ElementTree as ET
 
+import iso8601
 import xmltodict
 
 from swh.indexer.codemeta import CODEMETA_CONTEXT_URL, CODEMETA_TERMS, compact, expand
@@ -19,6 +20,7 @@ ATOM_URI = "http://www.w3.org/2005/Atom"
 
 _TAG_RE = re.compile(r"\{(?P<namespace>.*?)\}(?P<localname>.*)")
 _IGNORED_NAMESPACES = ("http://www.w3.org/2005/Atom",)
+_DATE_RE = re.compile("^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}$")
 
 
 class CodemetaMapping(SingleFileIntrinsicMapping):
@@ -84,6 +86,20 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
                 # expansion will convert it to a full URI based on
                 # "@context": CODEMETA_CONTEXT_URL
                 jsonld_child = self.xml_to_jsonld(child)
+                if (
+                    localname
+                    in (
+                        "dateCreated",
+                        "dateModified",
+                        "datePublished",
+                    )
+                    and isinstance(jsonld_child, str)
+                    and _DATE_RE.match(jsonld_child)
+                ):
+                    # Dates missing a leading zero for their day/month, used
+                    # to be allowed by the deposit; so we need to reformat them
+                    # to be valid ISO8601.
+                    jsonld_child = iso8601.parse_date(jsonld_child).date().isoformat()
                 doc[localname].append(jsonld_child)
             else:
                 # Otherwise, we already know the URI

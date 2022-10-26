@@ -4,6 +4,7 @@ click
 # the version 2.1.2 is causing segmentation faults
 # cf https://forge.softwareheritage.org/T3815
 frozendict != 2.1.2
+iso8601
 pyld
 rdflib
 sentry-sdk
