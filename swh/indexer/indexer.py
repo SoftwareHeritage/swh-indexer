@@ -344,6 +344,9 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
             sentry_sdk.capture_exception()
             summary["status"] = "failed"
             return summary
+        else:
+            # Reset tag after we finished processing the given content
+            sentry_sdk.set_tag("swh-indexer-content-sha1", "")
 
         summary_persist = self.persist_index_computations(results)
         self.results = results
@@ -406,6 +409,9 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
             self.log.exception("Problem when reading contents metadata.")
             sentry_sdk.capture_exception()
             summary["status"] = "failed"
+        else:
+            # Reset tag after we finished processing the given content
+            sentry_sdk.set_tag("swh-indexer-content-sha1", "")
         return summary
 
 
@@ -493,6 +499,7 @@ class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult
                 continue
             sentry_sdk.set_tag("swh-indexer-content-sha1", sha1)
             yield from self.index(sha1, raw_content, **kwargs)
+        sentry_sdk.set_tag("swh-indexer-content-sha1", "")
 
     def _index_with_skipping_already_done(
         self, partition_id: int, nb_partitions: int
@@ -642,6 +649,7 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
         for origin in origins:
             sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
             results.extend(self.index(origin.url, **kwargs))
+        sentry_sdk.set_tag("swh-indexer-origin-url", "")
         return results
 
 
@@ -710,6 +718,8 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
                 self.log.exception("Problem when processing directory")
                 sentry_sdk.capture_exception()
                 summary["status"] = "failed"
+            else:
+                sentry_sdk.set_tag("swh-indexer-directory-swhid", "")
 
         summary_persist = self.persist_index_computations(results)
         if summary_persist:

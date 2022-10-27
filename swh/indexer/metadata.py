@@ -21,6 +21,7 @@ from typing import (
 )
 from urllib.parse import urlparse
 
+import pkg_resources
 import sentry_sdk
 
 from swh.core.config import merge_configs
@@ -251,8 +252,8 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "tools": {
-        "name": "swh-metadata-detector",
-        "version": "0.0.2",
+        "name": "swh.indexer.metadata",
+        "version": pkg_resources.get_distribution("swh.indexer").version,
         "configuration": {},
     },
 }
@@ -368,23 +369,20 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 
         """
         metadata = []
-        tool = {
-            "name": "swh-metadata-translator",
-            "version": "0.0.2",
-            "configuration": {},
-        }
         # TODO: iterate on each context, on each file
         # -> get raw_contents
         # -> translate each content
-        config = {k: self.config[k] for k in [INDEXER_CFG_KEY, "objstorage", "storage"]}
-        config["tools"] = [tool]
+        config = {
+            k: self.config[k]
+            for k in [INDEXER_CFG_KEY, "objstorage", "storage", "tools"]
+        }
         all_detected_files = detect_metadata(files)
         used_mappings = [
             INTRINSIC_MAPPINGS[context].name for context in all_detected_files
         ]
         for (mapping_name, detected_files) in all_detected_files.items():
             cfg = deepcopy(config)
-            cfg["tools"][0]["configuration"]["context"] = mapping_name
+            cfg["tools"]["configuration"]["context"] = mapping_name
             c_metadata_indexer = ContentMetadataIndexer(config=cfg)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
