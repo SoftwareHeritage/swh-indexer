@@ -6,9 +6,10 @@
 import collections
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 import xml.etree.ElementTree as ET
 
+import iso8601
 import xmltodict
 
 from swh.indexer.codemeta import CODEMETA_CONTEXT_URL, CODEMETA_TERMS, compact, expand
@@ -19,6 +20,7 @@ ATOM_URI = "http://www.w3.org/2005/Atom"
 
 _TAG_RE = re.compile(r"\{(?P<namespace>.*?)\}(?P<localname>.*)")
 _IGNORED_NAMESPACES = ("http://www.w3.org/2005/Atom",)
+_DATE_RE = re.compile("^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}$")
 
 
 class CodemetaMapping(SingleFileIntrinsicMapping):
@@ -61,8 +63,8 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
     def supported_terms(cls) -> List[str]:
         return [term for term in CODEMETA_TERMS if not term.startswith("@")]
 
-    def xml_to_jsonld(self, e: ET.Element) -> Dict[str, Any]:
-        doc: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
+    def xml_to_jsonld(self, e: ET.Element) -> Union[str, Dict[str, Any]]:
+        doc: Dict[str, List[Union[str, Dict[str, Any]]]] = collections.defaultdict(list)
         for child in e:
             m = _TAG_RE.match(child.tag)
             assert m, f"Tag with no namespace: {child}"
@@ -84,12 +86,20 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
                 # expansion will convert it to a full URI based on
                 # "@context": CODEMETA_CONTEXT_URL
                 jsonld_child = self.xml_to_jsonld(child)
-                if localname == "type" and isinstance(jsonld_child, dict):
-                    # With a codemeta context, this is later translated to a JSON-LD
-                    # @type, which must be either an array of strings or a string.
-                    if set(jsonld_child) != {"@value"}:
-                        raise ValueError(f'Unexpected value for "type": {jsonld_child}')
-                    jsonld_child = jsonld_child["@value"]
+                if (
+                    localname
+                    in (
+                        "dateCreated",
+                        "dateModified",
+                        "datePublished",
+                    )
+                    and isinstance(jsonld_child, str)
+                    and _DATE_RE.match(jsonld_child)
+                ):
+                    # Dates missing a leading zero for their day/month, used
+                    # to be allowed by the deposit; so we need to reformat them
+                    # to be valid ISO8601.
+                    jsonld_child = iso8601.parse_date(jsonld_child).date().isoformat()
                 doc[localname].append(jsonld_child)
             else:
                 # Otherwise, we already know the URI
@@ -102,7 +112,7 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
         text = e.text.strip() if e.text else None
         if text:
             # TODO: check doc is empty, and raise mixed-content error otherwise?
-            doc_["@value"] = text
+            return text
 
         return doc_
 
@@ -112,6 +122,8 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
 
         # Transform to JSON-LD document
         doc = self.xml_to_jsonld(root)
+
+        assert isinstance(doc, dict), f"Root object is not a dict: {doc}"
 
         # Add @context to JSON-LD expansion replaces the "codemeta:" prefix
         # hash (which uses the context URL as namespace URI for historical

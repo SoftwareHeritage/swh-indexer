@@ -1,6 +1,7 @@
 python-magic>=0.4.13
 click
 frozendict!=2.1.2
+iso8601
 pyld
 rdflib
 sentry-sdk

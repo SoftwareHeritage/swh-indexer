@@ -14,7 +14,7 @@ from swh.indexer.namespaces import SCHEMA
 from swh.indexer.storage.interface import Sha1
 
 from .base import BaseIntrinsicMapping, DirectoryLsEntry, XmlMapping
-from .utils import add_list
+from .utils import add_list, add_url_if_valid
 
 NUGET_TABLE_PATH = os.path.join(_DATA_DIR, "nuget.csv")
 
@@ -58,7 +58,7 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
     def translate_repository(self, graph, root, v):
         if isinstance(v, dict) and isinstance(v["@url"], str):
             codemeta_key = URIRef(self.mapping["repository.url"])
-            graph.add((root, codemeta_key, URIRef(v["@url"])))
+            add_url_if_valid(graph, root, codemeta_key, v["@url"])
 
     def normalize_license(self, v):
         if isinstance(v, dict) and v["@type"] == "expression":
