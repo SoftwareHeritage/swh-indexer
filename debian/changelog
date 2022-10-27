@@ -1,3 +1,15 @@
+swh-indexer (2.7.2-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.7.2     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-10-27 14:24:43 +0200)
+  * Upstream changes:     - v2.7.2     - * Reset Sentry tags when
+    leaving an object's context     - * metadata: Make default tool
+    configuration follow swh.indexer versions     - * Fix crashes in
+    translation (mostly from NPM and Maven)     - * Fix incorrect
+    outputs when translating from SWORD
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 27 Oct 2022 12:35:51 +0000
+
 swh-indexer (2.7.1-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.7.1     - (tagged by Valentin Lorentz
