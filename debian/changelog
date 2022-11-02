@@ -1,3 +1,9 @@
+swh-indexer (2.7.3-2~swh1) unstable-swh; urgency=medium
+
+  * Fix debian package build by adding debian/pybuild.testfiles
+
+ -- Antoine Lambert <anlambert@softwareheritage.org>  Wed, 02 Nov 2022 19:34:51 +0100
+
 swh-indexer (2.7.3-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.7.3     - (tagged by Valentin Lorentz
