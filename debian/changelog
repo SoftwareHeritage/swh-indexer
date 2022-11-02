@@ -1,3 +1,12 @@
+swh-indexer (2.7.3-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.7.3     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-11-02 17:42:38 +0100)
+  * Upstream changes:     - v2.7.3     - * codemeta: Fix crash on SWORD
+    documents that specify an id
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 02 Nov 2022 16:48:00 +0000
+
 swh-indexer (2.7.2-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.7.2     - (tagged by Valentin Lorentz
