@@ -6,6 +6,7 @@
 import json
 
 from hypothesis import HealthCheck, given, settings
+import pytest
 
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_detector import detect_metadata
@@ -252,6 +253,117 @@ def test_sword_mixed():
         "name": "My Software",
         "version": "1.2.3",
     }
+
+
+@pytest.mark.parametrize("id_", ["", " ", "\n"])
+def test_sword_invalid_id(id_):
+    content = f"""<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <id>{id_}</id>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+    }
+
+
+@pytest.mark.parametrize(
+    "id_",
+    [
+        "foo",
+        "42",
+        "http://example.org/",
+        "http://example.org/foo",
+        "https://example.org/",
+        "https://example.org/foo",
+    ],
+)
+def test_sword_id(id_):
+    content = f"""<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <id>{id_}</id>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "id": id_,
+        "name": "My Software",
+    }
+
+
+def test_sword_multiple_ids():
+    """JSON-LD only allows a single id, so we ignore all but the first one."""
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <id>http://example.org/foo</id>
+      <id>http://example.org/bar</id>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "id": "http://example.org/foo",
+        "name": "My Software",
+    }
+
+
+def test_sword_type():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <type>http://schema.org/WebSite</type>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "schema:WebSite",
+        "name": "My Software",
+    }
+
+
+def test_sword_multiple_type():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <type>http://schema.org/WebSite</type>
+      <type>http://schema.org/SoftwareSourceCode</type>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result in (
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": ["schema:WebSite", "SoftwareSourceCode"],
+            "name": "My Software",
+        },
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": ["SoftwareSourceCode", "schema:WebSite"],
+            "name": "My Software",
+        },
+    )
 
 
 def test_sword_schemaorg_in_codemeta():
