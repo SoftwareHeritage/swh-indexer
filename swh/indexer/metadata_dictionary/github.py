@@ -11,7 +11,7 @@ from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA
 
 from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
-from .utils import prettyprint_graph  # noqa
+from .utils import add_url_if_valid, prettyprint_graph  # noqa
 
 SPDX = URIRef("https://spdx.org/licenses/")
 
@@ -45,12 +45,11 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         graph.add((root, RDF.type, FORGEFED.Repository))
 
         if content_dict.get("has_issues"):
-            graph.add(
-                (
-                    root,
-                    CODEMETA.issueTracker,
-                    URIRef(content_dict["html_url"] + "/issues"),
-                )
+            add_url_if_valid(
+                graph,
+                root,
+                CODEMETA.issueTracker,
+                URIRef(content_dict["html_url"] + "/issues"),
             )
 
     def get_root_uri(self, content_dict: dict) -> URIRef:

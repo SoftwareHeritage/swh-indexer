@@ -1,8 +1,29 @@
-swh-indexer (2.7.1-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.7.3-2~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * Fix debian package build by adding debian/pybuild.testfiles
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Fri, 07 Oct 2022 10:17:42 +0000
+ -- Antoine Lambert <anlambert@softwareheritage.org>  Wed, 02 Nov 2022 19:34:51 +0100
+
+swh-indexer (2.7.3-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.7.3     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-11-02 17:42:38 +0100)
+  * Upstream changes:     - v2.7.3     - * codemeta: Fix crash on SWORD
+    documents that specify an id
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 02 Nov 2022 16:48:00 +0000
+
+swh-indexer (2.7.2-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.7.2     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-10-27 14:24:43 +0200)
+  * Upstream changes:     - v2.7.2     - * Reset Sentry tags when
+    leaving an object's context     - * metadata: Make default tool
+    configuration follow swh.indexer versions     - * Fix crashes in
+    translation (mostly from NPM and Maven)     - * Fix incorrect
+    outputs when translating from SWORD
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 27 Oct 2022 12:35:51 +0000
 
 swh-indexer (2.7.1-1~swh1) unstable-swh; urgency=medium
 

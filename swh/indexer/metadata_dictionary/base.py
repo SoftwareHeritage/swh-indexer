@@ -6,7 +6,6 @@
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
-import urllib.parse
 import uuid
 import xml.parsers.expat
 
@@ -19,6 +18,8 @@ import yaml
 from swh.indexer.codemeta import _document_loader, compact
 from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
+
+from .utils import add_url_if_valid
 
 TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
 """Prefix used to generate temporary URIs for root nodes being translated."""
@@ -285,9 +286,15 @@ class DictMapping(BaseMapping):
                         pass
                     elif isinstance(v, list):
                         for item in reversed(v):
-                            graph.add((root, codemeta_key, item))
+                            if isinstance(item, rdflib.URIRef):
+                                add_url_if_valid(graph, root, codemeta_key, str(item))
+                            else:
+                                graph.add((root, codemeta_key, item))
                     else:
-                        graph.add((root, codemeta_key, v))
+                        if isinstance(v, rdflib.URIRef):
+                            add_url_if_valid(graph, root, codemeta_key, str(v))
+                        else:
+                            graph.add((root, codemeta_key, v))
                 elif k in self.string_fields and isinstance(v, str):
                     graph.add((root, codemeta_key, rdflib.Literal(v)))
                 elif k in self.string_fields and isinstance(v, list):
@@ -302,18 +309,10 @@ class DictMapping(BaseMapping):
                             typed_item = rdflib.Literal(item, datatype=SCHEMA.Date)
                             graph.add((root, codemeta_key, typed_item))
                 elif k in self.uri_fields and isinstance(v, str):
-                    # Workaround for https://github.com/digitalbazaar/pyld/issues/91 : drop
-                    # URLs that are blatantly invalid early, so PyLD does not crash.
-                    parsed_url = urllib.parse.urlparse(v)
-                    if parsed_url.netloc:
-                        graph.add((root, codemeta_key, rdflib.URIRef(v)))
+                    add_url_if_valid(graph, root, codemeta_key, v)
                 elif k in self.uri_fields and isinstance(v, list):
                     for item in v:
-                        if isinstance(item, str):
-                            # ditto
-                            parsed_url = urllib.parse.urlparse(item)
-                            if parsed_url.netloc:
-                                graph.add((root, codemeta_key, rdflib.URIRef(item)))
+                        add_url_if_valid(graph, root, codemeta_key, item)
                 else:
                     continue
 

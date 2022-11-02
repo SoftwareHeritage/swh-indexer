@@ -6,6 +6,7 @@
 import json
 
 from hypothesis import HealthCheck, given, settings
+import pytest
 
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_detector import detect_metadata
@@ -213,6 +214,7 @@ def test_sword_basics():
       <codemeta:author>
         <codemeta:name>Author 2</codemeta:name>
       </codemeta:author>
+      <codemeta:dateCreated>2022-10-26</codemeta:dateCreated>
       <author>
         <name>Author 3</name>
         <email>bar@example.org</email>
@@ -229,6 +231,7 @@ def test_sword_basics():
             {"name": "Author 2"},
             {"name": "Author 3", "email": "bar@example.org"},
         ],
+        "dateCreated": "2022-10-26",
     }
 
 
@@ -252,6 +255,117 @@ def test_sword_mixed():
     }
 
 
+@pytest.mark.parametrize("id_", ["", " ", "\n"])
+def test_sword_invalid_id(id_):
+    content = f"""<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <id>{id_}</id>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+    }
+
+
+@pytest.mark.parametrize(
+    "id_",
+    [
+        "foo",
+        "42",
+        "http://example.org/",
+        "http://example.org/foo",
+        "https://example.org/",
+        "https://example.org/foo",
+    ],
+)
+def test_sword_id(id_):
+    content = f"""<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <id>{id_}</id>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "id": id_,
+        "name": "My Software",
+    }
+
+
+def test_sword_multiple_ids():
+    """JSON-LD only allows a single id, so we ignore all but the first one."""
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <id>http://example.org/foo</id>
+      <id>http://example.org/bar</id>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "id": "http://example.org/foo",
+        "name": "My Software",
+    }
+
+
+def test_sword_type():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <type>http://schema.org/WebSite</type>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "schema:WebSite",
+        "name": "My Software",
+    }
+
+
+def test_sword_multiple_type():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <type>http://schema.org/WebSite</type>
+      <type>http://schema.org/SoftwareSourceCode</type>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result in (
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": ["schema:WebSite", "SoftwareSourceCode"],
+            "name": "My Software",
+        },
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "type": ["SoftwareSourceCode", "schema:WebSite"],
+            "name": "My Software",
+        },
+    )
+
+
 def test_sword_schemaorg_in_codemeta():
     content = """<?xml version="1.0"?>
     <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
@@ -273,13 +387,16 @@ def test_sword_schemaorg_in_codemeta():
 def test_sword_schemaorg_in_codemeta_constrained():
     """Resulting property has the compact URI 'schema:url' instead of just
     the term 'url', because term 'url' is defined by the Codemeta schema
-    has having type '@id'."""
+    has having type '@id'.
+    Ditto for dates (with type http://schema.org/Date)."""
     content = """<?xml version="1.0"?>
     <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
                 xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
                 xmlns:schema="http://schema.org/">
       <name>My Software</name>
       <schema:url>http://example.org/my-software</schema:url>
+      <schema:dateCreated>foo</schema:dateCreated>
+      <schema:dateModified>2022-10-26</schema:dateModified>
     </atom:entry>
     """
 
@@ -288,6 +405,8 @@ def test_sword_schemaorg_in_codemeta_constrained():
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
         "schema:url": "http://example.org/my-software",
+        "schema:dateCreated": "foo",
+        "schema:dateModified": "2022-10-26",
     }
 
 
@@ -377,6 +496,28 @@ def test_sword_propertyvalue():
     }
 
 
+def test_sword_fix_date():
+    content = """<?xml version="1.0"?>
+    <entry xmlns="http://www.w3.org/2005/Atom"
+           xmlns:codemeta="https://doi.org/10.5063/schema/codemeta-2.0"
+           xmlns:schema="http://schema.org/">
+      <name>Name</name>
+      <codemeta:dateModified>2020-12-1</codemeta:dateModified>
+      <codemeta:dateCreated>2020-12-2</codemeta:dateCreated>
+      <codemeta:datePublished>2020-12-3</codemeta:datePublished>
+    </entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "Name",
+        "dateModified": "2020-12-01",
+        "dateCreated": "2020-12-02",
+        "datePublished": "2020-12-03",
+    }
+
+
 def test_json_sword():
     content = """{"id": "hal-01243573", "@xmlns": "http://www.w3.org/2005/Atom", "author": {"name": "Author 1", "email": "foo@example.org"}, "client": "hal", "codemeta:url": "http://example.org/", "codemeta:name": "The assignment problem", "@xmlns:codemeta": "https://doi.org/10.5063/SCHEMA/CODEMETA-2.0", "codemeta:author": {"codemeta:name": "Author 2"}, "codemeta:license": {"codemeta:name": "GNU General Public License v3.0 or later"}}"""  # noqa
     result = MAPPINGS["JsonSwordCodemetaMapping"]().translate(content)
@@ -388,6 +529,6 @@ def test_json_sword():
         ],
         "license": {"name": "GNU General Public License v3.0 or later"},
         "name": "The assignment problem",
-        "schema:url": "http://example.org/",
+        "url": "http://example.org/",
         "name": "The assignment problem",
     }
