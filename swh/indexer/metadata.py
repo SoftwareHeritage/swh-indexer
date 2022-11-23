@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
+import hashlib
 import itertools
 import logging
 import time
@@ -109,7 +110,14 @@ class ExtrinsicMetadataIndexer(
             raise NotImplementedError(
                 "ExtrinsicMetadataIndexer.index() without RawExtrinsicMetadata data"
             )
-        if data.target.object_type != ExtendedObjectType.ORIGIN:
+        if data.target.object_type == ExtendedObjectType.ORIGIN:
+            origin_sha1 = data.target.object_id
+        elif data.origin is not None:
+            # HACK: As swh-search does (yet?) not support searching on directories
+            # and traversing back to origins, we index metadata on non-origins with
+            # an origin context as if they were on the origin itself.
+            origin_sha1 = hashlib.sha1(data.origin.encode()).digest()
+        else:
             # other types are not supported yet
             return []
 
@@ -136,7 +144,7 @@ class ExtrinsicMetadataIndexer(
 
         # TODO: batch requests to origin_get_by_sha1()
         for _ in range(6):
-            origins = self.storage.origin_get_by_sha1([data.target.object_id])
+            origins = self.storage.origin_get_by_sha1([origin_sha1])
             try:
                 (origin,) = origins
                 if origin is not None:
