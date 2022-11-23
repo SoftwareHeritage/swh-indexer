@@ -58,6 +58,7 @@ begin
     insert into content_mimetype (id, mimetype, encoding, indexer_configuration_id)
     select id, mimetype, encoding, indexer_configuration_id
     from tmp_content_mimetype tcm
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set mimetype = excluded.mimetype,
                   encoding = excluded.encoding;
@@ -87,6 +88,7 @@ begin
     insert into content_language (id, lang, indexer_configuration_id)
     select id, lang, indexer_configuration_id
     from tmp_content_language tcl
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set lang = excluded.lang;
 
@@ -137,6 +139,7 @@ begin
     insert into content_ctags (id, name, kind, line, lang, indexer_configuration_id)
     select id, name, kind, line, lang, indexer_configuration_id
     from tmp_content_ctags tct
+    order by id, hash_sha1(name), kind, line, lang, indexer_configuration_id
     on conflict(id, hash_sha1(name), kind, line, lang, indexer_configuration_id)
     do nothing;
 
@@ -218,6 +221,7 @@ begin
           (select id from fossology_license where name = tcl.license) as license,
           indexer_configuration_id
     from tmp_content_fossology_license tcl
+    order by tcl.id, license, indexer_configuration_id
     on conflict(id, license_id, indexer_configuration_id)
     do update set license_id = excluded.license_id;
 
@@ -249,6 +253,7 @@ begin
     insert into content_metadata (id, metadata, indexer_configuration_id)
     select id, metadata, indexer_configuration_id
     from tmp_content_metadata tcm
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set metadata = excluded.metadata;
 
@@ -292,6 +297,7 @@ begin
     insert into directory_intrinsic_metadata (id, metadata, mappings, indexer_configuration_id)
     select id, metadata, mappings, indexer_configuration_id
     from tmp_directory_intrinsic_metadata tcm
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set
         metadata = excluded.metadata,
@@ -360,6 +366,7 @@ begin
     select id, metadata, indexer_configuration_id, from_directory,
            metadata_tsvector, mappings
     from tmp_origin_intrinsic_metadata
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set
         metadata = excluded.metadata,
@@ -433,6 +440,7 @@ begin
     select id, metadata, indexer_configuration_id, from_remd_id,
            metadata_tsvector, mappings
     from tmp_origin_extrinsic_metadata
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set
         metadata = excluded.metadata,
@@ -475,6 +483,7 @@ as $$
 begin
       insert into indexer_configuration(tool_name, tool_version, tool_configuration)
       select tool_name, tool_version, tool_configuration from tmp_indexer_configuration tmp
+      order by tool_name, tool_version, tool_configuration
       on conflict(tool_name, tool_version, tool_configuration) do nothing;
 
       return query
