@@ -50,6 +50,8 @@ class JournalWriter:
         if not self.journal:
             return
 
+        translated = []
+
         # usually, all the additions in a batch are from the same indexer,
         # so this cache allows doing a single query for all the entries.
         tool_cache = {}
@@ -65,5 +67,7 @@ class JournalWriter:
                 entry, tool=tool_cache[tool_id], indexer_configuration_id=None
             )
 
-            # write to kafka
-            self.journal.write_addition(obj_type, entry)
+            translated.append(entry)
+
+        # write to kafka
+        self.journal.write_additions(obj_type, translated)

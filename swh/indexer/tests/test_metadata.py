@@ -61,8 +61,8 @@ DIRECTORY_METADATA_CONFIG = {
 
 DEPOSIT_REMD = RawExtrinsicMetadata(
     target=ExtendedSWHID(
-        object_type=ExtendedObjectType.ORIGIN,
-        object_id=b"\x01" * 20,
+        object_type=ExtendedObjectType.DIRECTORY,
+        object_id=b"\x02" * 20,
     ),
     discovery_date=datetime.datetime.now(tz=datetime.timezone.utc),
     authority=MetadataAuthority(
@@ -87,6 +87,7 @@ DEPOSIT_REMD = RawExtrinsicMetadata(
           </author>
         </atom:entry>
     """.encode(),
+    origin="https://example.org/jdoe/myrepo",
 )
 
 GITHUB_REMD = RawExtrinsicMetadata(
@@ -295,7 +296,9 @@ class TestMetadata:
         ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
 
         assert metadata_indexer.storage.method_calls == [
-            call.origin_get_by_sha1([b"\x01" * 20])
+            call.origin_get_by_sha1(
+                [b"\xb1\x0c\\\xd2w\x1b\xdd\xac\x07\xdb\xdf>\x93O1\xd0\xc9L\x0c\xcf"]
+            )
         ]
 
         results = list(
@@ -337,7 +340,9 @@ class TestMetadata:
         ) == {"status": "uneventful", "origin_extrinsic_metadata:add": 0}
 
         assert metadata_indexer.storage.method_calls == [
-            call.origin_get_by_sha1([b"\x01" * 20])
+            call.origin_get_by_sha1(
+                [b"\xb1\x0c\\\xd2w\x1b\xdd\xac\x07\xdb\xdf>\x93O1\xd0\xc9L\x0c\xcf"]
+            )
         ]
 
         results = list(
