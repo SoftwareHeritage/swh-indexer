@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 from datetime import datetime, timezone
+import itertools
 
 import pytest
 
@@ -20,6 +21,13 @@ from swh.model.model import (
 from swh.model.swhids import CoreSWHID
 from swh.storage.utils import now
 
+
+@pytest.fixture
+def swh_storage_backend_config():
+    """In-memory storage, to make tests go faster."""
+    return {"cls": "memory"}
+
+
 SAMPLE_SNAPSHOT = Snapshot(
     branches={
         b"foo": None,
@@ -29,6 +37,28 @@ SAMPLE_SNAPSHOT = Snapshot(
         ),
     },
 )
+
+
+def _add_snapshot_to_origin(storage, origin_url, visit_type, snapshot):
+    storage.origin_add([Origin(url=origin_url)])
+    visit = storage.origin_visit_add(
+        [
+            OriginVisit(
+                origin=origin_url,
+                date=datetime(2019, 2, 27, tzinfo=timezone.utc),
+                type="pypi",
+            )
+        ]
+    )[0]
+    storage.snapshot_add([snapshot])
+    visit_status = OriginVisitStatus(
+        origin=origin_url,
+        visit=visit.visit,
+        date=now(),
+        status="full",
+        snapshot=snapshot.id,
+    )
+    storage.origin_visit_status_add([visit_status])
 
 
 @pytest.fixture
@@ -77,31 +107,115 @@ def test_vcs_missing_snapshot(storage):
 
 def test_pypi_missing_branch(storage):
     origin_url = "https://pypi.org/project/abcdef/"
-    storage.origin_add(
-        [
-            Origin(
-                url=origin_url,
-            )
-        ]
+    _add_snapshot_to_origin(storage, origin_url, "pypi", SAMPLE_SNAPSHOT)
+    assert get_head_swhid(storage, origin_url) is None
+
+
+@pytest.mark.parametrize(
+    "branches_start,branches_middle,branches_end",
+    itertools.product([0, 40, 99, 100, 200], [0, 40, 99, 100, 200], [0, 40, 200]),
+)
+def test_large_snapshot(storage, branches_start, branches_middle, branches_end):
+    rev_id = "8ea98e2fea7d9f6546f49ffdeecc1ab4608c8b79"
+    snapshot = Snapshot(
+        branches=dict(
+            [(f"AAAA{i}".encode(), None) for i in range(branches_start)]
+            + [
+                (
+                    b"HEAD",
+                    SnapshotBranch(
+                        target_type=TargetType.ALIAS, target=b"refs/heads/foo"
+                    ),
+                )
+            ]
+            + [(f"aaaa{i}".encode(), None) for i in range(branches_middle)]
+            + [
+                (
+                    b"refs/heads/foo",
+                    SnapshotBranch(
+                        target_type=TargetType.REVISION,
+                        target=bytes.fromhex(rev_id),
+                    ),
+                )
+            ]
+            + [(f"zzzz{i}".encode(), None) for i in range(branches_end)]
+        )
     )
-    visit = storage.origin_visit_add(
-        [
-            OriginVisit(
-                origin=origin_url,
-                date=datetime(2019, 2, 27, tzinfo=timezone.utc),
-                type="pypi",
-            )
-        ]
-    )[0]
-    storage.snapshot_add([SAMPLE_SNAPSHOT])
-    visit_status = OriginVisitStatus(
-        origin=origin_url,
-        visit=visit.visit,
-        date=now(),
-        status="full",
-        snapshot=SAMPLE_SNAPSHOT.id,
+
+    origin_url = "https://example.org/repo.git"
+    _add_snapshot_to_origin(storage, origin_url, "git", snapshot)
+
+    assert get_head_swhid(storage, origin_url) == CoreSWHID.from_string(
+        "swh:1:rev:8ea98e2fea7d9f6546f49ffdeecc1ab4608c8b79"
     )
-    storage.origin_visit_status_add([visit_status])
+
+
+def test_large_snapshot_chained_aliases(storage):
+    rev_id = "8ea98e2fea7d9f6546f49ffdeecc1ab4608c8b79"
+    snapshot = Snapshot(
+        branches=dict(
+            [(f"AAAA{i}".encode(), None) for i in range(200)]
+            + [
+                (
+                    b"HEAD",
+                    SnapshotBranch(
+                        target_type=TargetType.ALIAS, target=b"refs/heads/alias2"
+                    ),
+                )
+            ]
+            + [(f"aaaa{i}".encode(), None) for i in range(200)]
+            + [
+                (
+                    b"refs/heads/alias2",
+                    SnapshotBranch(
+                        target_type=TargetType.ALIAS, target=b"refs/heads/branch"
+                    ),
+                )
+            ]
+            + [(f"refs/heads/bbbb{i}".encode(), None) for i in range(200)]
+            + [
+                (
+                    b"refs/heads/branch",
+                    SnapshotBranch(
+                        target_type=TargetType.REVISION,
+                        target=bytes.fromhex(rev_id),
+                    ),
+                )
+            ]
+        )
+    )
+
+    origin_url = "https://example.org/repo.git"
+    _add_snapshot_to_origin(storage, origin_url, "git", snapshot)
+
+    assert get_head_swhid(storage, origin_url) == CoreSWHID.from_string(
+        "swh:1:rev:8ea98e2fea7d9f6546f49ffdeecc1ab4608c8b79"
+    )
+
+
+@pytest.mark.parametrize(
+    "branches_start,branches_end",
+    itertools.product([0, 40, 99, 100, 200], [0, 40, 200]),
+)
+def test_large_snapshot_dangling_alias(storage, branches_start, branches_end):
+    snapshot = Snapshot(
+        branches=dict(
+            [(f"AAAA{i}".encode(), None) for i in range(branches_start)]
+            + [
+                (
+                    b"HEAD",
+                    SnapshotBranch(
+                        target_type=TargetType.ALIAS, target=b"refs/heads/foo"
+                    ),
+                )
+            ]
+            + [(f"zzzz{i}".encode(), None) for i in range(branches_end)]
+        )
+    )
+
+    origin_url = "https://example.org/repo.git"
+    _add_snapshot_to_origin(storage, origin_url, "git", snapshot)
+
     assert get_head_swhid(storage, origin_url) is None
 
 
