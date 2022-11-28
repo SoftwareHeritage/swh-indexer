@@ -137,7 +137,7 @@ def check_id_duplicates(data):
 class IndexerStorage:
     """SWH Indexer Storage Datastore"""
 
-    current_version = 136
+    current_version = 137
 
     def __init__(self, db, min_pool_conns=1, max_pool_conns=10, journal_writer=None):
         """
