@@ -137,7 +137,7 @@ def check_id_duplicates(data):
 class IndexerStorage:
     """SWH Indexer Storage Datastore"""
 
-    current_version = 135
+    current_version = 137
 
     def __init__(self, db, min_pool_conns=1, max_pool_conns=10, journal_writer=None):
         """
@@ -294,7 +294,6 @@ class IndexerStorage:
         cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(mimetypes)
-        mimetypes.sort(key=lambda m: m.id)
         self.journal_writer.write_additions("content_mimetype", mimetypes)
         db.mktemp_content_mimetype(cur)
         db.copy_to(
@@ -342,7 +341,6 @@ class IndexerStorage:
         cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(licenses)
-        licenses.sort(key=lambda m: m.id)
         self.journal_writer.write_additions("content_fossology_license", licenses)
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
@@ -407,7 +405,6 @@ class IndexerStorage:
         cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m.id)
         self.journal_writer.write_additions("content_metadata", metadata)
 
         db.mktemp_content_metadata(cur)
@@ -461,7 +458,6 @@ class IndexerStorage:
         cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m.id)
         self.journal_writer.write_additions("directory_intrinsic_metadata", metadata)
 
         db.mktemp_directory_intrinsic_metadata(cur)
@@ -505,7 +501,6 @@ class IndexerStorage:
         cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m.id)
         self.journal_writer.write_additions("origin_intrinsic_metadata", metadata)
 
         db.mktemp_origin_intrinsic_metadata(cur)
@@ -647,7 +642,6 @@ class IndexerStorage:
         cur=None,
     ) -> Dict[str, int]:
         check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m.id)
         self.journal_writer.write_additions("origin_extrinsic_metadata", metadata)
 
         db.mktemp_origin_extrinsic_metadata(cur)
