@@ -10,14 +10,6 @@ alter table indexer_configuration add primary key using index indexer_configurat
 
 create unique index on indexer_configuration(tool_name, tool_version, tool_configuration);
 
--- content_ctags
-create index on content_ctags(id);
-create index on content_ctags(hash_sha1(name));
-create unique index on content_ctags(id, hash_sha1(name), kind, line, lang, indexer_configuration_id);
-
-alter table content_ctags add constraint content_ctags_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
-alter table content_ctags validate constraint content_ctags_indexer_configuration_id_fkey;
-
 -- content_metadata
 create unique index content_metadata_pkey on content_metadata(id, indexer_configuration_id);
 alter table content_metadata add primary key using index content_metadata_pkey;
@@ -40,13 +32,6 @@ alter table content_mimetype add constraint content_mimetype_indexer_configurati
 alter table content_mimetype validate constraint content_mimetype_indexer_configuration_id_fkey;
 
 create index on content_mimetype(id) where mimetype like 'text/%';
-
--- content_language
-create unique index content_language_pkey on content_language(id, indexer_configuration_id);
-alter table content_language add primary key using index content_language_pkey;
-
-alter table content_language add constraint content_language_indexer_configuration_id_fkey foreign key (indexer_configuration_id) references indexer_configuration(id) not valid;
-alter table content_language validate constraint content_language_indexer_configuration_id_fkey;
 
 -- content_fossology_license
 create unique index content_fossology_license_pkey on content_fossology_license(id, license_id, indexer_configuration_id);

@@ -58,6 +58,7 @@ begin
     insert into content_mimetype (id, mimetype, encoding, indexer_configuration_id)
     select id, mimetype, encoding, indexer_configuration_id
     from tmp_content_mimetype tcm
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set mimetype = excluded.mimetype,
                   encoding = excluded.encoding;
@@ -68,118 +69,6 @@ end
 $$;
 
 comment on function swh_content_mimetype_add() IS 'Add new content mimetypes';
-
--- add tmp_content_language entries to content_language, overwriting duplicates.
---
--- If filtering duplicates is in order, the call to
--- swh_content_language_missing must take place before calling this
--- function.
---
--- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
--- tmp_content_language, 2. call this function
-create or replace function swh_content_language_add()
-    returns bigint
-    language plpgsql
-as $$
-declare
-  res bigint;
-begin
-    insert into content_language (id, lang, indexer_configuration_id)
-    select id, lang, indexer_configuration_id
-    from tmp_content_language tcl
-    on conflict(id, indexer_configuration_id)
-    do update set lang = excluded.lang;
-
-    get diagnostics res = ROW_COUNT;
-    return res;
-end
-$$;
-
-comment on function swh_content_language_add() IS 'Add new content languages';
-
--- create a temporary table for retrieving content_language
-create or replace function swh_mktemp_content_language()
-    returns void
-    language sql
-as $$
-  create temporary table if not exists tmp_content_language (
-    like content_language including defaults
-  ) on commit delete rows;
-$$;
-
-comment on function swh_mktemp_content_language() is 'Helper table to add content language';
-
-
--- create a temporary table for content_ctags tmp_content_ctags,
-create or replace function swh_mktemp_content_ctags()
-    returns void
-    language sql
-as $$
-  create temporary table if not exists tmp_content_ctags (
-    like content_ctags including defaults
-  ) on commit delete rows;
-$$;
-
-comment on function swh_mktemp_content_ctags() is 'Helper table to add content ctags';
-
-
--- add tmp_content_ctags entries to content_ctags, overwriting duplicates
---
--- operates in bulk: 0. swh_mktemp(content_ctags), 1. COPY to tmp_content_ctags,
--- 2. call this function
-create or replace function swh_content_ctags_add()
-    returns bigint
-    language plpgsql
-as $$
-declare
-  res bigint;
-begin
-    insert into content_ctags (id, name, kind, line, lang, indexer_configuration_id)
-    select id, name, kind, line, lang, indexer_configuration_id
-    from tmp_content_ctags tct
-    on conflict(id, hash_sha1(name), kind, line, lang, indexer_configuration_id)
-    do nothing;
-
-    get diagnostics res = ROW_COUNT;
-    return res;
-end
-$$;
-
-comment on function swh_content_ctags_add() IS 'Add new ctags symbols per content';
-
-create type content_ctags_signature as (
-  id sha1,
-  name text,
-  kind text,
-  line bigint,
-  lang ctags_languages,
-  tool_id integer,
-  tool_name text,
-  tool_version text,
-  tool_configuration jsonb
-);
-
--- Search within ctags content.
---
-create or replace function swh_content_ctags_search(
-       expression text,
-       l integer default 10,
-       last_sha1 sha1 default '\x0000000000000000000000000000000000000000')
-    returns setof content_ctags_signature
-    language sql
-as $$
-    select c.id, name, kind, line, lang,
-           i.id as tool_id, tool_name, tool_version, tool_configuration
-    from content_ctags c
-    inner join indexer_configuration i on i.id = c.indexer_configuration_id
-    where hash_sha1(name) = hash_sha1(expression)
-    and c.id > last_sha1
-    order by id
-    limit l;
-$$;
-
-comment on function swh_content_ctags_search(text, integer, sha1) IS 'Equality search through ctags'' symbols';
-
 
 -- create a temporary table for content_fossology_license tmp_content_fossology_license,
 create or replace function swh_mktemp_content_fossology_license()
@@ -218,6 +107,7 @@ begin
           (select id from fossology_license where name = tcl.license) as license,
           indexer_configuration_id
     from tmp_content_fossology_license tcl
+    order by tcl.id, license, indexer_configuration_id
     on conflict(id, license_id, indexer_configuration_id)
     do update set license_id = excluded.license_id;
 
@@ -237,7 +127,7 @@ comment on function swh_content_fossology_license_add() IS 'Add new content lice
 -- swh_content_metadata_missing must take place before calling this
 -- function.
 --
--- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
+-- operates in bulk: 0. swh_mktemp(content_metadata), 1. COPY to
 -- tmp_content_metadata, 2. call this function
 create or replace function swh_content_metadata_add()
     returns bigint
@@ -249,6 +139,7 @@ begin
     insert into content_metadata (id, metadata, indexer_configuration_id)
     select id, metadata, indexer_configuration_id
     from tmp_content_metadata tcm
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set metadata = excluded.metadata;
 
@@ -280,7 +171,7 @@ comment on function swh_mktemp_content_metadata() is 'Helper table to add conten
 -- swh_directory_intrinsic_metadata_missing must take place before calling this
 -- function.
 --
--- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
+-- operates in bulk: 0. swh_mktemp(directory_intrinsic_metadata), 1. COPY to
 -- tmp_directory_intrinsic_metadata, 2. call this function
 create or replace function swh_directory_intrinsic_metadata_add()
     returns bigint
@@ -292,6 +183,7 @@ begin
     insert into directory_intrinsic_metadata (id, metadata, mappings, indexer_configuration_id)
     select id, metadata, mappings, indexer_configuration_id
     from tmp_directory_intrinsic_metadata tcm
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set
         metadata = excluded.metadata,
@@ -345,7 +237,7 @@ $$;
 -- swh_origin_intrinsic_metadata_missing must take place before calling this
 -- function.
 --
--- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
+-- operates in bulk: 0. swh_mktemp(origin_intrinsic_metadata), 1. COPY to
 -- tmp_origin_intrinsic_metadata, 2. call this function
 create or replace function swh_origin_intrinsic_metadata_add()
     returns bigint
@@ -360,6 +252,7 @@ begin
     select id, metadata, indexer_configuration_id, from_directory,
            metadata_tsvector, mappings
     from tmp_origin_intrinsic_metadata
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set
         metadata = excluded.metadata,
@@ -418,7 +311,7 @@ $$;
 -- swh_origin_extrinsic_metadata_missing must take place before calling this
 -- function.
 --
--- operates in bulk: 0. swh_mktemp(content_language), 1. COPY to
+-- operates in bulk: 0. swh_mktemp(origin_extrinsic_metadata), 1. COPY to
 -- tmp_origin_extrinsic_metadata, 2. call this function
 create or replace function swh_origin_extrinsic_metadata_add()
     returns bigint
@@ -433,6 +326,7 @@ begin
     select id, metadata, indexer_configuration_id, from_remd_id,
            metadata_tsvector, mappings
     from tmp_origin_extrinsic_metadata
+    order by id, indexer_configuration_id
     on conflict(id, indexer_configuration_id)
     do update set
         metadata = excluded.metadata,
@@ -475,6 +369,7 @@ as $$
 begin
       insert into indexer_configuration(tool_name, tool_version, tool_configuration)
       select tool_name, tool_version, tool_configuration from tmp_indexer_configuration tmp
+      order by tool_name, tool_version, tool_configuration
       on conflict(tool_name, tool_version, tool_configuration) do nothing;
 
       return query
