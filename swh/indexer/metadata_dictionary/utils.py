@@ -107,6 +107,10 @@ def add_url_if_valid(
     """
     if not isinstance(url, str):
         return
-    if " " in url or not urllib.parse.urlparse(url).netloc:
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+    except Exception:
+        return
+    if " " in url or not parsed_url.netloc:
         return
     graph.add((subject, predicate, rdflib.term.URIRef(url)))

@@ -26,15 +26,9 @@ commands:
 .. code-block:: yaml
 
   indexers:
-    # language:
-    #   batch_size: 10
-    #   check_presence: false
     fossology_license:
       batch_size: 10
       check_presence: false
-    # ctags:
-    #   batch_size: 2
-    #   check_presence: false
 
 - Mimetype indexer at
   ``~/.config/swh/indexer/mimetype.yml``
@@ -132,8 +126,6 @@ commands:
   	  - swh_indexer_orchestrator_content_all
   	  - swh_indexer_orchestrator_content_text
   	  - swh_indexer_content_mimetype
-  	  - swh_indexer_content_language
-  	  - swh_indexer_content_ctags
   	  - swh_indexer_content_fossology_license
   	  - swh_loader_svn_mount_and_load
   	  - swh_loader_git_express
