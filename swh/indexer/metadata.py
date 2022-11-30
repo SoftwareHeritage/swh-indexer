@@ -5,7 +5,6 @@
 
 from copy import deepcopy
 import hashlib
-import itertools
 import logging
 import time
 from typing import (
@@ -84,14 +83,15 @@ class ExtrinsicMetadataIndexer(
             for item in objects.get("raw_extrinsic_metadata", []):
                 remd = RawExtrinsicMetadata.from_dict(item)
                 sentry_sdk.set_tag("swh-indexer-remd-swhid", str(remd.swhid()))
-                results[remd.target] = self.index(remd.id, data=remd)
+                for result in self.index(remd.id, data=remd):
+                    results[result.id] = result
         except Exception:
             if not self.catch_exceptions:
                 raise
             summary["status"] = "failed"
             return summary
 
-        self.results = list(itertools.chain.from_iterable(results.values()))
+        self.results = list(results.values())
         summary_persist = self.persist_index_computations(self.results)
         if summary_persist:
             for value in summary_persist.values():

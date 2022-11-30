@@ -1,8 +1,14 @@
-swh-indexer (2.9.0-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.9.1-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.9.1     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2022-11-30 11:46:40 +0100)
+  * Upstream changes:     - v2.9.1     - * Fix ordering and idempotence
+    in the 136 -> 137 upgrade script     - * docs: Remove remaining
+    references to ctags and content_language     - * Fix 'Invalid IPv6
+    URL' crash     - * Fix crash when indexing two REMD objects from the
+    same deposit
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 29 Nov 2022 14:41:27 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Wed, 30 Nov 2022 10:52:39 +0000
 
 swh-indexer (2.9.0-1~swh1) unstable-swh; urgency=medium
 
