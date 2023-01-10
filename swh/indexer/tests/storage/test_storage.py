@@ -24,6 +24,15 @@ from swh.indexer.storage.model import (
 from swh.model.hashutil import hash_to_bytes
 
 
+def _remove_tool_ids(rows):
+    results = []
+    for row in rows:
+        tool = dict(row.tool)
+        del tool["id"]
+        results.append(attr.evolve(row, tool=tool))
+    return results
+
+
 def prepare_mimetypes_from_licenses(
     fossology_licenses: List[ContentLicenseRow],
 ) -> List[ContentMimetypeRow]:
@@ -358,11 +367,13 @@ class StorageETypeTester:
 
         assert actual_data == expected_data
 
+        expected_journal_data = _remove_tool_ids(expected_data)
+
         journal_objects = storage.journal_writer.journal.objects  # type: ignore
         actual_journal_data = [
             obj for (obj_type, obj) in journal_objects if obj_type == self.endpoint_type
         ]
-        assert list(sorted(actual_journal_data)) == list(sorted(expected_data))
+        assert list(sorted(actual_journal_data)) == list(sorted(expected_journal_data))
 
 
 class TestIndexerStorageContentMimetypes(StorageETypeTester):
@@ -574,11 +585,13 @@ class TestIndexerStorageContentMetadata(StorageETypeTester):
 
         assert actual_data in (expected_data_postgresql, expected_data_verbatim)
 
+        expected_journal_data = _remove_tool_ids(expected_data_verbatim)
+
         journal_objects = storage.journal_writer.journal.objects  # type: ignore
         actual_journal_data = [
             obj for (obj_type, obj) in journal_objects if obj_type == self.endpoint_type
         ]
-        assert list(sorted(actual_journal_data)) == list(sorted(expected_data_verbatim))
+        assert list(sorted(actual_journal_data)) == list(sorted(expected_journal_data))
 
 
 class TestIndexerStorageDirectoryIntrinsicMetadata(StorageETypeTester):
@@ -912,13 +925,17 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         assert actual_metadata == expected_metadata
 
+        expected_journal_metadata = _remove_tool_ids(expected_metadata)
+
         journal_objects = storage.journal_writer.journal.objects  # type: ignore
         actual_journal_metadata = [
             obj
             for (obj_type, obj) in journal_objects
             if obj_type == "origin_intrinsic_metadata"
         ]
-        assert list(sorted(actual_journal_metadata)) == list(sorted(expected_metadata))
+        assert list(sorted(actual_journal_metadata)) == list(
+            sorted(expected_journal_metadata)
+        )
 
     def test_origin_intrinsic_metadata_add_update_in_place_duplicate(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
@@ -1527,13 +1544,17 @@ class TestIndexerStorageOriginExtrinsicMetadata:
 
         assert actual_metadata == expected_metadata
 
+        expected_journal_metadata = _remove_tool_ids(expected_metadata)
+
         journal_objects = storage.journal_writer.journal.objects  # type: ignore
         actual_journal_metadata = [
             obj
             for (obj_type, obj) in journal_objects
             if obj_type == "origin_extrinsic_metadata"
         ]
-        assert list(sorted(actual_journal_metadata)) == list(sorted(expected_metadata))
+        assert list(sorted(actual_journal_metadata)) == list(
+            sorted(expected_journal_metadata)
+        )
 
     def test_origin_extrinsic_metadata_add_update_in_place_duplicate(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]

@@ -8,6 +8,7 @@ used for the interface of the idx-storage in the near future."""
 
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 import attr
@@ -20,7 +21,7 @@ TSelf = TypeVar("TSelf")
 
 @attr.s
 class BaseRow:
-    UNIQUE_KEY_FIELDS: Tuple = ("id", "indexer_configuration_id")
+    UNIQUE_KEY_FIELDS: Tuple = ("id",)
 
     id = attr.ib(type=Any)
     indexer_configuration_id = attr.ib(type=Optional[int], default=None, kw_only=True)
@@ -55,15 +56,24 @@ class BaseRow:
         return cls(**d)
 
     def unique_key(self) -> Dict:
-        obj = self
+        if not self.tool:
+            raise ValueError(
+                f"Cannot compute unique_key of {self.__class__.__name__} with no tool "
+                f"dictionary (indexer_configuration_id was given instead)"
+            )
 
-        # tool["id"] and obj.indexer_configuration_id are the same value, but
-        # only one of them is set for any given object
-        if obj.indexer_configuration_id is None:
-            assert obj.tool  # constructors ensures tool XOR indexer_configuration_id
-            obj = attr.evolve(obj, indexer_configuration_id=obj.tool["id"], tool=None)
+        tool_dict = {
+            "tool_name": self.tool["name"],
+            "tool_version": self.tool["version"],
+            "tool_configuration": json.dumps(
+                self.tool["configuration"], sort_keys=True
+            ),
+        }
 
-        return {key: getattr(obj, key) for key in self.UNIQUE_KEY_FIELDS}
+        return {
+            **{key: getattr(self, key) for key in self.UNIQUE_KEY_FIELDS},
+            **tool_dict,
+        }
 
 
 @attr.s
@@ -78,7 +88,7 @@ class ContentMimetypeRow(BaseRow):
 @attr.s
 class ContentLicenseRow(BaseRow):
     object_type: Final = "content_fossology_license"
-    UNIQUE_KEY_FIELDS = ("id", "indexer_configuration_id", "license")
+    UNIQUE_KEY_FIELDS = ("id", "license")
 
     id = attr.ib(type=Sha1Git)
     license = attr.ib(type=str)
