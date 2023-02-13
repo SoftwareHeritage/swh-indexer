@@ -1,10 +1,12 @@
-# Copyright (C) 2015-2019  The Software Heritage developers
+# Copyright (C) 2015-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import psycopg2
 import pytest
 
+from swh.core.api import RemoteException, TransientRemoteException
 from swh.indexer.storage import get_indexer_storage
 from swh.indexer.storage.api.client import RemoteStorage
 import swh.indexer.storage.api.server as server
@@ -54,3 +56,46 @@ def swh_indexer_storage(swh_rpc_client, app_server):
     storage.journal_writer = app_server.storage.journal_writer
     yield storage
     storage.journal_writer = journal_writer
+
+
+def test_exception(app_server, swh_indexer_storage, mocker):
+    """Checks the client re-raises unknown exceptions as a :exc:`RemoteException`"""
+    assert swh_indexer_storage.content_mimetype_get([b"\x01" * 20]) == []
+    mocker.patch.object(
+        app_server.storage,
+        "content_mimetype_get",
+        side_effect=ValueError("crash"),
+    )
+    with pytest.raises(RemoteException) as e:
+        swh_indexer_storage.content_mimetype_get([b"\x01" * 20])
+    assert not isinstance(e, TransientRemoteException)
+
+
+def test_operationalerror_exception(app_server, swh_indexer_storage, mocker):
+    """Checks the client re-raises as a :exc:`TransientRemoteException`
+    rather than the base :exc:`RemoteException`; so the retrying proxy
+    retries for longer."""
+    assert swh_indexer_storage.content_mimetype_get([b"\x01" * 20]) == []
+    mocker.patch.object(
+        app_server.storage,
+        "content_mimetype_get",
+        side_effect=psycopg2.errors.AdminShutdown("cluster is shutting down"),
+    )
+    with pytest.raises(RemoteException) as excinfo:
+        swh_indexer_storage.content_mimetype_get([b"\x01" * 20])
+    assert isinstance(excinfo.value, TransientRemoteException)
+
+
+def test_querycancelled_exception(app_server, swh_indexer_storage, mocker):
+    """Checks the client re-raises as a :exc:`TransientRemoteException`
+    rather than the base :exc:`RemoteException`; so the retrying proxy
+    retries for longer."""
+    assert swh_indexer_storage.content_mimetype_get([b"\x01" * 20]) == []
+    mocker.patch.object(
+        app_server.storage,
+        "content_mimetype_get",
+        side_effect=psycopg2.errors.QueryCanceled("too big!"),
+    )
+    with pytest.raises(RemoteException) as excinfo:
+        swh_indexer_storage.content_mimetype_get([b"\x01" * 20])
+    assert not isinstance(excinfo.value, TransientRemoteException)

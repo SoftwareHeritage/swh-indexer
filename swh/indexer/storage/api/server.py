@@ -42,6 +42,9 @@ def my_error_handler(exception):
     return error_handler(exception, encode_data)
 
 
+app.setup_psycopg2_errorhandlers()
+
+
 @app.errorhandler(IndexerStorageArgumentException)
 def argument_error_handler(exception):
     return error_handler(exception, encode_data, status_code=400)
