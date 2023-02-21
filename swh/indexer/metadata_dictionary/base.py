@@ -5,7 +5,7 @@
 
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Pattern, Tuple, TypeVar, Union
 import uuid
 import xml.parsers.expat
 
@@ -131,16 +131,21 @@ class BaseIntrinsicMapping(BaseMapping):
 class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
     """Base class for all intrinsic metadata mappings that use a single file as input."""
 
-    @property
-    def filename(self):
-        """The .json file to extract metadata from."""
-        raise NotImplementedError(f"{self.__class__.__name__}.filename")
+    filename: Union[bytes, Pattern[bytes]]
 
     @classmethod
     def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
-        for entry in file_entries:
-            if entry["name"].lower() == cls.filename:
-                return [entry["sha1"]]
+        filename = cls.filename
+        # Check if filename is a regex or bytes:
+        if isinstance(filename, bytes):
+            for entry in file_entries:
+                if entry["name"].lower() == filename:
+                    return [entry["sha1"]]
+        else:
+            for entry in file_entries:
+                if filename.match(entry["name"]):
+                    return [entry["sha1"]]
+
         return []
 
 
@@ -388,7 +393,7 @@ class SafeLoader(yaml.SafeLoader):
     }
 
 
-class YamlMapping(DictMapping, SingleFileIntrinsicMapping):
+class YamlMapping(DictMapping):
     """Base class for all mappings that use Yaml data as input."""
 
     def translate(self, raw_content: bytes) -> Optional[Dict[str, str]]:

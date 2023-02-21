@@ -5,15 +5,14 @@
 
 import os.path
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
 from swh.indexer.codemeta import _DATA_DIR, read_crosstable
 from swh.indexer.namespaces import SCHEMA
-from swh.indexer.storage.interface import Sha1
 
-from .base import BaseIntrinsicMapping, DirectoryLsEntry, XmlMapping
+from .base import SingleFileIntrinsicMapping, XmlMapping
 from .utils import add_list, add_url_if_valid
 
 NUGET_TABLE_PATH = os.path.join(_DATA_DIR, "nuget.csv")
@@ -24,12 +23,13 @@ with open(NUGET_TABLE_PATH) as fd:
 SPDX = URIRef("https://spdx.org/licenses/")
 
 
-class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
+class NuGetMapping(XmlMapping, SingleFileIntrinsicMapping):
     """
     dedicated class for NuGet (.nuspec) mapping and translation
     """
 
     name = "nuget"
+    filename = re.compile(rb".*\.nuspec")
     mapping = NUGET_TABLE["NuGet"]
     mapping["copyright"] = URIRef("http://schema.org/copyrightNotice")
     mapping["language"] = URIRef("http://schema.org/inLanguage")
@@ -44,13 +44,6 @@ class NuGetMapping(XmlMapping, BaseIntrinsicMapping):
         "language",
     ]
     uri_fields = ["projectUrl", "licenseUrl"]
-
-    @classmethod
-    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
-        for entry in file_entries:
-            if entry["name"].endswith(b".nuspec"):
-                return [entry["sha1"]]
-        return []
 
     def _translate_dict(self, d: Dict[str, Any]) -> Dict[str, Any]:
         return super()._translate_dict(d.get("package", {}).get("metadata", {}))
