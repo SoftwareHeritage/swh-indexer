@@ -9,7 +9,7 @@ from swh.indexer.metadata_dictionary import MAPPINGS
 
 
 def test_compute_metadata_pubspec():
-    raw_content = """
+    raw_content = b"""
 ---
 name: newtify
 description: >-
@@ -37,9 +37,7 @@ dependencies:
 
 dev_dependencies:
   test: '>=1.15.0 <2.0.0'
-    """.encode(
-        "utf-8"
-    )
+    """
 
     result = MAPPINGS["PubMapping"]().translate(raw_content)
 
@@ -66,11 +64,9 @@ for.""",
 
 
 def test_normalize_author_pubspec():
-    raw_content = """
+    raw_content = b"""
     author: Atlee Pine <atlee@example.org>
-    """.encode(
-        "utf-8"
-    )
+    """
 
     result = MAPPINGS["PubMapping"]().translate(raw_content)
 
@@ -86,13 +82,11 @@ def test_normalize_author_pubspec():
 
 
 def test_normalize_authors_pubspec():
-    raw_content = """
+    raw_content = b"""
     authors:
       - Vicky Merzown <vmz@example.org>
       - Ron Bilius Weasley
-    """.encode(
-        "utf-8"
-    )
+    """
 
     result = MAPPINGS["PubMapping"]().translate(raw_content)
 
@@ -113,14 +107,12 @@ def test_normalize_authors_pubspec():
 
 @pytest.mark.xfail(reason="https://github.com/w3c/json-ld-api/issues/547")
 def test_normalize_author_authors_pubspec():
-    raw_content = """
+    raw_content = b"""
     authors:
       - Vicky Merzown <vmz@example.org>
       - Ron Bilius Weasley
     author: Hermione Granger
-    """.encode(
-        "utf-8"
-    )
+    """
 
     result = MAPPINGS["PubMapping"]().translate(raw_content)
 
@@ -144,11 +136,9 @@ def test_normalize_author_authors_pubspec():
 
 
 def test_normalize_empty_authors():
-    raw_content = """
+    raw_content = b"""
     authors:
-    """.encode(
-        "utf-8"
-    )
+    """
 
     result = MAPPINGS["PubMapping"]().translate(raw_content)
 
