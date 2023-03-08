@@ -148,3 +148,14 @@ def test_normalize_empty_authors():
     }
 
     assert result == expected
+
+
+def test_invalid_yaml():
+    raw_content = b"""
+    name: smartech_push
+    license: { :type => "Commercial", :file => "LICENSE" }
+    """
+
+    result = MAPPINGS["PubMapping"]().translate(raw_content)
+
+    assert result is None
