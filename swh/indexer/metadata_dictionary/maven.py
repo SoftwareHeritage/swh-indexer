@@ -6,13 +6,13 @@
 import os
 from typing import Any, Dict
 
-from rdflib import Graph, Literal, URIRef
+from rdflib import Graph, Literal
 
 from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.namespaces import SCHEMA
 
 from .base import SingleFileIntrinsicMapping, XmlMapping
-from .utils import prettyprint_graph  # noqa
+from .utils import add_url_if_valid, prettyprint_graph  # noqa
 
 
 class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
@@ -75,7 +75,10 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
             and isinstance(artifact_id, str)
         ):
             repo = os.path.join(url, *group_id.split("."), artifact_id)
-            graph.add((root, SCHEMA.codeRepository, URIRef(repo)))
+            if "${" in repo:
+                # Often use as templating in pom.xml files collected from VCSs
+                return
+            add_url_if_valid(graph, root, SCHEMA.codeRepository, repo)
 
     def normalize_groupId(self, id_):
         """https://maven.apache.org/pom.html#Maven_Coordinates
@@ -91,6 +94,7 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
 
         >>> import xmltodict
         >>> import json
+        >>> from rdflib import URIRef
         >>> d = xmltodict.parse('''
         ... <licenses>
         ...   <license>
@@ -155,5 +159,5 @@ class MavenMapping(XmlMapping, SingleFileIntrinsicMapping):
         elif not isinstance(licenses, list):
             return
         for license in licenses:
-            if isinstance(license, dict) and isinstance(license.get("url"), str):
-                graph.add((root, SCHEMA.license, URIRef(license["url"])))
+            if isinstance(license, dict):
+                add_url_if_valid(graph, root, SCHEMA.license, license.get("url"))

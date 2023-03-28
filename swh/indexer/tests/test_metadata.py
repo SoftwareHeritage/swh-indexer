@@ -59,7 +59,38 @@ DIRECTORY_METADATA_CONFIG = {
     "tools": TRANSLATOR_TOOL,
 }
 
-REMD = RawExtrinsicMetadata(
+DEPOSIT_REMD = RawExtrinsicMetadata(
+    target=ExtendedSWHID(
+        object_type=ExtendedObjectType.DIRECTORY,
+        object_id=b"\x02" * 20,
+    ),
+    discovery_date=datetime.datetime.now(tz=datetime.timezone.utc),
+    authority=MetadataAuthority(
+        type=MetadataAuthorityType.DEPOSIT_CLIENT,
+        url="https://example.org/",
+    ),
+    fetcher=MetadataFetcher(
+        name="example-fetcher",
+        version="1.0.0",
+    ),
+    format="sword-v2-atom-codemeta-v2",
+    metadata="""<?xml version="1.0"?>
+        <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                    xmlns="https://doi.org/10.5063/schema/codemeta-2.0">
+          <name>My Software</name>
+          <author>
+            <name>Author 1</name>
+            <email>foo@example.org</email>
+          </author>
+          <author>
+            <name>Author 2</name>
+          </author>
+        </atom:entry>
+    """.encode(),
+    origin="https://example.org/jdoe/myrepo",
+)
+
+GITHUB_REMD = RawExtrinsicMetadata(
     target=ExtendedSWHID(
         object_type=ExtendedObjectType.ORIGIN,
         object_id=b"\x01" * 20,
@@ -74,7 +105,7 @@ REMD = RawExtrinsicMetadata(
         version="1.0.0",
     ),
     format="application/vnd.github.v3+json",
-    metadata=b'{"full_name": "test software"}',
+    metadata=b'{"full_name": "test software", "html_url": "http://example.org/"}',
 )
 
 
@@ -199,7 +230,7 @@ class TestMetadata:
         metadata_indexer = ExtrinsicMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
         metadata_indexer.storage = mocker.patch.object(metadata_indexer, "storage")
 
-        remd = attr.evolve(REMD, format="unknown format")
+        remd = attr.evolve(GITHUB_REMD, format="unknown format")
 
         results = metadata_indexer.index(remd.id, data=remd)
 
@@ -221,7 +252,7 @@ class TestMetadata:
         assert tool is not None
 
         assert metadata_indexer.process_journal_objects(
-            {"raw_extrinsic_metadata": [REMD.to_dict()]}
+            {"raw_extrinsic_metadata": [GITHUB_REMD.to_dict()]}
         ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
 
         assert metadata_indexer.storage.method_calls == [
@@ -237,13 +268,87 @@ class TestMetadata:
                 tool={"id": tool["id"], **TRANSLATOR_TOOL},
                 metadata={
                     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+                    "id": "http://example.org/",
                     "type": "https://forgefed.org/ns#Repository",
                     "name": "test software",
                 },
-                from_remd_id=REMD.id,
+                from_remd_id=GITHUB_REMD.id,
                 mappings=["github"],
             )
         ]
+
+    def test_extrinsic_metadata_indexer_firstparty_deposit(self, mocker):
+        """Also nominal case, calling the mapping and storing the result"""
+        origin = "https://example.org/jdoe/myrepo"
+
+        metadata_indexer = ExtrinsicMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
+        metadata_indexer.catch_exceptions = False
+        metadata_indexer.storage = mocker.patch.object(metadata_indexer, "storage")
+        metadata_indexer.storage.origin_get_by_sha1.return_value = [{"url": origin}]
+
+        tool = metadata_indexer.idx_storage.indexer_configuration_get(
+            {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
+        )
+        assert tool is not None
+
+        assert metadata_indexer.process_journal_objects(
+            {"raw_extrinsic_metadata": [DEPOSIT_REMD.to_dict()]}
+        ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
+
+        assert metadata_indexer.storage.method_calls == [
+            call.origin_get_by_sha1(
+                [b"\xb1\x0c\\\xd2w\x1b\xdd\xac\x07\xdb\xdf>\x93O1\xd0\xc9L\x0c\xcf"]
+            )
+        ]
+
+        results = list(
+            metadata_indexer.idx_storage.origin_extrinsic_metadata_get([origin])
+        )
+        assert results == [
+            OriginExtrinsicMetadataRow(
+                id="https://example.org/jdoe/myrepo",
+                tool={"id": tool["id"], **TRANSLATOR_TOOL},
+                metadata={
+                    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+                    "author": [
+                        {"email": "foo@example.org", "name": "Author 1"},
+                        {"name": "Author 2"},
+                    ],
+                    "name": "My Software",
+                },
+                from_remd_id=DEPOSIT_REMD.id,
+                mappings=["sword-codemeta"],
+            )
+        ]
+
+    def test_extrinsic_metadata_indexer_thirdparty_deposit(self, mocker):
+        """Metadata-only deposit: currently ignored"""
+        origin = "https://not-from-example.org/jdoe/myrepo"
+
+        metadata_indexer = ExtrinsicMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
+        metadata_indexer.catch_exceptions = False
+        metadata_indexer.storage = mocker.patch.object(metadata_indexer, "storage")
+        metadata_indexer.storage.origin_get_by_sha1.return_value = [{"url": origin}]
+
+        tool = metadata_indexer.idx_storage.indexer_configuration_get(
+            {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
+        )
+        assert tool is not None
+
+        assert metadata_indexer.process_journal_objects(
+            {"raw_extrinsic_metadata": [DEPOSIT_REMD.to_dict()]}
+        ) == {"status": "uneventful", "origin_extrinsic_metadata:add": 0}
+
+        assert metadata_indexer.storage.method_calls == [
+            call.origin_get_by_sha1(
+                [b"\xb1\x0c\\\xd2w\x1b\xdd\xac\x07\xdb\xdf>\x93O1\xd0\xc9L\x0c\xcf"]
+            )
+        ]
+
+        results = list(
+            metadata_indexer.idx_storage.origin_extrinsic_metadata_get([origin])
+        )
+        assert results == []
 
     def test_extrinsic_metadata_indexer_nonforge_authority(self, mocker):
         """Early abort on non-forge authorities"""
@@ -251,8 +356,10 @@ class TestMetadata:
         metadata_indexer.storage = mocker.patch.object(metadata_indexer, "storage")
 
         remd = attr.evolve(
-            REMD,
-            authority=attr.evolve(REMD.authority, type=MetadataAuthorityType.REGISTRY),
+            GITHUB_REMD,
+            authority=attr.evolve(
+                GITHUB_REMD.authority, type=MetadataAuthorityType.REGISTRY
+            ),
         )
 
         results = metadata_indexer.index(remd.id, data=remd)
@@ -275,9 +382,71 @@ class TestMetadata:
         )
         assert tool is not None
 
-        results = metadata_indexer.index(REMD.id, data=REMD)
+        results = metadata_indexer.index(GITHUB_REMD.id, data=GITHUB_REMD)
 
         assert metadata_indexer.storage.method_calls == [
             call.origin_get_by_sha1([b"\x01" * 20])
         ]
         assert results == []
+
+    def test_extrinsic_metadata_indexer_duplicate_origin(self, mocker):
+        """Two metadata objects with the same origin target"""
+        origin = "https://example.org/jdoe/myrepo"
+
+        metadata_indexer = ExtrinsicMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
+        metadata_indexer.catch_exceptions = False
+        metadata_indexer.storage = mocker.patch.object(metadata_indexer, "storage")
+        metadata_indexer.storage.origin_get_by_sha1.return_value = [{"url": origin}]
+
+        tool = metadata_indexer.idx_storage.indexer_configuration_get(
+            {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
+        )
+        assert tool is not None
+
+        assert metadata_indexer.process_journal_objects(
+            {
+                "raw_extrinsic_metadata": [
+                    GITHUB_REMD.to_dict(),
+                    {**GITHUB_REMD.to_dict(), "id": b"\x00" * 20},
+                ]
+            }
+        ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
+
+        results = list(
+            metadata_indexer.idx_storage.origin_extrinsic_metadata_get([origin])
+        )
+        assert len(results) == 1, results
+        assert results[0].from_remd_id == b"\x00" * 20
+
+    def test_extrinsic_directory_metadata_indexer_duplicate_origin(self, mocker):
+        """Two metadata objects on directories, but with an origin context"""
+        origin = DEPOSIT_REMD.origin
+
+        metadata_indexer = ExtrinsicMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
+        metadata_indexer.catch_exceptions = False
+        metadata_indexer.storage = mocker.patch.object(metadata_indexer, "storage")
+        metadata_indexer.storage.origin_get_by_sha1.return_value = [{"url": origin}]
+
+        tool = metadata_indexer.idx_storage.indexer_configuration_get(
+            {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
+        )
+        assert tool is not None
+
+        assert metadata_indexer.process_journal_objects(
+            {
+                "raw_extrinsic_metadata": [
+                    DEPOSIT_REMD.to_dict(),
+                    {
+                        **DEPOSIT_REMD.to_dict(),
+                        "id": b"\x00" * 20,
+                        "target": "swh:1:dir:" + "01" * 20,
+                    },
+                ]
+            }
+        ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
+
+        results = list(
+            metadata_indexer.idx_storage.origin_extrinsic_metadata_get([origin])
+        )
+        assert len(results) == 1, results
+        assert results[0].from_remd_id == b"\x00" * 20

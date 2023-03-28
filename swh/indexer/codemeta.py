@@ -9,7 +9,7 @@ import itertools
 import json
 import os.path
 import re
-from typing import Any, List
+from typing import Any, Dict, List, Set, TextIO, Tuple
 
 from pyld import jsonld
 import rdflib
@@ -66,7 +66,15 @@ def make_absolute_uri(local_name):
     return uri
 
 
-def _read_crosstable(fd):
+def read_crosstable(fd: TextIO) -> Tuple[Set[str], Dict[str, Dict[str, rdflib.URIRef]]]:
+    """
+    Given a file-like object to a `CodeMeta crosswalk table` (either the main
+    cross-table with all columns, or an auxiliary table with just the CodeMeta
+    column and one ecosystem-specific table); returns a list of all CodeMeta
+    terms, and a dictionary ``{ecosystem: {ecosystem_term: codemeta_term}}``
+
+    .. _CodeMeta crosswalk table: <https://codemeta.github.io/crosswalk/
+    """
     reader = csv.reader(fd)
     try:
         header = next(reader)
@@ -75,7 +83,9 @@ def _read_crosstable(fd):
 
     data_sources = set(header) - {"Parent Type", "Property", "Type", "Description"}
 
-    codemeta_translation = {data_source: {} for data_source in data_sources}
+    codemeta_translation: Dict[str, Dict[str, rdflib.URIRef]] = {
+        data_source: {} for data_source in data_sources
+    }
     terms = set()
 
     for line in reader:  # For each canonical name
@@ -101,7 +111,7 @@ def _read_crosstable(fd):
 
 
 with open(CROSSWALK_TABLE_PATH) as fd:
-    (CODEMETA_TERMS, CROSSWALK_TABLE) = _read_crosstable(fd)
+    (CODEMETA_TERMS, CROSSWALK_TABLE) = read_crosstable(fd)
 
 
 def _document_loader(url, options=None):

@@ -353,6 +353,47 @@ def test_compute_metadata_maven_multiple():
     }
 
 
+def test_compute_metadata_maven_invalid_repository():
+    raw_content = b"""
+    <project>
+      <name>Maven Default Project</name>
+      <modelVersion>4.0.0</modelVersion>
+      <groupId>com.mycompany.app</groupId>
+      <artifactId>my-app</artifactId>
+      <version>1.2.3</version>
+      <repositories>
+        <repository>
+          <id>tcc-transaction-internal-releases</id>
+          <name>internal repository for released artifacts</name>
+          <url>${repo.internal.releases.url}</url>
+          <snapshots>
+              <enabled>false</enabled>
+          </snapshots>
+          <releases>
+              <enabled>true</enabled>
+          </releases>
+        </repository>
+      </repositories>
+      <licenses>
+        <license>
+          <name>Apache License, Version 2.0</name>
+          <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+          <distribution>repo</distribution>
+          <comments>A business-friendly OSS license</comments>
+        </license>
+      </licenses>
+    </project>"""
+    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "name": "Maven Default Project",
+        "schema:identifier": "com.mycompany.app",
+        "version": "1.2.3",
+        "license": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    }
+
+
 @settings(suppress_health_check=[HealthCheck.too_slow])
 @given(
     xml_document_strategy(

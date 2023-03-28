@@ -36,35 +36,6 @@ comment on column content_mimetype.mimetype is 'Raw content Mimetype';
 comment on column content_mimetype.encoding is 'Raw content encoding';
 comment on column content_mimetype.indexer_configuration_id is 'Tool used to compute the information';
 
--- Language metadata
-create table content_language (
-  id sha1 not null,
-  lang languages not null,
-  indexer_configuration_id bigint not null
-);
-
-comment on table content_language is 'Language information on a raw content';
-comment on column content_language.lang is 'Language information';
-comment on column content_language.indexer_configuration_id is 'Tool used to compute the information';
-
--- ctags information per content
-create table content_ctags (
-  id sha1 not null,
-  name text not null,
-  kind text not null,
-  line bigint not null,
-  lang ctags_languages not null,
-  indexer_configuration_id bigint not null
-);
-
-comment on table content_ctags is 'Ctags information on a raw content';
-comment on column content_ctags.id is 'Content identifier';
-comment on column content_ctags.name is 'Symbol name';
-comment on column content_ctags.kind is 'Symbol kind (function, class, variable, const...)';
-comment on column content_ctags.line is 'Symbol line';
-comment on column content_ctags.lang is 'Language information for that content';
-comment on column content_ctags.indexer_configuration_id is 'Tool used to compute the information';
-
 create table fossology_license(
   id smallserial,
   name text not null

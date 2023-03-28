@@ -8,10 +8,10 @@ import re
 
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
-from swh.indexer.codemeta import _DATA_DIR, _read_crosstable
+from swh.indexer.codemeta import _DATA_DIR, read_crosstable
 from swh.indexer.namespaces import SCHEMA
 
-from .base import YamlMapping
+from .base import SingleFileIntrinsicMapping, YamlMapping
 from .utils import add_map
 
 SPDX = URIRef("https://spdx.org/licenses/")
@@ -19,7 +19,7 @@ SPDX = URIRef("https://spdx.org/licenses/")
 PUB_TABLE_PATH = os.path.join(_DATA_DIR, "pubspec.csv")
 
 with open(PUB_TABLE_PATH) as fd:
-    (CODEMETA_TERMS, PUB_TABLE) = _read_crosstable(fd)
+    (CODEMETA_TERMS, PUB_TABLE) = read_crosstable(fd)
 
 
 def name_to_person(name):
@@ -29,7 +29,7 @@ def name_to_person(name):
     }
 
 
-class PubspecMapping(YamlMapping):
+class PubspecMapping(YamlMapping, SingleFileIntrinsicMapping):
 
     name = "pubspec"
     filename = b"pubspec.yaml"

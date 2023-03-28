@@ -5,7 +5,8 @@
 
 
 import json
-from typing import Callable, Iterable, Optional, Sequence, TypeVar
+from typing import Any, Callable, Iterable, Optional, Sequence, TypeVar
+import urllib.parse
 
 from pyld import jsonld
 from rdflib import RDF, Graph, URIRef
@@ -70,3 +71,46 @@ def add_map(
     """Helper for :func:`add_list` that takes a mapper function ``f``."""
     nodes = [f(graph, value) for value in values]
     add_list(graph, subject, predicate, [node for node in nodes if node])
+
+
+def add_url_if_valid(
+    graph: Graph,
+    subject: rdflib.term.Node,
+    predicate: rdflib.term.Identifier,
+    url: Any,
+) -> None:
+    """Adds ``(subject, predicate, url)`` to the graph if ``url`` is well-formed.
+
+    This is meant as a workaround for https://github.com/digitalbazaar/pyld/issues/91
+    to drop URLs that are blatantly invalid early, so PyLD does not crash.
+
+    >>> from pprint import pprint
+    >>> graph = Graph()
+    >>> subject = rdflib.term.URIRef("http://example.org/test-software")
+    >>> predicate = rdflib.term.URIRef("http://schema.org/license")
+    >>> add_url_if_valid(
+    ...     graph, subject, predicate, "https//www.apache.org/licenses/LICENSE-2.0.txt"
+    ... )
+    >>> add_url_if_valid(
+    ...     graph, subject, predicate, "http:s//www.apache.org/licenses/LICENSE-2.0.txt"
+    ... )
+    >>> add_url_if_valid(
+    ...     graph, subject, predicate, "https://www.apache.org/licenses/LICENSE-2.0.txt"
+    ... )
+    >>> add_url_if_valid(
+    ...     graph, subject, predicate, 42
+    ... )
+    >>> pprint(set(graph.triples((subject, predicate, None))))
+    {(rdflib.term.URIRef('http://example.org/test-software'),
+      rdflib.term.URIRef('http://schema.org/license'),
+      rdflib.term.URIRef('https://www.apache.org/licenses/LICENSE-2.0.txt'))}
+    """
+    if not isinstance(url, str):
+        return
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+    except Exception:
+        return
+    if " " in url or not parsed_url.netloc:
+        return
+    graph.add((subject, predicate, rdflib.term.URIRef(url)))

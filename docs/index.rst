@@ -14,6 +14,7 @@ information from archive source code artifacts.
    README.md
    dev-info.rst
    metadata-workflow.rst
+   swhpkg.rst
    mesocore.rst
 
 
@@ -24,4 +25,12 @@ Reference Documentation
    :maxdepth: 2
 
    cli
-   /apidoc/swh.indexer
+
+.. only:: standalone_package_doc
+
+   Indices and tables
+   ------------------
+
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`

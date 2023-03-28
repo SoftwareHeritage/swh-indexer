@@ -294,6 +294,131 @@ def test_npm_repository_normalization():
     }
 
 
+def test_npm_author():
+    package_json = rb"""{
+  "version": "1.0.0",
+  "author": "Foo Bar (@example)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "Foo Bar", "type": "Person"}],
+        "version": "1.0.0",
+    }
+
+
+def test_npm_invalid_uris():
+    package_json = rb"""{
+  "version": "1.0.0",
+  "homepage": "",
+  "author": {
+    "name": "foo",
+    "url": "http://example.org"
+  }
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "foo", "type": "Person", "url": "http://example.org"}],
+        "version": "1.0.0",
+    }
+
+    package_json = rb"""{
+  "version": "1.0.0",
+  "homepage": "http://example.org",
+  "author": {
+    "name": "foo",
+    "url": ""
+  }
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "foo", "type": "Person"}],
+        "url": "http://example.org",
+        "version": "1.0.0",
+    }
+
+    package_json = rb"""{
+  "version": "1.0.0",
+  "homepage": "",
+  "author": {
+    "name": "foo",
+    "url": ""
+  },
+  "bugs": ""
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "foo", "type": "Person"}],
+        "version": "1.0.0",
+    }
+
+    package_json = rb"""{
+  "version": "1.0.0",
+  "homepage": "http:example.org",
+  "author": {
+    "name": "foo",
+    "url": "http:example.com"
+  },
+  "bugs": {
+    "url": "http:example.com"
+  }
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "foo", "type": "Person"}],
+        "version": "1.0.0",
+    }
+
+    package_json = rb"""{
+  "version": "1.0.0",
+  "repository": "git+https://g ithub.com/foo/bar.git"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "version": "1.0.0",
+    }
+
+    package_json = rb"""{
+  "version": "1.0.0",
+  "repository": "git+http://\\u001b[D\\u001b[D\\u001b[Ds\\u001b[C\\u001b[C\\u001b[D\\u001b://github.com/dearzoe/array-combination"
+}"""  # noqa
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "version": "1.0.0",
+    }
+
+
+def test_npm_invalid_licenses():
+    package_json = rb"""{
+  "version": "1.0.0",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "author": {
+    "name": "foo",
+    "url": "http://example.org"
+  }
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "author": [{"name": "foo", "type": "Person", "url": "http://example.org"}],
+        "version": "1.0.0",
+    }
+
+
 @settings(suppress_health_check=[HealthCheck.too_slow])
 @given(json_document_strategy(keys=list(MAPPINGS["NpmMapping"].mapping)))  # type: ignore
 def test_npm_adversarial(doc):

@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import re
-import urllib.parse
 
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
@@ -12,7 +11,7 @@ from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.namespaces import SCHEMA
 
 from .base import JsonMapping, SingleFileIntrinsicMapping
-from .utils import add_list, prettyprint_graph  # noqa
+from .utils import add_list, add_url_if_valid, prettyprint_graph  # noqa
 
 SPDX = URIRef("https://spdx.org/licenses/")
 
@@ -88,11 +87,13 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         rdflib.term.URIRef('https://example.org/bugs/')
         """
         if isinstance(d, dict) and isinstance(d.get("url"), str):
-            return URIRef(d["url"])
+            url = d["url"]
         elif isinstance(d, str):
-            return URIRef(d)
+            url = d
         else:
-            return None
+            url = ""
+
+        return URIRef(url)
 
     _parse_author = re.compile(
         r"^ *" r"(?P<name>.*?)" r"( +<(?P<email>.*)>)?" r"( +\((?P<url>.*)\))?" r" *$"
@@ -185,12 +186,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
             graph.add((author, SCHEMA.name, Literal(name)))
         if email and isinstance(email, str):
             graph.add((author, SCHEMA.email, Literal(email)))
-        if url and isinstance(url, str):
-            # Workaround for https://github.com/digitalbazaar/pyld/issues/91 : drop
-            # URLs that are blatantly invalid early, so PyLD does not crash.
-            parsed_url = urllib.parse.urlparse(url)
-            if parsed_url.netloc:
-                graph.add((author, SCHEMA.url, URIRef(url)))
+        add_url_if_valid(graph, author, SCHEMA.url, url)
 
         add_list(graph, root, SCHEMA.author, [author])
 
@@ -270,6 +266,16 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         rdflib.term.URIRef('https://spdx.org/licenses/MIT')
         """
         if isinstance(s, str):
+            if s.startswith("SEE LICENSE IN "):
+                # Very common pattern, because it is an example in the specification.
+                # It is followed by the filename; and the indexer architecture currently
+                # does not allow accessing that from metadata mappings.
+                # (Plus, an hypothetical license mapping would eventually pick it up)
+                return
+            if " " in s:
+                # Either an SPDX expression, or unusable data
+                # TODO: handle it
+                return
             return SPDX + s
 
     def normalize_keywords(self, lst):

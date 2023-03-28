@@ -23,6 +23,8 @@ from typing import (
     Union,
 )
 
+import attr
+
 from swh.core.collections import SortedList
 from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import SHA1_SIZE
@@ -82,6 +84,30 @@ class SubStorage(Generic[TValue]):
         self._data = defaultdict(dict)
         self._journal_writer = journal_writer
         self._tools_per_id = defaultdict(set)
+
+    def _join_indexer_configuration(self, entries):
+        """Replaces ``entry.indexer_configuration_id`` with a full tool dict
+        in ``entry.tool``."""
+        joined_entries = []
+
+        for entry in entries:
+            # get the tool used to generate this addition
+            tool_id = entry.indexer_configuration_id
+            assert tool_id
+            tool = self._tools[tool_id]
+            entry = attr.evolve(
+                entry,
+                tool={
+                    "name": tool["tool_name"],
+                    "version": tool["tool_version"],
+                    "configuration": tool["tool_configuration"],
+                },
+                indexer_configuration_id=None,
+            )
+
+            joined_entries.append(entry)
+
+        return joined_entries
 
     def _key_from_dict(self, d) -> Tuple:
         """Like the global _key_from_dict, but filters out dict keys that don't
@@ -210,15 +236,16 @@ class SubStorage(Generic[TValue]):
 
         """
         data = list(data)
-        check_id_duplicates(data)
+        data_with_tools = self._join_indexer_configuration(data)
+        check_id_duplicates(data_with_tools)
         object_type = self.row_class.object_type  # type: ignore
-        self._journal_writer.write_additions(object_type, data)
+        self._journal_writer.write_additions(object_type, data_with_tools)
         count = 0
-        for obj in data:
+        for (obj, obj_with_tool) in zip(data, data_with_tools):
             item = obj.to_dict()
             id_ = item.pop("id")
             tool_id = item["indexer_configuration_id"]
-            key = _key_from_dict(obj.unique_key())
+            key = _key_from_dict(obj_with_tool.unique_key())
             self._data[id_][key] = item
             self._tools_per_id[id_].add(tool_id)
             count += 1
@@ -233,16 +260,7 @@ class IndexerStorage:
     def __init__(self, journal_writer=None):
         self._tools = {}
 
-        def tool_getter(id_):
-            tool = self._tools[id_]
-            return {
-                "id": tool["id"],
-                "name": tool["tool_name"],
-                "version": tool["tool_version"],
-                "configuration": tool["tool_configuration"],
-            }
-
-        self.journal_writer = JournalWriter(tool_getter, journal_writer)
+        self.journal_writer = JournalWriter(journal_writer)
         args = (self._tools, self.journal_writer)
         self._mimetypes = SubStorage(ContentMimetypeRow, *args)
         self._licenses = SubStorage(ContentLicenseRow, *args)

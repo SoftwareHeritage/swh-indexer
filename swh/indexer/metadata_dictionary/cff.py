@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 from typing import List
+import urllib.parse
 
 from rdflib import BNode, Graph, Literal, URIRef
 import rdflib.term
@@ -11,25 +12,30 @@ import rdflib.term
 from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.namespaces import RDF, SCHEMA
 
-from .base import YamlMapping
+from .base import SingleFileIntrinsicMapping, YamlMapping
 from .utils import add_map
 
 DOI = URIRef("https://doi.org/")
 SPDX = URIRef("https://spdx.org/licenses/")
 
 
-class CffMapping(YamlMapping):
+class CffMapping(YamlMapping, SingleFileIntrinsicMapping):
     """Dedicated class for Citation (CITATION.cff) mapping and translation"""
 
     name = "cff"
     filename = b"CITATION.cff"
     mapping = CROSSWALK_TABLE["Citation File Format Core (CFF-Core) 1.0.2"]
     string_fields = ["keywords", "license", "abstract", "version", "doi"]
+    date_fields = ["date-released"]
     uri_fields = ["repository-code"]
 
     def _translate_author(self, graph: Graph, author: dict) -> rdflib.term.Node:
         node: rdflib.term.Node
-        if "orcid" in author and isinstance(author["orcid"], str):
+        if (
+            "orcid" in author
+            and isinstance(author["orcid"], str)
+            and urllib.parse.urlparse(author["orcid"]).netloc
+        ):
             node = URIRef(author["orcid"])
         else:
             node = BNode()
@@ -57,7 +63,3 @@ class CffMapping(YamlMapping):
     def normalize_license(self, s: str) -> URIRef:
         if isinstance(s, str):
             return SPDX + s
-
-    def normalize_date_released(self, s: str) -> Literal:
-        if isinstance(s, str):
-            return Literal(s, datatype=SCHEMA.Date)

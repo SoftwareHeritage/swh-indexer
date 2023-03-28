@@ -32,15 +32,13 @@ def test_supported_terms():
     assert {
         "http://schema.org/name",
         "http://schema.org/license",
+        "http://schema.org/dateCreated",
         "https://forgefed.org/ns#forks",
         "https://www.w3.org/ns/activitystreams#totalItems",
     } <= terms
 
 
 def test_compute_metadata_github():
-    """
-    testing only computation of metadata with hard_mapping_npm
-    """
     content = b"""
 {
   "id": 80521091,
@@ -65,6 +63,8 @@ def test_compute_metadata_github():
   "created_at": "2017-01-31T13:05:39Z",
   "updated_at": "2022-06-22T08:02:20Z",
   "pushed_at": "2022-06-29T09:01:08Z",
+  "archive_url": "https://api.github.com/repos/SoftwareHeritage/swh-indexer/{archive_format}{/ref}",
+  "issues_url": "https://api.github.com/repos/SoftwareHeritage/swh-indexer/issues{/number}",
   "git_url": "git://github.com/SoftwareHeritage/swh-indexer.git",
   "ssh_url": "git@github.com:SoftwareHeritage/swh-indexer.git",
   "clone_url": "https://github.com/SoftwareHeritage/swh-indexer.git",
@@ -116,11 +116,12 @@ def test_compute_metadata_github():
   "subscribers_count": 6
 }
 
-    """
+    """  # noqa
     result = MAPPINGS["GitHubMapping"]().translate(content)
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",
+        "id": "https://github.com/SoftwareHeritage/swh-indexer",
         "forge:forks": {
             "as:totalItems": 1,
             "type": "as:OrderedCollection",
@@ -136,7 +137,42 @@ def test_compute_metadata_github():
         "license": "https://spdx.org/licenses/GPL-3.0",
         "name": "SoftwareHeritage/swh-indexer",
         "description": "GitHub mirror of Metadata indexer",
-        "schema:codeRepository": "https://github.com/SoftwareHeritage/swh-indexer",
-        "schema:dateCreated": "2017-01-31T13:05:39Z",
-        "schema:dateModified": "2022-06-22T08:02:20Z",
+        "codeRepository": "https://github.com/SoftwareHeritage/swh-indexer.git",
+        "dateCreated": "2017-01-31T13:05:39Z",
+        "dateModified": "2022-06-22T08:02:20Z",
+    }
+
+
+def test_github_topics():
+    content = b"""
+{
+  "html_url": "https://github.com/SoftwareHeritage/swh-indexer",
+  "topics": [
+    "foo",
+    "bar"
+  ]
+}
+    """
+    result = MAPPINGS["GitHubMapping"]().translate(content)
+    assert set(result.pop("keywords", [])) == {"foo", "bar"}, result
+    assert result == {
+        "@context": CONTEXT,
+        "type": "forge:Repository",
+        "id": "https://github.com/SoftwareHeritage/swh-indexer",
+    }
+
+
+def test_github_issues():
+    content = b"""
+{
+  "html_url": "https://github.com/SoftwareHeritage/swh-indexer",
+  "has_issues": true
+}
+    """
+    result = MAPPINGS["GitHubMapping"]().translate(content)
+    assert result == {
+        "@context": CONTEXT,
+        "type": "forge:Repository",
+        "id": "https://github.com/SoftwareHeritage/swh-indexer",
+        "issueTracker": "https://github.com/SoftwareHeritage/swh-indexer/issues",
     }

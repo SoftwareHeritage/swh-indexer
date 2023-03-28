@@ -247,6 +247,13 @@ def schedule_origin_metadata_reindex(
     type=int,
     help="Maximum number of objects to replay. Default is to run forever.",
 )
+@click.option(
+    "--batch-size",
+    "-b",
+    default=None,
+    type=int,
+    help="Batch size. Default is 200.",
+)
 @click.pass_context
 def journal_client(
     ctx,
@@ -257,6 +264,7 @@ def journal_client(
     prefix: str,
     group_id: str,
     stop_after_objects: Optional[int],
+    batch_size: Optional[int],
 ):
     """
     Listens for new objects from the SWH Journal, and either:
@@ -280,16 +288,22 @@ def journal_client(
 
     scheduler = _get_api(get_scheduler, cfg, "scheduler", scheduler_url)
 
-    brokers = brokers or journal_cfg.get("brokers")
-    if not brokers:
+    if brokers:
+        journal_cfg["brokers"] = brokers
+    if not journal_cfg.get("brokers"):
         raise ValueError("The brokers configuration is mandatory.")
 
-    prefix = prefix or journal_cfg.get("prefix")
-    group_id = group_id or journal_cfg.get("group_id")
+    if prefix:
+        journal_cfg["prefix"] = prefix
+    if group_id:
+        journal_cfg["group_id"] = group_id
     origin_metadata_task_type = origin_metadata_task_type or journal_cfg.get(
         "origin_metadata_task_type"
     )
-    stop_after_objects = stop_after_objects or journal_cfg.get("stop_after_objects")
+    if stop_after_objects:
+        journal_cfg["stop_after_objects"] = stop_after_objects
+    if batch_size:
+        journal_cfg["batch_size"] = batch_size
 
     object_types = set()
     worker_fns: List[Callable[[ObjectsDict], Dict]] = []
@@ -350,11 +364,8 @@ def journal_client(
 
     client = get_journal_client(
         cls="kafka",
-        brokers=brokers,
-        prefix=prefix,
-        group_id=group_id,
         object_types=list(object_types),
-        stop_after_objects=stop_after_objects,
+        **journal_cfg,
     )
 
     def worker_fn(objects: ObjectsDict):

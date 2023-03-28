@@ -9,6 +9,7 @@ import json
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 import warnings
 
+import attr
 import psycopg2
 import psycopg2.pool
 
@@ -115,17 +116,19 @@ def check_id_duplicates(data):
     Args:
         data (List[dict]): List of dictionaries to be inserted
 
+    >>> tool1 = {"name": "foo", "version": "1.2.3", "configuration": {}}
+    >>> tool2 = {"name": "foo", "version": "1.2.4", "configuration": {}}
     >>> check_id_duplicates([
-    ...     ContentLicenseRow(id=b'foo', indexer_configuration_id=42, license="GPL"),
-    ...     ContentLicenseRow(id=b'foo', indexer_configuration_id=32, license="GPL"),
+    ...     ContentLicenseRow(id=b'foo', tool=tool1, license="GPL"),
+    ...     ContentLicenseRow(id=b'foo', tool=tool2, license="GPL"),
     ... ])
     >>> check_id_duplicates([
-    ...     ContentLicenseRow(id=b'foo', indexer_configuration_id=42, license="AGPL"),
-    ...     ContentLicenseRow(id=b'foo', indexer_configuration_id=42, license="AGPL"),
+    ...     ContentLicenseRow(id=b'foo', tool=tool1, license="AGPL"),
+    ...     ContentLicenseRow(id=b'foo', tool=tool1, license="AGPL"),
     ... ])
     Traceback (most recent call last):
     ...
-    swh.indexer.storage.exc.DuplicateId: [{'id': b'foo', 'indexer_configuration_id': 42, 'license': 'AGPL'}]
+    swh.indexer.storage.exc.DuplicateId: [{'id': b'foo', 'license': 'AGPL', 'tool_configuration': '{}', 'tool_name': 'foo', 'tool_version': '1.2.3'}]
 
     """  # noqa
     counter = Counter(tuple(sorted(item.unique_key().items())) for item in data)
@@ -137,7 +140,7 @@ def check_id_duplicates(data):
 class IndexerStorage:
     """SWH Indexer Storage Datastore"""
 
-    current_version = 135
+    current_version = 137
 
     def __init__(self, db, min_pool_conns=1, max_pool_conns=10, journal_writer=None):
         """
@@ -147,7 +150,7 @@ class IndexerStorage:
                             `swh.journal.writer.get_journal_writer`
 
         """
-        self.journal_writer = JournalWriter(self._tool_get_from_id, journal_writer)
+        self.journal_writer = JournalWriter(journal_writer)
         try:
             if isinstance(db, psycopg2.extensions.connection):
                 self._pool = None
@@ -168,6 +171,32 @@ class IndexerStorage:
     def put_db(self, db):
         if db is not self._db:
             db.put_conn()
+
+    def _join_indexer_configuration(self, entries, db, cur):
+        """Replaces ``entry.indexer_configuration_id`` with a full tool dict
+        in ``entry.tool``."""
+        joined_entries = []
+
+        # usually, all the additions in a batch are from the same indexer,
+        # so this cache allows doing a single query for all the entries.
+        tool_cache = {}
+
+        for entry in entries:
+            # get the tool used to generate this addition
+            tool_id = entry.indexer_configuration_id
+            assert tool_id
+            if tool_id not in tool_cache:
+                tool_cache[tool_id] = dict(
+                    self._tool_get_from_id(tool_id, db=db, cur=cur)
+                )
+                del tool_cache[tool_id]["id"]
+            entry = attr.evolve(
+                entry, tool=tool_cache[tool_id], indexer_configuration_id=None
+            )
+
+            joined_entries.append(entry)
+
+        return joined_entries
 
     @timed
     @db_transaction()
@@ -293,9 +322,11 @@ class IndexerStorage:
         db=None,
         cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(mimetypes)
-        mimetypes.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("content_mimetype", mimetypes)
+        mimetypes_with_tools = self._join_indexer_configuration(
+            mimetypes, db=db, cur=cur
+        )
+        check_id_duplicates(mimetypes_with_tools)
+        self.journal_writer.write_additions("content_mimetype", mimetypes_with_tools)
         db.mktemp_content_mimetype(cur)
         db.copy_to(
             [m.to_dict() for m in mimetypes],
@@ -341,9 +372,11 @@ class IndexerStorage:
         db=None,
         cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(licenses)
-        licenses.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("content_fossology_license", licenses)
+        licenses_with_tools = self._join_indexer_configuration(licenses, db=db, cur=cur)
+        check_id_duplicates(licenses_with_tools)
+        self.journal_writer.write_additions(
+            "content_fossology_license", licenses_with_tools
+        )
         db.mktemp_content_fossology_license(cur)
         db.copy_to(
             [license.to_dict() for license in licenses],
@@ -406,9 +439,9 @@ class IndexerStorage:
         db=None,
         cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("content_metadata", metadata)
+        metadata_with_tools = self._join_indexer_configuration(metadata, db=db, cur=cur)
+        check_id_duplicates(metadata_with_tools)
+        self.journal_writer.write_additions("content_metadata", metadata_with_tools)
 
         db.mktemp_content_metadata(cur)
 
@@ -460,9 +493,11 @@ class IndexerStorage:
         db=None,
         cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("directory_intrinsic_metadata", metadata)
+        metadata_with_tools = self._join_indexer_configuration(metadata, db=db, cur=cur)
+        check_id_duplicates(metadata_with_tools)
+        self.journal_writer.write_additions(
+            "directory_intrinsic_metadata", metadata_with_tools
+        )
 
         db.mktemp_directory_intrinsic_metadata(cur)
 
@@ -504,9 +539,11 @@ class IndexerStorage:
         db=None,
         cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("origin_intrinsic_metadata", metadata)
+        metadata_with_tools = self._join_indexer_configuration(metadata, db=db, cur=cur)
+        check_id_duplicates(metadata_with_tools)
+        self.journal_writer.write_additions(
+            "origin_intrinsic_metadata", metadata_with_tools
+        )
 
         db.mktemp_origin_intrinsic_metadata(cur)
 
@@ -646,9 +683,11 @@ class IndexerStorage:
         db=None,
         cur=None,
     ) -> Dict[str, int]:
-        check_id_duplicates(metadata)
-        metadata.sort(key=lambda m: m.id)
-        self.journal_writer.write_additions("origin_extrinsic_metadata", metadata)
+        metadata_with_tools = self._join_indexer_configuration(metadata, db=db, cur=cur)
+        check_id_duplicates(metadata_with_tools)
+        self.journal_writer.write_additions(
+            "origin_extrinsic_metadata", metadata_with_tools
+        )
 
         db.mktemp_origin_extrinsic_metadata(cur)
 

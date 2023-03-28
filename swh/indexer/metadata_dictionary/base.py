@@ -5,7 +5,7 @@
 
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Pattern, Tuple, TypeVar, Union
 import uuid
 import xml.parsers.expat
 
@@ -18,6 +18,11 @@ import yaml
 from swh.indexer.codemeta import _document_loader, compact
 from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
+
+from .utils import add_url_if_valid
+
+TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
+"""Prefix used to generate temporary URIs for root nodes being translated."""
 
 
 class DirectoryLsEntry(TypedDict):
@@ -126,16 +131,21 @@ class BaseIntrinsicMapping(BaseMapping):
 class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
     """Base class for all intrinsic metadata mappings that use a single file as input."""
 
-    @property
-    def filename(self):
-        """The .json file to extract metadata from."""
-        raise NotImplementedError(f"{self.__class__.__name__}.filename")
+    filename: Union[bytes, Pattern[bytes]]
 
     @classmethod
     def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
-        for entry in file_entries:
-            if entry["name"].lower() == cls.filename:
-                return [entry["sha1"]]
+        filename = cls.filename
+        # Check if filename is a regex or bytes:
+        if isinstance(filename, bytes):
+            for entry in file_entries:
+                if entry["name"].lower() == filename:
+                    return [entry["sha1"]]
+        else:
+            for entry in file_entries:
+                if filename.match(entry["name"]):
+                    return [entry["sha1"]]
+
         return []
 
 
@@ -146,6 +156,10 @@ class DictMapping(BaseMapping):
     string_fields: List[str] = []
     """List of fields that are simple strings, and don't need any
     normalization."""
+
+    date_fields: List[str] = []
+    """List of fields that are strings that should be typed as http://schema.org/Date
+    """
 
     uri_fields: List[str] = []
     """List of fields that are simple URIs, and don't need any
@@ -166,7 +180,7 @@ class DictMapping(BaseMapping):
         simple_terms = {
             str(term)
             for (key, term) in cls.mapping.items()
-            if key in cls.string_fields + cls.uri_fields
+            if key in cls.string_fields + cls.date_fields + cls.uri_fields
             or hasattr(cls, "normalize_" + cls._normalize_method_name(key))
         }
 
@@ -179,6 +193,21 @@ class DictMapping(BaseMapping):
         }
 
         return simple_terms | complex_terms
+
+    def get_root_uri(self, content_dict: Dict) -> rdflib.URIRef:
+        """Returns an URI for the SoftwareSourceCode or Repository being described.
+
+        The default implementation uses a temporary URI that is stripped before
+        normalization by :meth:`_translate_dict`.
+        """
+        # The main object being described (the SoftwareSourceCode) does not necessarily
+        # may or may not have an id.
+        # If it does, it will need to be set by a subclass.
+        # If it doesn't we temporarily use this URI to identify it. Unfortunately,
+        # we cannot use a blank node as we need to use it for JSON-LD framing later,
+        # and blank nodes cannot be used for framing in JSON-LD >= 1.1
+        root_id = TMP_ROOT_URI_PREFIX + str(uuid.uuid4())
+        return rdflib.URIRef(root_id)
 
     def _translate_dict(self, content_dict: Dict) -> Dict[str, Any]:
         """
@@ -195,16 +224,47 @@ class DictMapping(BaseMapping):
         """
         graph = rdflib.Graph()
 
-        # The main object being described (the SoftwareSourceCode) does not necessarily
-        # may or may not have an id.
-        # Either way, we temporarily use this URI to identify it. Unfortunately,
-        # we cannot use a blank node as we need to use it for JSON-LD framing later,
-        # and blank nodes cannot be used for framing in JSON-LD >= 1.1
-        root_id = (
-            "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
-            + str(uuid.uuid4())
+        root = self.get_root_uri(content_dict)
+
+        self._translate_to_graph(graph, root, content_dict)
+
+        self.sanitize(graph)
+
+        # Convert from rdflib's internal graph representation to JSON
+        s = graph.serialize(format="application/ld+json")
+
+        # Load from JSON to a list of Python objects
+        jsonld_graph = json.loads(s)
+
+        # Use JSON-LD framing to turn the graph into a rooted tree
+        # frame = {"@type": str(SCHEMA.SoftwareSourceCode)}
+        translated_metadata = jsonld.frame(
+            jsonld_graph,
+            {"@id": str(root)},
+            options={
+                "documentLoader": _document_loader,
+                "processingMode": "json-ld-1.1",
+            },
         )
-        root = rdflib.URIRef(root_id)
+
+        # Remove the temporary id we added at the beginning
+        assert isinstance(translated_metadata["@id"], str)
+        if translated_metadata["@id"].startswith(TMP_ROOT_URI_PREFIX):
+            del translated_metadata["@id"]
+
+        return self.normalize_translation(translated_metadata)
+
+    def _translate_to_graph(
+        self, graph: rdflib.Graph, root: rdflib.term.Identifier, content_dict: Dict
+    ) -> None:
+        """
+        Translates content  by parsing content from a dict object
+        and translating with the appropriate mapping to the graph passed as parameter
+
+        Args:
+            content_dict (dict): content dict to translate
+
+        """
         graph.add((root, RDF.type, SCHEMA.SoftwareSourceCode))
 
         for k, v in content_dict.items():
@@ -231,53 +291,54 @@ class DictMapping(BaseMapping):
                         pass
                     elif isinstance(v, list):
                         for item in reversed(v):
-                            graph.add((root, codemeta_key, item))
+                            if isinstance(item, rdflib.URIRef):
+                                add_url_if_valid(graph, root, codemeta_key, str(item))
+                            else:
+                                graph.add((root, codemeta_key, item))
                     else:
-                        graph.add((root, codemeta_key, v))
+                        if isinstance(v, rdflib.URIRef):
+                            add_url_if_valid(graph, root, codemeta_key, str(v))
+                        else:
+                            graph.add((root, codemeta_key, v))
                 elif k in self.string_fields and isinstance(v, str):
                     graph.add((root, codemeta_key, rdflib.Literal(v)))
                 elif k in self.string_fields and isinstance(v, list):
                     for item in v:
                         graph.add((root, codemeta_key, rdflib.Literal(item)))
-                elif k in self.uri_fields and isinstance(v, str):
-                    graph.add((root, codemeta_key, rdflib.URIRef(v)))
-                elif k in self.uri_fields and isinstance(v, list):
+                elif k in self.date_fields and isinstance(v, str):
+                    typed_v = rdflib.Literal(v, datatype=SCHEMA.Date)
+                    graph.add((root, codemeta_key, typed_v))
+                elif k in self.date_fields and isinstance(v, list):
                     for item in v:
                         if isinstance(item, str):
-                            graph.add((root, codemeta_key, rdflib.URIRef(item)))
+                            typed_item = rdflib.Literal(item, datatype=SCHEMA.Date)
+                            graph.add((root, codemeta_key, typed_item))
+                elif k in self.uri_fields and isinstance(v, str):
+                    add_url_if_valid(graph, root, codemeta_key, v)
+                elif k in self.uri_fields and isinstance(v, list):
+                    for item in v:
+                        add_url_if_valid(graph, root, codemeta_key, item)
                 else:
                     continue
 
         self.extra_translation(graph, root, content_dict)
 
-        # Convert from rdflib's internal graph representation to JSON
-        s = graph.serialize(format="application/ld+json")
+    def sanitize(self, graph: rdflib.Graph) -> None:
+        # Remove triples that make PyLD crash
+        for (subject, predicate, _) in graph.triples((None, None, rdflib.URIRef(""))):
+            graph.remove((subject, predicate, rdflib.URIRef("")))
 
-        # Load from JSON to a list of Python objects
-        jsonld_graph = json.loads(s)
-
-        # Use JSON-LD framing to turn the graph into a rooted tree
-        # frame = {"@type": str(SCHEMA.SoftwareSourceCode)}
-        translated_metadata = jsonld.frame(
-            jsonld_graph,
-            {"@id": root_id},
-            options={
-                "documentLoader": _document_loader,
-                "processingMode": "json-ld-1.1",
-            },
-        )
-
-        # Remove the temporary id we added at the beginning
-        if isinstance(translated_metadata["@id"], list):
-            translated_metadata["@id"].remove(root_id)
-        else:
-            del translated_metadata["@id"]
-
-        return self.normalize_translation(translated_metadata)
+        # Should not happen, but we's better check as this may lead to incorrect data
+        invalid = False
+        for triple in graph.triples((rdflib.URIRef(""), None, None)):
+            invalid = True
+            logging.error("Empty triple subject URI: %r", triple)
+        if invalid:
+            raise ValueError("Empty triple subject(s)")
 
     def extra_translation(
         self, graph: rdflib.Graph, root: rdflib.term.Node, d: Dict[str, Any]
-    ):
+    ) -> None:
         """Called at the end of the translation process, and may add arbitrary triples
         to ``graph`` based on the input dictionary (passed as ``d``).
         """
@@ -332,14 +393,14 @@ class SafeLoader(yaml.SafeLoader):
     }
 
 
-class YamlMapping(DictMapping, SingleFileIntrinsicMapping):
+class YamlMapping(DictMapping):
     """Base class for all mappings that use Yaml data as input."""
 
     def translate(self, raw_content: bytes) -> Optional[Dict[str, str]]:
         raw_content_string: str = raw_content.decode()
         try:
             content_dict = yaml.load(raw_content_string, Loader=SafeLoader)
-        except yaml.scanner.ScannerError:
+        except (yaml.scanner.ScannerError, yaml.parser.ParserError):
             return None
 
         if isinstance(content_dict, dict):
