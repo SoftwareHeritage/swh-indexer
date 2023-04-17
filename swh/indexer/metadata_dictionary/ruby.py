@@ -6,16 +6,13 @@
 import ast
 import itertools
 import re
-from typing import List
 
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
 from swh.indexer.codemeta import CROSSWALK_TABLE
-from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
 from swh.indexer.namespaces import SCHEMA
-from swh.indexer.storage.interface import Sha1
 
-from .base import BaseIntrinsicMapping, DictMapping
+from .base import DictMapping, SingleFileIntrinsicMapping
 from .utils import add_map
 
 SPDX = URIRef("https://spdx.org/licenses/")
@@ -30,21 +27,15 @@ def name_to_person(graph: Graph, name):
     return author
 
 
-class GemspecMapping(BaseIntrinsicMapping, DictMapping):
+class GemspecMapping(DictMapping, SingleFileIntrinsicMapping):
     name = "gemspec"
+    filename = re.compile(rb".*\.gemspec")
     mapping = CROSSWALK_TABLE["Ruby Gem"]
     string_fields = ["name", "version", "description", "summary", "email"]
     uri_fields = ["homepage"]
 
     _re_spec_new = re.compile(r".*Gem::Specification.new +(do|\{) +\|.*\|.*")
     _re_spec_entry = re.compile(r"\s*\w+\.(?P<key>\w+)\s*=\s*(?P<expr>.*)")
-
-    @classmethod
-    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
-        for entry in file_entries:
-            if entry["name"].endswith(b".gemspec"):
-                return [entry["sha1"]]
-        return []
 
     def translate(self, raw_content):
         try:

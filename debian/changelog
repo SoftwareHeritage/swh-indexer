@@ -1,8 +1,26 @@
-swh-indexer (2.9.2-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.9.4-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.9.4     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2023-04-17 16:32:11 +0200)
+  * Upstream changes:     - v2.9.4     - * docs: Add workflow for
+    extrinsic metadata + mention storage on the path from loader to
+    journal     - * docs: Define new vocabulary for software
+    dependencies     - * dart: Fix crash on yaml parser error     - *
+    metadata_dictionary: Deduplicate extension-based file detection     -
+    * mypy: Bump to 1.0     - * Update and clean tox configuration for
+    version 4
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 10 Jan 2023 14:22:01 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 17 Apr 2023 14:37:49 +0000
+
+swh-indexer (2.9.3-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.9.3     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2023-02-13 10:58:08 +0100)
+  * Upstream changes:     - v2.9.3     - * docs: Include module indices
+    only when building standalone package doc     - * Disable reports of
+    OperationalError to Sentry
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 13 Feb 2023 10:04:13 +0000
 
 swh-indexer (2.9.2-1~swh1) unstable-swh; urgency=medium
 

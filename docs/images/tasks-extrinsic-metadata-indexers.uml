@@ -1,0 +1,37 @@
+@startuml
+  participant LOADERS as "Metadata Loaders"
+  participant STORAGE as "Graph Storage"
+  participant JOURNAL as "Journal"
+  participant IDX_REM_META as "REM Indexer"
+  participant IDX_STORAGE as "Indexer Storage"
+
+  activate IDX_STORAGE
+  activate STORAGE
+  activate JOURNAL
+  activate LOADERS
+
+  LOADERS->>STORAGE: new REM (Raw Extrinsic Metadata) object\n for Origin http://example.org/repo.git\nor object swh:1:dir:...
+  STORAGE->>JOURNAL: new REM object
+  deactivate LOADERS
+
+  JOURNAL->>IDX_REM_META: run indexers on REM object
+  activate IDX_REM_META
+
+  IDX_REM_META->>IDX_REM_META: recognize REM object (gitea/github/deposit/...)
+
+  IDX_REM_META->>IDX_REM_META: parse REM object
+
+  alt If the REM object describe an origin
+    IDX_REM_META->>IDX_STORAGE: origin_extrinsic_metadata_add(id="http://example.org/repo.git", {author: "Jane Doe", ...})
+    IDX_STORAGE->>IDX_REM_META: ok
+  end
+
+  alt If the REM object describe a directory
+    IDX_REM_META->>IDX_STORAGE: directory_extrinsic_metadata_add(id="swh:1:dir:...", {author: "Jane Doe", ...})
+    IDX_STORAGE->>IDX_REM_META: ok
+  end
+
+  deactivate IDX_REM_META
+
+
+@enduml

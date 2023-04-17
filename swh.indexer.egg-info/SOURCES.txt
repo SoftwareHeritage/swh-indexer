@@ -29,11 +29,13 @@ docs/conf.py
 docs/dev-info.rst
 docs/index.rst
 docs/metadata-workflow.rst
+docs/swhpkg.rst
 docs/_static/.placeholder
 docs/_templates/.placeholder
 docs/images/.gitignore
 docs/images/Makefile
-docs/images/tasks-metadata-indexers.uml
+docs/images/tasks-extrinsic-metadata-indexers.uml
+docs/images/tasks-intrinsic-metadata-indexers.uml
 sql/bin/db-upgrade
 sql/bin/dot_add_content
 sql/doc/json
