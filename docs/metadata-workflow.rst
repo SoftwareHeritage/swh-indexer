@@ -14,7 +14,7 @@ at each step in the indexer storage.
 Indexer architecture
 ^^^^^^^^^^^^^^^^^^^^
 
-.. thumbnail:: images/tasks-metadata-indexers.svg
+.. thumbnail:: images/tasks-intrinsic-metadata-indexers.svg
 
 
 Origin-Head Indexer
@@ -95,6 +95,11 @@ This normalization makes up for most of the code of
 
 Extrinsic metadata
 ------------------
+
+Indexer architecture
+^^^^^^^^^^^^^^^^^^^^
+
+.. thumbnail:: images/tasks-extrinsic-metadata-indexers.svg
 
 The :term:`extrinsic metadata` indexer works very differently from
 the :term:`intrinsic metadata` indexers we saw above.
