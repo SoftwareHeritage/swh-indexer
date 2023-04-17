@@ -11,7 +11,7 @@ from rdflib import RDF, BNode, Graph, Literal, URIRef
 from swh.indexer.codemeta import _DATA_DIR, read_crosstable
 from swh.indexer.namespaces import SCHEMA
 
-from .base import YamlMapping
+from .base import SingleFileIntrinsicMapping, YamlMapping
 from .utils import add_map
 
 SPDX = URIRef("https://spdx.org/licenses/")
@@ -29,7 +29,7 @@ def name_to_person(name):
     }
 
 
-class PubspecMapping(YamlMapping):
+class PubspecMapping(YamlMapping, SingleFileIntrinsicMapping):
 
     name = "pubspec"
     filename = b"pubspec.yaml"

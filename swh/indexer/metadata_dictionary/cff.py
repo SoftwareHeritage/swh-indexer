@@ -12,14 +12,14 @@ import rdflib.term
 from swh.indexer.codemeta import CROSSWALK_TABLE
 from swh.indexer.namespaces import RDF, SCHEMA
 
-from .base import YamlMapping
+from .base import SingleFileIntrinsicMapping, YamlMapping
 from .utils import add_map
 
 DOI = URIRef("https://doi.org/")
 SPDX = URIRef("https://spdx.org/licenses/")
 
 
-class CffMapping(YamlMapping):
+class CffMapping(YamlMapping, SingleFileIntrinsicMapping):
     """Dedicated class for Citation (CITATION.cff) mapping and translation"""
 
     name = "cff"

@@ -1,12 +1,12 @@
 @startuml
   participant LOADERS as "Loaders"
+  participant STORAGE as "Graph Storage"
   participant JOURNAL as "Journal"
   participant IDX_ORIG_META as "Origin Metadata Indexer"
   participant IDX_ORIG_HEAD as "Origin-Head Indexer"
   participant IDX_DIR_META as "Directory Metadata Indexer"
   participant IDX_CONT_META as "Content Metadata Indexer"
   participant IDX_STORAGE as "Indexer Storage"
-  participant STORAGE as "Graph Storage"
   participant OBJ_STORAGE as "Object Storage"
 
   activate OBJ_STORAGE
@@ -17,7 +17,9 @@
 
   activate LOADERS
 
-  LOADERS->>JOURNAL: Origin http://example.org/repo.git\nwas added/revisited
+  LOADERS->>STORAGE: Repository content
+  LOADERS->>STORAGE: Origin http://example.org/repo.git\nwas added/revisited
+  STORAGE->>JOURNAL: Origin http://example.org/repo.git\nwas added/revisited
   deactivate LOADERS
 
   JOURNAL->>IDX_ORIG_META: run indexers on origin\nhttp://example.org/repo.git
