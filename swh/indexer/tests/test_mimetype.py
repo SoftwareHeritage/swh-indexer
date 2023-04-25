@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -8,17 +8,12 @@ import unittest
 
 import pytest
 
-from swh.indexer.mimetype import (
-    MimetypeIndexer,
-    MimetypePartitionIndexer,
-    compute_mimetype_encoding,
-)
+from swh.indexer.mimetype import MimetypeIndexer, compute_mimetype_encoding
 from swh.indexer.storage.model import ContentMimetypeRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
     RAW_CONTENT_IDS,
     RAW_CONTENTS,
-    CommonContentIndexerPartitionTest,
     CommonContentIndexerTest,
     fill_obj_storage,
     fill_storage,
@@ -103,31 +98,6 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
 RANGE_CONFIG = dict(list(CONFIG.items()) + [("write_batch_size", 100)])
 
 
-class TestMimetypePartitionIndexer(
-    CommonContentIndexerPartitionTest, unittest.TestCase
-):
-    """Range Mimetype Indexer tests.
-
-    - new data within range are indexed
-    - no data outside a range are indexed
-    - with filtering existing indexed data prior to compute new index
-    - without filtering existing indexed data prior to compute new index
-
-    """
-
-    def setUp(self):
-        super().setUp()
-        self.indexer = MimetypePartitionIndexer(config=RANGE_CONFIG)
-        self.indexer.catch_exceptions = False
-        fill_storage(self.indexer.storage)
-        fill_obj_storage(self.indexer.objstorage)
-
-
 def test_mimetype_w_no_tool():
     with pytest.raises(ValueError):
         MimetypeIndexer(config=filter_dict(CONFIG, "tools"))
-
-
-def test_mimetype_range_w_no_tool():
-    with pytest.raises(ValueError):
-        MimetypePartitionIndexer(config=filter_dict(CONFIG, "tools"))
