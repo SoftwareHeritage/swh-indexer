@@ -14,7 +14,16 @@ at each step in the indexer storage.
 Indexer architecture
 ^^^^^^^^^^^^^^^^^^^^
 
+Sequence diagram
+""""""""""""""""
+
 .. thumbnail:: images/tasks-intrinsic-metadata-indexers.svg
+
+
+Data flow and storage
+"""""""""""""""""""""
+
+.. thumbnail:: images/metadata-flow.svg
 
 
 Origin-Head Indexer

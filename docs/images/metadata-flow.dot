@@ -1,0 +1,51 @@
+digraph metadata_flow {
+    subgraph cluster_forges {
+        style=invis;
+        origin_vcs [label="Version Control Systems\n(Git, SVN, ...)"];
+        origin_pm [label="Package Managers\n(NPM, PyPI, Debian, ...)"];
+    }
+    subgraph internet {
+        rank=same;
+        deposit_client [label="Deposit Clients\n(HAL, IPOL, eLife, Intel, ...)"];
+        registries [label="Registries\n(Wikidata, ...)"];
+    }
+
+    subgraph cluster_SWH {
+        label="Software Heritage";
+        labeljust="r";
+        labelloc="b";
+        loader_vcs [label="VCS loader", shape="box"];
+        loader_pm [label="PM loader", shape="box"];
+        deposit_server [label="Deposit server", shape="box"];
+        indexer_extr [label="extrinsic metadata indexer\n(translate to Codemeta)", shape="box"];
+        indexer_intr [label="intrinsic metadata indexer\n(translate to Codemeta)", shape="box"];
+        registry_fetcher[label="?", style="dashed", shape="box"];
+
+        storage [label="\nMain Storage\n(swh-storage and\nswh-objstorage)", shape=cylinder];
+        remd_storage [label="\nRaw Extrinsic\nMetadata Storage", shape=cylinder];
+        indexed_storage [label="\nIndexed\nMetadata Storage\n(search, idx-storage)", shape=cylinder];
+
+        webapp [label="Web Interface", shape="box"];
+    }
+
+    subgraph users {
+        browser [label="Web Browser", shape="box"]
+    }
+
+    origin_vcs -> loader_vcs [label="pull"];
+    loader_vcs -> storage;
+    origin_pm -> loader_pm [label="pull"]
+    loader_pm -> {storage, remd_storage};
+    deposit_client -> deposit_server [label="push\n(SWORD + Codemeta)"];
+    deposit_server -> {storage, remd_storage};
+
+    registries -> registry_fetcher -> remd_storage [style="dashed"];
+
+    storage -> indexer_intr [label="all kinds of\nmetadata formats"];
+    indexer_intr -> indexed_storage [label="only Codemeta"];
+    remd_storage -> indexer_extr [label="all kinds of\nmetadata formats"];
+    indexer_extr-> indexed_storage;
+
+    {storage, remd_storage, indexed_storage} -> webapp;
+    webapp -> browser [label="search, display,\nBibTeX export,\ndownload, ..."];
+}
