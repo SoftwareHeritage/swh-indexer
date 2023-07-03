@@ -14,7 +14,16 @@ at each step in the indexer storage.
 Indexer architecture
 ^^^^^^^^^^^^^^^^^^^^
 
+Sequence diagram
+""""""""""""""""
+
 .. thumbnail:: images/tasks-intrinsic-metadata-indexers.svg
+
+
+Data flow and storage
+"""""""""""""""""""""
+
+.. thumbnail:: images/metadata-flow.svg
 
 
 Origin-Head Indexer
@@ -147,9 +156,13 @@ Supported intrinsic metadata
 
 The following sources of intrinsic metadata are supported:
 
+* `CITATION.cff <https://citation-file-format.github.io/>`_
 * CodeMeta's `codemeta.json`_,
+* PHP's `composer.json <https://getcomposer.org/doc/04-schema.md>`_
 * Maven's `pom.xml`_,
 * NPM's `package.json`_,
+* NuGet's `.nuspec <https://learn.microsoft.com/en-us/nuget/reference/nuspec>`_
+* Pub.Dev's `pubspec.yaml <https://dart.dev/tools/pub/pubspec>`_
 * Python's `PKG-INFO`_,
 * Ruby's `.gemspec`_
 
@@ -164,6 +177,8 @@ Supported extrinsic metadata
 
 The following sources of extrinsic metadata are supported:
 
+* Codemeta documents sent by clients of :ref:`swh-deposit <swh-deposit>` (`HAL <https://hal.science/>`_, `eLife <https://elifesciences.org/>`_, `IPOL <https://www.ipol.im/>`_, ...)
+* Gitea's `"repoGet" API <https://gittea.dev/api/swagger#/repository/repoGet>`__
 * GitHub's `"repo" API <https://docs.github.com/en/rest/repos/repos#get-a-repository>`__
 
 

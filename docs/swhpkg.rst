@@ -100,7 +100,7 @@ SwhPkg Terms
      - A reference to the package release that depends on the dependency.
    * - ``dependency``
      - ``swhpkg:package``
-     - ``swhpkg:js/d3``, ``swhpkg:python/django``
+     - ``swhpackages:js/d3``, ``swhpackages:python/django``
      - A reference to the package that is depended on.
    * - ``constraint``
      - Text

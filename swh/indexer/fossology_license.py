@@ -1,21 +1,20 @@
-# Copyright (C) 2016-2021  The Software Heritage developers
+# Copyright (C) 2016-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import logging
 import subprocess
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
 import sentry_sdk
 
-from swh.core.api.classes import stream_results
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import IndexerStorageInterface, Sha1
 from swh.indexer.storage.model import ContentLicenseRow
 from swh.model import hashutil
 
-from .indexer import ContentIndexer, ContentPartitionIndexer, write_to_temp
+from .indexer import ContentIndexer, write_to_temp
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +73,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 class MixinFossologyLicenseIndexer:
     """Mixin fossology license indexer.
 
-    See :class:`FossologyLicenseIndexer` and
-    :class:`FossologyLicensePartitionIndexer`
+    See :class:`FossologyLicenseIndexer`
 
     """
 
@@ -160,36 +158,4 @@ class FossologyLicenseIndexer(
                 }
                 for sha1 in ids
             )
-        )
-
-
-class FossologyLicensePartitionIndexer(
-    MixinFossologyLicenseIndexer, ContentPartitionIndexer[ContentLicenseRow]
-):
-    """FossologyLicense Range Indexer working on range/partition of content identifiers.
-
-    - filters out the non textual content
-    - (optionally) filters out content already indexed (cf
-      :meth:`.indexed_contents_in_partition`)
-    - reads content from objstorage per the content's id (sha1)
-    - computes {mimetype, encoding} from that content
-    - stores result in storage
-
-    """
-
-    def indexed_contents_in_partition(
-        self, partition_id: int, nb_partitions: int, page_token: Optional[str] = None
-    ) -> Iterable[Sha1]:
-        """Retrieve indexed content id within the partition id
-
-        Args:
-            partition_id: Index of the partition to fetch
-            nb_partitions: Total number of partitions to split into
-            page_token: opaque token used for pagination
-        """
-        return stream_results(
-            self.idx_storage.content_fossology_license_get_partition,
-            self.tool["id"],
-            partition_id,
-            nb_partitions,
         )

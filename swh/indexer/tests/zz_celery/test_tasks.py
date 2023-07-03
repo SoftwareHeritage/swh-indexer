@@ -1,4 +1,4 @@
-# Copyright (C) 2022  The Software Heritage developers
+# Copyright (C) 2022-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -68,44 +68,6 @@ def test_task_mimetype(
     res = swh_scheduler_celery_app.send_task(
         "swh.indexer.tasks.ContentMimetype",
         args=["id0"],
-    )
-    assert res
-    res.wait()
-    assert res.successful()
-
-    assert res.result == {"status": "eventful"}
-
-
-def test_task_mimetype_partition(
-    mocker, swh_scheduler_celery_app, swh_scheduler_celery_worker, swh_config
-):
-
-    mock_indexer = mocker.patch("swh.indexer.tasks.MimetypePartitionIndexer.run")
-    mock_indexer.return_value = {"status": "eventful"}
-
-    res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.ContentMimetypePartition",
-        args=[0, 4],
-    )
-    assert res
-    res.wait()
-    assert res.successful()
-
-    assert res.result == {"status": "eventful"}
-
-
-def test_task_license_partition(
-    mocker, swh_scheduler_celery_app, swh_scheduler_celery_worker, swh_config
-):
-
-    mock_indexer = mocker.patch(
-        "swh.indexer.tasks.FossologyLicensePartitionIndexer.run"
-    )
-    mock_indexer.return_value = {"status": "eventful"}
-
-    res = swh_scheduler_celery_app.send_task(
-        "swh.indexer.tasks.ContentFossologyLicensePartition",
-        args=[0, 4],
     )
     assert res
     res.wait()
