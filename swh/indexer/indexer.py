@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2022  The Software Heritage developers
+# Copyright (C) 2016-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -9,25 +9,12 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
 import warnings
 
 import sentry_sdk
 from typing_extensions import TypedDict
 
-from swh.core import utils
 from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, Sha1, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
@@ -302,8 +289,6 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
     """A content indexer working on the journal (method `process_journal_objects`) or on
     a list of ids directly (method `run`).
 
-    To work on indexer partition, use the :class:`ContentPartitionIndexer` instead.
-
     Note: :class:`ContentIndexer` is not an instantiable object. To
     use it, one should inherit from this class and override the
     methods mentioned in the :class:`BaseIndexer` class.
@@ -316,7 +301,6 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
 
         Note that once this is deployed, this supersedes the main ContentIndexer.run
         method call and the class ContentPartitionIndexer.
-
         """
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
@@ -412,167 +396,6 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
         else:
             # Reset tag after we finished processing the given content
             sentry_sdk.set_tag("swh-indexer-content-sha1", "")
-        return summary
-
-
-class ContentPartitionIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
-    """A content partition indexer.
-
-    This expects as input a partition_id and a nb_partitions. This will then index the
-    contents within that partition.
-
-    To work on a list of ids, use the :class:`ContentIndexer` instead.
-
-    Note: :class:`ContentPartitionIndexer` is not an instantiable
-    object. To use it, one should inherit from this class and override
-    the methods mentioned in the :class:`BaseIndexer` class.
-
-    """
-
-    @abc.abstractmethod
-    def indexed_contents_in_partition(
-        self, partition_id: int, nb_partitions: int
-    ) -> Iterable[Sha1]:
-        """Retrieve indexed contents within range [start, end].
-
-        Args:
-            partition_id: Index of the partition to fetch
-            nb_partitions: Total number of partitions to split into
-            page_token: opaque token used for pagination
-
-        """
-        pass
-
-    def _list_contents_to_index(
-        self, partition_id: int, nb_partitions: int, indexed: Set[Sha1]
-    ) -> Iterable[Sha1]:
-        """Compute from storage the new contents to index in the partition_id . The already
-           indexed contents are skipped.
-
-        Args:
-            partition_id: Index of the partition to fetch data from
-            nb_partitions: Total number of partition
-            indexed: Set of content already indexed.
-
-        Yields:
-            Sha1 id (bytes) of contents to index
-
-        """
-        if not isinstance(partition_id, int) or not isinstance(nb_partitions, int):
-            raise TypeError(
-                f"identifiers must be int, not {partition_id!r} and {nb_partitions!r}."
-            )
-        next_page_token = None
-        while True:
-            result = self.storage.content_get_partition(
-                partition_id, nb_partitions, page_token=next_page_token
-            )
-            contents = result.results
-            for c in contents:
-                _id = hashutil.hash_to_bytes(c.sha1)
-                if _id in indexed:
-                    continue
-                yield _id
-            next_page_token = result.next_page_token
-            if next_page_token is None:
-                break
-
-    def _index_contents(
-        self, partition_id: int, nb_partitions: int, indexed: Set[Sha1], **kwargs: Any
-    ) -> Iterator[TResult]:
-        """Index the contents within the partition_id.
-
-        Args:
-            start: Starting bound from range identifier
-            end: End range identifier
-            indexed: Set of content already indexed.
-
-        Yields:
-            indexing result as dict to persist in the indexer backend
-
-        """
-        for sha1 in self._list_contents_to_index(partition_id, nb_partitions, indexed):
-            try:
-                raw_content = self.objstorage.get(sha1)
-            except ObjNotFoundError:
-                self.log.warning(f"Content {sha1.hex()} not found in objstorage")
-                continue
-            sentry_sdk.set_tag("swh-indexer-content-sha1", sha1)
-            yield from self.index(sha1, raw_content, **kwargs)
-        sentry_sdk.set_tag("swh-indexer-content-sha1", "")
-
-    def _index_with_skipping_already_done(
-        self, partition_id: int, nb_partitions: int
-    ) -> Iterator[TResult]:
-        """Index not already indexed contents within the partition partition_id
-
-        Args:
-            partition_id: Index of the partition to fetch
-            nb_partitions: Total number of partitions to split into
-
-        Yields:
-           indexing result as dict to persist in the indexer backend
-
-        """
-        already_indexed_contents = set(
-            self.indexed_contents_in_partition(partition_id, nb_partitions)
-        )
-
-        return self._index_contents(
-            partition_id, nb_partitions, already_indexed_contents
-        )
-
-    def run(
-        self,
-        partition_id: int,
-        nb_partitions: int,
-        skip_existing: bool = True,
-        **kwargs,
-    ) -> Dict:
-        """Given a partition of content ids, index the contents within.
-
-           Either the indexer is incremental (filter out existing computed data) or it
-           computes everything from scratch.
-
-        Args:
-            partition_id: Index of the partition to fetch
-            nb_partitions: Total number of partitions to split into
-            skip_existing: Skip existing indexed data
-                (default) or not
-            **kwargs: passed to the `index` method
-
-        Returns:
-            dict with the indexing task status
-
-        """
-        summary: Dict[str, Any] = {"status": "uneventful"}
-        count = 0
-        try:
-            if skip_existing:
-                gen = self._index_with_skipping_already_done(
-                    partition_id, nb_partitions
-                )
-            else:
-                gen = self._index_contents(partition_id, nb_partitions, indexed=set([]))
-
-            count_object_added_key: Optional[str] = None
-
-            for contents in utils.grouper(gen, n=self.config["write_batch_size"]):
-                res = self.persist_index_computations(list(contents))
-                if not count_object_added_key:
-                    count_object_added_key = list(res.keys())[0]
-                count += res[count_object_added_key]
-                if count > 0:
-                    summary["status"] = "eventful"
-        except Exception:
-            if not self.catch_exceptions:
-                raise
-            self.log.exception("Problem when computing metadata.")
-            sentry_sdk.capture_exception()
-            summary["status"] = "failed"
-
-        if count > 0 and count_object_added_key:
-            summary[count_object_added_key] = count
         return summary
 
 

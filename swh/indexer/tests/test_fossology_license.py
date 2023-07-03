@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -10,17 +10,12 @@ from unittest.mock import patch
 import pytest
 
 from swh.indexer import fossology_license
-from swh.indexer.fossology_license import (
-    FossologyLicenseIndexer,
-    FossologyLicensePartitionIndexer,
-    compute_license,
-)
+from swh.indexer.fossology_license import FossologyLicenseIndexer, compute_license
 from swh.indexer.storage.model import ContentLicenseRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
     RAW_CONTENT_IDS,
     SHA1_TO_LICENSES,
-    CommonContentIndexerPartitionTest,
     CommonContentIndexerTest,
     fill_obj_storage,
     fill_storage,
@@ -111,40 +106,6 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         fossology_license.compute_license = self.orig_compute_license
 
 
-class TestFossologyLicensePartitionIndexer(
-    CommonContentIndexerPartitionTest, unittest.TestCase
-):
-    """Range Fossology License Indexer tests.
-
-    - new data within range are indexed
-    - no data outside a range are indexed
-    - with filtering existing indexed data prior to compute new index
-    - without filtering existing indexed data prior to compute new index
-
-    """
-
-    def setUp(self):
-        super().setUp()
-
-        # replace actual license computation with a mock
-        self.orig_compute_license = fossology_license.compute_license
-        fossology_license.compute_license = mock_compute_license
-
-        self.indexer = FossologyLicensePartitionIndexer(config=RANGE_CONFIG)
-        self.indexer.catch_exceptions = False
-        fill_storage(self.indexer.storage)
-        fill_obj_storage(self.indexer.objstorage)
-
-    def tearDown(self):
-        super().tearDown()
-        fossology_license.compute_license = self.orig_compute_license
-
-
 def test_fossology_w_no_tool():
     with pytest.raises(ValueError):
         FossologyLicenseIndexer(config=filter_dict(CONFIG, "tools"))
-
-
-def test_fossology_range_w_no_tool():
-    with pytest.raises(ValueError):
-        FossologyLicensePartitionIndexer(config=filter_dict(RANGE_CONFIG, "tools"))

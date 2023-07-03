@@ -1,18 +1,17 @@
-# Copyright (C) 2016-2021  The Software Heritage developers
+# Copyright (C) 2016-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
 import magic
 
-from swh.core.api.classes import stream_results
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import IndexerStorageInterface, Sha1
 from swh.indexer.storage.model import ContentMimetypeRow
 
-from .indexer import ContentIndexer, ContentPartitionIndexer
+from .indexer import ContentIndexer
 
 if not hasattr(magic.Magic, "from_buffer"):
     raise ImportError(
@@ -56,7 +55,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 class MixinMimetypeIndexer:
     """Mixin mimetype indexer.
 
-    See :class:`MimetypeIndexer` and :class:`MimetypePartitionIndexer`
+    See :class:`MimetypeIndexer`
 
     """
 
@@ -131,39 +130,4 @@ class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer[ContentMimetypeRow]):
                 }
                 for sha1 in ids
             )
-        )
-
-
-class MimetypePartitionIndexer(
-    MixinMimetypeIndexer, ContentPartitionIndexer[ContentMimetypeRow]
-):
-    """Mimetype Range Indexer working on range of content identifiers.
-
-    It:
-
-    - (optionally) filters out content already indexed (cf
-      :meth:`.indexed_contents_in_partition`)
-    - reads content from objstorage per the content's id (sha1)
-    - computes {mimetype, encoding} from that content
-    - stores result in storage
-
-    """
-
-    def indexed_contents_in_partition(
-        self,
-        partition_id: int,
-        nb_partitions: int,
-    ) -> Iterable[Sha1]:
-        """Retrieve indexed content ids within partition_id.
-
-        Args:
-            partition_id: Index of the partition to fetch
-            nb_partitions: Total number of partitions to split into
-            page_token: opaque token used for pagination
-        """
-        return stream_results(
-            self.idx_storage.content_mimetype_get_partition,
-            self.tool["id"],
-            partition_id,
-            nb_partitions,
         )
