@@ -400,7 +400,7 @@ class YamlMapping(DictMapping):
         raw_content_string: str = raw_content.decode()
         try:
             content_dict = yaml.load(raw_content_string, Loader=SafeLoader)
-        except (yaml.scanner.ScannerError, yaml.parser.ParserError):
+        except yaml.YAMLError:
             return None
 
         if isinstance(content_dict, dict):

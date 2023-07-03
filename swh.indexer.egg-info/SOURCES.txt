@@ -34,6 +34,7 @@ docs/_static/.placeholder
 docs/_templates/.placeholder
 docs/images/.gitignore
 docs/images/Makefile
+docs/images/metadata-flow.dot
 docs/images/tasks-extrinsic-metadata-indexers.uml
 docs/images/tasks-intrinsic-metadata-indexers.uml
 sql/bin/db-upgrade

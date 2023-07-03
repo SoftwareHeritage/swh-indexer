@@ -159,3 +159,14 @@ def test_invalid_yaml():
     result = MAPPINGS["PubMapping"]().translate(raw_content)
 
     assert result is None
+
+
+def test_invalid_tag():
+    raw_content = b"""
+    name: translatron
+    description: !BETA VERSION - NOT FOR LIVE OR PROD USAGE!
+    """
+
+    result = MAPPINGS["PubMapping"]().translate(raw_content)
+
+    assert result is None

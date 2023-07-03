@@ -1,8 +1,14 @@
-swh-indexer (2.9.4-1~swh1~bpo10+1) buster-swh; urgency=medium
+swh-indexer (2.10.0-1~swh1) unstable-swh; urgency=medium
 
-  * Rebuild for buster-swh
+  * New upstream release 2.10.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2023-07-03 16:56:26 +0200)
+  * Upstream changes:     - v2.10.0     - * docs: Add diagram of
+    metadata flow     - * docs: Fix incorrect namespace in swhpkg
+    example     - * docs: Update list of supported metadata formats     -
+    * pubspec: Fix crash on invalid yaml tag     - * Drop partition
+    indexer related code which is no longer used
 
- -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 17 Apr 2023 14:40:41 +0000
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 03 Jul 2023 15:02:22 +0000
 
 swh-indexer (2.9.4-1~swh1) unstable-swh; urgency=medium
 
