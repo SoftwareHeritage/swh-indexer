@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -139,7 +139,7 @@ class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
         # Check if filename is a regex or bytes:
         if isinstance(filename, bytes):
             for entry in file_entries:
-                if entry["name"].lower() == filename:
+                if entry["name"].lower() == filename.lower():
                     return [entry["sha1"]]
         else:
             for entry in file_entries:
