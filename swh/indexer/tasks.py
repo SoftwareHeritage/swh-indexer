@@ -23,7 +23,7 @@ def fossology_license(*args, **kwargs):
 
 
 @shared_task(name=__name__ + ".RecomputeChecksums")
-def recompute_checksums(*args, **kwargs):
+def _recompute_checksums(*args, **kwargs):
     return RecomputeChecksums().run(*args, **kwargs)
 
 
