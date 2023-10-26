@@ -27,7 +27,7 @@ TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-
 
 class DirectoryLsEntry(TypedDict):
     target: Sha1
-    sha1: Sha1
+    sha1: Optional[Sha1]
     name: bytes
     type: str
 
@@ -140,11 +140,13 @@ class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
         if isinstance(filename, bytes):
             for entry in file_entries:
                 if entry["name"].lower() == filename.lower():
-                    return [entry["sha1"]]
+                    if entry["sha1"] is not None:  # ignore skipped_content and dangling
+                        return [entry["sha1"]]
         else:
             for entry in file_entries:
                 if filename.match(entry["name"]):
-                    return [entry["sha1"]]
+                    if entry["sha1"] is not None:  # ignore skipped_content and dangling
+                        return [entry["sha1"]]
 
         return []
 
