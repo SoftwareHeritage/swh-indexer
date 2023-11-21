@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -27,7 +27,7 @@ TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-
 
 class DirectoryLsEntry(TypedDict):
     target: Sha1
-    sha1: Sha1
+    sha1: Optional[Sha1]
     name: bytes
     type: str
 
@@ -139,12 +139,14 @@ class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
         # Check if filename is a regex or bytes:
         if isinstance(filename, bytes):
             for entry in file_entries:
-                if entry["name"].lower() == filename:
-                    return [entry["sha1"]]
+                if entry["name"].lower() == filename.lower():
+                    if entry["sha1"] is not None:  # ignore skipped_content and dangling
+                        return [entry["sha1"]]
         else:
             for entry in file_entries:
                 if filename.match(entry["name"]):
-                    return [entry["sha1"]]
+                    if entry["sha1"] is not None:  # ignore skipped_content and dangling
+                        return [entry["sha1"]]
 
         return []
 

@@ -54,6 +54,8 @@ setup(
     entry_points="""
         [swh.cli.subcommands]
         indexer=swh.indexer.cli
+        [swh.workers]
+        indexer.workers=swh.indexer:register_tasks
     """,
     classifiers=[
         "Programming Language :: Python :: 3",

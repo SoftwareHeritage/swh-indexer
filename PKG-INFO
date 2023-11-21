@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: swh.indexer
-Version: 2.10.0
+Version: 2.11.0
 Summary: Software Heritage Content Indexer
 Home-page: https://forge.softwareheritage.org/diffusion/78/
 Author: Software Heritage developers
@@ -16,9 +16,34 @@ Classifier: Operating System :: OS Independent
 Classifier: Development Status :: 5 - Production/Stable
 Requires-Python: >=3.7
 Description-Content-Type: text/markdown
-Provides-Extra: testing
 License-File: LICENSE
 License-File: AUTHORS
+Requires-Dist: python-magic>=0.4.13
+Requires-Dist: click
+Requires-Dist: frozendict!=2.1.2
+Requires-Dist: iso8601
+Requires-Dist: pybtex
+Requires-Dist: pyld
+Requires-Dist: rdflib
+Requires-Dist: sentry-sdk
+Requires-Dist: typing-extensions
+Requires-Dist: xmltodict
+Requires-Dist: swh.core[db,http]>=2.20.0
+Requires-Dist: swh.model>=0.0.15
+Requires-Dist: swh.objstorage>=0.2.2
+Requires-Dist: swh.scheduler>=0.5.2
+Requires-Dist: swh.storage>=0.22.0
+Requires-Dist: swh.journal>=0.1.0
+Provides-Extra: testing
+Requires-Dist: confluent-kafka; extra == "testing"
+Requires-Dist: hypothesis>=3.11.0; extra == "testing"
+Requires-Dist: pytest; extra == "testing"
+Requires-Dist: pytest-mock; extra == "testing"
+Requires-Dist: swh.core[testing]; extra == "testing"
+Requires-Dist: swh.scheduler[testing]>=0.5.0; extra == "testing"
+Requires-Dist: swh.storage[testing]>=0.10.0; extra == "testing"
+Requires-Dist: types-click; extra == "testing"
+Requires-Dist: types-pyyaml; extra == "testing"
 
 swh-indexer
 ============

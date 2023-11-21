@@ -1,9 +1,11 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2023  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
+from swh.model.hashutil import hash_to_bytes
 
 
 def test_compute_metadata_pkginfo():
@@ -111,3 +113,14 @@ License: MIT
         "name": "foo",
         "license": "https://spdx.org/licenses/MIT",
     }
+
+
+def test_detect_metadata_files():
+    dir_entry = DirectoryLsEntry(
+        type="file",
+        name=b"PKG-INFO",
+        target=hash_to_bytes("1" * 40),
+        sha1=hash_to_bytes("2" * 40),
+    )
+    result = MAPPINGS["PythonPkginfoMapping"]().detect_metadata_files([dir_entry])
+    assert result == [dir_entry["sha1"]]
