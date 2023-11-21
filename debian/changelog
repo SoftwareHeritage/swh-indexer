@@ -1,3 +1,11 @@
+swh-indexer (2.11.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.11.0     - (tagged by Antoine Lambert
+    <anlambert@softwareheritage.org> on 2023-11-21 17:33:24 +0100)
+  * Upstream changes:     - version 2.11.0
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Tue, 21 Nov 2023 16:38:20 +0000
+
 swh-indexer (2.10.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.10.0     - (tagged by Valentin Lorentz
