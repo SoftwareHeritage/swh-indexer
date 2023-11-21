@@ -56,6 +56,7 @@ swh.indexer.egg-info/entry_points.txt
 swh.indexer.egg-info/requires.txt
 swh.indexer.egg-info/top_level.txt
 swh/indexer/__init__.py
+swh/indexer/bibtex.py
 swh/indexer/cli.py
 swh/indexer/codemeta.py
 swh/indexer/fossology_license.py
@@ -136,6 +137,7 @@ swh/indexer/storage/api/server.py
 swh/indexer/tests/__init__.py
 swh/indexer/tests/conftest.py
 swh/indexer/tests/tasks.py
+swh/indexer/tests/test_bibtex.py
 swh/indexer/tests/test_cli.py
 swh/indexer/tests/test_codemeta.py
 swh/indexer/tests/test_fossology_license.py
