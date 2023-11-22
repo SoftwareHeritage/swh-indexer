@@ -13,20 +13,24 @@ from .rehash import RecomputeChecksums
 
 
 @shared_task(name=__name__ + ".OriginMetadata")
-def origin_metadata(*args, **kwargs):
+def index_origin_metadata(*args, **kwargs):
+    """Origin Metadata indexer task"""
     return OriginMetadataIndexer().run(*args, **kwargs)
 
 
 @shared_task(name=__name__ + ".ContentFossologyLicense")
-def fossology_license(*args, **kwargs):
+def index_fossology_license(*args, **kwargs):
+    """Fossology license indexer task"""
     return FossologyLicenseIndexer().run(*args, **kwargs)
 
 
 @shared_task(name=__name__ + ".RecomputeChecksums")
-def _recompute_checksums(*args, **kwargs):
+def recompute_checksums(*args, **kwargs):
+    """Recompute checksums indexer task"""
     return RecomputeChecksums().run(*args, **kwargs)
 
 
 @shared_task(name=__name__ + ".ContentMimetype")
-def mimetype(*args, **kwargs):
+def index_mimetype(*args, **kwargs):
+    """Mimetype indexer task"""
     return MimetypeIndexer().run(*args, **kwargs)
