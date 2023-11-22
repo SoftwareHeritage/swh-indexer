@@ -1,3 +1,2 @@
-include ../../swh-docs/Makefile.sphinx
 -include Makefile.local
-
+include swh-docs/Makefile.sphinx
