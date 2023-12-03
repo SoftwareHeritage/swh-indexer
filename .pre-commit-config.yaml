@@ -29,6 +29,9 @@ repos:
         name: Check source code spelling
         exclude: ^(swh/indexer/data/codemeta/crosswalk.csv)$
         stages: [commit]
+      - id: codespell
+        name: Check commit message spelling
+        stages: [commit-msg]
 
   - repo: local
     hooks:

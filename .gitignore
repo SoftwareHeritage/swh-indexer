@@ -8,5 +8,9 @@
 __pycache__
 build/
 dist/
+# these are symlinks created by a hook in swh-docs' main sphinx conf.py
 docs/README.rst
 docs/README.md
+# this should be a symlink for people who want to build the sphinx doc
+# without using tox, generally created by the swh-env/bin/update script
+docs/Makefile.sphinx
