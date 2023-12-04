@@ -1,11 +1,6 @@
 .. _swh-indexer:
 
-Software Heritage - Indexer
-===========================
-
-Tools and workers used to mine the content of the archive and extract derived
-information from archive source code artifacts.
-
+.. include:: README.rst
 
 .. toctree::
    :maxdepth: 1
