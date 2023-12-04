@@ -1,3 +1,4 @@
+.copier-answers.yml
 .git-blame-ignore-revs
 .gitignore
 .pre-commit-config.yaml
@@ -5,10 +6,9 @@ AUTHORS
 CODE_OF_CONDUCT.md
 CONTRIBUTORS
 LICENSE
-MANIFEST.in
 Makefile
 Makefile.local
-README.md
+README.rst
 codemeta.json
 conftest.py
 mypy.ini
@@ -18,12 +18,10 @@ requirements-swh.txt
 requirements-test.txt
 requirements.txt
 setup.cfg
-setup.py
 tox.ini
 docs/.gitignore
 docs/Makefile
 docs/Makefile.local
-docs/README.md
 docs/cli.rst
 docs/conf.py
 docs/dev-info.rst
@@ -40,15 +38,10 @@ docs/images/tasks-intrinsic-metadata-indexers.uml
 sql/bin/db-upgrade
 sql/bin/dot_add_content
 sql/doc/json
-sql/doc/json/.gitignore
-sql/doc/json/Makefile
-sql/doc/json/indexer_configuration.tool_configuration.schema.json
-sql/doc/json/revision_metadata.translated_metadata.json
 sql/json/.gitignore
 sql/json/Makefile
 sql/json/indexer_configuration.tool_configuration.schema.json
 sql/json/revision_metadata.translated_metadata.json
-swh/__init__.py
 swh.indexer.egg-info/PKG-INFO
 swh.indexer.egg-info/SOURCES.txt
 swh.indexer.egg-info/dependency_links.txt
