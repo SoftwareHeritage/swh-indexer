@@ -1,3 +1,12 @@
+swh-indexer (2.12.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 2.12.0     - (tagged by David Douard
+    <david.douard@sdfa3.org> on 2023-12-04 17:28:52 +0100)
+  * Upstream changes:     - v2.12.0     - Migrate to copier, PEP420 and
+    pyproject.toml based packaging.
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Mon, 04 Dec 2023 16:35:10 +0000
+
 swh-indexer (2.11.1-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.11.1     - (tagged by Antoine Lambert
