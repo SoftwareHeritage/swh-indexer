@@ -21,7 +21,7 @@ def detect_metadata(files: List[DirectoryLsEntry]) -> Dict[str, List[Sha1]]:
         dict: {mapping_filenames[name]:f['sha1']} (may be empty)
     """
     results = {}
-    for (mapping_name, mapping) in INTRINSIC_MAPPINGS.items():
+    for mapping_name, mapping in INTRINSIC_MAPPINGS.items():
         matches = mapping.detect_metadata_files(files)
         if matches:
             results[mapping_name] = matches

@@ -155,7 +155,6 @@ def test_origin_metadata_indexer_partial_missing_head(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-
     origin1 = "https://example.com"
     origin2 = "https://github.com/librariesio/yarn-parser"
     storage.origin_add([Origin(url=origin1)])
@@ -272,7 +271,6 @@ def test_origin_metadata_indexer_no_metadata_file(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch("swh.indexer.metadata_dictionary.npm.NpmMapping.filename", b"foo.json"):
@@ -293,7 +291,6 @@ def test_origin_metadata_indexer_no_metadata(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch(
@@ -321,7 +318,6 @@ def test_origin_metadata_indexer_directory_error(
     sentry_events,
     catch_exceptions,
 ) -> None:
-
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
 
@@ -362,7 +358,6 @@ def test_origin_metadata_indexer_content_exception(
     sentry_events,
     catch_exceptions,
 ) -> None:
-
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
 
@@ -403,7 +398,6 @@ def test_origin_metadata_indexer_unknown_origin(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     result = indexer.index_list([Origin("https://unknown.org/foo")])
     assert not result

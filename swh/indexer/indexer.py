@@ -524,13 +524,12 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
         self,
         directories: Union[List[Tuple[Sha1Git, Directory]], List[Tuple[Sha1Git, None]]],
     ) -> Dict:
-
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
 
         # TODO: fetch raw_manifest when useful?
 
-        for (dir_id, dir_) in directories:
+        for dir_id, dir_ in directories:
             swhid = f"swh:1:dir:{hashutil.hash_to_hex(dir_id)}"
             sentry_sdk.set_tag("swh-indexer-directory-swhid", swhid)
             try:

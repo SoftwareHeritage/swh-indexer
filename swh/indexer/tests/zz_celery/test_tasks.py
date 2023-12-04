@@ -7,7 +7,6 @@
 def test_task_origin_metadata(
     mocker, swh_scheduler_celery_app, swh_scheduler_celery_worker, swh_config
 ):
-
     mock_indexer = mocker.patch("swh.indexer.tasks.OriginMetadataIndexer.run")
     mock_indexer.return_value = {"status": "eventful"}
 
@@ -25,7 +24,6 @@ def test_task_origin_metadata(
 def test_task_fossology_license(
     mocker, swh_scheduler_celery_app, swh_scheduler_celery_worker, swh_config
 ):
-
     mock_indexer = mocker.patch("swh.indexer.tasks.FossologyLicenseIndexer.run")
     mock_indexer.return_value = {"status": "eventful"}
 
@@ -43,7 +41,6 @@ def test_task_fossology_license(
 def test_task_recompute_checksums(
     mocker, swh_scheduler_celery_app, swh_scheduler_celery_worker, swh_config
 ):
-
     mock_indexer = mocker.patch("swh.indexer.tasks.RecomputeChecksums.run")
     mock_indexer.return_value = {"status": "eventful"}
 
@@ -61,7 +58,6 @@ def test_task_recompute_checksums(
 def test_task_mimetype(
     mocker, swh_scheduler_celery_app, swh_scheduler_celery_worker, swh_config
 ):
-
     mock_indexer = mocker.patch("swh.indexer.tasks.MimetypeIndexer.run")
     mock_indexer.return_value = {"status": "eventful"}
 

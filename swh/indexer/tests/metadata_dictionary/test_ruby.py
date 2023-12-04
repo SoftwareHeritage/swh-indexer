@@ -130,7 +130,7 @@ s.summary = 'execute system commands with aliases'
 )
 def test_gemspec_adversarial(doc):
     parts = [b"Gem::Specification.new do |s|\n"]
-    for (k, v) in doc.items():
+    for k, v in doc.items():
         parts.append("  s.{} = {}\n".format(k, repr(v)).encode())
     parts.append(b"end\n")
     MAPPINGS["GemspecMapping"]().translate(b"".join(parts))

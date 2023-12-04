@@ -82,7 +82,7 @@ def mapping_list_terms(concise, exclude_mapping):
     from swh.indexer import metadata_dictionary
 
     properties = metadata_dictionary.list_terms()
-    for (property_name, supported_mappings) in sorted(properties.items()):
+    for property_name, supported_mappings in sorted(properties.items()):
         supported_mappings = {m.name for m in supported_mappings}
         supported_mappings -= set(exclude_mapping)
         if supported_mappings:
