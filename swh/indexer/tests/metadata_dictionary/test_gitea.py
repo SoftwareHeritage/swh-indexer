@@ -139,5 +139,6 @@ def test_compute_metadata_gitea():
         "codeRepository": "https://codeberg.org/ForgeFed/ForgeFed.git",
         "dateCreated": "2022-06-13T18:54:26+02:00",
         "dateModified": "2022-09-02T03:57:22+02:00",
+        "programmingLanguage": "CSS",
         "url": "https://forgefed.org",
     }

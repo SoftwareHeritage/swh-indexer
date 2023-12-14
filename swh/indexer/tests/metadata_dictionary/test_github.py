@@ -140,6 +140,7 @@ def test_compute_metadata_github():
         "codeRepository": "https://github.com/SoftwareHeritage/swh-indexer.git",
         "dateCreated": "2017-01-31T13:05:39Z",
         "dateModified": "2022-06-22T08:02:20Z",
+        "programmingLanguage": "Python",
     }
 
 

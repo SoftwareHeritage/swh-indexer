@@ -22,6 +22,7 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         **CROSSWALK_TABLE["GitHub"],
         "topics": SCHEMA.keywords,  # TODO: submit this to the official crosswalk
         "clone_url": SCHEMA.codeRepository,
+        "language": SCHEMA.programmingLanguage,
     }
     uri_fields = [
         "clone_url",
@@ -33,6 +34,7 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
     string_fields = [
         "description",
         "full_name",
+        "language",
         "topics",
     ]
 

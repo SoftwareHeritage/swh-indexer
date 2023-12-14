@@ -25,7 +25,10 @@ with open(GITEA_TABLE_PATH) as fd:
 
 class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
     name = "gitea"
-    mapping = GITEA_TABLE["Gitea"]
+    mapping = {
+        **GITEA_TABLE["Gitea"],
+        "language": SCHEMA.programmingLanguage,
+    }
     uri_fields = [
         "website",
         "clone_url",
@@ -37,7 +40,7 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
     string_fields = [
         "name",
         "full_name",
-        "languages",
+        "language",
         "description",
     ]
 
