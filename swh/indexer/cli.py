@@ -114,42 +114,6 @@ def mapping_translate(mapping_name, file):
     click.echo(json.dumps(codemeta_doc, indent=4))
 
 
-@indexer_cli_group.group("schedule")
-@click.option("--scheduler-url", "-s", default=None, help="URL of the scheduler API")
-@click.option(
-    "--indexer-storage-url", "-i", default=None, help="URL of the indexer storage API"
-)
-@click.option(
-    "--storage-url", "-g", default=None, help="URL of the (graph) storage API"
-)
-@click.option(
-    "--dry-run/--no-dry-run",
-    is_flag=True,
-    default=False,
-    help="List only what would be scheduled.",
-)
-@click.pass_context
-def schedule(ctx, scheduler_url, storage_url, indexer_storage_url, dry_run):
-    """Manipulate Software Heritage Indexer tasks.
-
-    Via SWH Scheduler's API."""
-    from swh.indexer.storage import get_indexer_storage
-    from swh.scheduler import get_scheduler
-    from swh.storage import get_storage
-
-    ctx.obj["indexer_storage"] = _get_api(
-        get_indexer_storage, ctx.obj["config"], "indexer_storage", indexer_storage_url
-    )
-    ctx.obj["storage"] = _get_api(
-        get_storage, ctx.obj["config"], "storage", storage_url
-    )
-    ctx.obj["scheduler"] = _get_api(
-        get_scheduler, ctx.obj["config"], "scheduler", scheduler_url
-    )
-    if dry_run:
-        ctx.obj["scheduler"] = None
-
-
 def list_origins_by_producer(idx_storage, mappings, tool_ids) -> Iterator[str]:
     next_page_token = ""
     limit = 10000
@@ -165,53 +129,6 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids) -> Iterator[str]:
         yield from result.results
 
 
-@schedule.command("reindex_origin_metadata")
-@click.option(
-    "--batch-size",
-    "-b",
-    "origin_batch_size",
-    default=10,
-    show_default=True,
-    type=int,
-    help="Number of origins per task",
-)
-@click.option(
-    "--tool-id",
-    "-t",
-    "tool_ids",
-    type=int,
-    multiple=True,
-    help="Restrict search of old metadata to this/these tool ids.",
-)
-@click.option(
-    "--mapping",
-    "-m",
-    "mappings",
-    multiple=True,
-    help="Mapping(s) that should be re-scheduled (eg. 'npm', 'gemspec', 'maven')",
-)
-@click.option(
-    "--task-type",
-    default="index-origin-metadata",
-    show_default=True,
-    help="Name of the task type to schedule.",
-)
-@click.pass_context
-def schedule_origin_metadata_reindex(
-    ctx, origin_batch_size, tool_ids, mappings, task_type
-):
-    """Schedules indexing tasks for origins that were already indexed."""
-    from swh.scheduler.cli_utils import schedule_origin_batches
-
-    idx_storage = ctx.obj["indexer_storage"]
-    scheduler = ctx.obj["scheduler"]
-
-    origins = list_origins_by_producer(idx_storage, mappings, tool_ids)
-
-    kwargs = {"retries_left": 1}
-    schedule_origin_batches(scheduler, task_type, origins, origin_batch_size, kwargs)
-
-
 @indexer_cli_group.command("journal-client")
 @click.argument(
     "indexer",
@@ -224,10 +141,8 @@ def schedule_origin_metadata_reindex(
             "*",
         ]
     ),
-    required=False
-    # TODO: remove required=False after we stop using it
+    required=True,
 )
-@click.option("--scheduler-url", "-s", default=None, help="URL of the scheduler API")
 @click.option(
     "--origin-metadata-task-type",
     default="index-origin-metadata",
@@ -258,7 +173,6 @@ def schedule_origin_metadata_reindex(
 def journal_client(
     ctx,
     indexer: Optional[str],
-    scheduler_url: str,
     origin_metadata_task_type: str,
     brokers: List[str],
     prefix: str,
@@ -275,18 +189,11 @@ def journal_client(
 
     Passing '*' as indexer name runs all indexers.
     """
-    import functools
-    import warnings
-
     from swh.indexer.indexer import BaseIndexer, ObjectsDict
-    from swh.indexer.journal_client import process_journal_objects
     from swh.journal.client import get_journal_client
-    from swh.scheduler import get_scheduler
 
     cfg = ctx.obj["config"]
     journal_cfg = cfg.get("journal", {})
-
-    scheduler = _get_api(get_scheduler, cfg, "scheduler", scheduler_url)
 
     if brokers:
         journal_cfg["brokers"] = brokers
@@ -307,23 +214,6 @@ def journal_client(
 
     object_types = set()
     worker_fns: List[Callable[[ObjectsDict], Dict]] = []
-
-    if indexer is None:
-        warnings.warn(
-            "'swh indexer journal-client' with no argument creates scheduler tasks "
-            "to index, rather than index directly.",
-            DeprecationWarning,
-        )
-        object_types.add("origin_visit_status")
-        worker_fns.append(
-            functools.partial(
-                process_journal_objects,
-                scheduler=scheduler,
-                task_names={
-                    "origin_metadata": origin_metadata_task_type,
-                },
-            )
-        )
 
     idx: Optional[BaseIndexer] = None
 
