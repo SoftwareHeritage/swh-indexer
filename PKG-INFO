@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: swh.indexer
-Version: 2.12.0
+Version: 3.0.0
 Summary: Software Heritage indexer
 Author-email: Software Heritage developers <swh-devel@inria.fr>
 Project-URL: Homepage, https://gitlab.softwareheritage.org/swh/devel/swh-indexer
@@ -30,7 +30,6 @@ Requires-Dist: xmltodict
 Requires-Dist: swh.core[db,http]>=2.20.0
 Requires-Dist: swh.model>=0.0.15
 Requires-Dist: swh.objstorage>=0.2.2
-Requires-Dist: swh.scheduler>=0.5.2
 Requires-Dist: swh.storage>=0.22.0
 Requires-Dist: swh.journal>=0.1.0
 Provides-Extra: testing
@@ -39,7 +38,6 @@ Requires-Dist: hypothesis>=3.11.0; extra == "testing"
 Requires-Dist: pytest; extra == "testing"
 Requires-Dist: pytest-mock; extra == "testing"
 Requires-Dist: swh.core[testing]; extra == "testing"
-Requires-Dist: swh.scheduler[testing]>=0.5.0; extra == "testing"
 Requires-Dist: swh.storage[testing]>=0.10.0; extra == "testing"
 Requires-Dist: types-click; extra == "testing"
 Requires-Dist: types-pyyaml; extra == "testing"

@@ -22,6 +22,7 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         **CROSSWALK_TABLE["GitHub"],
         "topics": SCHEMA.keywords,  # TODO: submit this to the official crosswalk
         "clone_url": SCHEMA.codeRepository,
+        "language": SCHEMA.programmingLanguage,
     }
     uri_fields = [
         "clone_url",
@@ -33,6 +34,7 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
     string_fields = [
         "description",
         "full_name",
+        "language",
         "topics",
     ]
 
@@ -59,6 +61,34 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
             raise ValueError(
                 f"GitHub metadata has missing/invalid html_url: {content_dict}"
             )
+
+    @produce_terms(FORGEFED.forkedFrom)
+    def translate_parent(self, graph: Graph, root: BNode, v: Any) -> None:
+        """
+
+        >>> graph = Graph()
+        >>> root = URIRef("http://example.org/test-fork")
+        >>> GitHubMapping().translate_parent(
+        ...     graph, root, {"html_url": "http://example.org/test-software"})
+        >>> prettyprint_graph(graph, root)
+        {
+            "@id": "http://example.org/test-fork",
+            "https://forgefed.org/ns#forkedFrom": {
+                "@id": "http://example.org/test-software"
+            }
+        }
+        """
+        if isinstance(v, dict) and isinstance(v.get("html_url"), str):
+            repository = URIRef(v["html_url"])
+            graph.add((root, FORGEFED.forkedFrom, repository))
+            # TODO: uncomment this line to also translate the parent's metadata:
+            # self._translate_to_graph(graph, repository, v)
+            #
+            # But let's not do it yet, because it would double the number of occurrences
+            # in the description, causing the current implementation of swh-search
+            # to give higher scores to forks than to original repositories, when
+            # searching for keyworks in the description; whereas forks are usually
+            # of less interest than original repositories.
 
     @produce_terms(FORGEFED.forks, ACTIVITYSTREAMS.totalItems)
     def translate_forks_count(self, graph: Graph, root: BNode, v: Any) -> None:

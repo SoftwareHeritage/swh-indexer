@@ -157,7 +157,6 @@ class RecomputeChecksums:
         for data in utils.grouper(
             self.get_new_contents_metadata(contents), self.batch_size_update
         ):
-
             groups: Dict[str, List[Any]] = defaultdict(list)
             for content, keys_to_update in data:
                 keys_str = ",".join(keys_to_update)

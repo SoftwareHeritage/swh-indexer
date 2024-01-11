@@ -140,6 +140,7 @@ def test_compute_metadata_github():
         "codeRepository": "https://github.com/SoftwareHeritage/swh-indexer.git",
         "dateCreated": "2017-01-31T13:05:39Z",
         "dateModified": "2022-06-22T08:02:20Z",
+        "programmingLanguage": "Python",
     }
 
 
@@ -159,6 +160,38 @@ def test_github_topics():
         "@context": CONTEXT,
         "type": "forge:Repository",
         "id": "https://github.com/SoftwareHeritage/swh-indexer",
+    }
+
+
+def test_github_fork():
+    content = b"""
+{
+  "name": "unicode_names2",
+  "full_name": "progval/unicode_names2",
+  "html_url": "https://github.com/progval/unicode_names2",
+  "description": "char <-> Unicode character name (maintained fork of huonw/unicode_names)",
+  "parent": {
+    "id": 23110520,
+    "node_id": "MDEwOlJlcG9zaXRvcnkyMzExMDUyMA==",
+    "name": "unicode_names",
+    "full_name": "huonw/unicode_names",
+    "private": false,
+    "html_url": "https://github.com/huonw/unicode_names",
+    "description": "char <-> Unicode character name"
+  }
+}
+    """
+    result = MAPPINGS["GitHubMapping"]().translate(content)
+    assert result == {
+        "@context": CONTEXT,
+        "type": "forge:Repository",
+        "id": "https://github.com/progval/unicode_names2",
+        "description": "char <-> Unicode character name (maintained fork of "
+        "huonw/unicode_names)",
+        "name": "progval/unicode_names2",
+        "forge:forkedFrom": {
+            "id": "https://github.com/huonw/unicode_names",
+        },
     }
 
 

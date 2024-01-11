@@ -11,7 +11,6 @@ xmltodict
 swh.core[db,http]>=2.20.0
 swh.model>=0.0.15
 swh.objstorage>=0.2.2
-swh.scheduler>=0.5.2
 swh.storage>=0.22.0
 swh.journal>=0.1.0
 
@@ -21,7 +20,6 @@ hypothesis>=3.11.0
 pytest
 pytest-mock
 swh.core[testing]
-swh.scheduler[testing]>=0.5.0
 swh.storage[testing]>=0.10.0
 types-click
 types-pyyaml

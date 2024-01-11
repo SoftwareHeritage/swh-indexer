@@ -139,5 +139,32 @@ def test_compute_metadata_gitea():
         "codeRepository": "https://codeberg.org/ForgeFed/ForgeFed.git",
         "dateCreated": "2022-06-13T18:54:26+02:00",
         "dateModified": "2022-09-02T03:57:22+02:00",
+        "programmingLanguage": "CSS",
         "url": "https://forgefed.org",
+    }
+
+
+def test_gitea_fork():
+    content = b"""
+{
+  "name": "fork-name",
+  "description": "fork description",
+  "html_url": "http://example.org/test-fork",
+  "parent": {
+    "name": "parent-name",
+    "description": "parent description",
+    "html_url": "http://example.org/test-software"
+  }
+}
+    """
+    result = MAPPINGS["GiteaMapping"]().translate(content)
+    assert result == {
+        "@context": CONTEXT,
+        "type": "forge:Repository",
+        "id": "http://example.org/test-fork",
+        "description": "fork description",
+        "name": "fork-name",
+        "forge:forkedFrom": {
+            "id": "http://example.org/test-software",
+        },
     }

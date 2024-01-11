@@ -40,14 +40,14 @@ def test_compute_mimetype_encoding(raw_text, mimetypes, encoding):
     ]
 
 
-CONFIG = {
+CONFIG: Dict[str, Any] = {
     **BASE_TEST_CONFIG,
     "tools": {
         "name": "file",
         "version": "1:5.30-1+deb9u1",
         "configuration": {"type": "library", "debian-package": "python3-magic"},
     },
-}  # type: Dict[str, Any]
+}
 
 
 class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):

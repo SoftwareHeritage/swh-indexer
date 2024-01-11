@@ -509,7 +509,7 @@ def _tree_to_xml(root, xmlns, data):
             return b"\n".join(to_xml(v, indent=indent) for v in data)
         elif isinstance(data, dict):
             lines = []
-            for (key, value) in data.items():
+            for key, value in data.items():
                 lines.append(indent + encode("<{}>".format(key)))
                 lines.append(to_xml(value, indent=indent + b" "))
                 lines.append(indent + encode("</{}>".format(key)))

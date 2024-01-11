@@ -327,7 +327,7 @@ class DictMapping(BaseMapping):
 
     def sanitize(self, graph: rdflib.Graph) -> None:
         # Remove triples that make PyLD crash
-        for (subject, predicate, _) in graph.triples((None, None, rdflib.URIRef(""))):
+        for subject, predicate, _ in graph.triples((None, None, rdflib.URIRef(""))):
             graph.remove((subject, predicate, rdflib.URIRef("")))
 
         # Should not happen, but we's better check as this may lead to incorrect data

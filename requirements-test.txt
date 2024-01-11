@@ -3,7 +3,6 @@ hypothesis >= 3.11.0
 pytest
 pytest-mock
 swh.core[testing]
-swh.scheduler[testing] >= 0.5.0
 swh.storage[testing] >= 0.10.0
 
 types-click

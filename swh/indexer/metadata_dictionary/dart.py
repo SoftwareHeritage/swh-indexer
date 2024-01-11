@@ -30,7 +30,6 @@ def name_to_person(name):
 
 
 class PubspecMapping(YamlMapping, SingleFileIntrinsicMapping):
-
     name = "pubspec"
     filename = b"pubspec.yaml"
     mapping = PUB_TABLE["Pubspec"]

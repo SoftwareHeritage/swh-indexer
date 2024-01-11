@@ -96,7 +96,7 @@ def read_crosstable(fd: TextIO) -> Tuple[Set[str], Dict[str, Dict[str, rdflib.UR
         if rdflib.URIRef(canonical_name) in PROPERTY_BLACKLIST:
             continue
         terms.add(canonical_name)
-        for (col, value) in zip(header, line):  # For each cell in the row
+        for col, value in zip(header, line):  # For each cell in the row
             if col in data_sources:
                 # If that's not the parentType/property/type/description
                 for local_name in _codemeta_field_separator.split(value):
@@ -165,7 +165,7 @@ def merge_documents(documents):
     documents = list(itertools.chain.from_iterable(map(expand, documents)))
     merged_document = collections.defaultdict(list)
     for document in documents:
-        for (key, values) in document.items():
+        for key, values in document.items():
             if key == "@id":
                 # @id does not get expanded to a list
                 value = values
