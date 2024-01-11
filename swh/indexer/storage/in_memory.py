@@ -241,7 +241,7 @@ class SubStorage(Generic[TValue]):
         object_type = self.row_class.object_type  # type: ignore
         self._journal_writer.write_additions(object_type, data_with_tools)
         count = 0
-        for (obj, obj_with_tool) in zip(data, data_with_tools):
+        for obj, obj_with_tool in zip(data, data_with_tools):
             item = obj.to_dict()
             id_ = item.pop("id")
             tool_id = item["indexer_configuration_id"]

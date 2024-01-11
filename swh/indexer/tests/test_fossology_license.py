@@ -46,7 +46,7 @@ class BasicTest(unittest.TestCase):
             )
 
 
-CONFIG = {
+CONFIG: Dict[str, Any] = {
     **BASE_TEST_CONFIG,
     "workdir": "/tmp",
     "tools": {
@@ -56,7 +56,7 @@ CONFIG = {
             "command_line": "nomossa <filepath>",
         },
     },
-}  # type: Dict[str, Any]
+}
 
 RANGE_CONFIG = dict(list(CONFIG.items()) + [("write_batch_size", 100)])
 

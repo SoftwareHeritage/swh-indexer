@@ -388,7 +388,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         used_mappings = [
             INTRINSIC_MAPPINGS[context].name for context in all_detected_files
         ]
-        for (mapping_name, detected_files) in all_detected_files.items():
+        for mapping_name, detected_files in all_detected_files.items():
             cfg = deepcopy(config)
             cfg["tools"]["configuration"]["context"] = mapping_name
             c_metadata_indexer = ContentMetadataIndexer(config=cfg)
@@ -491,7 +491,7 @@ class OriginMetadataIndexer(
         )
 
         results = []
-        for (origin, head_swhid) in origin_heads.items():
+        for origin, head_swhid in origin_heads.items():
             sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
             sentry_sdk.set_tag("swh-indexer-origin-head-swhid", str(head_swhid))
             if head_swhid.object_type == ObjectType.REVISION:
@@ -544,7 +544,7 @@ class OriginMetadataIndexer(
         dir_metadata: Dict[bytes, DirectoryIntrinsicMetadataRow] = {}
         orig_metadata: Dict[str, OriginIntrinsicMetadataRow] = {}
         summary: Dict = {}
-        for (orig_item, dir_item) in results:
+        for orig_item, dir_item in results:
             assert dir_item.metadata == orig_item.metadata
             if dir_item.metadata and not (dir_item.metadata.keys() <= {"@context"}):
                 # Only store non-empty metadata sets

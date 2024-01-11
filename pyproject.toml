@@ -28,9 +28,6 @@ testing = {file = ["requirements-test.txt"]}
 [project.entry-points."swh.cli.subcommands"]
 "swh.indexer" = "swh.indexer.cli"
 
-[project.entry-points."swh.workers"]
-"swh.indexer" = "swh.indexer:register_tasks"
-
 [project.urls]
 "Homepage" = "https://gitlab.softwareheritage.org/swh/devel/swh-indexer"
 "Bug Reports" = "https://gitlab.softwareheritage.org/swh/devel/swh-indexer/-/issues"

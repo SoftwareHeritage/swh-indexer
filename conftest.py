@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 from hypothesis import settings
-import pytest
 
 # define tests profile. Full documentation is at:
 # https://hypothesis.readthedocs.io/en/latest/settings.html#settings-profiles
@@ -18,14 +17,6 @@ collect_ignore = ["swh/indexer/storage/api/wsgi.py"]
 
 # we use the various swh fixtures
 pytest_plugins = [
-    "swh.scheduler.pytest_plugin",
     "swh.storage.pytest_plugin",
     "swh.core.db.pytest_plugin",
 ]
-
-
-@pytest.fixture(scope="session")
-def swh_scheduler_celery_includes(swh_scheduler_celery_includes):
-    return swh_scheduler_celery_includes + [
-        "swh.indexer.tasks",
-    ]

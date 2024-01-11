@@ -285,7 +285,7 @@ class StorageETypeTester:
         ]
 
         assert len(actual_data) == len(expected_data_v1) == len(expected_data_v2)
-        for (item, expected_item_v1, expected_item_v2) in zip(
+        for item, expected_item_v1, expected_item_v2 in zip(
             actual_data, expected_data_v1, expected_data_v2
         ):
             assert item in (expected_item_v1, expected_item_v2)
@@ -738,7 +738,6 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
 
         actual_ids = []
         for partition_id in range(nb_partitions):
-
             actual_result = storage.content_fossology_license_get_partition(
                 indexer_configuration_id, partition_id, nb_partitions
             )
@@ -1127,7 +1126,7 @@ class TestIndexerStorageOriginIntrinsicMetadata:
 
         actual_data.sort(key=lambda item: item.id)
         assert len(actual_data) == len(expected_data_v1) == len(expected_data_v2)
-        for (item, expected_item_v1, expected_item_v2) in zip(
+        for item, expected_item_v1, expected_item_v2 in zip(
             actual_data, expected_data_v1, expected_data_v2
         ):
             assert item in (expected_item_v1, expected_item_v2)
@@ -1726,7 +1725,7 @@ class TestIndexerStorageOriginExtrinsicMetadata:
 
         actual_data.sort(key=lambda item: item.id)
         assert len(actual_data) == len(expected_data_v1) == len(expected_data_v2)
-        for (item, expected_item_v1, expected_item_v2) in zip(
+        for item, expected_item_v1, expected_item_v2 in zip(
             actual_data, expected_data_v1, expected_data_v2
         ):
             assert item in (expected_item_v1, expected_item_v2)

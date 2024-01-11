@@ -50,7 +50,7 @@ class PythonPkginfoMapping(DictMapping, SingleFileIntrinsicMapping):
     def translate(self, content):
         msg = self._parser.parsebytes(content)
         d = {}
-        for (key, value) in msg.items():
+        for key, value in msg.items():
             key = _normalize_pkginfo_key(key)
             if value != "UNKNOWN":
                 d.setdefault(key, []).append(value)
@@ -64,9 +64,9 @@ class PythonPkginfoMapping(DictMapping, SingleFileIntrinsicMapping):
         if author_names or author_emails:
             author = BNode()
             graph.add((author, RDF.type, SCHEMA.Person))
-            for (_, _, author_name) in author_names:
+            for _, _, author_name in author_names:
                 graph.add((author, SCHEMA.name, author_name))
-            for (_, _, author_email) in author_emails:
+            for _, _, author_email in author_emails:
                 graph.add((author, SCHEMA.email, author_email))
             add_list(graph, root, SCHEMA.author, [author])
 

@@ -22,7 +22,6 @@ from swh.model import hashutil
 from swh.model.model import Directory, Origin, Sha1Git
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
-from swh.scheduler import CONFIG as SWH_CONFIG
 from swh.storage import get_storage
 from swh.storage.interface import StorageInterface
 
@@ -141,7 +140,6 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
     """Prevents exceptions in `index()` from raising too high. Set to False
     in tests to properly catch all exceptions."""
 
-    scheduler: Any
     storage: StorageInterface
     objstorage: Any
     idx_storage: IndexerStorageInterface
@@ -151,8 +149,6 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
         super().__init__()
         if config is not None:
             self.config = config
-        elif SWH_CONFIG:
-            self.config = SWH_CONFIG.copy()
         else:
             self.config = load_from_envvar()
         self.config = merge_configs(DEFAULT_CONFIG, self.config)
@@ -524,13 +520,12 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
         self,
         directories: Union[List[Tuple[Sha1Git, Directory]], List[Tuple[Sha1Git, None]]],
     ) -> Dict:
-
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
 
         # TODO: fetch raw_manifest when useful?
 
-        for (dir_id, dir_) in directories:
+        for dir_id, dir_ in directories:
             swhid = f"swh:1:dir:{hashutil.hash_to_hex(dir_id)}"
             sentry_sdk.set_tag("swh-indexer-directory-swhid", swhid)
             try:

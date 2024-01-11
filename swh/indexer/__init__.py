@@ -3,8 +3,6 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Dict
-
 
 # implemented as a function to help lazy loading
 def get_datastore(*args, **kw):
@@ -20,14 +18,3 @@ default_cfg = {
     "backoff_factor": 2,
     "max_queue_length": 5000,
 }
-
-
-def register_tasks() -> Dict[str, Any]:
-    return {
-        "task_modules": [f"{__name__}.tasks"],
-        "task_types": {
-            "index-mimetype": default_cfg,
-            "index-origin-metadata": default_cfg,
-            "index-fossology-license": default_cfg,
-        },
-    }
