@@ -1,3 +1,17 @@
+swh-indexer (3.0.0-1~swh1) unstable-swh; urgency=medium
+
+  * New upstream release 3.0.0     - (tagged by Valentin Lorentz
+    <vlorentz@softwareheritage.org> on 2024-01-11 10:05:50 +0100)
+  * Upstream changes:     - v3.0.0     - Breaking changes:     - *
+    pyproject.toml: Remove swh.workers entrypoint     - * Remove task-
+    based indexing     - New features:     - * github & gitea: Index
+    fork relationships as forge:forkedFrom     - * github & gitea: Map
+    schema:programmingLanguage     - Internal:     - * Add latest
+    blackify to git-blame-ignore-revs     - * python: Fix black
+    formatting after bump to 23.1.0 in pre-commit
+
+ -- Software Heritage autobuilder (on jenkins-debian1) <jenkins@jenkins-debian1.internal.softwareheritage.org>  Thu, 11 Jan 2024 09:11:05 +0000
+
 swh-indexer (2.12.0-1~swh1) unstable-swh; urgency=medium
 
   * New upstream release 2.12.0     - (tagged by David Douard
