@@ -193,7 +193,7 @@ def journal_client(
     from swh.journal.client import get_journal_client
 
     cfg = ctx.obj["config"]
-    journal_cfg = cfg.get("journal", {})
+    journal_cfg = cfg.get("journal_client", cfg.get("journal", {}))
 
     if brokers:
         journal_cfg["brokers"] = brokers
