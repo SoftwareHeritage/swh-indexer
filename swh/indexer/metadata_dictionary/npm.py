@@ -272,9 +272,20 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
                 # does not allow accessing that from metadata mappings.
                 # (Plus, an hypothetical license mapping would eventually pick it up)
                 return
+
+            # Remove parentheses from the string
+            s = s.replace("(", "").replace(")", "")
+
             if " " in s:
                 # Either an SPDX expression, or unusable data
-                # TODO: handle it
+                # Check for SPDX expression first
+                # Extract the SPDX expression if it contains OR,
+                # ignore licenses with AND or WITH operator.
+                if " OR " in s and " AND " not in s and " WITH " not in s:
+                    # Multiple licenses, or a license exception
+                    # return multiple licenses in a list
+                    return [self.normalize_license(x) for x in s.split(" OR ")]
+
                 return
             return SPDX + s
 
