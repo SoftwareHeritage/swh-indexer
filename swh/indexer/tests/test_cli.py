@@ -214,6 +214,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
     visit_statuses = [
         OriginVisitStatus(
             origin="file:///dev/zero",
+            type="git",
             visit=1,
             date=now(),
             status="full",
@@ -221,6 +222,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         ),
         OriginVisitStatus(
             origin="file:///dev/foobar",
+            type="git",
             visit=2,
             date=now(),
             status="full",
@@ -228,6 +230,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         ),
         OriginVisitStatus(
             origin="file:///tmp/spamegg",
+            type="git",
             visit=3,
             date=now(),
             status="full",
@@ -235,6 +238,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         ),
         OriginVisitStatus(
             origin="file:///dev/0002",
+            type="git",
             visit=6,
             date=now(),
             status="full",
@@ -242,6 +246,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         ),
         OriginVisitStatus(  # will be filtered out due to its 'partial' status
             origin="file:///dev/0000",
+            type="git",
             visit=4,
             date=now(),
             status="partial",
@@ -249,6 +254,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         ),
         OriginVisitStatus(  # will be filtered out due to its 'ongoing' status
             origin="file:///dev/0001",
+            type="git",
             visit=5,
             date=now(),
             status="ongoing",
