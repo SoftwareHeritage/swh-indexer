@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import logging
 from typing import Callable, Dict, Iterator, List, Optional
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
@@ -11,6 +12,8 @@ import click
 
 from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup
 from swh.core.cli import swh as swh_cli_group
+
+logger = logging.getLogger(__name__)
 
 
 @swh_cli_group.group(
@@ -193,7 +196,7 @@ def journal_client(
     from swh.journal.client import get_journal_client
 
     cfg = ctx.obj["config"]
-    journal_cfg = cfg.get("journal", {})
+    journal_cfg = cfg.get("journal_client", cfg.get("journal", {}))
 
     if brokers:
         journal_cfg["brokers"] = brokers
@@ -252,11 +255,22 @@ def journal_client(
     if not worker_fns:
         raise click.ClickException(f"Unknown indexer: {indexer}")
 
-    client = get_journal_client(
-        cls="kafka",
-        object_types=list(object_types),
-        **journal_cfg,
-    )
+    if "cls" not in journal_cfg:
+        journal_cfg["cls"] = "kafka"
+
+    if (
+        journal_cfg.get("object_types")
+        and set(journal_cfg["object_types"]) != object_types
+    ):
+        logger.warning(
+            "Overriding configured journal client object types (%s) with %s",
+            ", ".join(sorted(journal_cfg["object_types"])),
+            ", ".join(sorted(object_types)),
+        )
+
+    journal_cfg["object_types"] = list(object_types)
+
+    client = get_journal_client(**journal_cfg)
 
     def worker_fn(objects: ObjectsDict):
         for fn in worker_fns:

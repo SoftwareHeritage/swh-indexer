@@ -458,3 +458,153 @@ def test_detect_metadata_package_json(filename):
 
     expected_results = {"NpmMapping": [b"cde"]}
     assert expected_results == results
+
+
+def test_valid_spdx_expressions():
+    package_json = rb"""{
+  "license": "Apache-2.0"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "license": "https://spdx.org/licenses/Apache-2.0",
+    }
+
+    package_json = rb"""{
+  "license": "(Apache-2.0)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "license": "https://spdx.org/licenses/Apache-2.0",
+    }
+
+    package_json = rb"""{
+  "license": "MIT OR Apache-2.0"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "license": [
+            "https://spdx.org/licenses/Apache-2.0",
+            "https://spdx.org/licenses/MIT",
+        ],
+    }
+
+    package_json = rb"""{
+  "license": "(MIT OR Apache-2.0)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "license": [
+            "https://spdx.org/licenses/Apache-2.0",
+            "https://spdx.org/licenses/MIT",
+        ],
+    }
+
+    package_json = rb"""{
+  "license": "MIT OR (LGPL-2.1-only OR BSD-3-Clause)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "license": [
+            "https://spdx.org/licenses/BSD-3-Clause",
+            "https://spdx.org/licenses/LGPL-2.1-only",
+            "https://spdx.org/licenses/MIT",
+        ],
+    }
+
+    package_json = rb"""{
+  "license": "MIT OR LGPL-2.1-only OR BSD-3-Clause"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+        "license": [
+            "https://spdx.org/licenses/BSD-3-Clause",
+            "https://spdx.org/licenses/LGPL-2.1-only",
+            "https://spdx.org/licenses/MIT",
+        ],
+    }
+
+
+def test_unsupported_spdx_expressions():
+    package_json = rb"""{
+  "license": "MIT AND Apache-2.0"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+    }
+
+    package_json = rb"""{
+  "license": "(MIT AND Apache-2.0)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+    }
+
+    package_json = rb"""{
+  "license": "MIT AND Apache-2.0 OR GPL-3.0-only"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+    }
+
+    package_json = rb"""{
+  "license": "MIT AND (LGPL-2.1-only OR BSD-3-Clause)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+    }
+
+    package_json = rb"""{
+  "license": "MIT AND Apache-2.0 WITH Bison-exception-2.2"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+    }
+
+    package_json = rb"""{
+  "license": "MIT OR Apache-2.0 WITH Bison-exception-2.2"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+    }
+
+    package_json = rb"""{
+  "license": "MIT OR (LGPL-2.1-only WITH Bison-exception-2.2)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+    }
+
+    package_json = rb"""{
+  "license": "MIT AND (LGPL-2.1-only WITH Bison-exception-2.2)"
+}"""
+    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "type": "SoftwareSourceCode",
+    }
