@@ -18,5 +18,4 @@ collect_ignore = ["swh/indexer/storage/api/wsgi.py"]
 # we use the various swh fixtures
 pytest_plugins = [
     "swh.storage.pytest_plugin",
-    "swh.core.db.pytest_plugin",
 ]

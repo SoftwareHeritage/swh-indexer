@@ -11,7 +11,7 @@ import pytest
 from pytest_postgresql import factories
 import yaml
 
-from swh.core.db.pytest_plugin import initialize_database_for_module
+from swh.core.db.db_utils import initialize_database_for_module
 from swh.indexer.storage import IndexerStorage, get_indexer_storage
 from swh.objstorage.factory import get_objstorage
 from swh.storage import get_storage
@@ -39,7 +39,7 @@ def idx_storage_backend_config(idx_storage_postgresql):
     """
     return {
         "cls": "local",
-        "db": idx_storage_postgresql.dsn,
+        "db": idx_storage_postgresql.info.dsn,
     }
 
 

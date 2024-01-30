@@ -2,8 +2,8 @@ confluent-kafka
 hypothesis >= 3.11.0
 pytest
 pytest-mock
-swh.core[testing]
-swh.storage[testing] >= 0.10.0
+swh.core[testing] >= 3.0.0
+swh.storage[testing] >= 2.0.0
 
 types-click
 types-pyyaml
