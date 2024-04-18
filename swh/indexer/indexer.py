@@ -22,6 +22,7 @@ from swh.model import hashutil
 from swh.model.model import Directory, Origin, Sha1Git
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
+from swh.objstorage.interface import objid_from_dict
 from swh.storage import get_storage
 from swh.storage.interface import StorageInterface
 
@@ -302,8 +303,7 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
         try:
             results = []
             contents = objects.get("content", [])
-            # FIXME: with swh.objstorage > v2.0: self.objstorage.get_batch(contents)
-            content_data = self.objstorage.get_batch(c["sha1"] for c in contents)
+            content_data = self.objstorage.get_batch(map(objid_from_dict, contents))
             for item, raw_content in zip(contents, content_data):
                 id_ = item["sha1"]
                 sentry_sdk.set_tag(
