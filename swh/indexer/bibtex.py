@@ -16,6 +16,9 @@ from swh.indexer.codemeta import compact, expand
 from swh.indexer.namespaces import SCHEMA, SPDX_LICENSES
 
 TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
+"""IRI used for `skolemization <https://www.w3.org/TR/rdf11-concepts/#section-skolemization>`_;
+it is not used outside :func:`codemeta_to_bibtex`.
+"""
 
 
 def codemeta_to_bibtex(doc: Dict[str, Any]) -> str:
