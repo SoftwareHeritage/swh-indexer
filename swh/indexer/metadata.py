@@ -143,7 +143,9 @@ class ExtrinsicMetadataIndexer(
             return []
 
         # TODO: batch requests to origin_get_by_sha1()
-        for _ in range(6):
+        num_retries = 6
+        sleep_delay = 10
+        for _ in range(num_retries):
             origins = self.storage.origin_get_by_sha1([origin_sha1])
             try:
                 (origin,) = origins
@@ -154,11 +156,17 @@ class ExtrinsicMetadataIndexer(
             # The origin does not exist. This may be due to some replication lag
             # between the loader's DB/journal and the DB we are consuming from.
             # Wait a bit and try again
-            logger.debug("Origin %s not found, sleeping for 10s.", data.target)
-            time.sleep(10)
+            logger.debug(
+                "Origin %s not found, sleeping for %ss.", data.target, sleep_delay
+            )
+            time.sleep(sleep_delay)
         else:
             # Does not exist, or replication lag > 60s.
-            raise ValueError(f"Unknown origin {data.target}") from None
+            raise ValueError(
+                f"Unknown origin swh:1:ori:{origin_sha1.hex()} for metadata target: "
+                f"{data.target}. Is the swh-storage database replication lag "
+                f"over {num_retries*sleep_delay}s?"
+            ) from None
 
         if urlparse(data.authority.url).netloc != urlparse(origin["url"]).netloc:
             # metadata provided by a third-party; don't trust it
