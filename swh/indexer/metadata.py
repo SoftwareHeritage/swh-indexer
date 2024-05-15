@@ -46,9 +46,14 @@ from swh.indexer.storage.model import (
     OriginIntrinsicMetadataRow,
 )
 from swh.model import hashutil
-from swh.model.model import Directory, MetadataAuthorityType
-from swh.model.model import ObjectType as ModelObjectType
-from swh.model.model import Origin, RawExtrinsicMetadata, Sha1Git
+from swh.model.model import (
+    Directory,
+    MetadataAuthorityType,
+    Origin,
+    RawExtrinsicMetadata,
+    ReleaseTargetType,
+    Sha1Git,
+)
 from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
 
 REVISION_GET_BATCH_SIZE = 10
@@ -517,7 +522,7 @@ class OriginMetadataIndexer(
                         "Missing head object %s of origin %r", head_swhid, origin.url
                     )
                     continue
-                if rel.target_type != ModelObjectType.DIRECTORY:
+                if rel.target_type != ReleaseTargetType.DIRECTORY:
                     # TODO
                     self.log.warning(
                         "Head release %s of %r has unexpected target type %s",
