@@ -6,7 +6,7 @@
 import re
 from typing import List, Optional, Tuple, Union
 
-from swh.model.model import Snapshot, SnapshotBranch, TargetType
+from swh.model.model import Snapshot, SnapshotBranch, SnapshotTargetType
 from swh.model.swhids import CoreSWHID, ObjectType
 from swh.storage.algos.origin import origin_get_latest_visit_status
 from swh.storage.algos.snapshot import snapshot_get_all_branches
@@ -137,18 +137,18 @@ def _try_resolve_target(
         if branch is None:
             return None
 
-        while branch.target_type == TargetType.ALIAS:
+        while branch.target_type == SnapshotTargetType.ALIAS:
             branch = _get_branch(storage, partial_branches, branch.target)
             if branch is None:
                 return None
 
-        if branch.target_type == TargetType.REVISION:
+        if branch.target_type == SnapshotTargetType.REVISION:
             return CoreSWHID(object_type=ObjectType.REVISION, object_id=branch.target)
-        elif branch.target_type == TargetType.CONTENT:
+        elif branch.target_type == SnapshotTargetType.CONTENT:
             return None  # TODO
-        elif branch.target_type == TargetType.DIRECTORY:
+        elif branch.target_type == SnapshotTargetType.DIRECTORY:
             return None  # TODO
-        elif branch.target_type == TargetType.RELEASE:
+        elif branch.target_type == SnapshotTargetType.RELEASE:
             return CoreSWHID(object_type=ObjectType.RELEASE, object_id=branch.target)
         else:
             assert False, branch

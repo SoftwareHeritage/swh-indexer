@@ -28,7 +28,7 @@ from swh.model.model import (
     RevisionType,
     Snapshot,
     SnapshotBranch,
-    TargetType,
+    SnapshotTargetType,
     TimestampWithTimezone,
 )
 from swh.storage.utils import now
@@ -317,18 +317,18 @@ SNAPSHOTS = [
         branches={
             b"refs/heads/add-revision-origin-cache": SnapshotBranch(
                 target=b'L[\xce\x1c\x88\x8eF\t\xf1"\x19\x1e\xfb\xc0s\xe7/\xe9l\x1e',
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
             b"refs/head/master": SnapshotBranch(
                 target=b"8K\x12\x00d\x03\xcc\xe4]bS\xe3\x8f{\xd7}\xac\xefrm",
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
             b"HEAD": SnapshotBranch(
-                target=b"refs/head/master", target_type=TargetType.ALIAS
+                target=b"refs/head/master", target_type=SnapshotTargetType.ALIAS
             ),
             b"refs/tags/v0.0.103": SnapshotBranch(
                 target=b'\xb6"Im{\xfdLb\xb0\x94N\xea\x96m\x13x\x88+\x0f\xdd',
-                target_type=TargetType.RELEASE,
+                target_type=SnapshotTargetType.RELEASE,
             ),
         },
     ),
@@ -337,23 +337,23 @@ SNAPSHOTS = [
         branches={
             b"3DLDF-1.1.4.tar.gz": SnapshotBranch(
                 target=b'dJ\xfb\x1c\x91\xf4\x82B%]6\xa2\x90|\xd3\xfc"G\x99\x11',
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
             b"3DLDF-2.0.2.tar.gz": SnapshotBranch(
                 target=b"\xb6\x0e\xe7\x9e9\xac\xaa\x19\x9e=\xd1\xc5\x00\\\xc6\xfc\xe0\xa6\xb4V",  # noqa
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
             b"3DLDF-2.0.3-examples.tar.gz": SnapshotBranch(
                 target=b"!H\x19\xc0\xee\x82-\x12F1\xbd\x97\xfe\xadZ\x80\x80\xc1\x83\xff",  # noqa
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
             b"3DLDF-2.0.3.tar.gz": SnapshotBranch(
                 target=b"\x8e\xa9\x8e/\xea}\x9feF\xf4\x9f\xfd\xee\xcc\x1a\xb4`\x8c\x8by",  # noqa
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
             b"3DLDF-2.0.tar.gz": SnapshotBranch(
                 target=b"F6*\xff(?\x19a\xef\xb6\xc2\x1fv$S\xe3G\xd3\xd1m",
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
         },
     ),
@@ -362,7 +362,7 @@ SNAPSHOTS = [
         branches={
             b"master": SnapshotBranch(
                 target=b"\xe7n\xa4\x9c\x9f\xfb\xb7\xf76\x11\x08{\xa6\xe9\x99\xb1\x9e]q\xeb",  # noqa
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             )
         },
     ),
@@ -370,15 +370,15 @@ SNAPSHOTS = [
     Snapshot(
         branches={
             b"HEAD": SnapshotBranch(
-                target=b"releases/2018.09.09", target_type=TargetType.ALIAS
+                target=b"releases/2018.09.09", target_type=SnapshotTargetType.ALIAS
             ),
             b"releases/2018.09.01": SnapshotBranch(
                 target=b"<\xee1(\xe8\x8d_\xc1\xc9\xa6rT\xf1\x1d\xbb\xdfF\xfdw\xcf",
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
             b"releases/2018.09.09": SnapshotBranch(
                 target=b"\x83\xb9\xb6\xc7\x05\xb1%\xd0\xfem\xd8kA\x10\x9d\xc5\xfa2\xf8t",  # noqa
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             ),
         },
     ),
@@ -386,15 +386,15 @@ SNAPSHOTS = [
     Snapshot(
         branches={
             b"HEAD": SnapshotBranch(
-                target=b"releases/2018.09.09", target_type=TargetType.ALIAS
+                target=b"releases/2018.09.09", target_type=SnapshotTargetType.ALIAS
             ),
             b"releases/2018.09.01": SnapshotBranch(
                 target=b"<\xee1(\xe8\x8d_\xc1\xc9\xa6rT\xf1\x1d\xbb\xdfF\xfdw\xcf",
-                target_type=TargetType.RELEASE,
+                target_type=SnapshotTargetType.RELEASE,
             ),
             b"releases/2018.09.09": SnapshotBranch(
                 target=b"\x83\xb9\xb6\xc7\x05\xb1%\xd0\xfem\xd8kA\x10\x9d\xc5\xfa2\xf8t",  # noqa
-                target_type=TargetType.RELEASE,
+                target_type=SnapshotTargetType.RELEASE,
             ),
         },
     ),
@@ -403,7 +403,7 @@ SNAPSHOTS = [
         branches={
             b"master": SnapshotBranch(
                 target=b"\xe4?r\xe1,\x88\xab\xec\xe7\x9a\x87\xb8\xc9\xad#.\x1bw=\x18",
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             )
         },
     ),
@@ -412,7 +412,7 @@ SNAPSHOTS = [
         branches={
             b"HEAD": SnapshotBranch(
                 target=REVISION.id,
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             )
         },
     ),
@@ -421,7 +421,7 @@ SNAPSHOTS = [
         branches={
             b"HEAD": SnapshotBranch(
                 target=REVISION.id,
-                target_type=TargetType.REVISION,
+                target_type=SnapshotTargetType.REVISION,
             )
         },
     ),
@@ -430,7 +430,7 @@ SNAPSHOTS = [
         branches={
             b"HEAD": SnapshotBranch(
                 target=RELEASE.id,
-                target_type=TargetType.RELEASE,
+                target_type=SnapshotTargetType.RELEASE,
             )
         },
     ),

@@ -16,7 +16,7 @@ from swh.model.model import (
     OriginVisitStatus,
     Snapshot,
     SnapshotBranch,
-    TargetType,
+    SnapshotTargetType,
 )
 from swh.model.swhids import CoreSWHID
 from swh.storage.utils import now
@@ -32,7 +32,7 @@ SAMPLE_SNAPSHOT = Snapshot(
     branches={
         b"foo": None,
         b"HEAD": SnapshotBranch(
-            target_type=TargetType.ALIAS,
+            target_type=SnapshotTargetType.ALIAS,
             target=b"foo",
         ),
     },
@@ -124,7 +124,7 @@ def test_large_snapshot(storage, branches_start, branches_middle, branches_end):
                 (
                     b"HEAD",
                     SnapshotBranch(
-                        target_type=TargetType.ALIAS, target=b"refs/heads/foo"
+                        target_type=SnapshotTargetType.ALIAS, target=b"refs/heads/foo"
                     ),
                 )
             ]
@@ -133,7 +133,7 @@ def test_large_snapshot(storage, branches_start, branches_middle, branches_end):
                 (
                     b"refs/heads/foo",
                     SnapshotBranch(
-                        target_type=TargetType.REVISION,
+                        target_type=SnapshotTargetType.REVISION,
                         target=bytes.fromhex(rev_id),
                     ),
                 )
@@ -159,7 +159,8 @@ def test_large_snapshot_chained_aliases(storage):
                 (
                     b"HEAD",
                     SnapshotBranch(
-                        target_type=TargetType.ALIAS, target=b"refs/heads/alias2"
+                        target_type=SnapshotTargetType.ALIAS,
+                        target=b"refs/heads/alias2",
                     ),
                 )
             ]
@@ -168,7 +169,8 @@ def test_large_snapshot_chained_aliases(storage):
                 (
                     b"refs/heads/alias2",
                     SnapshotBranch(
-                        target_type=TargetType.ALIAS, target=b"refs/heads/branch"
+                        target_type=SnapshotTargetType.ALIAS,
+                        target=b"refs/heads/branch",
                     ),
                 )
             ]
@@ -177,7 +179,7 @@ def test_large_snapshot_chained_aliases(storage):
                 (
                     b"refs/heads/branch",
                     SnapshotBranch(
-                        target_type=TargetType.REVISION,
+                        target_type=SnapshotTargetType.REVISION,
                         target=bytes.fromhex(rev_id),
                     ),
                 )
@@ -205,7 +207,7 @@ def test_large_snapshot_dangling_alias(storage, branches_start, branches_end):
                 (
                     b"HEAD",
                     SnapshotBranch(
-                        target_type=TargetType.ALIAS, target=b"refs/heads/foo"
+                        target_type=SnapshotTargetType.ALIAS, target=b"refs/heads/foo"
                     ),
                 )
             ]
