@@ -1,9 +1,10 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import json
+import logging
 
 from hypothesis import HealthCheck, given, settings
 import pytest
@@ -518,6 +519,12 @@ def test_sword_fix_date():
     }
 
 
+def test_sword_codemeta_parsing_error(caplog):
+    caplog.set_level(logging.ERROR)
+    assert MAPPINGS["SwordCodemetaMapping"]().translate(b"123") is None
+    assert caplog.text.endswith("Failed to parse XML document: b'123'\n")
+
+
 def test_json_sword():
     content = """{"id": "hal-01243573", "@xmlns": "http://www.w3.org/2005/Atom", "author": {"name": "Author 1", "email": "foo@example.org"}, "client": "hal", "codemeta:url": "http://example.org/", "codemeta:name": "The assignment problem", "@xmlns:codemeta": "https://doi.org/10.5063/SCHEMA/CODEMETA-2.0", "codemeta:author": {"codemeta:name": "Author 2"}, "codemeta:license": {"codemeta:name": "GNU General Public License v3.0 or later"}}"""  # noqa
     result = MAPPINGS["JsonSwordCodemetaMapping"]().translate(content)
@@ -532,3 +539,9 @@ def test_json_sword():
         "url": "http://example.org/",
         "name": "The assignment problem",
     }
+
+
+def test_json_sword_codemeta_parsing_error(caplog):
+    caplog.set_level(logging.ERROR)
+    assert MAPPINGS["JsonSwordCodemetaMapping"]().translate(b"{123}") is None
+    assert caplog.text.endswith("Failed to parse JSON document: b'{123}'\n")
