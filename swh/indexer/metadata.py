@@ -1,11 +1,13 @@
-# Copyright (C) 2017-2022 The Software Heritage developers
+# Copyright (C) 2017-2024 The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 from copy import deepcopy
+import datetime
 import hashlib
 import logging
+import re
 import time
 from typing import (
     Any,
@@ -19,6 +21,7 @@ from typing import (
     TypeVar,
     cast,
 )
+import urllib.parse
 from urllib.parse import urlparse
 
 import pkg_resources
@@ -118,10 +121,30 @@ class ExtrinsicMetadataIndexer(
         if data.target.object_type == ExtendedObjectType.ORIGIN:
             origin_sha1 = data.target.object_id
         elif data.origin is not None:
-            # HACK: As swh-search does (yet?) not support searching on directories
+            if (
+                data.fetcher.name == "swh-deposit"
+                and data.discovery_date
+                < datetime.datetime(
+                    2024, 5, 16, 15, 20, 0, tzinfo=datetime.timezone.utc
+                )
+            ):
+                # Workaround for deposits while swh.model.swhids did not unescape origin
+                # URLs while parsing <swh:object swhid="..." />, which was fixed in
+                # https://gitlab.softwareheritage.org/swh/devel/swh-model/-/merge_requests/348
+                # itself deployed shortly after 2024-05-16T15:18:07 by
+                # https://gitlab.softwareheritage.org/swh/infra/swh-apps/-/commit/70bd86aafcbc1787183e5d2cd52c392ae012e65e
+                if "%" in data.origin:
+                    assert re.match(
+                        "^https://cran.r-project.org/package%3D[a-zA-Z]+$", data.origin
+                    ), data
+                origin_url = urllib.parse.unquote_to_bytes(data.origin)
+            else:
+                origin_url = data.origin.encode()
+
+            # HACK: As swh-search does not (yet?) support searching on directories
             # and traversing back to origins, we index metadata on non-origins with
             # an origin context as if they were on the origin itself.
-            origin_sha1 = hashlib.sha1(data.origin.encode()).digest()
+            origin_sha1 = hashlib.sha1(origin_url).digest()
         else:
             # other types are not supported yet
             return []

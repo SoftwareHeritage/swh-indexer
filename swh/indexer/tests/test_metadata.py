@@ -1,9 +1,10 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import datetime
+import hashlib
 from unittest.mock import call
 
 import attr
@@ -343,6 +344,51 @@ class TestMetadata:
             call.origin_get_by_sha1(
                 [b"\xb1\x0c\\\xd2w\x1b\xdd\xac\x07\xdb\xdf>\x93O1\xd0\xc9L\x0c\xcf"]
             )
+        ]
+
+        results = list(
+            metadata_indexer.idx_storage.origin_extrinsic_metadata_get([origin])
+        )
+        assert results == []
+
+    def test_extrinsic_metadata_indexer_thirdparty_deposit_unescaped_origin(
+        self, mocker
+    ):
+        """Tests the workaround for REMD objects created from `incorrectly parsing SWHID
+        <https://gitlab.softwareheritage.org/swh/devel/swh-model/-/merge_requests/348>`_
+        """
+        origin = "https://cran.r-project.org/package=airGR"
+
+        metadata_indexer = ExtrinsicMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
+        metadata_indexer.catch_exceptions = False
+        metadata_indexer.storage = mocker.patch.object(metadata_indexer, "storage")
+        metadata_indexer.storage.origin_get_by_sha1.return_value = [{"url": origin}]
+
+        tool = metadata_indexer.idx_storage.indexer_configuration_get(
+            {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
+        )
+        assert tool is not None
+
+        assert metadata_indexer.process_journal_objects(
+            {
+                "raw_extrinsic_metadata": [
+                    attr.evolve(
+                        DEPOSIT_REMD,
+                        fetcher=attr.evolve(
+                            DEPOSIT_REMD.fetcher,
+                            name="swh-deposit",
+                        ),
+                        origin="https://cran.r-project.org/package%3DairGR",
+                        discovery_date=datetime.datetime(
+                            2024, 5, 13, 8, 4, 8, tzinfo=datetime.timezone.utc
+                        ),
+                    ).to_dict(),
+                ]
+            }
+        ) == {"status": "uneventful", "origin_extrinsic_metadata:add": 0}
+
+        assert metadata_indexer.storage.method_calls == [
+            call.origin_get_by_sha1([hashlib.sha1(origin.encode()).digest()])
         ]
 
         results = list(
