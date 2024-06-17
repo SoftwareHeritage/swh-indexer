@@ -1,15 +1,28 @@
-# Copyright (C) 2016-2023  The Software Heritage developers
+# Copyright (C) 2016-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import abc
 from contextlib import contextmanager
+import itertools
 import logging
 import os
 import shutil
 import tempfile
-from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 import warnings
 
 import sentry_sdk
@@ -19,12 +32,14 @@ from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, Sha1, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model import hashutil
-from swh.model.model import Directory, Origin, Sha1Git
+from swh.model.model import BaseModel, Directory, Origin, Sha1Git
+from swh.model.swhids import ExtendedSWHID
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
 from swh.objstorage.interface import objid_from_dict
 from swh.storage import get_storage
 from swh.storage.interface import StorageInterface
+from swh.storage.proxies.masking.db import MaskingQuery
 
 
 class ObjectsDict(TypedDict, total=False):
@@ -144,6 +159,7 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
     storage: StorageInterface
     objstorage: Any
     idx_storage: IndexerStorageInterface
+    masking_query: Optional[MaskingQuery]
 
     def __init__(self, config=None, **kw) -> None:
         """Prepare and check that the indexer is ready to run."""
@@ -170,6 +186,11 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
 
         idx_storage = self.config[INDEXER_CFG_KEY]
         self.idx_storage = get_indexer_storage(**idx_storage)
+
+        if "masking_db" in self.config:
+            self.masking_query = MaskingQuery.connect(self.config["masking_db"])
+        else:
+            self.masking_query = None
 
         _log = logging.getLogger("requests.packages.urllib3.connectionpool")
         _log.setLevel(logging.WARN)
@@ -280,6 +301,27 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
 
         """
         raise NotImplementedError()
+
+    T = TypeVar("T", bound=BaseModel)
+
+    def _filter_masked_objects(
+        self, objects: List[T], get_swhids: Callable[[T], Set[ExtendedSWHID]]
+    ) -> List[T]:
+        if self.masking_query is None:
+            return objects
+
+        masked_swhids = self.masking_query.swhids_are_masked(
+            list(itertools.chain.from_iterable(map(get_swhids, objects)))
+        )
+        if masked_swhids:
+            masked_swhids_set = set(masked_swhids)
+            return [
+                obj
+                for obj in objects
+                if not get_swhids(obj).isdisjoint(masked_swhids_set)
+            ]
+        else:
+            return objects
 
 
 class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
@@ -437,6 +479,10 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
             if status["status"] == "full"
         ] + [Origin(url=origin["url"]) for origin in objects.get("origin", [])]
 
+        origins = self._filter_masked_objects(
+            origins, get_swhids=lambda origin: {origin.swhid()}
+        )
+
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
             results = self.index_list(
@@ -509,12 +555,13 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
 
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Worker function for ``JournalClient``."""
-        return self._process_directories(
-            [
-                (dir_["id"], Directory.from_dict(dir_))
-                for dir_ in objects.get("directory", [])
-            ]
+        directories = [
+            Directory.from_dict(dir_) for dir_ in objects.get("directory", [])
+        ]
+        directories = self._filter_masked_objects(
+            directories, get_swhids=lambda dir_: {dir_.swhid().to_extended()}
         )
+        return self._process_directories([(dir_.id, dir_) for dir_ in directories])
 
     def _process_directories(
         self,

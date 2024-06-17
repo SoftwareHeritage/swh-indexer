@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022 The Software Heritage developers
+# Copyright (C) 2017-2024 The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -15,6 +15,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Set,
     Tuple,
     TypeVar,
     cast,
@@ -54,7 +55,7 @@ from swh.model.model import (
     ReleaseTargetType,
     Sha1Git,
 )
-from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
+from swh.model.swhids import CoreSWHID, ExtendedObjectType, ExtendedSWHID, ObjectType
 
 REVISION_GET_BATCH_SIZE = 10
 RELEASE_GET_BATCH_SIZE = 10
@@ -81,12 +82,31 @@ def call_with_batches(
 class ExtrinsicMetadataIndexer(
     BaseIndexer[Sha1Git, RawExtrinsicMetadata, OriginExtrinsicMetadataRow]
 ):
+    @staticmethod
+    def _get_remd_swhids(remd: RawExtrinsicMetadata) -> Set[ExtendedSWHID]:
+        swhids = {remd.swhid()}
+        for context in ("snapshot", "release", "revision", "directory"):
+            if swhid := getattr(remd, context):
+                swhids.add(swhid.to_extended())
+        if remd.origin:
+            swhids.add(Origin(url=remd.origin).swhid())
+        return swhids
+
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         summary: Dict[str, Any] = {"status": "uneventful"}
+        remds = list(
+            map(
+                RawExtrinsicMetadata.from_dict,
+                objects.get("raw_extrinsic_metadata", []),
+            )
+        )
+        if not remds:
+            return summary
+        remds = self._filter_masked_objects(remds, get_swhids=self._get_remd_swhids)
+
         try:
             results = {}
-            for item in objects.get("raw_extrinsic_metadata", []):
-                remd = RawExtrinsicMetadata.from_dict(item)
+            for remd in remds:
                 sentry_sdk.set_tag("swh-indexer-remd-swhid", str(remd.swhid()))
                 for result in self.index(remd.id, data=remd):
                     results[result.id] = result
