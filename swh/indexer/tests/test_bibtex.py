@@ -46,6 +46,28 @@ def test_minimal():
     )
 
 
+def test_empty_author_list():
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "author": [],
+            "name": "Example Software",
+            "url": "http://example.org/",
+            "datePublished": "2023-10-10",
+        }
+    ) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            date = "2023-10-10",
+            year = "2023",
+            month = "10",
+            title = "Example Software",
+            url = "http://example.org/"
+        }
+        """
+    )
+
+
 @pytest.mark.parametrize("key", ["version", "softwareVersion"])
 def test_version_minimal(key):
     assert codemeta_to_bibtex(

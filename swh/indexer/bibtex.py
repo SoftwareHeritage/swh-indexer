@@ -13,7 +13,7 @@ from pybtex.database import Entry, Person
 import rdflib
 
 from swh.indexer.codemeta import compact, expand
-from swh.indexer.namespaces import SCHEMA, SPDX_LICENSES
+from swh.indexer.namespaces import RDF, SCHEMA, SPDX_LICENSES
 
 TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
 """IRI used for `skolemization <https://www.w3.org/TR/rdf11-concepts/#section-skolemization>`_;
@@ -55,7 +55,7 @@ def codemeta_to_bibtex(doc: Dict[str, Any]) -> str:
 
     def add_person(persons: List[Person], person_id: rdflib.term.Node) -> None:
         for _, _, name in g.triples((person_id, SCHEMA.name, None)):
-            if (person_id, rdflib.RDF.type, SCHEMA.Organization) in g:
+            if (person_id, RDF.type, SCHEMA.Organization) in g:
                 # prevent interpreting the name as "Firstname Lastname" and reformatting
                 # it to "Lastname, Firstname"
                 person = Person(last=name)
@@ -75,6 +75,9 @@ def codemeta_to_bibtex(doc: Dict[str, Any]) -> str:
 
     # authors, which are an ordered list
     for _, _, author_list in g.triples((id_, SCHEMA.author, None)):
+        if author_list == RDF.nil:
+            # Workaround for https://github.com/RDFLib/rdflib/pull/2818
+            continue
         for author in rdflib.collection.Collection(g, author_list):
             add_person(persons["author"], author)
             add_affiliations(author)
