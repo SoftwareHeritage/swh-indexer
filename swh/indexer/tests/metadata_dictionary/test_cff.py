@@ -85,6 +85,7 @@ RIS, schema.org, CodeMeta, and .zenodo.json.""",
         "identifier": "https://doi.org/10.5281/zenodo.1162057",
         "license": "https://spdx.org/licenses/Apache-2.0",
         "version": "1.4.0-alpha0",
+        "name": "cffconvert",
     }
 
     assert expected == result

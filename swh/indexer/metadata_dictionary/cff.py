@@ -25,9 +25,9 @@ class CffMapping(YamlMapping, SingleFileIntrinsicMapping):
     name = "cff"
     filename = b"CITATION.cff"
     mapping = CROSSWALK_TABLE["Citation File Format Core (CFF-Core) 1.0.2"]
-    string_fields = ["keywords", "license", "abstract", "version", "doi"]
+    string_fields = ["title", "keywords", "license", "abstract", "version", "doi"]
     date_fields = ["date-released"]
-    uri_fields = ["repository-code"]
+    uri_fields = ["url", "repository-code"]
 
     def _translate_author(self, graph: Graph, author: dict) -> rdflib.term.Node:
         node: rdflib.term.Node

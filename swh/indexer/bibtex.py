@@ -6,14 +6,16 @@
 import collections
 import json
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import uuid
 
 from pybtex.database import Entry, Person
 import rdflib
 
 from swh.indexer.codemeta import compact, expand
+from swh.indexer.metadata_dictionary.cff import CffMapping
 from swh.indexer.namespaces import RDF, SCHEMA, SPDX_LICENSES
+from swh.model.swhids import ObjectType, QualifiedSWHID
 
 TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-node/"
 """IRI used for `skolemization <https://www.w3.org/TR/rdf11-concepts/#section-skolemization>`_;
@@ -21,7 +23,9 @@ it is not used outside :func:`codemeta_to_bibtex`.
 """
 
 
-def codemeta_to_bibtex(doc: Dict[str, Any]) -> str:
+def codemeta_to_bibtex(
+    doc: Dict[str, Any], swhid: Optional[QualifiedSWHID] = None
+) -> str:
     doc = compact(doc, False)
 
     identifiers = []
@@ -54,15 +58,23 @@ def codemeta_to_bibtex(doc: Dict[str, Any]) -> str:
     fields: Dict[str, Any] = {}
 
     def add_person(persons: List[Person], person_id: rdflib.term.Node) -> None:
+        person = Person()
         for _, _, name in g.triples((person_id, SCHEMA.name, None)):
             if (person_id, RDF.type, SCHEMA.Organization) in g:
                 # prevent interpreting the name as "Firstname Lastname" and reformatting
                 # it to "Lastname, Firstname"
-                person = Person(last=name)
+                person.last_names.append(name)
             else:
                 person = Person(name)
-            if person not in persons:
-                persons.append(person)
+
+        for _, _, given_name in g.triples((person_id, SCHEMA.givenName, None)):
+            person.first_names.append(given_name)
+
+        for _, _, family_name in g.triples((person_id, SCHEMA.familyName, None)):
+            person.last_names.append(family_name)
+
+        if str(person) and person not in persons:
+            persons.append(person)
 
     def add_affiliations(person: rdflib.term.Node) -> None:
         for _, _, organization in g.triples((person, SCHEMA.affiliation, None)):
@@ -160,7 +172,20 @@ def codemeta_to_bibtex(doc: Dict[str, Any]) -> str:
         for _, _, version in g.triples((id_, SCHEMA.version, None)):
             fields["version"] = version
 
-    entry_type = "softwareversion" if "version" in fields else "software"
+    # entry_type
+    if swhid:
+        fields["swhid"] = str(swhid)
+        if swhid.object_type == ObjectType.SNAPSHOT:
+            entry_type = "software"
+        elif swhid.object_type == ObjectType.CONTENT:
+            entry_type = "codefragment"
+        else:
+            entry_type = "softwareversion"
+    elif "version" in fields:
+        entry_type = "softwareversion"
+    else:
+        entry_type = "software"
+
     entry = Entry(
         entry_type,
         persons=persons,
@@ -169,6 +194,13 @@ def codemeta_to_bibtex(doc: Dict[str, Any]) -> str:
 
     entry.key = entry_key or "REPLACEME"
     return entry.to_string(bib_format="bibtex")
+
+
+def cff_to_bibtex(content: str, swhid: Optional[QualifiedSWHID] = None) -> str:
+    codemeta = CffMapping().translate(raw_content=content.encode("utf-8"))
+    if codemeta is None:
+        codemeta = {}
+    return codemeta_to_bibtex(codemeta, swhid)
 
 
 if __name__ == "__main__":

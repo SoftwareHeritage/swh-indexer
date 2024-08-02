@@ -7,7 +7,8 @@ import textwrap
 
 import pytest
 
-from swh.indexer.bibtex import codemeta_to_bibtex
+from swh.indexer.bibtex import cff_to_bibtex, codemeta_to_bibtex
+from swh.model.swhids import QualifiedSWHID
 
 
 def test_empty():
@@ -270,6 +271,104 @@ def test_affiliation():
             month = "10",
             title = "Example Software",
             url = "http://example.org/"
+        }
+        """
+    )
+
+
+def test_cff_empty():
+    assert cff_to_bibtex("") == textwrap.dedent(
+        """\
+        @software{REPLACEME
+        }
+        """
+    )
+
+
+def test_cff_invalid():
+    assert cff_to_bibtex("foo") == textwrap.dedent(
+        """\
+        @software{REPLACEME
+        }
+        """
+    )
+
+
+def test_cff_minimal():
+    assert (
+        cff_to_bibtex(
+            """
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Druskat
+    given-names: Stephan
+title: "My Research Software"
+date-released: 2021-08-11
+url: "http://example.org/"
+            """
+        )
+        == textwrap.dedent(
+            """\
+            @software{REPLACEME,
+                author = "Druskat, Stephan",
+                date = "2021-08-11",
+                year = "2021",
+                month = "08",
+                title = "My Research Software",
+                url = "http://example.org/"
+            }
+            """
+        )
+    )
+
+
+def test_swhid_type_snp():
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        },
+        QualifiedSWHID.from_string(
+            "swh:1:snp:da39a3ee5e6b4b0d3255bfef95601890afd80709"
+        ),
+    ) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            swhid = "swh:1:snp:da39a3ee5e6b4b0d3255bfef95601890afd80709"
+        }
+        """
+    )
+
+
+def test_swhid_type_rev():
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        },
+        QualifiedSWHID.from_string(
+            "swh:1:rev:5b909292bcfe6099d726c0b5194165c72f93b767"
+        ),
+    ) == textwrap.dedent(
+        """\
+        @softwareversion{REPLACEME,
+            swhid = "swh:1:rev:5b909292bcfe6099d726c0b5194165c72f93b767"
+        }
+        """
+    )
+
+
+def test_swhid_type_cnt():
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        },
+        QualifiedSWHID.from_string(
+            "swh:1:cnt:5b909292bcfe6099d726c0b5194165c72f93b767;lines=5-10"
+        ),
+    ) == textwrap.dedent(
+        """\
+        @codefragment{REPLACEME,
+            swhid = "swh:1:cnt:5b909292bcfe6099d726c0b5194165c72f93b767;lines=5-10"
         }
         """
     )
