@@ -109,7 +109,7 @@ def test_detect_metadata_package_nuspec(filename):
 
 
 def test_normalize_license_multiple_licenses_or_delimiter():
-    raw_content = raw_content = b"""<?xml version="1.0" encoding="utf-8"?>
+    raw_content = b"""<?xml version="1.0" encoding="utf-8"?>
     <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
         <metadata>
             <license type="expression">BitTorrent-1.0 or GPL-3.0-with-GCC-exception</license>
@@ -132,7 +132,7 @@ def test_normalize_license_multiple_licenses_or_delimiter():
 
 
 def test_normalize_license_unsupported_delimiter():
-    raw_content = raw_content = b"""<?xml version="1.0" encoding="utf-8"?>
+    raw_content = b"""<?xml version="1.0" encoding="utf-8"?>
     <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
         <metadata>
             <license type="expression">(MIT)</license>
@@ -151,7 +151,7 @@ def test_normalize_license_unsupported_delimiter():
 
 
 def test_copyrightNotice_absolute_uri_property():
-    raw_content = raw_content = b"""<?xml version="1.0" encoding="utf-8"?>
+    raw_content = b"""<?xml version="1.0" encoding="utf-8"?>
     <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
         <metadata>
             <copyright>Copyright 2017-2022</copyright>

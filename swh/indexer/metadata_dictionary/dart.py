@@ -40,7 +40,7 @@ class PubspecMapping(YamlMapping, SingleFileIntrinsicMapping):
         "name",
         "issue_tracker",
         "platforms",
-        "license"
+        "license",
         # license will only be used with the SPDX Identifier
     ]
     uri_fields = ["homepage"]
