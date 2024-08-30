@@ -58,7 +58,7 @@ comment on column content_fossology_license.indexer_configuration_id is 'Tool us
 
 
 -- The table content_metadata provides a translation to files
--- identified as potentially containning metadata with a translation tool (indexer_configuration_id)
+-- identified as potentially containing metadata with a translation tool (indexer_configuration_id)
 create table content_metadata(
   id                       sha1   not null,
   metadata                 jsonb  not null,

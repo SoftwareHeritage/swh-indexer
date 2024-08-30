@@ -85,7 +85,7 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
             # But let's not do it yet, because it would double the number of occurrences
             # in the description, causing the current implementation of swh-search
             # to give higher scores to forks than to original repositories, when
-            # searching for keyworks in the description; whereas forks are usually
+            # searching for keywords in the description; whereas forks are usually
             # of less interest than original repositories.
 
     @produce_terms(FORGEFED.forks, ACTIVITYSTREAMS.totalItems)
