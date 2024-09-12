@@ -541,6 +541,20 @@ def test_json_sword():
     }
 
 
+def test_json_sword_no_xmlns():
+    content = """{"title": "Example Software", "codemeta:url": "http://example.org/", "codemeta:author": [{"codemeta:name": "Author 1"}], "codemeta:version": "1.0"}"""  # noqa
+    result = MAPPINGS["JsonSwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "author": [
+            {"name": "Author 1"},
+        ],
+        "name": "Example Software",
+        "url": "http://example.org/",
+        "version": "1.0",
+    }
+
+
 def test_json_sword_codemeta_parsing_error(caplog):
     caplog.set_level(logging.ERROR)
     assert MAPPINGS["JsonSwordCodemetaMapping"]().translate(b"{123}") is None

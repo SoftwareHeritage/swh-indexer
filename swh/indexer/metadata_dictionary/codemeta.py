@@ -170,6 +170,19 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
         return compact(metadata, forgefed=False)
 
 
+def iter_keys(d):
+    """Recursively iterates on dictionary keys"""
+    if isinstance(d, dict):
+        yield from d
+        for value in d:
+            yield from iter_keys(value)
+    elif isinstance(d, list):
+        for value in d:
+            yield from iter_keys(value)
+    else:
+        pass
+
+
 class JsonSwordCodemetaMapping(SwordCodemetaMapping):
     """
     Variant of :class:`SwordCodemetaMapping` that reads the legacy
@@ -193,9 +206,21 @@ class JsonSwordCodemetaMapping(SwordCodemetaMapping):
             logger.error("Failed to parse JSON document: %s", content)
             return None
         else:
-            if json_doc.get("@xmlns") != ATOM_URI:
-                # Technically, non-default XMLNS were allowed, but it does not seem like
-                # anyone used them, so they do not need to be implemented here.
+            if "@xmlns" not in json_doc:
+                # Technically invalid, but old versions of the deposit dropped
+                # XMLNS information
+                json_doc["@xmlns"] = ATOM_URI
+
+            if "@xmlns:codemeta" not in json_doc and any(
+                key.startswith("codemeta:") for key in iter_keys(json_doc)
+            ):
+                # ditto
+                json_doc["@xmlns:codemeta"] = CODEMETA_CONTEXT_URL
+
+            if json_doc["@xmlns"] not in (ATOM_URI, [ATOM_URI]):
+                # Technically, non-default XMLNS were allowed, but no one used them,
+                # and we don't write this format anymore, so they do not need to be
+                # implemented here.
                 raise NotImplementedError(f"Unexpected XMLNS set: {json_doc}")
 
             # Root tag was stripped by swh-deposit
