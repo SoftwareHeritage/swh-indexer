@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 
 import logging
+import os
 from typing import Callable, Dict, Iterator, List, Optional
 import warnings
 
@@ -41,7 +42,16 @@ def indexer_cli_group(ctx, config_file):
     from swh.core import config
 
     ctx.ensure_object(dict)
-    cfg = config.read(config_file)
+    if not config_file:
+        config_file = os.environ.get("SWH_CONFIG_FILENAME")
+
+    if config_file:
+        if not os.path.exists(config_file):
+            raise ValueError("%s does not exist" % config_file)
+        cfg = config.read(config_file)
+    else:
+        cfg = {}
+
     if "indexer_storage" in cfg:
         warnings.warn(
             "The 'indexer_storage' configuration section should be renamed "

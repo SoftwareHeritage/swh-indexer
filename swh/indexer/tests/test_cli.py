@@ -570,13 +570,6 @@ def test_cli_config_deprecated(cli_runner, swh_indexer_config, monkeypatch, tmp_
         f.write(yaml.dump(swh_indexer_config))
     monkeypatch.setenv("SWH_CONFIG_FILENAME", conffile)
 
-    with pytest.warns(DeprecationWarning):
-        result = cli_runner.invoke(
-            indexer_cli_group,
-            ["-C", conffile, "mapping", "list"],
-            catch_exceptions=False,
-        )
-
     expected_output = "\n".join(
         [
             "cff",
@@ -595,5 +588,22 @@ def test_cli_config_deprecated(cli_runner, swh_indexer_config, monkeypatch, tmp_
             "",
         ]  # must be sorted for test to pass
     )
+
+    with pytest.warns(DeprecationWarning):
+        result = cli_runner.invoke(
+            indexer_cli_group,
+            ["-C", conffile, "mapping", "list"],
+            catch_exceptions=False,
+        )
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output
+
+    # same using SWH_CONFIG_FILENAME env var
+    with pytest.warns(DeprecationWarning):
+        result = cli_runner.invoke(
+            indexer_cli_group,
+            ["mapping", "list"],
+            catch_exceptions=False,
+        )
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
