@@ -1,10 +1,9 @@
-# Copyright (C) 2015-2022  The Software Heritage developers
+# Copyright (C) 2015-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 from collections import Counter
-from importlib import import_module
 import json
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 import warnings
@@ -35,19 +34,10 @@ from .model import (
 )
 from .writer import JournalWriter
 
-INDEXER_CFG_KEY = "indexer_storage"
+INDEXER_CFG_KEY = "indexer.storage"
 
 
 MAPPING_NAMES = ["cff", "codemeta", "gemspec", "maven", "npm", "pkg-info"]
-
-
-SERVER_IMPLEMENTATIONS: Dict[str, str] = {
-    "postgresql": ".IndexerStorage",
-    "remote": ".api.client.RemoteStorage",
-    "memory": ".in_memory.IndexerStorage",
-    # deprecated
-    "local": ".IndexerStorage",
-}
 
 
 def sanitize_json(doc):
@@ -81,6 +71,8 @@ def get_indexer_storage(cls: str, **kwargs) -> IndexerStorageInterface:
         ValueError if passed an unknown storage class.
 
     """
+    from swh.core.config import get_swh_backend_module
+
     if "args" in kwargs:
         warnings.warn(
             'Explicit "args" key is deprecated, use keys directly instead.',
@@ -88,16 +80,8 @@ def get_indexer_storage(cls: str, **kwargs) -> IndexerStorageInterface:
         )
         kwargs = kwargs["args"]
 
-    class_path = SERVER_IMPLEMENTATIONS.get(cls)
-    if class_path is None:
-        raise ValueError(
-            f"Unknown indexer storage class `{cls}`. "
-            f"Supported: {', '.join(SERVER_IMPLEMENTATIONS)}"
-        )
-
-    (module_path, class_name) = class_path.rsplit(".", 1)
-    module = import_module(module_path if module_path else ".", package=__package__)
-    BackendClass = getattr(module, class_name)
+    _, BackendClass = get_swh_backend_module(INDEXER_CFG_KEY, cls)
+    assert BackendClass is not None
     check_config = kwargs.pop("check_config", {})
     idx_storage = BackendClass(**kwargs)
     if check_config:

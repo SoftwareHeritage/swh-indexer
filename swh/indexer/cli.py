@@ -5,6 +5,7 @@
 
 import logging
 from typing import Callable, Dict, Iterator, List, Optional
+import warnings
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
 # control
@@ -40,8 +41,16 @@ def indexer_cli_group(ctx, config_file):
     from swh.core import config
 
     ctx.ensure_object(dict)
-    conf = config.read(config_file)
-    ctx.obj["config"] = conf
+    cfg = config.read(config_file)
+    if "indexer_storage" in cfg:
+        warnings.warn(
+            "The 'indexer_storage' configuration section should be renamed "
+            "as 'indexer.storage'",
+            DeprecationWarning,
+        )
+        cfg["indexer.storage"] = cfg.pop("indexer_storage")
+
+    ctx.obj["config"] = cfg
 
 
 def _get_api(getter, config, config_key, url):

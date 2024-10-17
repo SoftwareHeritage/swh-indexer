@@ -72,7 +72,7 @@ swh_indexer_storage_postgresql = idx_storage_postgresql
 @pytest.fixture
 def swh_indexer_storage(swh_indexer_storage_postgresql):
     return get_indexer_storage(
-        "local",
+        "postgresql",
         db=swh_indexer_storage_postgresql.info.dsn,
         journal_writer={
             "cls": "memory",

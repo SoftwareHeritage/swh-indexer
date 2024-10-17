@@ -6,6 +6,7 @@
 import logging
 import os
 from typing import Any, Dict, Optional
+import warnings
 
 from swh.core import config
 from swh.core.api import RPCServerApp
@@ -59,15 +60,14 @@ api_cfg = None
 
 
 def load_and_check_config(
-    config_path: Optional[str], type: str = "local"
+    config_path: Optional[str],
 ) -> Dict[str, Any]:
     """Check the minimal configuration is set to run the api or raise an
        error explanation.
 
     Args:
         config_path: Path to the configuration file to load
-        type: configuration type. For 'local' type, more
-          checks are done.
+        cls: backend class (as declared in swh.indexer.classes entry point)
 
     Raises:
         Error if the setup is not as expected
@@ -83,20 +83,15 @@ def load_and_check_config(
         raise FileNotFoundError(f"Configuration file {config_path} does not exist")
 
     cfg = config.read(config_path)
-    if "indexer_storage" not in cfg:
-        raise KeyError("Missing '%indexer_storage' configuration")
-
-    if type == "local":
-        vcfg = cfg["indexer_storage"]
-        cls = vcfg.get("cls")
-        if cls not in ("local", "postgresql"):
-            raise ValueError(
-                "The indexer_storage backend can only be started with a "
-                "'postgresql' configuration"
-            )
-
-        if not vcfg.get("db"):
-            raise ValueError("Invalid configuration; missing 'db' config entry")
+    if "indexer_storage" in cfg:
+        warnings.warn(
+            "The 'indexer_storage' configuration section should be renamed "
+            "as 'indexer.storage'",
+            DeprecationWarning,
+        )
+        cfg["indexer.storage"] = cfg.pop("indexer_storage")
+    if "indexer.storage" not in cfg:
+        raise KeyError("Missing '%indexer.storage' configuration")
 
     return cfg
 

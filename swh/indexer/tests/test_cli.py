@@ -5,6 +5,7 @@
 
 import datetime
 from functools import reduce
+import os
 import re
 from typing import Any, Dict, List
 
@@ -12,6 +13,7 @@ import attr
 from click.testing import CliRunner
 from confluent_kafka import Consumer
 import pytest
+import yaml
 
 from swh.indexer import fossology_license
 from swh.indexer.cli import indexer_cli_group
@@ -558,3 +560,40 @@ def test_cli_journal_client_index__fossology_license(
     assert len(results) == len(expected_results)
     for result in results:
         assert result in expected_results
+
+
+def test_cli_config_deprecated(cli_runner, swh_indexer_config, monkeypatch, tmp_path):
+    conffile = os.path.join(str(tmp_path), "indexer.yml")
+    # alter the config to use the deprecated entry
+    swh_indexer_config["indexer_storage"] = swh_indexer_config.pop("indexer.storage")
+    with open(conffile, "w") as f:
+        f.write(yaml.dump(swh_indexer_config))
+    monkeypatch.setenv("SWH_CONFIG_FILENAME", conffile)
+
+    with pytest.warns(DeprecationWarning):
+        result = cli_runner.invoke(
+            indexer_cli_group,
+            ["-C", conffile, "mapping", "list"],
+            catch_exceptions=False,
+        )
+
+    expected_output = "\n".join(
+        [
+            "cff",
+            "codemeta",
+            "composer",
+            "gemspec",
+            "gitea",
+            "github",
+            "json-sword-codemeta",
+            "maven",
+            "npm",
+            "nuget",
+            "pkg-info",
+            "pubspec",
+            "sword-codemeta",
+            "",
+        ]  # must be sorted for test to pass
+    )
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output

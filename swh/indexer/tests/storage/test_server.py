@@ -49,49 +49,33 @@ def test_load_and_check_inexistent_config_path() -> None:
 def test_load_and_check_config_wrong_configuration(tmpdir) -> None:
     """Wrong configuration raises"""
     config_path = prepare_config_file(tmpdir, "something: useless")
-    with pytest.raises(KeyError, match="Missing '%indexer_storage' configuration"):
+    with pytest.raises(KeyError, match="Missing '%indexer.storage' configuration"):
         load_and_check_config(config_path)
-
-
-@pytest.mark.parametrize("class_storage", ["remote", "memory"])
-def test_load_and_check_config_remote_config_local_type_raise(
-    class_storage, tmpdir
-) -> None:
-    """Any other configuration than 'postgresql' (the default) is rejected"""
-    assert class_storage != "local"
-    incompatible_config = {"indexer_storage": {"cls": class_storage}}
-    config_path = prepare_config_file(tmpdir, incompatible_config)
-
-    expected_error = (
-        "The indexer_storage backend can only be started with a 'postgresql' "
-        "configuration"
-    )
-    with pytest.raises(ValueError, match=expected_error):
-        load_and_check_config(config_path)
-    with pytest.raises(ValueError, match=expected_error):
-        load_and_check_config(config_path, type="local")
 
 
 def test_load_and_check_config_remote_config_fine(tmpdir) -> None:
     """'Remote configuration is fine (when changing the default type)"""
-    config = {"indexer_storage": {"cls": "remote"}}
+    config = {"indexer.storage": {"cls": "remote"}}
     config_path = prepare_config_file(tmpdir, config)
-    cfg = load_and_check_config(config_path, type="any")
+    cfg = load_and_check_config(config_path)
 
     assert cfg == config
 
 
-def test_load_and_check_config_local_incomplete_configuration(tmpdir) -> None:
-    """Incomplete 'postgresql' configuration should raise"""
-    config = {"indexer_storage": {"cls": "postgresql"}}
-
-    expected_error = "Invalid configuration; missing 'db' config entry"
-    config_path = prepare_config_file(tmpdir, config)
-    with pytest.raises(ValueError, match=expected_error):
-        load_and_check_config(config_path)
-
-
 def test_load_and_check_config_local_config_fine(tmpdir) -> None:
+    """'Complete 'local' configuration is fine"""
+    config = {
+        "indexer.storage": {
+            "cls": "postgresql",
+            "db": "db",
+        }
+    }
+    config_path = prepare_config_file(tmpdir, config)
+    cfg = load_and_check_config(config_path)
+    assert cfg == config
+
+
+def test_load_and_check_config_deprecated(tmpdir) -> None:
     """'Complete 'local' configuration is fine"""
     config = {
         "indexer_storage": {
@@ -100,5 +84,6 @@ def test_load_and_check_config_local_config_fine(tmpdir) -> None:
         }
     }
     config_path = prepare_config_file(tmpdir, config)
-    cfg = load_and_check_config(config_path, type="postgresql")
-    assert cfg == config
+    with pytest.warns(DeprecationWarning):
+        cfg = load_and_check_config(config_path)
+        assert "indexer.storage" in cfg
