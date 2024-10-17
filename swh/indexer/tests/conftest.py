@@ -22,7 +22,7 @@ idx_postgresql_proc = factories.postgresql_proc(
     load=[
         partial(
             initialize_database_for_module,
-            modname="indexer",
+            modname="indexer.storage",
             version=IndexerStorage.current_version,
         )
     ],
