@@ -7,7 +7,7 @@ frozendict != 2.1.2
 iso8601
 pybtex
 pyld
-rdflib < 7.1  # 7.1 breaks doctests; to remove when fixed
+rdflib
 sentry-sdk
 typing-extensions
 xmltodict

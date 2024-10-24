@@ -15,7 +15,7 @@ from pyld import jsonld
 import rdflib
 
 import swh.indexer
-from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA
+from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA, XSD
 
 _DATA_DIR = os.path.join(os.path.dirname(swh.indexer.__file__), "data")
 
@@ -148,7 +148,9 @@ def compact(doc, forgefed: bool):
     """
     contexts: List[Any] = [CODEMETA_CONTEXT_URL]
     if forgefed:
-        contexts.append({"as": str(ACTIVITYSTREAMS), "forge": str(FORGEFED)})
+        contexts.append(
+            {"as": str(ACTIVITYSTREAMS), "forge": str(FORGEFED), "xsd": str(XSD)}
+        )
     return jsonld.compact(doc, contexts, options={"documentLoader": _document_loader})
 
 

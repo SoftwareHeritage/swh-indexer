@@ -9,7 +9,7 @@ from typing import Any, Tuple
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
 from swh.indexer.codemeta import _DATA_DIR, read_crosstable
-from swh.indexer.namespaces import ACTIVITYSTREAMS, FORGEFED, SCHEMA
+from swh.indexer.namespaces import ACTIVITYSTREAMS, FORGEFED, SCHEMA, XSD
 
 from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
 from .utils import prettyprint_graph  # noqa
@@ -100,7 +100,10 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
             "@id": ...,
             "https://forgefed.org/ns#forks": {
                 "@type": "https://www.w3.org/ns/activitystreams#OrderedCollection",
-                "https://www.w3.org/ns/activitystreams#totalItems": 42
+                "https://www.w3.org/ns/activitystreams#totalItems": {
+                    "@type": "http://www.w3.org/2001/XMLSchema#nonNegativeInteger",
+                    "@value": "42"
+                }
             }
         }
         """
@@ -108,7 +111,13 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
             collection = BNode()
             graph.add((root, FORGEFED.forks, collection))
             graph.add((collection, RDF.type, ACTIVITYSTREAMS.OrderedCollection))
-            graph.add((collection, ACTIVITYSTREAMS.totalItems, Literal(v)))
+            graph.add(
+                (
+                    collection,
+                    ACTIVITYSTREAMS.totalItems,
+                    Literal(v, datatype=XSD.nonNegativeInteger),
+                )
+            )
 
     @produce_terms(ACTIVITYSTREAMS.likes, ACTIVITYSTREAMS.totalItems)
     def translate_stars_count(self, graph: Graph, root: BNode, v: Any) -> None:
@@ -122,7 +131,10 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
             "@id": ...,
             "https://www.w3.org/ns/activitystreams#likes": {
                 "@type": "https://www.w3.org/ns/activitystreams#Collection",
-                "https://www.w3.org/ns/activitystreams#totalItems": 42
+                "https://www.w3.org/ns/activitystreams#totalItems": {
+                    "@type": "http://www.w3.org/2001/XMLSchema#nonNegativeInteger",
+                    "@value": "42"
+                }
             }
         }
         """
@@ -130,7 +142,13 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
             collection = BNode()
             graph.add((root, ACTIVITYSTREAMS.likes, collection))
             graph.add((collection, RDF.type, ACTIVITYSTREAMS.Collection))
-            graph.add((collection, ACTIVITYSTREAMS.totalItems, Literal(v)))
+            graph.add(
+                (
+                    collection,
+                    ACTIVITYSTREAMS.totalItems,
+                    Literal(v, datatype=XSD.nonNegativeInteger),
+                )
+            )
 
     @produce_terms(ACTIVITYSTREAMS.followers, ACTIVITYSTREAMS.totalItems)
     def translate_watchers_count(self, graph: Graph, root: BNode, v: Any) -> None:
@@ -144,7 +162,10 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
             "@id": ...,
             "https://www.w3.org/ns/activitystreams#followers": {
                 "@type": "https://www.w3.org/ns/activitystreams#Collection",
-                "https://www.w3.org/ns/activitystreams#totalItems": 42
+                "https://www.w3.org/ns/activitystreams#totalItems": {
+                    "@type": "http://www.w3.org/2001/XMLSchema#nonNegativeInteger",
+                    "@value": "42"
+                }
             }
         }
         """
@@ -152,4 +173,10 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
             collection = BNode()
             graph.add((root, ACTIVITYSTREAMS.followers, collection))
             graph.add((collection, RDF.type, ACTIVITYSTREAMS.Collection))
-            graph.add((collection, ACTIVITYSTREAMS.totalItems, Literal(v)))
+            graph.add(
+                (
+                    collection,
+                    ACTIVITYSTREAMS.totalItems,
+                    Literal(v, datatype=XSD.nonNegativeInteger),
+                )
+            )

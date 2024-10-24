@@ -10,6 +10,7 @@ CONTEXT = [
     {
         "as": "https://www.w3.org/ns/activitystreams#",
         "forge": "https://forgefed.org/ns#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
     },
 ]
 
@@ -123,15 +124,21 @@ def test_compute_metadata_gitea():
         "type": "forge:Repository",
         "id": "https://codeberg.org/ForgeFed/ForgeFed",
         "forge:forks": {
-            "as:totalItems": 6,
+            "as:totalItems": {"type": "xsd:nonNegativeInteger", "@value": "6"},
             "type": "as:OrderedCollection",
         },
         "as:likes": {
-            "as:totalItems": 30,
+            "as:totalItems": {
+                "type": "xsd:nonNegativeInteger",
+                "@value": "30",
+            },
             "type": "as:Collection",
         },
         "as:followers": {
-            "as:totalItems": 11,
+            "as:totalItems": {
+                "type": "xsd:nonNegativeInteger",
+                "@value": "11",
+            },
             "type": "as:Collection",
         },
         "name": "ForgeFed",

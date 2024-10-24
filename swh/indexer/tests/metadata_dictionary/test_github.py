@@ -10,6 +10,7 @@ CONTEXT = [
     {
         "as": "https://www.w3.org/ns/activitystreams#",
         "forge": "https://forgefed.org/ns#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
     },
 ]
 
@@ -123,15 +124,24 @@ def test_compute_metadata_github():
         "type": "forge:Repository",
         "id": "https://github.com/SoftwareHeritage/swh-indexer",
         "forge:forks": {
-            "as:totalItems": 1,
+            "as:totalItems": {
+                "type": "xsd:nonNegativeInteger",
+                "@value": "1",
+            },
             "type": "as:OrderedCollection",
         },
         "as:likes": {
-            "as:totalItems": 13,
+            "as:totalItems": {
+                "type": "xsd:nonNegativeInteger",
+                "@value": "13",
+            },
             "type": "as:Collection",
         },
         "as:followers": {
-            "as:totalItems": 12,
+            "as:totalItems": {
+                "type": "xsd:nonNegativeInteger",
+                "@value": "12",
+            },
             "type": "as:Collection",
         },
         "license": "https://spdx.org/licenses/GPL-3.0",
