@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+import calendar
 import collections
 import json
 import sys
@@ -10,6 +11,8 @@ from typing import Any, Dict, List, Optional
 import uuid
 
 from pybtex.database import Entry, Person
+from pybtex.database.output.bibtex import Writer
+from pybtex.plugin import register_plugin
 import rdflib
 
 from swh.indexer.codemeta import compact, expand
@@ -21,6 +24,23 @@ TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-
 """IRI used for `skolemization <https://www.w3.org/TR/rdf11-concepts/#section-skolemization>`_;
 it is not used outside :func:`codemeta_to_bibtex`.
 """
+
+
+class BibTeXWithMacroWriter(Writer):
+
+    def quote(self, s):
+        r"""
+        >>> w = BibTeXWithMacroWriter()
+        >>> print(w.quote('macro:jan'))
+        jan
+        """
+
+        if s.startswith("macro:"):
+            return s[6:]
+        return super().quote(s)
+
+
+register_plugin("pybtex.database.output", "bibtex_with_macro", BibTeXWithMacroWriter)
 
 
 def codemeta_to_bibtex(
@@ -107,7 +127,8 @@ def codemeta_to_bibtex(
                 fields["date"] = date
                 break
     if "date" in fields:
-        (fields["year"], fields["month"], _) = fields["date"].split("-")
+        (fields["year"], month_number, _) = fields["date"].split("-")
+        fields["month"] = f"macro:{calendar.month_abbr[int(month_number)].lower()}"
 
     # identifier, doi, hal_id
     entry_key = None
@@ -193,7 +214,7 @@ def codemeta_to_bibtex(
     )
 
     entry.key = entry_key or "REPLACEME"
-    return entry.to_string(bib_format="bibtex")
+    return entry.to_string(bib_format="bibtex_with_macro")
 
 
 def cff_to_bibtex(content: str, swhid: Optional[QualifiedSWHID] = None) -> str:

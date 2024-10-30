@@ -39,7 +39,7 @@ def test_minimal():
             author = "Doe, Jane",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/"
         }
@@ -61,7 +61,7 @@ def test_empty_author_list():
         @software{REPLACEME,
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/"
         }
@@ -86,7 +86,7 @@ def test_version_minimal(key):
             author = "Doe, Jane",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/",
             version = "1.2.3"
@@ -111,7 +111,7 @@ def test_id():
             author = "Doe, Jane",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/"
         }
@@ -136,7 +136,7 @@ def test_id_url(key):
             author = "Doe, Jane",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/"
         }
@@ -161,7 +161,7 @@ def test_id_doi(key):
             author = "Doe, Jane",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             doi = "https://doi.org/10.1000/182",
             title = "Example Software",
             url = "http://example.org/"
@@ -187,7 +187,7 @@ def test_license():
             license = "Apache-2.0",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/"
         }
@@ -215,7 +215,7 @@ def test_licenses():
             license = "Apache-2.0 and GPL-3.0",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/"
         }
@@ -241,7 +241,7 @@ def test_organization_author():
             author = "Example University",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/"
         }
@@ -268,7 +268,7 @@ def test_affiliation():
             organization = "Example University",
             date = "2023-10-10",
             year = "2023",
-            month = "10",
+            month = oct,
             title = "Example Software",
             url = "http://example.org/"
         }
@@ -314,7 +314,7 @@ url: "http://example.org/"
                 author = "Druskat, Stephan",
                 date = "2021-08-11",
                 year = "2021",
-                month = "08",
+                month = aug,
                 title = "My Research Software",
                 url = "http://example.org/"
             }
