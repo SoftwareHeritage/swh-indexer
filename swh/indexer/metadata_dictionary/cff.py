@@ -1,9 +1,9 @@
-# Copyright (C) 2021-2022  The Software Heritage developers
+# Copyright (C) 2021-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import List
+from typing import Any, Dict, List
 import urllib.parse
 
 from rdflib import BNode, Graph, Literal, URIRef
@@ -63,3 +63,9 @@ class CffMapping(YamlMapping, SingleFileIntrinsicMapping):
     def normalize_license(self, s: str) -> URIRef:
         if isinstance(s, str):
             return SPDX + s
+
+    def _translate_dict(self, content_dict: Dict) -> Dict[str, Any]:
+        # https://github.com/citation-file-format/citation-file-format/blob/main/schema-guide.md#credit-redirection
+        return super()._translate_dict(
+            content_dict.get("preferred-citation", content_dict)
+        )
