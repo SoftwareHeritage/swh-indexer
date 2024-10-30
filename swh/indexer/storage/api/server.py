@@ -83,15 +83,15 @@ def load_and_check_config(
         raise FileNotFoundError(f"Configuration file {config_path} does not exist")
 
     cfg = config.read(config_path)
-    if "indexer_storage" in cfg:
+    if "indexer.storage" in cfg:
         warnings.warn(
-            "The 'indexer_storage' configuration section should be renamed "
-            "as 'indexer.storage'",
+            "The 'indexer.storage' configuration section should be renamed "
+            "as 'indexer_storage'",
             DeprecationWarning,
         )
-        cfg["indexer.storage"] = cfg.pop("indexer_storage")
-    if "indexer.storage" not in cfg:
-        raise KeyError("Missing '%indexer.storage' configuration")
+        cfg["indexer_storage"] = cfg.pop("indexer.storage")
+    if "indexer_storage" not in cfg:
+        raise KeyError("Missing '%indexer_storage' configuration")
 
     return cfg
 

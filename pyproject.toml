@@ -28,7 +28,7 @@ testing = {file = ["requirements-test.txt"]}
 [project.entry-points."swh.cli.subcommands"]
 "swh.indexer" = "swh.indexer.cli"
 
-[project.entry-points."swh.indexer.storage.classes"]
+[project.entry-points."swh.indexer_storage.classes"]
 "postgresql" = "swh.indexer.storage:IndexerStorage"
 "remote" = "swh.indexer.storage.api.client:RemoteStorage"
 "memory" = "swh.indexer.storage.in_memory:IndexerStorage"

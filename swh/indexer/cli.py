@@ -52,13 +52,13 @@ def indexer_cli_group(ctx, config_file):
     else:
         cfg = {}
 
-    if "indexer_storage" in cfg:
+    if "indexer.storage" in cfg:
         warnings.warn(
-            "The 'indexer_storage' configuration section should be renamed "
-            "as 'indexer.storage'",
+            "The 'indexer.storage' configuration section should be renamed "
+            "as 'indexer_storage'",
             DeprecationWarning,
         )
-        cfg["indexer.storage"] = cfg.pop("indexer_storage")
+        cfg["indexer_storage"] = cfg.pop("indexer.storage")
 
     ctx.obj["config"] = cfg
 

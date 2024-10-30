@@ -51,7 +51,7 @@ def swh_indexer_config(
     return {
         "storage": swh_storage_backend_config,
         "objstorage": {"cls": "memory"},
-        "indexer.storage": idx_storage_backend_config,
+        "indexer_storage": idx_storage_backend_config,
         "tools": {
             "name": "file",
             "version": "1:5.30-1+deb9u1",
@@ -67,7 +67,7 @@ def idx_storage(swh_indexer_config):
     indexers classes.
 
     """
-    idx_storage_config = swh_indexer_config["indexer.storage"]
+    idx_storage_config = swh_indexer_config["indexer_storage"]
     return get_indexer_storage(**idx_storage_config)
 
 

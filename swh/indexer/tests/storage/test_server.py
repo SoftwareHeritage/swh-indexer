@@ -49,13 +49,13 @@ def test_load_and_check_inexistent_config_path() -> None:
 def test_load_and_check_config_wrong_configuration(tmpdir) -> None:
     """Wrong configuration raises"""
     config_path = prepare_config_file(tmpdir, "something: useless")
-    with pytest.raises(KeyError, match="Missing '%indexer.storage' configuration"):
+    with pytest.raises(KeyError, match="Missing '%indexer_storage' configuration"):
         load_and_check_config(config_path)
 
 
 def test_load_and_check_config_remote_config_fine(tmpdir) -> None:
     """'Remote configuration is fine (when changing the default type)"""
-    config = {"indexer.storage": {"cls": "remote"}}
+    config = {"indexer_storage": {"cls": "remote"}}
     config_path = prepare_config_file(tmpdir, config)
     cfg = load_and_check_config(config_path)
 
@@ -63,9 +63,9 @@ def test_load_and_check_config_remote_config_fine(tmpdir) -> None:
 
 
 def test_load_and_check_config_local_config_fine(tmpdir) -> None:
-    """'Complete 'local' configuration is fine"""
+    """'Complete 'postgresql' configuration is fine"""
     config = {
-        "indexer.storage": {
+        "indexer_storage": {
             "cls": "postgresql",
             "db": "db",
         }
@@ -78,7 +78,7 @@ def test_load_and_check_config_local_config_fine(tmpdir) -> None:
 def test_load_and_check_config_deprecated(tmpdir) -> None:
     """'Complete 'local' configuration is fine"""
     config = {
-        "indexer_storage": {
+        "indexer.storage": {
             "cls": "postgresql",
             "db": "db",
         }
@@ -86,4 +86,4 @@ def test_load_and_check_config_deprecated(tmpdir) -> None:
     config_path = prepare_config_file(tmpdir, config)
     with pytest.warns(DeprecationWarning):
         cfg = load_and_check_config(config_path)
-        assert "indexer.storage" in cfg
+        assert "indexer_storage" in cfg

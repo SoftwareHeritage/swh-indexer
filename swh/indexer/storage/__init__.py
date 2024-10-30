@@ -34,7 +34,7 @@ from .model import (
 )
 from .writer import JournalWriter
 
-INDEXER_CFG_KEY = "indexer.storage"
+INDEXER_CFG_KEY = "indexer_storage"
 
 
 MAPPING_NAMES = ["cff", "codemeta", "gemspec", "maven", "npm", "pkg-info"]
