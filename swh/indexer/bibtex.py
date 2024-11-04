@@ -1,4 +1,4 @@
-# Copyright (C) 2023  The Software Heritage developers
+# Copyright (C) 2023-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,6 +6,7 @@
 import calendar
 import collections
 import json
+import secrets
 import sys
 from typing import Any, Dict, List, Optional
 import uuid
@@ -25,18 +26,20 @@ TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-
 it is not used outside :func:`codemeta_to_bibtex`.
 """
 
+MACRO_PREFIX = "macro" + secrets.token_urlsafe(16).replace("_", "")
+
 
 class BibTeXWithMacroWriter(Writer):
 
     def quote(self, s):
         r"""
         >>> w = BibTeXWithMacroWriter()
-        >>> print(w.quote('macro:jan'))
+        >>> print(w.quote(f'{MACRO_PREFIX}:jan'))
         jan
         """
 
-        if s.startswith("macro:"):
-            return s[6:]
+        if s.startswith(f"{MACRO_PREFIX}:"):
+            return s[len(MACRO_PREFIX) + 1 :]
         return super().quote(s)
 
 
@@ -128,7 +131,9 @@ def codemeta_to_bibtex(
                 break
     if "date" in fields:
         (fields["year"], month_number, _) = fields["date"].split("-")
-        fields["month"] = f"macro:{calendar.month_abbr[int(month_number)].lower()}"
+        fields["month"] = (
+            f"{MACRO_PREFIX}:{calendar.month_abbr[int(month_number)].lower()}"
+        )
 
     # identifier, doi, hal_id
     entry_key = None
