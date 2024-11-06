@@ -18,6 +18,7 @@ from swh.indexer.codemeta import CODEMETA_CONTEXT_URL, CODEMETA_TERMS, compact, 
 from .base import BaseExtrinsicMapping, SingleFileIntrinsicMapping
 
 ATOM_URI = "http://www.w3.org/2005/Atom"
+SWH_DEPOSIT_URI = "https://www.softwareheritage.org/schema/2018/deposit"
 
 _TAG_RE = re.compile(r"\{(?P<namespace>.*?)\}(?P<localname>.*)")
 _IGNORED_NAMESPACES = ("http://www.w3.org/2005/Atom",)
@@ -129,6 +130,21 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
                         doc[localname] = jsonld_child  # type: ignore[assignment]
                 else:
                     doc[localname].append(jsonld_child)
+            elif namespace.lower() == SWH_DEPOSIT_URI and localname == "jsonld":
+                if list(child):
+                    logger.error("Non-text value in %s, ignoring", child)
+                    continue
+                if not isinstance(child.text, str):  # for mypy (can it even happen?)
+                    logger.error("Invalid value in %s, ignoring", child)
+                    continue
+                subdoc = json.loads(child.text)
+                if not isinstance(subdoc, dict):
+                    logger.error("Non-dict value in %s, ignoring", child)
+                    continue
+                for key, value in subdoc.items():
+                    if not isinstance(value, list):
+                        value = [value]
+                    doc.setdefault(key, []).extend(value)
             else:
                 # Otherwise, we already know the URI
                 doc[f"{namespace}{localname}"].append(self.xml_to_jsonld(child))

@@ -519,6 +519,148 @@ def test_sword_fix_date():
     }
 
 
+def test_jsonld_in_sword():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:swh="https://www.softwareheritage.org/schema/2018/deposit"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <swh:jsonld>
+          {"http://schema.org/version": "1.2.3"}
+      </swh:jsonld>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "version": "1.2.3",
+    }
+
+
+def test_jsonld_in_sword_duplicate_key():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:swh="https://www.softwareheritage.org/schema/2018/deposit"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <schema:version>1.2.3</schema:version>
+      <swh:jsonld>
+        {"http://schema.org/version": "4.5.6"}
+      </swh:jsonld>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "version": ["1.2.3", "4.5.6"],
+    }
+
+
+def test_jsonld_in_sword_reuse_default_namespace():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:swh="https://www.softwareheritage.org/schema/2018/deposit"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <swh:jsonld>
+          {"version": "1.2.3"}
+      </swh:jsonld>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "version": "1.2.3",
+    }
+
+
+def test_jsonld_in_sword_reuse_nondefault_namespace():
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:swh="https://www.softwareheritage.org/schema/2018/deposit"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <swh:jsonld>
+          {"schema:version": "1.2.3"}
+      </swh:jsonld>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "version": "1.2.3",
+    }
+
+
+def test_jsonld_in_sword_ignore_invalid():
+    expected_result = {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+        "name": "My Software",
+        "version": "1.2.3",
+    }
+
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:swh="https://www.softwareheritage.org/schema/2018/deposit"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <schema:version>1.2.3</schema:version>
+      <swh:jsonld>
+        ["this", "is", "a", "list"]
+      </swh:jsonld>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == expected_result
+
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:swh="https://www.softwareheritage.org/schema/2018/deposit"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <schema:version>1.2.3</schema:version>
+      <swh:jsonld>
+        <name>{"http://schema.org/version": "4.5.6"}</name>
+      </swh:jsonld>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == expected_result
+
+    content = """<?xml version="1.0"?>
+    <atom:entry xmlns:atom="http://www.w3.org/2005/Atom"
+                xmlns="https://doi.org/10.5063/schema/codemeta-2.0"
+                xmlns:swh="https://www.softwareheritage.org/schema/2018/deposit"
+                xmlns:schema="http://schema.org/">
+      <name>My Software</name>
+      <schema:version>1.2.3</schema:version>
+      <swh:jsonld>
+        {"http://schema.org/version": "4.5.6"}
+        <name>foo</name>
+      </swh:jsonld>
+    </atom:entry>
+    """
+
+    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    assert result == expected_result
+
+
 def test_sword_codemeta_parsing_error(caplog):
     caplog.set_level(logging.ERROR)
     assert MAPPINGS["SwordCodemetaMapping"]().translate(b"123") is None
