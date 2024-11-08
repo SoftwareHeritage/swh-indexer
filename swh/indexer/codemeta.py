@@ -146,6 +146,13 @@ def compact(doc, forgefed: bool):
           This is typically used for extrinsic metadata documents, which frequently
           use properties from these namespaces.
     """
+    if "@context" in doc and isinstance(doc["@context"], list):
+        # workaround pyld issue (https://github.com/digitalbazaar/pyld/issues/154)
+        doc["@context"] = [
+            context
+            for context in doc["@context"]
+            if not context.endswith("/schema.org")
+        ]
     contexts: List[Any] = [CODEMETA_CONTEXT_URL]
     if forgefed:
         contexts.append(
