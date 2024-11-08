@@ -276,6 +276,29 @@ def test_affiliation():
     )
 
 
+def test_invalid_date():
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "author": {"name": "Jane Doe"},
+            "name": "Example Software",
+            "url": "http://example.org/",
+            "datePublished": "TBD",
+            "license": "https://spdx.org/licenses/Apache-2.0",
+        }
+    ) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            author = "Doe, Jane",
+            license = "Apache-2.0",
+            date = "TBD",
+            title = "Example Software",
+            url = "http://example.org/"
+        }
+        """
+    )
+
+
 def test_cff_empty():
     assert cff_to_bibtex("") == textwrap.dedent(
         """\

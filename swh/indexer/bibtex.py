@@ -11,6 +11,7 @@ import sys
 from typing import Any, Dict, List, Optional
 import uuid
 
+import iso8601
 from pybtex.database import Entry, Person
 from pybtex.database.output.bibtex import Writer
 from pybtex.plugin import register_plugin
@@ -130,10 +131,14 @@ def codemeta_to_bibtex(
                 fields["date"] = date
                 break
     if "date" in fields:
-        (fields["year"], month_number, _) = fields["date"].split("-")
-        fields["month"] = (
-            f"{MACRO_PREFIX}:{calendar.month_abbr[int(month_number)].lower()}"
-        )
+        try:
+            parsed_date = iso8601.parse_date(fields["date"])
+            fields["year"] = str(parsed_date.year)
+            fields["month"] = (
+                f"{MACRO_PREFIX}:{calendar.month_abbr[parsed_date.month].lower()}"
+            )
+        except iso8601.ParseError:
+            pass
 
     # identifier, doi, hal_id
     entry_key = None
