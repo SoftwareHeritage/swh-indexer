@@ -28,7 +28,7 @@ repos:
       - id: codespell
         name: Check source code spelling
         args: [-L assertIn]
-        exclude: ^(swh/indexer/data/codemeta/crosswalk.csv)$
+        exclude: ^(swh/indexer/data/)
         stages: [commit]
       - id: codespell
         name: Check commit message spelling

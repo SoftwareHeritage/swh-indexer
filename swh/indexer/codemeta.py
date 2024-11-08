@@ -27,6 +27,9 @@ CODEMETA_CONTEXT_PATH = os.path.join(_DATA_DIR, "codemeta", "codemeta.jsonld")
 with open(CODEMETA_CONTEXT_PATH) as fd:
     CODEMETA_CONTEXT = json.load(fd)
 
+with open(os.path.join(_DATA_DIR, "schema.org", "schemaorgcontext.jsonld")) as fd:
+    _SCHEMA_DOT_ORG_CONTEXT = json.load(fd)
+
 _EMPTY_PROCESSED_CONTEXT: Any = {"mappings": {}}
 _PROCESSED_CODEMETA_CONTEXT = jsonld.JsonLdProcessor().process_context(
     _EMPTY_PROCESSED_CONTEXT, CODEMETA_CONTEXT, None
@@ -121,7 +124,7 @@ def _document_loader(url, options=None):
     from the Internet every single time."""
     if (
         url.lower() == CODEMETA_CONTEXT_URL.lower()
-        or url in CODEMETA_ALTERNATE_CONTEXT_URLS
+        or url.lower() in CODEMETA_ALTERNATE_CONTEXT_URLS
     ):
         return {
             "contextUrl": None,
@@ -134,8 +137,14 @@ def _document_loader(url, options=None):
                 CODEMETA, CODEMETA_CONTEXT_URL
             )
         )
+    elif url.lower().rstrip("/") in ("http://schema.org", "https://schema.org"):
+        return {
+            "contextUrl": None,
+            "documentUrl": url,
+            "document": _SCHEMA_DOT_ORG_CONTEXT,
+        }
     else:
-        raise Exception(url)
+        raise Exception(f"Unknown context URL: {url}")
 
 
 def compact(doc, forgefed: bool):

@@ -109,12 +109,15 @@ def codemeta_to_bibtex(
         fields["abstract"] = description
         break
 
-    # authors, which are an ordered list
-    for _, _, author_list in g.triples((id_, SCHEMA.author, None)):
-        if author_list == RDF.nil:
+    for _, _, author_or_author_list in g.triples((id_, SCHEMA.author, None)):
+        # schema.org-style authors, which are single values
+        add_person(persons["author"], author_or_author_list)
+
+        # codemeta-style authors, which are an ordered list
+        if author_or_author_list == RDF.nil:
             # Workaround for https://github.com/RDFLib/rdflib/pull/2818
             continue
-        for author in rdflib.collection.Collection(g, author_list):
+        for author in rdflib.collection.Collection(g, author_or_author_list):
             add_person(persons["author"], author)
             add_affiliations(author)
 
