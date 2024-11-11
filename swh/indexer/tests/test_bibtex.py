@@ -346,6 +346,36 @@ url: "http://example.org/"
     )
 
 
+def test_cff_orchid_with_trailing_whitespace():
+    assert (
+        cff_to_bibtex(
+            """
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Druskat
+    given-names: Stephan
+    orcid: "https://orcid.org/0000-0001-7310-4634 "
+title: "My Research Software"
+date-released: 2021-08-11
+url: "http://example.org/"
+            """
+        )
+        == textwrap.dedent(
+            """\
+            @software{REPLACEME,
+                author = "Druskat, Stephan",
+                date = "2021-08-11",
+                year = "2021",
+                month = aug,
+                title = "My Research Software",
+                url = "http://example.org/"
+            }
+            """
+        )
+    )
+
+
 def test_swhid_type_snp():
     assert codemeta_to_bibtex(
         {

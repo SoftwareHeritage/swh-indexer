@@ -36,7 +36,7 @@ class CffMapping(YamlMapping, SingleFileIntrinsicMapping):
             and isinstance(author["orcid"], str)
             and urllib.parse.urlparse(author["orcid"]).netloc
         ):
-            node = URIRef(author["orcid"])
+            node = URIRef(author["orcid"].strip())
         else:
             node = BNode()
         graph.add((node, RDF.type, SCHEMA.Person))
