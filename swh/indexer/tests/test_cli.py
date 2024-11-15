@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import datetime
-from functools import reduce
 import re
 from typing import Any, Dict, List
 
@@ -73,23 +72,6 @@ def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List
     idx_storage.origin_intrinsic_metadata_add(origin_metadata)
 
     return [tool["id"] for tool in tools]
-
-
-def _origins_in_task_args(tasks):
-    """Returns the set of origins contained in the arguments of the
-    provided tasks (assumed to be of type index-origin-metadata)."""
-    return reduce(
-        set.union, (set(task["arguments"]["args"][0]) for task in tasks), set()
-    )
-
-
-def _assert_tasks_for_origins(tasks, origins):
-    expected_kwargs = {}
-    assert {task["type"] for task in tasks} == {"index-origin-metadata"}
-    assert all(len(task["arguments"]["args"]) == 1 for task in tasks)
-    for task in tasks:
-        assert task["arguments"]["kwargs"] == expected_kwargs, task
-    assert _origins_in_task_args(tasks) == set(["file://dev/%04d" % i for i in origins])
 
 
 @pytest.fixture

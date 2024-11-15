@@ -166,11 +166,6 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids) -> Iterator[str]:
     required=True,
 )
 @click.option(
-    "--origin-metadata-task-type",
-    default="index-origin-metadata",
-    help="Name of the task running the origin metadata indexer.",
-)
-@click.option(
     "--broker", "brokers", type=str, multiple=True, help="Kafka broker to connect to."
 )
 @click.option(
@@ -195,21 +190,17 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids) -> Iterator[str]:
 def journal_client(
     ctx,
     indexer: Optional[str],
-    origin_metadata_task_type: str,
     brokers: List[str],
     prefix: str,
     group_id: str,
     stop_after_objects: Optional[int],
     batch_size: Optional[int],
 ):
-    """
-    Listens for new objects from the SWH Journal, and either:
-
-    * runs the indexer with the name passed as argument, if any
-    * schedules tasks to run relevant indexers (currently, only
-      origin_intrinsic_metadata) on these new objects otherwise.
+    """Listens for new objects from the SWH Journal, and runs the indexer with
+    the name passed as argument
 
     Passing '*' as indexer name runs all indexers.
+
     """
     from swh.indexer.indexer import BaseIndexer, ObjectsDict
     from swh.journal.client import get_journal_client
@@ -226,9 +217,6 @@ def journal_client(
         journal_cfg["prefix"] = prefix
     if group_id:
         journal_cfg["group_id"] = group_id
-    origin_metadata_task_type = origin_metadata_task_type or journal_cfg.get(
-        "origin_metadata_task_type"
-    )
     if stop_after_objects:
         journal_cfg["stop_after_objects"] = stop_after_objects
     if batch_size:
