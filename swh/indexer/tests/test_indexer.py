@@ -64,7 +64,7 @@ def test_content_indexer_catch_exceptions(sentry_events):
     sha1 = b"\x12" * 20
 
     # As task, catching exceptions
-    assert indexer.run([sha1]) == {"status": "failed"}
+    assert indexer.run([sha1]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
 
     # As journal client, catching exceptions
@@ -104,7 +104,7 @@ def test_directory_indexer_catch_exceptions(sentry_events):
     swhid = str(DIRECTORY2.swhid())
 
     # As task, catching exceptions
-    assert indexer.run([sha1]) == {"status": "failed"}
+    assert indexer.run([sha1]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-directory-swhid": swhid})
 
     # As journal client, catching exceptions
@@ -141,7 +141,7 @@ def test_origin_indexer_catch_exceptions(sentry_events):
     origin_url = "http://example.org"
 
     # As task, catching exceptions
-    assert indexer.run([origin_url]) == {"status": "failed"}
+    assert indexer.run([origin_url]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
 
     # As journal client, catching exceptions

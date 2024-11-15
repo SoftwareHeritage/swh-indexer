@@ -663,8 +663,8 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         """Unknown sha1s are not indexed"""
         sha1s = [
             self.id1,
-            "799a5ef812c53907562fe379d4b3851e69c7cb15",  # unknown
-            "800a5ef812c53907562fe379d4b3851e69c7cb15",  # unknown
+            bytes.fromhex("799a5ef812c53907562fe379d4b3851e69c7cb15"),  # unknown
+            bytes.fromhex("800a5ef812c53907562fe379d4b3851e69c7cb15"),  # unknown
         ]  # unknown
 
         # when

@@ -99,8 +99,7 @@ class ExtrinsicMetadataIndexer(
             summary["status"] = "failed"
             return summary
 
-        self.results = list(results.values())
-        summary_persist = self.persist_index_computations(self.results)
+        summary_persist = self.persist_index_computations(list(results.values()))
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
@@ -447,12 +446,12 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             if sha1s_filtered:
                 # content indexing
                 try:
-                    c_metadata_indexer.run(
+                    _, results = c_metadata_indexer.run(
                         sha1s_filtered,
                         log_suffix=log_suffix,
                     )
                     # on the fly possibility:
-                    for result in c_metadata_indexer.results:
+                    for result in results:
                         local_metadata = result.metadata
                         metadata.append(local_metadata)
 

@@ -10,7 +10,6 @@ import os
 import shutil
 import tempfile
 from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
-import warnings
 
 import sentry_sdk
 from typing_extensions import TypedDict
@@ -20,7 +19,6 @@ from swh.indexer.storage import INDEXER_CFG_KEY, Sha1, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model import hashutil
 from swh.model.model import Directory, Origin, Sha1Git
-from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
 from swh.objstorage.interface import objid_from_dict
 from swh.storage import get_storage
@@ -177,7 +175,6 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
 
         if self.USE_TOOLS:
             self.tools = list(self.register_tools(self.config.get("tools", [])))
-        self.results = []
 
     @property
     def tool(self) -> Dict:
@@ -295,17 +292,33 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Read content objects from the journal, retrieve their raw content and compute
         content indexing (e.g. mimetype, fossology license, ...).
+        """
+        summary, _ = self.run([obj_id["sha1"] for obj_id in objects.get("content", [])])
+        return summary
 
-        Note that once this is deployed, this supersedes the main ContentIndexer.run
-        method call and the class ContentPartitionIndexer.
+    def run(self, ids: List[Sha1], **kwargs) -> Tuple[Dict, List]:
+        """Given a list of ids:
+
+        - retrieve the content from the storage
+        - execute the indexing computations
+        - store the results
+
+        Args:
+            ids (Iterable[Sha1]): sha1's identifier list
+            **kwargs: passed to the `index` method
+
+        Returns:
+            A summary Dict of the task's status
+
         """
         summary: Dict[str, Any] = {"status": "uneventful"}
+        results = []
         try:
-            results = []
-            contents = objects.get("content", [])
-            content_data = self.objstorage.get_batch(map(objid_from_dict, contents))
-            for item, raw_content in zip(contents, content_data):
-                id_ = item["sha1"]
+            content_data = self.objstorage.get_batch(
+                [objid_from_dict({"sha1": id}) for id in ids]
+            )
+            for item, raw_content in zip(ids, content_data):
+                id_ = item
                 sentry_sdk.set_tag(
                     "swh-indexer-content-sha1", hashutil.hash_to_hex(id_)
                 )
@@ -316,83 +329,25 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
                     )
                     continue
 
-                results.extend(self.index(id_, data=raw_content))
+                results.extend(self.index(id_, data=raw_content, **kwargs))
         except Exception:
             if not self.catch_exceptions:
                 raise
             self.log.exception("Problem when reading contents metadata.")
             sentry_sdk.capture_exception()
             summary["status"] = "failed"
-            return summary
+            return summary, results
         else:
             # Reset tag after we finished processing the given content
             sentry_sdk.set_tag("swh-indexer-content-sha1", "")
 
         summary_persist = self.persist_index_computations(results)
-        self.results = results
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
                     summary["status"] = "eventful"
             summary.update(summary_persist)
-        return summary
-
-    def run(self, ids: List[Sha1], **kwargs) -> Dict:
-        """Given a list of ids:
-
-        - retrieve the content from the storage
-        - execute the indexing computations
-        - store the results
-
-        Args:
-            ids (Iterable[Union[bytes, str]]): sha1's identifier list
-            **kwargs: passed to the `index` method
-
-        Returns:
-            A summary Dict of the task's status
-
-        """
-        if "policy_update" in kwargs:
-            warnings.warn(
-                "'policy_update' argument is deprecated and ignored.",
-                DeprecationWarning,
-            )
-            del kwargs["policy_update"]
-
-        sha1s = [
-            hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
-        ]
-        results = []
-        summary: Dict = {"status": "uneventful"}
-        try:
-            for sha1 in sha1s:
-                sentry_sdk.set_tag(
-                    "swh-indexer-content-sha1", hashutil.hash_to_hex(sha1)
-                )
-                try:
-                    raw_content = self.objstorage.get(sha1)
-                except ObjNotFoundError:
-                    self.log.warning(
-                        "Content %s not found in objstorage"
-                        % hashutil.hash_to_hex(sha1)
-                    )
-                    continue
-                res = self.index(sha1, raw_content, **kwargs)
-                if res:  # If no results, skip it
-                    results.extend(res)
-                    summary["status"] = "eventful"
-            summary = self.persist_index_computations(results)
-            self.results = results
-        except Exception:
-            if not self.catch_exceptions:
-                raise
-            self.log.exception("Problem when reading contents metadata.")
-            sentry_sdk.capture_exception()
-            summary["status"] = "failed"
-        else:
-            # Reset tag after we finished processing the given content
-            sentry_sdk.set_tag("swh-indexer-content-sha1", "")
-        return summary
+        return summary, results
 
 
 class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
@@ -406,7 +361,17 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
 
     """
 
-    def run(self, origin_urls: List[str], **kwargs) -> Dict:
+    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
+        """Worker function for ``JournalClient``."""
+        origin_urls = [
+            status["origin"]
+            for status in objects.get("origin_visit_status", [])
+            if status["status"] == "full"
+        ] + [origin["url"] for origin in objects.get("origin", [])]
+        summary, _ = self.run(origin_urls)
+        return summary
+
+    def run(self, origin_urls: List[str], **kwargs) -> Tuple[Dict, List]:
         """Given a list of origin urls:
 
         - retrieve origins from storage
@@ -418,26 +383,9 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
             **kwargs: passed to the `index` method
 
         """
-        if "policy_update" in kwargs:
-            warnings.warn(
-                "'policy_update' argument is deprecated and ignored.",
-                DeprecationWarning,
-            )
-            del kwargs["policy_update"]
-
-        origins = [{"url": url} for url in origin_urls]
-
-        return self.process_journal_objects({"origin": origins})
-
-    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
-        """Worker function for ``JournalClient``."""
-        origins = [
-            Origin(url=status["origin"])
-            for status in objects.get("origin_visit_status", [])
-            if status["status"] == "full"
-        ] + [Origin(url=origin["url"]) for origin in objects.get("origin", [])]
-
+        origins = [Origin(url=url) for url in origin_urls]
         summary: Dict[str, Any] = {"status": "uneventful"}
+        results = []
         try:
             results = self.index_list(
                 origins,
@@ -452,16 +400,15 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
             self.log.exception("Problem when processing origins")
             sentry_sdk.capture_exception()
             summary["status"] = "failed"
-            return summary
+            return summary, results
 
         summary_persist = self.persist_index_computations(results)
-        self.results = results
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
                     summary["status"] = "eventful"
             summary.update(summary_persist)
-        return summary
+        return summary, results
 
     def index_list(self, origins: List[Origin], **kwargs) -> List[TResult]:
         results = []
@@ -483,7 +430,7 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
 
     """
 
-    def run(self, ids: List[Sha1Git], **kwargs) -> Dict:
+    def run(self, ids: List[Sha1Git], **kwargs) -> Tuple[Dict, List]:
         """Given a list of sha1_gits:
 
         - retrieve directories from storage
@@ -494,13 +441,6 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
             ids: sha1_git's identifier list
 
         """
-        if "policy_update" in kwargs:
-            warnings.warn(
-                "'policy_update' argument is deprecated and ignored.",
-                DeprecationWarning,
-            )
-            del kwargs["policy_update"]
-
         directory_ids = [
             hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
         ]
@@ -509,17 +449,18 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
 
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Worker function for ``JournalClient``."""
-        return self._process_directories(
+        summary, _ = self._process_directories(
             [
                 (dir_["id"], Directory.from_dict(dir_))
                 for dir_ in objects.get("directory", [])
             ]
         )
+        return summary
 
     def _process_directories(
         self,
         directories: Union[List[Tuple[Sha1Git, Directory]], List[Tuple[Sha1Git, None]]],
-    ) -> Dict:
+    ) -> Tuple[Dict, List]:
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
 
@@ -545,5 +486,4 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
                 if value > 0:
                     summary["status"] = "eventful"
             summary.update(summary_persist)
-        self.results = results
-        return summary
+        return summary, results
