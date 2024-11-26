@@ -37,7 +37,9 @@ _PROCESSED_CODEMETA_CONTEXT = jsonld.JsonLdProcessor().process_context(
 
 CODEMETA_CONTEXT_URL = "https://doi.org/10.5063/schema/codemeta-2.0"
 CODEMETA_ALTERNATE_CONTEXT_URLS = {
-    ("https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld")
+    "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+    "https://doi.org/doi:10.5063/schema/codemeta-2.0",
+    "http://purl.org/codemeta/2.0",
 }
 
 
