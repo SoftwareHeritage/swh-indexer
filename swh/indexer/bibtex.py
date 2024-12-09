@@ -77,7 +77,12 @@ def codemeta_to_bibtex(
             identifiers.append(doc["identifier"])
 
     doc = expand(doc)
-    g = rdflib.Graph().parse(data=json.dumps(doc), format="json-ld")
+    g = rdflib.Graph().parse(
+        data=json.dumps(doc),
+        format="json-ld",
+        # replace invalid URIs with blank node ids, instead of discarding whole nodes:
+        generalized_rdf=True,
+    )
     persons: Dict[str, List[Person]] = collections.defaultdict(list)
     fields: Dict[str, Any] = {}
 

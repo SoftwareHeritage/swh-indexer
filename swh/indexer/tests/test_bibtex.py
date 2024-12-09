@@ -276,6 +276,58 @@ def test_affiliation():
     )
 
 
+def test_author_id():
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "author": {
+                "name": "Jane Doe",
+                "id": "https://orcid.org/0000-0002-2771-9344",
+            },
+            "name": "Example Software",
+            "url": "http://example.org/",
+            "datePublished": "2023-10-10",
+        }
+    ) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            author = "Doe, Jane",
+            date = "2023-10-10",
+            year = "2023",
+            month = oct,
+            title = "Example Software",
+            url = "http://example.org/"
+        }
+        """
+    )
+
+
+def test_author_invalid_id():
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "author": {
+                "name": "Jane Doe",
+                "id": "https://orcid.org/ 0000-0002-2771-9344",
+            },
+            "name": "Example Software",
+            "url": "http://example.org/",
+            "datePublished": "2023-10-10",
+        }
+    ) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            author = "Doe, Jane",
+            date = "2023-10-10",
+            year = "2023",
+            month = oct,
+            title = "Example Software",
+            url = "http://example.org/"
+        }
+        """
+    )
+
+
 def test_invalid_date():
     assert codemeta_to_bibtex(
         {
