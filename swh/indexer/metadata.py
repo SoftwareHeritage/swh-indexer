@@ -41,7 +41,7 @@ from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import EXTRINSIC_MAPPINGS, INTRINSIC_MAPPINGS
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
 from swh.indexer.origin_head import get_head_swhid
-from swh.indexer.storage import INDEXER_CFG_KEY, Sha1
+from swh.indexer.storage import INDEXER_CFG_KEY
 from swh.indexer.storage.model import (
     ContentMetadataRow,
     DirectoryIntrinsicMetadataRow,
@@ -58,6 +58,7 @@ from swh.model.model import (
     Sha1Git,
 )
 from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
+from swh.objstorage.interface import CompositeObjId
 
 REVISION_GET_BATCH_SIZE = 10
 RELEASE_GET_BATCH_SIZE = 10
@@ -232,21 +233,21 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
 
     """
 
-    def filter(self, ids):
+    def filter(self, ids: List[CompositeObjId]):
         """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_metadata_missing(
             (
                 {
-                    "id": sha1,
+                    "id": id["sha1"],
                     "indexer_configuration_id": self.tool["id"],
                 }
-                for sha1 in ids
+                for id in ids
             )
         )
 
     def index(
         self,
-        id: Sha1,
+        id: CompositeObjId,
         data: Optional[bytes] = None,
         log_suffix="unknown directory",
         **kwargs,
@@ -263,24 +264,24 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
             be returned as None
 
         """
-        assert isinstance(id, bytes)
+        assert "sha1" in id
         assert data is not None
         metadata = None
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
-            log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id)
+            log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id["sha1"])
             metadata = INTRINSIC_MAPPINGS[mapping_name](log_suffix).translate(data)
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
-                "for content %s" % hashutil.hash_to_hex(id)
+                "for content %s" % hashutil.hash_to_hex(id["sha1"])
             )
             sentry_sdk.capture_exception()
         if metadata is None:
             return []
         return [
             ContentMetadataRow(
-                id=id,
+                id=id["sha1"],
                 indexer_configuration_id=self.tool["id"],
                 metadata=metadata,
             )
@@ -429,7 +430,9 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             c_metadata_indexer = ContentMetadataIndexer(config=cfg)
             # sha1s that are in content_metadata table
             sha1s_in_storage = []
-            metadata_generator = self.idx_storage.content_metadata_get(detected_files)
+            metadata_generator = self.idx_storage.content_metadata_get(
+                [f["sha1"] for f in detected_files]
+            )
             for c in metadata_generator:
                 # extracting metadata
                 sha1 = c.id
@@ -440,7 +443,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                     metadata.append(local_metadata)
 
             sha1s_filtered = [
-                item for item in detected_files if item not in sha1s_in_storage
+                item for item in detected_files if item["sha1"] not in sha1s_in_storage
             ]
 
             if sha1s_filtered:

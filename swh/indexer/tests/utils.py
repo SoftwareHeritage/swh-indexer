@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -31,6 +31,7 @@ from swh.model.model import (
     SnapshotTargetType,
     TimestampWithTimezone,
 )
+from swh.objstorage.interface import CompositeObjId
 from swh.storage.utils import now
 
 BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
@@ -182,13 +183,15 @@ OBJ_STORAGE_RAW_CONTENT: Dict[str, bytes] = {
 }
 
 MAPPING_DESCRIPTION_CONTENT_SHA1GIT: Dict[str, bytes] = {}
-MAPPING_DESCRIPTION_CONTENT_SHA1: Dict[str, bytes] = {}
+MAPPING_DESCRIPTION_CONTENT_SHA1: Dict[str, CompositeObjId] = {}
 OBJ_STORAGE_DATA: Dict[bytes, bytes] = {}
 
 for key_description, data in OBJ_STORAGE_RAW_CONTENT.items():
     content = Content.from_data(data)
     MAPPING_DESCRIPTION_CONTENT_SHA1GIT[key_description] = content.sha1_git
-    MAPPING_DESCRIPTION_CONTENT_SHA1[key_description] = content.sha1
+    MAPPING_DESCRIPTION_CONTENT_SHA1[key_description] = CompositeObjId(
+        sha1=content.sha1
+    )
     OBJ_STORAGE_DATA[content.sha1] = data
 
 
@@ -211,21 +214,21 @@ RAW_CONTENT_METADATA = [
 ]
 
 RAW_CONTENTS: Dict[bytes, Tuple] = {}
-RAW_CONTENT_IDS: List[bytes] = []
+RAW_CONTENT_IDS: List[CompositeObjId] = []
 
 for index, raw_content_d in enumerate(RAW_CONTENT_METADATA):
     raw_content = raw_content_d[0]
     content = Content.from_data(raw_content)
     RAW_CONTENTS[content.sha1] = raw_content_d
-    RAW_CONTENT_IDS.append(content.sha1)
+    RAW_CONTENT_IDS.append(CompositeObjId(sha1=content.sha1))
     # and write it to objstorage data so it's flushed in the objstorage
     OBJ_STORAGE_DATA[content.sha1] = raw_content
 
 
 SHA1_TO_LICENSES: Dict[bytes, List[str]] = {
-    RAW_CONTENT_IDS[0]: ["GPL"],
-    RAW_CONTENT_IDS[1]: ["AGPL"],
-    RAW_CONTENT_IDS[2]: [],
+    RAW_CONTENT_IDS[0]["sha1"]: ["GPL"],
+    RAW_CONTENT_IDS[1]["sha1"]: ["AGPL"],
+    RAW_CONTENT_IDS[2]["sha1"]: [],
 }
 
 
@@ -634,7 +637,7 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         return self.indexer.idx_storage.state
 
     def assert_results_ok(self, sha1s, expected_results=None):
-        sha1s = [hash_to_bytes(sha1) for sha1 in sha1s]
+        sha1s = [sha1["sha1"] for sha1 in sha1s]
         actual_results = list(self.get_indexer_results(sha1s))
 
         if expected_results is None:
@@ -663,15 +666,23 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         """Unknown sha1s are not indexed"""
         sha1s = [
             self.id1,
-            bytes.fromhex("799a5ef812c53907562fe379d4b3851e69c7cb15"),  # unknown
-            bytes.fromhex("800a5ef812c53907562fe379d4b3851e69c7cb15"),  # unknown
+            CompositeObjId(
+                sha1=bytes.fromhex("799a5ef812c53907562fe379d4b3851e69c7cb15")
+            ),  # unknown
+            CompositeObjId(
+                sha1=bytes.fromhex("800a5ef812c53907562fe379d4b3851e69c7cb15")
+            ),  # unknown
         ]  # unknown
 
         # when
         self.indexer.run(sha1s)
 
         # then
-        expected_results = [res for res in self.expected_results if res.id in sha1s]
+        expected_results = [
+            res
+            for res in self.expected_results
+            if res.id in [sha1["sha1"] for sha1 in sha1s]
+        ]
 
         self.assert_results_ok(sha1s, expected_results)
 

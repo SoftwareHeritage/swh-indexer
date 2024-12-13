@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023  The Software Heritage developers
+# Copyright (C) 2016-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -8,8 +8,9 @@ from typing import Any, Dict, List, Optional
 import magic
 
 from swh.core.config import merge_configs
-from swh.indexer.storage.interface import IndexerStorageInterface, Sha1
+from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import ContentMimetypeRow
+from swh.objstorage.interface import CompositeObjId
 
 from .indexer import ContentIndexer
 
@@ -67,7 +68,7 @@ class MixinMimetypeIndexer:
         self.config = merge_configs(DEFAULT_CONFIG, self.config)
 
     def index(
-        self, id: Sha1, data: Optional[bytes] = None, **kwargs
+        self, id: CompositeObjId, data: Optional[bytes] = None, **kwargs
     ) -> List[ContentMimetypeRow]:
         """Index sha1s' content and store result.
 
@@ -87,7 +88,7 @@ class MixinMimetypeIndexer:
         properties = compute_mimetype_encoding(data)
         return [
             ContentMimetypeRow(
-                id=id,
+                id=id["sha1"],
                 indexer_configuration_id=self.tool["id"],
                 mimetype=properties["mimetype"],
                 encoding=properties["encoding"],
@@ -120,14 +121,14 @@ class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer[ContentMimetypeRow]):
 
     """
 
-    def filter(self, ids):
+    def filter(self, ids: List[CompositeObjId]):
         """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_mimetype_missing(
             (
                 {
-                    "id": sha1,
+                    "id": id["sha1"],
                     "indexer_configuration_id": self.tool["id"],
                 }
-                for sha1 in ids
+                for id in ids
             )
         )

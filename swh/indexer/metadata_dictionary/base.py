@@ -1,11 +1,22 @@
-# Copyright (C) 2017-2023  The Software Heritage developers
+# Copyright (C) 2017-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import json
 import logging
-from typing import Any, Callable, Dict, List, Optional, Pattern, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Tuple,
+    TypeVar,
+    Union,
+    cast,
+)
 import uuid
 import xml.parsers.expat
 
@@ -18,6 +29,7 @@ import yaml
 from swh.indexer.codemeta import _document_loader, compact
 from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
+from swh.objstorage.interface import CompositeObjId, objid_from_dict
 
 from .utils import add_url_if_valid
 
@@ -28,6 +40,8 @@ TMP_ROOT_URI_PREFIX = "https://www.softwareheritage.org/schema/2022/indexer/tmp-
 class DirectoryLsEntry(TypedDict):
     target: Sha1
     sha1: Optional[Sha1]
+    sha1_git: Optional[bytes]
+    sha256: Optional[bytes]
     name: bytes
     type: str
 
@@ -118,7 +132,9 @@ class BaseIntrinsicMapping(BaseMapping):
     """
 
     @classmethod
-    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
+    def detect_metadata_files(
+        cls, file_entries: List[DirectoryLsEntry]
+    ) -> List[CompositeObjId]:
         """
         Returns the sha1 hashes of files which can be translated by this mapping
         """
@@ -134,19 +150,21 @@ class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
     filename: Union[bytes, Pattern[bytes]]
 
     @classmethod
-    def detect_metadata_files(cls, file_entries: List[DirectoryLsEntry]) -> List[Sha1]:
+    def detect_metadata_files(
+        cls, file_entries: List[DirectoryLsEntry]
+    ) -> List[CompositeObjId]:
         filename = cls.filename
         # Check if filename is a regex or bytes:
         if isinstance(filename, bytes):
             for entry in file_entries:
                 if entry["name"].lower() == filename.lower():
                     if entry["sha1"] is not None:  # ignore skipped_content and dangling
-                        return [entry["sha1"]]
+                        return [objid_from_dict(cast(dict, entry))]
         else:
             for entry in file_entries:
                 if filename.match(entry["name"]):
                     if entry["sha1"] is not None:  # ignore skipped_content and dangling
-                        return [entry["sha1"]]
+                        return [objid_from_dict(cast(dict, entry))]
 
         return []
 

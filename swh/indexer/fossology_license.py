@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023  The Software Heritage developers
+# Copyright (C) 2016-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -10,9 +10,10 @@ from typing import Any, Dict, List, Optional
 import sentry_sdk
 
 from swh.core.config import merge_configs
-from swh.indexer.storage.interface import IndexerStorageInterface, Sha1
+from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import ContentLicenseRow
 from swh.model import hashutil
+from swh.objstorage.interface import CompositeObjId
 
 from .indexer import ContentIndexer, write_to_temp
 
@@ -86,7 +87,7 @@ class MixinFossologyLicenseIndexer:
         self.working_directory = self.config["workdir"]
 
     def index(
-        self, id: Sha1, data: Optional[bytes] = None, **kwargs
+        self, id: CompositeObjId, data: Optional[bytes] = None, **kwargs
     ) -> List[ContentLicenseRow]:
         """Index sha1s' content and store result.
 
@@ -105,14 +106,14 @@ class MixinFossologyLicenseIndexer:
         """
         assert data is not None
         with write_to_temp(
-            filename=hashutil.hash_to_hex(id),  # use the id as pathname
+            filename=hashutil.hash_to_hex(id["sha1"]),  # use the id as pathname
             data=data,
             working_directory=self.working_directory,
         ) as content_path:
             properties = compute_license(path=content_path)
         return [
             ContentLicenseRow(
-                id=id,
+                id=id["sha1"],
                 indexer_configuration_id=self.tool["id"],
                 license=license,
             )
@@ -148,14 +149,4 @@ class FossologyLicenseIndexer(
 
     """
 
-    def filter(self, ids):
-        """Filter out known sha1s and return only missing ones."""
-        yield from self.idx_storage.content_fossology_license_missing(
-            (
-                {
-                    "id": sha1,
-                    "indexer_configuration_id": self.tool["id"],
-                }
-                for sha1 in ids
-            )
-        )
+    pass

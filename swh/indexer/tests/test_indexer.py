@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2023  The Software Heritage developers
+# Copyright (C) 2020-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -11,6 +11,7 @@ import sentry_sdk
 
 from swh.indexer.indexer import ContentIndexer, DirectoryIndexer, OriginIndexer
 from swh.indexer.storage import Sha1
+from swh.objstorage.interface import CompositeObjId
 
 from .utils import BASE_TEST_CONFIG, DIRECTORY2
 
@@ -64,7 +65,7 @@ def test_content_indexer_catch_exceptions(sentry_events):
     sha1 = b"\x12" * 20
 
     # As task, catching exceptions
-    assert indexer.run([sha1]) == ({"status": "failed"}, [])
+    assert indexer.run([CompositeObjId(sha1=sha1)]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
 
     # As journal client, catching exceptions
@@ -77,7 +78,7 @@ def test_content_indexer_catch_exceptions(sentry_events):
 
     # As task, not catching exceptions
     with pytest.raises(_TestException):
-        indexer.run([sha1])
+        indexer.run([CompositeObjId(sha1=sha1)])
     assert sentry_events == []
 
     # As journal client, not catching exceptions

@@ -12,6 +12,7 @@ import pytest
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.objstorage.interface import CompositeObjId
 
 from ..utils import json_document_strategy
 
@@ -173,7 +174,9 @@ def test_detect_metadata_codemeta_json_uppercase():
     ]
     results = detect_metadata(df)
 
-    expected_results = {"CodemetaMapping": [b"bcd"]}
+    expected_results = {
+        "CodemetaMapping": [CompositeObjId(sha1=b"bcd", sha1_git=b"aab")]
+    }
     assert expected_results == results
 
 

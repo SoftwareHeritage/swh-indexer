@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023  The Software Heritage developers
+# Copyright (C) 2016-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -15,12 +15,12 @@ import sentry_sdk
 from typing_extensions import TypedDict
 
 from swh.core.config import load_from_envvar, merge_configs
-from swh.indexer.storage import INDEXER_CFG_KEY, Sha1, get_indexer_storage
+from swh.indexer.storage import INDEXER_CFG_KEY, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model import hashutil
 from swh.model.model import Directory, Origin, Sha1Git
 from swh.objstorage.factory import get_objstorage
-from swh.objstorage.interface import objid_from_dict
+from swh.objstorage.interface import CompositeObjId, objid_from_dict
 from swh.storage import get_storage
 from swh.storage.interface import StorageInterface
 
@@ -279,7 +279,7 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
 
-class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
+class ContentIndexer(BaseIndexer[CompositeObjId, bytes, TResult], Generic[TResult]):
     """A content indexer working on the journal (method `process_journal_objects`) or on
     a list of ids directly (method `run`).
 
@@ -293,10 +293,12 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
         """Read content objects from the journal, retrieve their raw content and compute
         content indexing (e.g. mimetype, fossology license, ...).
         """
-        summary, _ = self.run([obj_id["sha1"] for obj_id in objects.get("content", [])])
+        summary, _ = self.run(
+            [objid_from_dict(obj) for obj in objects.get("content", [])]
+        )
         return summary
 
-    def run(self, ids: List[Sha1], **kwargs) -> Tuple[Dict, List]:
+    def run(self, ids: List[CompositeObjId], **kwargs) -> Tuple[Dict, List]:
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -314,18 +316,16 @@ class ContentIndexer(BaseIndexer[Sha1, bytes, TResult], Generic[TResult]):
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
         try:
-            content_data = self.objstorage.get_batch(
-                [objid_from_dict({"sha1": id}) for id in ids]
-            )
+            content_data = self.objstorage.get_batch(ids)
             for item, raw_content in zip(ids, content_data):
                 id_ = item
                 sentry_sdk.set_tag(
-                    "swh-indexer-content-sha1", hashutil.hash_to_hex(id_)
+                    "swh-indexer-content-sha1", hashutil.hash_to_hex(id_["sha1"])
                 )
                 if not raw_content:
                     self.log.warning(
                         "Content %s not found in objstorage",
-                        hashutil.hash_to_hex(id_),
+                        hashutil.hash_to_hex(id_["sha1"]),
                     )
                     continue
 

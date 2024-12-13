@@ -136,7 +136,7 @@ class TestMetadata:
                 ContentMetadataRow(
                     id=MAPPING_DESCRIPTION_CONTENT_SHA1[
                         "json:yarn-parser-package.json"
-                    ],
+                    ]["sha1"],
                     indexer_configuration_id=tool["id"],
                     metadata=YARN_PARSER_METADATA,
                 )
@@ -199,7 +199,7 @@ class TestMetadata:
                 ContentMetadataRow(
                     id=MAPPING_DESCRIPTION_CONTENT_SHA1[
                         "json:yarn-parser-package.json"
-                    ],
+                    ]["sha1"],
                     indexer_configuration_id=tool["id"],
                     metadata=YARN_PARSER_METADATA,
                 )

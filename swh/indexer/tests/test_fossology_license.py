@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2023  The Software Heritage developers
+# Copyright (C) 2017-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -91,12 +91,12 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         # then
         self.expected_results = [
             *[
-                ContentLicenseRow(id=self.id0, tool=tool, license=license)
-                for license in SHA1_TO_LICENSES[self.id0]
+                ContentLicenseRow(id=self.id0["sha1"], tool=tool, license=license)
+                for license in SHA1_TO_LICENSES[self.id0["sha1"]]
             ],
             *[
-                ContentLicenseRow(id=self.id1, tool=tool, license=license)
-                for license in SHA1_TO_LICENSES[self.id1]
+                ContentLicenseRow(id=self.id1["sha1"], tool=tool, license=license)
+                for license in SHA1_TO_LICENSES[self.id1["sha1"]]
             ],
             *[],  # self.id2
         ]
