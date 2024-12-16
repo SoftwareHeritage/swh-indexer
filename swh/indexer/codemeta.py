@@ -21,27 +21,34 @@ _DATA_DIR = os.path.join(os.path.dirname(swh.indexer.__file__), "data")
 
 CROSSWALK_TABLE_PATH = os.path.join(_DATA_DIR, "codemeta", "crosswalk.csv")
 
-CODEMETA_CONTEXT_PATH = os.path.join(_DATA_DIR, "codemeta", "codemeta.jsonld")
+CODEMETA_V2_CONTEXT_PATH = os.path.join(_DATA_DIR, "codemeta", "codemeta-2.0.jsonld")
+CODEMETA_V3_CONTEXT_PATH = os.path.join(_DATA_DIR, "codemeta", "codemeta-3.0.jsonld")
 
 
-with open(CODEMETA_CONTEXT_PATH) as fd:
-    CODEMETA_CONTEXT = json.load(fd)
+with open(CODEMETA_V2_CONTEXT_PATH) as fdv2, open(CODEMETA_V3_CONTEXT_PATH) as fdv3:
+    CODEMETA_V2_CONTEXT = json.load(fdv2)
+    CODEMETA_V3_CONTEXT = json.load(fdv3)
 
 with open(os.path.join(_DATA_DIR, "schema.org", "schemaorgcontext.jsonld")) as fd:
     _SCHEMA_DOT_ORG_CONTEXT = json.load(fd)
 
 _EMPTY_PROCESSED_CONTEXT: Any = {"mappings": {}}
 _PROCESSED_CODEMETA_CONTEXT = jsonld.JsonLdProcessor().process_context(
-    _EMPTY_PROCESSED_CONTEXT, CODEMETA_CONTEXT, None
+    _EMPTY_PROCESSED_CONTEXT, CODEMETA_V2_CONTEXT, None
 )
 
-CODEMETA_CONTEXT_URL = "https://doi.org/10.5063/schema/codemeta-2.0"
-CODEMETA_ALTERNATE_CONTEXT_URLS = {
+CODEMETA_V2_CONTEXT_URL = "https://doi.org/10.5063/schema/codemeta-2.0"
+CODEMETA_V2_ALTERNATE_CONTEXT_URLS = {
     "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+    "https://raw.githubusercontent.com/codemeta/codemeta/2.0/codemeta.jsonld",
     "https://doi.org/doi:10.5063/schema/codemeta-2.0",
     "http://purl.org/codemeta/2.0",
 }
 
+CODEMETA_V3_CONTEXT_URL = "https://w3id.org/codemeta/3.0"
+CODEMETA_V3_ALTERNATE_CONTEXT_URLS = {
+    "https://raw.githubusercontent.com/codemeta/codemeta/3.0/codemeta.jsonld"
+}
 
 PROPERTY_BLACKLIST = {
     # CodeMeta properties that we cannot properly represent.
@@ -125,18 +132,27 @@ def _document_loader(url, options=None):
     Reads the local codemeta.jsonld file instead of fetching it
     from the Internet every single time."""
     if (
-        url.lower() == CODEMETA_CONTEXT_URL.lower()
-        or url.lower() in CODEMETA_ALTERNATE_CONTEXT_URLS
+        url.lower() == CODEMETA_V2_CONTEXT_URL.lower()
+        or url.lower() in CODEMETA_V2_ALTERNATE_CONTEXT_URLS
     ):
         return {
             "contextUrl": None,
             "documentUrl": url,
-            "document": CODEMETA_CONTEXT,
+            "document": CODEMETA_V2_CONTEXT,
+        }
+    if (
+        url.lower() == CODEMETA_V3_CONTEXT_URL.lower()
+        or url.lower() in CODEMETA_V3_ALTERNATE_CONTEXT_URLS
+    ):
+        return {
+            "contextUrl": None,
+            "documentUrl": url,
+            "document": CODEMETA_V3_CONTEXT,
         }
     elif url == CODEMETA:
         raise Exception(
             "{} is CodeMeta's URI, use {} as context url".format(
-                CODEMETA, CODEMETA_CONTEXT_URL
+                CODEMETA, CODEMETA_V2_CONTEXT_URL
             )
         )
     elif url.lower().rstrip("/") in ("http://schema.org", "https://schema.org"):
@@ -157,7 +173,7 @@ def compact(doc, forgefed: bool):
           This is typically used for extrinsic metadata documents, which frequently
           use properties from these namespaces.
     """
-    contexts: List[Any] = [CODEMETA_CONTEXT_URL]
+    contexts: List[Any] = [CODEMETA_V2_CONTEXT_URL]
     if forgefed:
         contexts.append(
             {"as": str(ACTIVITYSTREAMS), "forge": str(FORGEFED), "xsd": str(XSD)}

@@ -13,7 +13,12 @@ import xml.etree.ElementTree as ET
 import iso8601
 import xmltodict
 
-from swh.indexer.codemeta import CODEMETA_CONTEXT_URL, CODEMETA_TERMS, compact, expand
+from swh.indexer.codemeta import (
+    CODEMETA_TERMS,
+    CODEMETA_V2_CONTEXT_URL,
+    compact,
+    expand,
+)
 
 from .base import BaseExtrinsicMapping, SingleFileIntrinsicMapping
 
@@ -89,10 +94,10 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
             elif namespace in _IGNORED_NAMESPACES:
                 # SWORD-specific namespace that is not interesting to translate
                 pass
-            elif namespace.lower() == CODEMETA_CONTEXT_URL:
+            elif namespace.lower() == CODEMETA_V2_CONTEXT_URL:
                 # It is a term defined by the context; write is as-is and JSON-LD
                 # expansion will convert it to a full URI based on
-                # "@context": CODEMETA_CONTEXT_URL
+                # "@context": CODEMETA_V2_CONTEXT_URL
                 jsonld_child = self.xml_to_jsonld(child)
                 if (
                     localname
@@ -161,7 +166,7 @@ class SwordCodemetaMapping(BaseExtrinsicMapping):
             # hash (which uses the context URL as namespace URI for historical
             # reasons) into properties in `http://schema.org/` and
             # `https://codemeta.github.io/terms/` namespaces
-            doc["@context"] = CODEMETA_CONTEXT_URL
+            doc["@context"] = CODEMETA_V2_CONTEXT_URL
 
             # Normalize as a Codemeta document
             return self.normalize_translation(expand(doc))
@@ -215,7 +220,7 @@ class JsonSwordCodemetaMapping(SwordCodemetaMapping):
                 key.startswith("codemeta:") for key in iter_keys(json_doc)
             ):
                 # ditto
-                json_doc["@xmlns:codemeta"] = CODEMETA_CONTEXT_URL
+                json_doc["@xmlns:codemeta"] = CODEMETA_V2_CONTEXT_URL
 
             if json_doc["@xmlns"] not in (ATOM_URI, [ATOM_URI]):
                 # Technically, non-default XMLNS were allowed, but no one used them,

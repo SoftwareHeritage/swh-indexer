@@ -505,3 +505,26 @@ def test_swhid_type_cnt():
         }
         """
     )
+
+
+def test_codemeta_v3_context():
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://w3id.org/codemeta/3.0",
+            "author": {"name": "Jane Doe"},
+            "name": "Example Software",
+            "url": "http://example.org/",
+            "datePublished": "2023-10-10",
+        }
+    ) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            author = "Doe, Jane",
+            date = "2023-10-10",
+            year = "2023",
+            month = oct,
+            title = "Example Software",
+            url = "http://example.org/"
+        }
+        """
+    )
