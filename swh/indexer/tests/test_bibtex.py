@@ -379,6 +379,64 @@ def test_context_contains_schema_org():
     )
 
 
+@pytest.mark.parametrize(
+    "author",
+    [
+        {
+            "type": "Role",
+            "schema:author": {
+                "name": "Jane Doe",
+                "id": "https://orcid.org/0000-0002-2771-9344",
+            },
+        },
+        [
+            {
+                "type": "Role",
+                "schema:author": {
+                    "name": "Jane Doe",
+                    "id": "https://orcid.org/0000-0002-2771-9344",
+                },
+            }
+        ],
+        {
+            "type": "Role",
+            "schema:author": {
+                "name": "Jane Doe",
+            },
+        },
+        [
+            {
+                "type": "Role",
+                "schema:author": {
+                    "name": "Jane Doe",
+                },
+            }
+        ],
+    ],
+)
+def test_author_role(author):
+    assert codemeta_to_bibtex(
+        {
+            "@context": "https://w3id.org/codemeta/3.0",
+            "author": author,
+            "name": "Example Software",
+            "url": "http://example.org/",
+            "datePublished": "2023-10-10",
+        }
+    ) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            author = "Doe, Jane",
+            date = "2023-10-10",
+            year = "2023",
+            month = oct,
+            title = "Example Software",
+            url = "http://example.org/"
+        }
+        """
+    )
+
+
 def test_cff_empty():
     assert cff_to_bibtex("") == textwrap.dedent(
         """\

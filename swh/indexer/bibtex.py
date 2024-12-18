@@ -86,7 +86,17 @@ def codemeta_to_bibtex(
     persons: Dict[str, List[Person]] = collections.defaultdict(list)
     fields: Dict[str, Any] = {}
 
-    def add_person(persons: List[Person], person_id: rdflib.term.Node) -> None:
+    def add_person(
+        persons: List[Person],
+        person_id: rdflib.term.Node,
+        role_property: rdflib.term.URIRef,
+    ) -> None:
+        # If the node referenced by 'person_id' is actually a Role node, we need to look
+        # deeper for the actual person node
+        if (person_id, RDF.type, SCHEMA.Role) in g:
+            for _, _, inner_person in g.triples((person_id, role_property, None)):
+                add_person(persons, inner_person, role_property)
+
         person = Person()
         for _, _, name in g.triples((person_id, SCHEMA.name, None)):
             if (person_id, RDF.type, SCHEMA.Organization) in g:
@@ -107,7 +117,9 @@ def codemeta_to_bibtex(
 
     def add_affiliations(person: rdflib.term.Node) -> None:
         for _, _, organization in g.triples((person, SCHEMA.affiliation, None)):
-            add_person(persons["organization"], organization)
+            add_person(
+                persons["organization"], organization, role_property=SCHEMA.affiliation
+            )
 
     # abstract
     for _, _, description in g.triples((id_, SCHEMA.description, None)):
@@ -116,14 +128,16 @@ def codemeta_to_bibtex(
 
     for _, _, author_or_author_list in g.triples((id_, SCHEMA.author, None)):
         # schema.org-style authors, which are single values
-        add_person(persons["author"], author_or_author_list)
+        add_person(
+            persons["author"], author_or_author_list, role_property=SCHEMA.author
+        )
 
         # codemeta-style authors, which are an ordered list
         if author_or_author_list == RDF.nil:
             # Workaround for https://github.com/RDFLib/rdflib/pull/2818
             continue
         for author in rdflib.collection.Collection(g, author_or_author_list):
-            add_person(persons["author"], author)
+            add_person(persons["author"], author, role_property=SCHEMA.author)
             add_affiliations(author)
 
     # date
@@ -163,7 +177,7 @@ def codemeta_to_bibtex(
 
     # editor
     for _, _, editor in g.triples((id_, SCHEMA.editor, None)):
-        add_person(persons["editor"], editor)
+        add_person(persons["editor"], editor, role_property=SCHEMA.editor)
         add_affiliations(editor)
 
     # file
@@ -185,7 +199,7 @@ def codemeta_to_bibtex(
 
     # publisher
     for _, _, publisher in g.triples((id_, SCHEMA.publisher, None)):
-        add_person(persons["publisher"], publisher)
+        add_person(persons["publisher"], publisher, role_property=SCHEMA.publisher)
         add_affiliations(publisher)
 
     # repository
