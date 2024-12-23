@@ -3,12 +3,25 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict, Iterable, Iterator, List
+from typing import Any, Dict, Iterable, Iterator, List
+
+from psycopg import Cursor
 
 from swh.core.db import BaseDb
-from swh.core.db.db_utils import execute_values_generator, stored_procedure
+from swh.core.db.db_utils import stored_procedure
 
 from .interface import Sha1
+
+
+def execute_values_generator(
+    cur: Cursor, query: str, values: Iterable[Any]
+) -> Iterator[Any]:
+    cur.executemany(query, values, returning=True)
+    if cur.pgresult is None:
+        return
+    yield from cur.fetchall()
+    while cur.nextset():
+        yield from cur.fetchall()
 
 
 class Db(BaseDb):
@@ -32,17 +45,18 @@ class Db(BaseDb):
         """
         cur = self._cursor(cur)
         keys = ", ".join(hash_keys)
+        values_place_holder = ", ".join(["%s"] * len(hash_keys))
         equality = " AND ".join(("t.%s = c.%s" % (key, key)) for key in hash_keys)
         yield from execute_values_generator(
             cur,
             """
-            select %s from (values %%s) as t(%s)
+            select %s from (values (%s)) as t(%s)
             where not exists (
                 select 1 from %s c
                 where %s
             )
             """
-            % (keys, keys, table, equality),
+            % (keys, values_place_holder, keys, table, equality),
             (tuple(m[k] for k in hash_keys) for m in data),
         )
 
@@ -114,7 +128,7 @@ class Db(BaseDb):
         keys = map(self._convert_key, cols)
         query = """
             select {keys}
-            from (values %s) as t(id)
+            from (values (%s)) as t(id)
             inner join {table} c
                 on c.{id_col}=t.id
             inner join indexer_configuration i
@@ -206,7 +220,7 @@ class Db(BaseDb):
             cur,
             """
             select %s
-            from (values %%s) as t(id)
+            from (values (%%s)) as t(id)
             inner join content_fossology_license c on t.id=c.id
             inner join indexer_configuration i
                 on i.id=c.indexer_configuration_id

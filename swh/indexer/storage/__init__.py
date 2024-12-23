@@ -9,8 +9,8 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 import warnings
 
 import attr
-import psycopg2
-import psycopg2.pool
+import psycopg
+import psycopg_pool
 
 from swh.core.db.common import db_transaction
 from swh.indexer.storage.interface import IndexerStorageInterface
@@ -129,22 +129,24 @@ class IndexerStorage:
     def __init__(self, db, min_pool_conns=1, max_pool_conns=10, journal_writer=None):
         """
         Args:
-            db: either a libpq connection string, or a psycopg2 connection
+            db: either a libpq connection string, or a psycopg connection
             journal_writer: configuration passed to
                             `swh.journal.writer.get_journal_writer`
 
         """
         self.journal_writer = JournalWriter(journal_writer)
         try:
-            if isinstance(db, psycopg2.extensions.connection):
-                self._pool = None
-                self._db = Db(db)
-            else:
-                self._pool = psycopg2.pool.ThreadedConnectionPool(
-                    min_pool_conns, max_pool_conns, db
+            if isinstance(db, str):
+                self._pool = psycopg_pool.ConnectionPool(
+                    conninfo=db,
+                    min_size=min_pool_conns,
+                    max_size=max_pool_conns,
                 )
                 self._db = None
-        except psycopg2.OperationalError as e:
+            else:
+                self._pool = None
+                self._db = Db(db)
+        except psycopg.OperationalError as e:
             raise StorageDBError(e)
 
     def get_db(self):

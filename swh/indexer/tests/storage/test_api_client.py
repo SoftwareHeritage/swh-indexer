@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-import psycopg2
+import psycopg
 import pytest
 
 from swh.core.api import RemoteException, TransientRemoteException
@@ -79,7 +79,7 @@ def test_operationalerror_exception(app_server, swh_indexer_storage, mocker):
     mocker.patch.object(
         app_server.storage,
         "content_mimetype_get",
-        side_effect=psycopg2.errors.AdminShutdown("cluster is shutting down"),
+        side_effect=psycopg.errors.AdminShutdown("cluster is shutting down"),
     )
     with pytest.raises(RemoteException) as excinfo:
         swh_indexer_storage.content_mimetype_get([b"\x01" * 20])
@@ -94,7 +94,7 @@ def test_querycancelled_exception(app_server, swh_indexer_storage, mocker):
     mocker.patch.object(
         app_server.storage,
         "content_mimetype_get",
-        side_effect=psycopg2.errors.QueryCanceled("too big!"),
+        side_effect=psycopg.errors.QueryCanceled("too big!"),
     )
     with pytest.raises(RemoteException) as excinfo:
         swh_indexer_storage.content_mimetype_get([b"\x01" * 20])
