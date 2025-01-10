@@ -234,6 +234,15 @@ def codemeta_to_bibtex(
             entry_type = "codefragment"
         else:
             entry_type = "softwareversion"
+
+        if entry_key is None:
+            entry_key = f"swh-{swhid.object_type.value}-{swhid.object_id.hex()[:7]}"
+            if swhid.lines:
+                line_start, line_end = swhid.lines
+                if line_start:
+                    entry_key += f"-L{line_start}"
+                if line_end:
+                    entry_key += f"-L{line_end}"
     elif "version" in fields:
         entry_type = "softwareversion"
     else:

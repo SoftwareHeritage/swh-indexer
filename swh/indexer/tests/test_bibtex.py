@@ -524,7 +524,7 @@ def test_swhid_type_snp():
         ),
     ) == textwrap.dedent(
         """\
-        @software{REPLACEME,
+        @software{swh-snp-da39a3e,
             swhid = "swh:1:snp:da39a3ee5e6b4b0d3255bfef95601890afd80709"
         }
         """
@@ -541,7 +541,7 @@ def test_swhid_type_rev():
         ),
     ) == textwrap.dedent(
         """\
-        @softwareversion{REPLACEME,
+        @softwareversion{swh-rev-5b90929,
             swhid = "swh:1:rev:5b909292bcfe6099d726c0b5194165c72f93b767"
         }
         """
@@ -558,7 +558,7 @@ def test_swhid_type_cnt():
         ),
     ) == textwrap.dedent(
         """\
-        @codefragment{REPLACEME,
+        @codefragment{swh-cnt-5b90929-L5-L10,
             swhid = "swh:1:cnt:5b909292bcfe6099d726c0b5194165c72f93b767;lines=5-10"
         }
         """
