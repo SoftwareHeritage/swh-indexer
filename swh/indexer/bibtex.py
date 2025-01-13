@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2024  The Software Heritage developers
+# Copyright (C) 2023-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -8,7 +8,7 @@ import collections
 import json
 import secrets
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 import uuid
 
 import iso8601
@@ -28,6 +28,10 @@ it is not used outside :func:`codemeta_to_bibtex`.
 """
 
 MACRO_PREFIX = "macro" + secrets.token_urlsafe(16).replace("_", "")
+
+GraphObjectType = Union[
+    rdflib.term.IdentifiedNode, rdflib.term.Literal, rdflib.term.Variable
+]
 
 
 class BibTeXWithMacroWriter(Writer):
@@ -88,7 +92,7 @@ def codemeta_to_bibtex(
 
     def add_person(
         persons: List[Person],
-        person_id: rdflib.term.Node,
+        person_id: GraphObjectType,
         role_property: rdflib.term.URIRef,
     ) -> None:
         # If the node referenced by 'person_id' is actually a Role node, we need to look
@@ -115,7 +119,9 @@ def codemeta_to_bibtex(
         if str(person) and person not in persons:
             persons.append(person)
 
-    def add_affiliations(person: rdflib.term.Node) -> None:
+    def add_affiliations(
+        person: GraphObjectType,
+    ) -> None:
         for _, _, organization in g.triples((person, SCHEMA.affiliation, None)):
             add_person(
                 persons["organization"], organization, role_property=SCHEMA.affiliation
@@ -136,6 +142,7 @@ def codemeta_to_bibtex(
         if author_or_author_list == RDF.nil:
             # Workaround for https://github.com/RDFLib/rdflib/pull/2818
             continue
+        assert isinstance(author_or_author_list, rdflib.term.IdentifiedNode)
         for author in rdflib.collection.Collection(g, author_or_author_list):
             add_person(persons["author"], author, role_property=SCHEMA.author)
             add_affiliations(author)

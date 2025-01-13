@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024  The Software Heritage developers
+# Copyright (C) 2017-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -275,7 +275,7 @@ class DictMapping(BaseMapping):
         return self.normalize_translation(translated_metadata)
 
     def _translate_to_graph(
-        self, graph: rdflib.Graph, root: rdflib.term.Identifier, content_dict: Dict
+        self, graph: rdflib.Graph, root: rdflib.term.IdentifiedNode, content_dict: Dict
     ) -> None:
         """
         Translates content  by parsing content from a dict object
