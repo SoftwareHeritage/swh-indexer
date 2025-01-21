@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2025  The Software Heritage developers
+# Copyright (C) 2022  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -31,9 +31,9 @@ def prettyprint_graph(graph: Graph, root: URIRef):
 
 def add_list(
     graph: Graph,
-    subject: rdflib.term.IdentifiedNode,
-    predicate: rdflib.term.IdentifiedNode,
-    objects: Sequence[rdflib.term.IdentifiedNode],
+    subject: rdflib.term.Node,
+    predicate: rdflib.term.Identifier,
+    objects: Sequence[rdflib.term.Node],
 ) -> None:
     """Adds triples to the ``graph`` so that they are equivalent to this
     JSON-LD object::
@@ -63,9 +63,9 @@ TValue = TypeVar("TValue")
 
 def add_map(
     graph: Graph,
-    subject: rdflib.term.IdentifiedNode,
-    predicate: rdflib.term.IdentifiedNode,
-    f: Callable[[Graph, TValue], Optional[rdflib.term.IdentifiedNode]],
+    subject: rdflib.term.Node,
+    predicate: rdflib.term.Identifier,
+    f: Callable[[Graph, TValue], Optional[rdflib.term.Node]],
     values: Iterable[TValue],
 ) -> None:
     """Helper for :func:`add_list` that takes a mapper function ``f``."""
@@ -75,8 +75,8 @@ def add_map(
 
 def add_url_if_valid(
     graph: Graph,
-    subject: rdflib.term.IdentifiedNode,
-    predicate: rdflib.term.IdentifiedNode,
+    subject: rdflib.term.Node,
+    predicate: rdflib.term.Identifier,
     url: Any,
 ) -> None:
     """Adds ``(subject, predicate, url)`` to the graph if ``url`` is well-formed.

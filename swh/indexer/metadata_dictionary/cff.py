@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2025  The Software Heritage developers
+# Copyright (C) 2021-2024  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -29,10 +29,8 @@ class CffMapping(YamlMapping, SingleFileIntrinsicMapping):
     date_fields = ["date-released"]
     uri_fields = ["url", "repository-code"]
 
-    def _translate_author(
-        self, graph: Graph, author: dict
-    ) -> rdflib.term.IdentifiedNode:
-        node: rdflib.term.IdentifiedNode
+    def _translate_author(self, graph: Graph, author: dict) -> rdflib.term.Node:
+        node: rdflib.term.Node
         if (
             "orcid" in author
             and isinstance(author["orcid"], str)
