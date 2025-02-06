@@ -127,7 +127,7 @@ vocabulary to be useful, as with intrinsic metadata.
 The common vocabulary we chose is JSON-LD, with both CodeMeta and
 `ForgeFed's vocabulary`_ (including `ActivityStream's vocabulary`_)
 
-.. _ForgeFed's vocabulary: https://forgefed.org/vocabulary.html
+.. _ForgeFed's vocabulary: https://forgefed.org/spec/#vocab
 .. _ActivityStream's vocabulary: https://www.w3.org/TR/activitystreams-vocabulary/
 
 Instead of the four-step architecture above, the extrinsic-metadata indexer
@@ -168,7 +168,7 @@ The following sources of intrinsic metadata are supported:
 
 .. _codemeta.json: https://codemeta.github.io/terms/
 .. _pom.xml: https://maven.apache.org/pom.html
-.. _package.json: https://docs.npmjs.com/files/package.json
+.. _package.json: https://docs.npmjs.com/cli/v11/configuring-npm/package-json
 .. _PKG-INFO: https://www.python.org/dev/peps/pep-0314/
 .. _.gemspec: https://guides.rubygems.org/specification-reference/
 
@@ -178,7 +178,7 @@ Supported extrinsic metadata
 The following sources of extrinsic metadata are supported:
 
 * Codemeta documents sent by clients of :ref:`swh-deposit <swh-deposit>` (`HAL <https://hal.science/>`_, `eLife <https://elifesciences.org/>`_, `IPOL <https://www.ipol.im/>`_, ...)
-* Gitea's `"repoGet" API <https://gittea.dev/api/swagger#/repository/repoGet>`__
+* Gitea's `"repoGet" API <https://docs.gitea.com/api/1.23/#tag/repository/operation/repoGet>`__
 * GitHub's `"repo" API <https://docs.github.com/en/rest/repos/repos#get-a-repository>`__
 
 
@@ -243,7 +243,7 @@ values are simple text values. For instance, to
 These values will be automatically added to the above list of
 supported terms.
 
-.. _translate Python PKG-INFO: https://forge.softwareheritage.org/source/swh-indexer/browse/master/swh/indexer/metadata_dictionary/python.py
+.. _translate Python PKG-INFO: https://gitlab.softwareheritage.org/swh/devel/swh-indexer/-/blob/master/swh/indexer/metadata_dictionary/python.py
 
 Last step to get your code working: add a ``translate`` method that will
 take a single byte string as argument, turn it into a Python dictionary,

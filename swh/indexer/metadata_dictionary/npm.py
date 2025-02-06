@@ -37,7 +37,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
     }
 
     def normalize_repository(self, d):
-        """https://docs.npmjs.com/files/package.json#repository
+        """https://docs.npmjs.com/cli/v11/configuring-npm/package-json#repository
 
         >>> NpmMapping().normalize_repository({
         ...     'type': 'git',
@@ -75,7 +75,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         return URIRef(url)
 
     def normalize_bugs(self, d):
-        """https://docs.npmjs.com/files/package.json#bugs
+        """https://docs.npmjs.com/cli/v11/configuring-npm/package-json#bugs
 
         >>> NpmMapping().normalize_bugs({
         ...     'url': 'https://example.org/bugs/',
@@ -100,7 +100,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
     )
 
     def translate_author(self, graph: Graph, root, d):
-        r"""https://docs.npmjs.com/files/package.json#people-fields-author-contributors'
+        r"""https://docs.npmjs.com/cli/v11/configuring-npm/package-json#people-fields-author-contributors'
 
         >>> from pprint import pprint
         >>> root = URIRef("http://example.org/test-software")
@@ -260,7 +260,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         return Literal(description)
 
     def normalize_license(self, s):
-        """https://docs.npmjs.com/files/package.json#license
+        """https://docs.npmjs.com/cli/v11/configuring-npm/package-json#license
 
         >>> NpmMapping().normalize_license('MIT')
         rdflib.term.URIRef('https://spdx.org/licenses/MIT')
@@ -290,7 +290,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
             return SPDX + s
 
     def normalize_keywords(self, lst):
-        """https://docs.npmjs.com/files/package.json#homepage
+        """https://docs.npmjs.com/cli/v11/configuring-npm/package-json#homepage
 
         >>> NpmMapping().normalize_keywords(['foo', 'bar'])
         [rdflib.term.Literal('foo'), rdflib.term.Literal('bar')]
