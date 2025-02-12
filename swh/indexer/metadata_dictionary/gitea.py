@@ -46,7 +46,7 @@ class GiteaMapping(BaseExtrinsicMapping, JsonMapping):
 
     @classmethod
     def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
-        return ("gitea-project-json", "gogs-project-json")
+        return ("gitea-repository-json", "gogs-repository-json")
 
     def extra_translation(self, graph, root, content_dict):
         graph.remove((root, RDF.type, SCHEMA.SoftwareSourceCode))
