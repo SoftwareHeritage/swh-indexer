@@ -231,4 +231,4 @@ class JsonSwordCodemetaMapping(SwordCodemetaMapping):
             # Root tag was stripped by swh-deposit
             json_doc = {"entry": json_doc}
 
-            return super().translate(xmltodict.unparse(json_doc))
+            return super().translate(xmltodict.unparse(json_doc).encode())
