@@ -193,7 +193,7 @@ class ExtrinsicMetadataIndexer(
             raise ValueError(
                 f"Unknown origin swh:1:ori:{origin_sha1.hex()} for metadata target: "
                 f"{data.target}. Is the swh-storage database replication lag "
-                f"over {num_retries*sleep_delay}s?"
+                f"over {num_retries * sleep_delay}s?"
             ) from None
 
         if urlparse(data.authority.url).netloc != urlparse(origin["url"]).netloc:
