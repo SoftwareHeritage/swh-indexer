@@ -16,7 +16,7 @@ from swh.objstorage.interface import CompositeObjId
 from ..test_metadata import TRANSLATOR_TOOL, ContentMetadataTestIndexer
 from ..utils import (
     BASE_TEST_CONFIG,
-    MAPPING_DESCRIPTION_CONTENT_SHA1,
+    MAPPING_DESCRIPTION_CONTENT_OBJID,
     json_document_strategy,
 )
 
@@ -101,10 +101,10 @@ def test_index_content_metadata_npm(storage, obj_storage):
     - one sha1 uses a file that can't be translated to metadata and
       should return None in the translated metadata
     """
-    sha1s = [
-        MAPPING_DESCRIPTION_CONTENT_SHA1["json:test-metadata-package.json"],
-        MAPPING_DESCRIPTION_CONTENT_SHA1["json:npm-package.json"],
-        MAPPING_DESCRIPTION_CONTENT_SHA1["python:code"],
+    obj_ids = [
+        MAPPING_DESCRIPTION_CONTENT_OBJID["json:test-metadata-package.json"],
+        MAPPING_DESCRIPTION_CONTENT_OBJID["json:npm-package.json"],
+        MAPPING_DESCRIPTION_CONTENT_OBJID["python:code"],
     ]
 
     # this metadata indexer computes only metadata for package.json
@@ -112,16 +112,16 @@ def test_index_content_metadata_npm(storage, obj_storage):
     config = BASE_TEST_CONFIG.copy()
     config["tools"] = [TRANSLATOR_TOOL]
     metadata_indexer = ContentMetadataTestIndexer(config=config)
-    metadata_indexer.run(sha1s, log_suffix="unknown content")
+    metadata_indexer.run(obj_ids, log_suffix="unknown content")
     results = list(
         metadata_indexer.idx_storage.content_metadata_get(
-            [sha1["sha1"] for sha1 in sha1s]
+            [sha1["sha1"] for sha1 in obj_ids]
         )
     )
 
     expected_results = [
         ContentMetadataRow(
-            id=sha1s[0]["sha1"],
+            id=obj_ids[0]["sha1"],
             tool=TRANSLATOR_TOOL,
             metadata={
                 "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -133,7 +133,7 @@ def test_index_content_metadata_npm(storage, obj_storage):
             },
         ),
         ContentMetadataRow(
-            id=sha1s[1]["sha1"],
+            id=obj_ids[1]["sha1"],
             tool=TRANSLATOR_TOOL,
             metadata={
                 "@context": "https://doi.org/10.5063/schema/codemeta-2.0",

@@ -29,7 +29,7 @@ from swh.model.model import Content, Origin, OriginVisitStatus
 from .test_metadata import GITHUB_REMD
 from .utils import (
     DIRECTORY2,
-    RAW_CONTENT_IDS,
+    RAW_CONTENT_OBJIDS,
     RAW_CONTENTS,
     REVISION,
     SHA1_TO_LICENSES,
@@ -402,9 +402,9 @@ def test_cli_journal_client_index__content_mimetype(
     contents = []
     expected_results = []
     content_ids = []
-    for content_id, (raw_content, mimetypes, encoding) in RAW_CONTENTS.items():
+    for content_id, raw_content, mimetypes, encoding in RAW_CONTENTS:
         content = Content.from_data(raw_content)
-        assert content_id == content.sha1
+        assert content_id == content.hashes()
 
         contents.append(content)
         content_ids.append(content_id)
@@ -455,7 +455,7 @@ def test_cli_journal_client_index__content_mimetype(
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
 
-    results = idx_storage.content_mimetype_get(content_ids)
+    results = idx_storage.content_mimetype_get([id["sha1"] for id in content_ids])
     assert len(results) == len(contents)
     for result in results:
         assert result in expected_results
@@ -489,22 +489,23 @@ def test_cli_journal_client_index__fossology_license(
 
     tool = {"id": 1, **swh_indexer_config["tools"]}
 
-    id0, id1, id2 = RAW_CONTENT_IDS
+    id0, id1, id2 = RAW_CONTENT_OBJIDS
 
     contents = []
-    content_ids = []
+    content_sha1s = []
     expected_results = []
-    for content_id, (raw_content, _, _) in RAW_CONTENTS.items():
+    for content_id, raw_content, _, _ in RAW_CONTENTS:
         content = Content.from_data(raw_content)
-        assert content_id == content.sha1
+        assert content_id == content.hashes()
 
+        content_sha1 = content.sha1
         contents.append(content)
-        content_ids.append(content_id)
+        content_sha1s.append(content_sha1)
 
         expected_results.extend(
             [
-                ContentLicenseRow(id=content_id, tool=tool, license=license)
-                for license in SHA1_TO_LICENSES[content_id]
+                ContentLicenseRow(id=content_sha1, tool=tool, license=license)
+                for license in SHA1_TO_LICENSES[content_sha1]
             ]
         )
 
@@ -536,7 +537,7 @@ def test_cli_journal_client_index__fossology_license(
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
 
-    results = idx_storage.content_fossology_license_get(content_ids)
+    results = idx_storage.content_fossology_license_get(content_sha1s)
     assert len(results) == len(expected_results)
     for result in results:
         assert result in expected_results

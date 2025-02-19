@@ -12,7 +12,7 @@ from swh.indexer.mimetype import MimetypeIndexer, compute_mimetype_encoding
 from swh.indexer.storage.model import ContentMimetypeRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
-    RAW_CONTENT_IDS,
+    RAW_CONTENT_OBJIDS,
     RAW_CONTENTS,
     CommonContentIndexerTest,
     fill_obj_storage,
@@ -22,10 +22,10 @@ from swh.indexer.tests.utils import (
 
 
 @pytest.mark.parametrize(
-    "raw_text,mimetypes,encoding",
-    RAW_CONTENTS.values(),
+    "content_id,raw_text,mimetypes,encoding",
+    RAW_CONTENTS,
 )
-def test_compute_mimetype_encoding(raw_text, mimetypes, encoding):
+def test_compute_mimetype_encoding(content_id, raw_text, mimetypes, encoding):
     """Compute mimetype encoding should return results"""
     actual_result = compute_mimetype_encoding(raw_text)
 
@@ -68,12 +68,12 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 
-        self.id0, self.id1, self.id2 = RAW_CONTENT_IDS
+        self.id0, self.id1, self.id2 = RAW_CONTENT_OBJIDS
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
 
         results = []
-        for raw_content_id, (raw_content, mimetypes, encoding) in RAW_CONTENTS.items():
+        for raw_content_id, raw_content, mimetypes, encoding in RAW_CONTENTS:
             # Older libmagic versions (e.g. buster: 1:5.35-4+deb10u2, bullseye:
             # 1:5.39-3) returns different results. This allows to deal with such a case
             # when executing tests on different environments machines (e.g. ci tox, ci
@@ -83,7 +83,7 @@ class TestMimetypeIndexer(CommonContentIndexerTest, unittest.TestCase):
             results.extend(
                 [
                     ContentMimetypeRow(
-                        id=raw_content_id,
+                        id=raw_content_id["sha1"],
                         tool=tool,
                         mimetype=mimetype,
                         encoding=encoding,

@@ -32,7 +32,7 @@ from swh.model.swhids import ExtendedObjectType, ExtendedSWHID
 
 from .utils import (
     BASE_TEST_CONFIG,
-    MAPPING_DESCRIPTION_CONTENT_SHA1,
+    MAPPING_DESCRIPTION_CONTENT_OBJID,
     MAPPING_DESCRIPTION_CONTENT_SHA1GIT,
     YARN_PARSER_METADATA,
     fill_obj_storage,
@@ -134,7 +134,7 @@ class TestMetadata:
         metadata_indexer.idx_storage.content_metadata_add(
             [
                 ContentMetadataRow(
-                    id=MAPPING_DESCRIPTION_CONTENT_SHA1[
+                    id=MAPPING_DESCRIPTION_CONTENT_OBJID[
                         "json:yarn-parser-package.json"
                     ]["sha1"],
                     indexer_configuration_id=tool["id"],
@@ -197,7 +197,7 @@ class TestMetadata:
         metadata_indexer.idx_storage.content_metadata_add(
             [
                 ContentMetadataRow(
-                    id=MAPPING_DESCRIPTION_CONTENT_SHA1[
+                    id=MAPPING_DESCRIPTION_CONTENT_OBJID[
                         "json:yarn-parser-package.json"
                     ]["sha1"],
                     indexer_configuration_id=tool["id"],

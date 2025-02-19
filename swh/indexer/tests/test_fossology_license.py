@@ -14,7 +14,7 @@ from swh.indexer.fossology_license import FossologyLicenseIndexer, compute_licen
 from swh.indexer.storage.model import ContentLicenseRow
 from swh.indexer.tests.utils import (
     BASE_TEST_CONFIG,
-    RAW_CONTENT_IDS,
+    RAW_CONTENT_OBJIDS,
     SHA1_TO_LICENSES,
     CommonContentIndexerTest,
     fill_obj_storage,
@@ -84,7 +84,7 @@ class TestFossologyLicenseIndexer(CommonContentIndexerTest, unittest.TestCase):
         fill_storage(self.indexer.storage)
         fill_obj_storage(self.indexer.objstorage)
 
-        self.id0, self.id1, self.id2 = RAW_CONTENT_IDS
+        self.id0, self.id1, self.id2 = RAW_CONTENT_OBJIDS
 
         tool = {k.replace("tool_", ""): v for (k, v) in self.indexer.tool.items()}
 
