@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024 The Software Heritage developers
+# Copyright (C) 2017-2025 The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,6 +6,7 @@
 from copy import deepcopy
 import datetime
 import hashlib
+from importlib.metadata import version
 import logging
 import re
 import time
@@ -24,7 +25,6 @@ from typing import (
 import urllib.parse
 from urllib.parse import urlparse
 
-import pkg_resources
 import sentry_sdk
 
 from swh.core.config import merge_configs
@@ -297,7 +297,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
 DEFAULT_CONFIG: Dict[str, Any] = {
     "tools": {
         "name": "swh.indexer.metadata",
-        "version": pkg_resources.get_distribution("swh.indexer").version,
+        "version": version("swh.indexer"),
         "configuration": {},
     },
 }
