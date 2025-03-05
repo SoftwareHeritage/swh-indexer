@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -162,8 +162,8 @@ class RecomputeChecksums:
                 keys_str = ",".join(keys_to_update)
                 groups[keys_str].append(content)
 
-            for keys_to_update, contents in groups.items():
-                keys: List[str] = keys_to_update.split(",")
+            for keys_str, contents in groups.items():
+                keys: List[str] = keys_str.split(",")
                 try:
                     self.storage.content_update(contents, keys=keys)
                     count += len(contents)
