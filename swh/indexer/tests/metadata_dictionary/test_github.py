@@ -101,7 +101,7 @@ def test_compute_metadata_github():
   "visibility": "public",
   "forks": 1,
   "open_issues": 0,
-  "watchers": 13,
+  "watchers": 12,
   "default_branch": "master",
   "temp_clone_token": null,
   "organization": {
@@ -140,7 +140,7 @@ def test_compute_metadata_github():
         "as:followers": {
             "as:totalItems": {
                 "type": "xsd:nonNegativeInteger",
-                "@value": "12",
+                "@value": "6",
             },
             "type": "as:Collection",
         },

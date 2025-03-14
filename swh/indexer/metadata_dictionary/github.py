@@ -153,12 +153,12 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
             )
 
     @produce_terms(ACTIVITYSTREAMS.followers, ACTIVITYSTREAMS.totalItems)
-    def translate_watchers_count(self, graph: Graph, root: BNode, v: Any) -> None:
+    def translate_subscribers_count(self, graph: Graph, root: BNode, v: Any) -> None:
         """
 
         >>> graph = Graph()
         >>> root = URIRef("http://example.org/test-software")
-        >>> GitHubMapping().translate_watchers_count(graph, root, 42)
+        >>> GitHubMapping().translate_subscribers_count(graph, root, 42)
         >>> prettyprint_graph(graph, root)
         {
             "@id": ...,
