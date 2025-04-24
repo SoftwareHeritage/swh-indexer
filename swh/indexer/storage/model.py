@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 import attr
 from typing_extensions import Final
 
-from swh.model.model import Sha1Git, dictify
+from swh.model.model import Sha1Git
 
 TSelf = TypeVar("TSelf")
 
@@ -43,7 +43,8 @@ class BaseRow:
     def to_dict(self) -> Dict[str, Any]:
         """Wrapper of `attr.asdict` that can be overridden by subclasses
         that have special handling of some of the fields."""
-        d = dictify(attr.asdict(self, recurse=False))
+        d = attr.asdict(self, recurse=False)
+
         if d["indexer_configuration_id"] is None:
             del d["indexer_configuration_id"]
         if d["tool"] is None:
