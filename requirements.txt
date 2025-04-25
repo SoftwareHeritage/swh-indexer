@@ -7,7 +7,7 @@ frozendict != 2.1.2
 iso8601
 pybtex
 pyld
-rdflib != 7.1.2
+rdflib >= 7.1.4  # first version with this patch: https://github.com/RDFLib/rdflib/pull/3011
 sentry-sdk
 typing-extensions
 xmltodict
