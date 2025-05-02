@@ -51,7 +51,6 @@ from swh.indexer.storage.model import (
 from swh.model import hashutil
 from swh.model.model import (
     Directory,
-    MetadataAuthorityType,
     Origin,
     RawExtrinsicMetadata,
     ReleaseTargetType,
@@ -147,13 +146,6 @@ class ExtrinsicMetadataIndexer(
             origin_sha1 = hashlib.sha1(origin_url).digest()
         else:
             # other types are not supported yet
-            return []
-
-        if data.authority.type == MetadataAuthorityType.REGISTRY:
-            # metadata provided by a third-party; don't trust it
-            # (technically this could be handled below, but we check it here
-            # to return early; sparing a translation and origin lookup)
-            # TODO: add ways to define trusted authorities
             return []
 
         metadata_items = []
