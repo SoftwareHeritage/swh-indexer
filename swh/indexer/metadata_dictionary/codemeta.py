@@ -232,3 +232,34 @@ class JsonSwordCodemetaMapping(SwordCodemetaMapping):
             json_doc = {"entry": json_doc}
 
             return super().translate(xmltodict.unparse(json_doc).encode())
+
+
+class CoarNotifyMentionMapping(BaseExtrinsicMapping):
+    """Map & translate a COAR Notify software mention in CodeMeta.
+
+    COAR Notify mentions are received by ``swh-coarnotify`` and saved as-is.
+    """
+
+    name = "coarnotify-mention-codemeta"
+
+    @classmethod
+    def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
+        return ("coarnotify-mention-v1",)
+
+    def translate(self, content: bytes) -> Optional[Dict[str, Any]]:
+        try:
+            json_doc = json.loads(content)
+        except json.JSONDecodeError:
+            logger.error("Failed to parse JSON document: %s", content)
+            return None
+
+        if "object" not in json_doc or "as:subject" not in json_doc["object"]:
+            logger.error("Missing object[as:subject] key in %s", json_doc)
+            return None
+
+        mention = {
+            "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
+            "citation": [{"ScholarlyArticle": json_doc["object"]["as:subject"]}],
+        }
+
+        return mention
