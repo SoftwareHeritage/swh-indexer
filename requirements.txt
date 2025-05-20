@@ -5,7 +5,8 @@ click
 # cf https://forge.softwareheritage.org/T3815
 frozendict != 2.1.2
 iso8601
-pybtex
+# use upstream pybtex that removed pkg_resources use until a new release
+pybtex @ git+https://bitbucket.org/pybtex-devs/pybtex.git@9b97822
 pyld
 rdflib >= 7.1.4  # first version with this patch: https://github.com/RDFLib/rdflib/pull/3011
 sentry-sdk
