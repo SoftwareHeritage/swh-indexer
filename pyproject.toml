@@ -6,7 +6,7 @@ authors = [
 
 description = "Software Heritage indexer"
 readme = {file = "README.rst", content-type = "text/x-rst"}
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Intended Audience :: Developers",
