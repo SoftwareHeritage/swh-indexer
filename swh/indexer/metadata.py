@@ -147,13 +147,16 @@ class ExtrinsicMetadataIndexer(
         else:
             # other types are not supported yet
             return []
-
+        print(origin_sha1)
         metadata_items = []
         mappings: List[str] = []
         for mapping_cls in EXTRINSIC_MAPPINGS.values():
+            logger.debug("Mapping class %s", mapping_cls)
             if data.format in mapping_cls.extrinsic_metadata_formats():
+                logger.debug("Data format class %s", data.format)
                 mapping = mapping_cls()
                 metadata_item = mapping.translate(data.metadata)
+                logger.debug("Metadata item %s", metadata_item)
                 if metadata_item is not None:
                     metadata_items.append(metadata_item)
                     mappings.append(mapping.name)
