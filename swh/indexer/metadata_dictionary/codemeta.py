@@ -237,10 +237,14 @@ class JsonSwordCodemetaMapping(SwordCodemetaMapping):
 class CoarNotifyMentionMapping(BaseExtrinsicMapping):
     """Map & translate a COAR Notify software mention in CodeMeta.
 
-    COAR Notify mentions are received by ``swh-coarnotify`` and saved as-is.
+    COAR Notify mentions are received by ``swh-coarnotify`` and saved expanded.
     """
 
     name = "coarnotify-mention-codemeta"
+
+    @classmethod
+    def supported_terms(cls) -> List[str]:
+        return [term for term in CODEMETA_TERMS if not term.startswith("@")]
 
     @classmethod
     def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:

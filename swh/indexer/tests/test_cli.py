@@ -88,6 +88,7 @@ def test_cli_mapping_list(cli_runner, swh_config):
     expected_output = "\n".join(
         [
             "cff",
+            "coarnotify-mention-codemeta",
             "codemeta",
             "composer",
             "gemspec",
