@@ -562,3 +562,44 @@ def test_json_sword_codemeta_parsing_error(caplog):
     caplog.set_level(logging.ERROR)
     assert MAPPINGS["JsonSwordCodemetaMapping"]().translate(b"{123}") is None
     assert caplog.text.endswith("Failed to parse JSON document: b'{123}'\n")
+
+
+@pytest.fixture
+def raw_mention():
+    return """[{"https://www.w3.org/ns/activitystreams#actor": [{"@id": "https://research-organisation.org", "https://www.w3.org/ns/activitystreams#name": [{"@value": "Research Organisation"}], "@type": ["https://www.w3.org/ns/activitystreams#Organization"]}], "https://www.w3.org/ns/activitystreams#context": [{"@id": "https://research.local/item/201203/422/", "@type": ["https://www.w3.org/ns/activitystreams#Page", "http://schema.org/AboutPage"]}], "@id": "urn:uuid:cf7e6dc8-c96f-4c85-b471-d2263c789ca7", "https://www.w3.org/ns/activitystreams#object": [{"https://www.w3.org/ns/activitystreams#object": [{"@value": "https://github.com/rdicosmo/parmap"}], "https://www.w3.org/ns/activitystreams#relationship": [{"@value": "http://purl.org/vocab/frbr/core#supplement"}], "https://www.w3.org/ns/activitystreams#subject": [{"@value": "https://research.local/item/201203/422/"}], "@id": "urn:uuid:74FFB356-0632-44D9-B176-888DA85758DC", "@type": ["https://www.w3.org/ns/activitystreams#Relationship"]}], "https://www.w3.org/ns/activitystreams#origin": [{"@id": "https://research-organisation.org/repository", "http://www.w3.org/ns/ldp#inbox": [{"@id": "http://inbox.partner.local"}], "@type": ["https://www.w3.org/ns/activitystreams#Service"]}], "https://www.w3.org/ns/activitystreams#target": [{"@id": "https://another-research-organisation.org/repository", "http://www.w3.org/ns/ldp#inbox": [{"@id": "http://inbox.swh/"}], "@type": ["https://www.w3.org/ns/activitystreams#Service"]}], "@type": ["https://www.w3.org/ns/activitystreams#Announce", "http://coar-notify.net/specification/vocabulary/RelationshipAction"]}]"""  # noqa
+
+
+def test_coarnotify_mention(raw_mention):
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
+    assert result == {
+        "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
+        "citation": [{"ScholarlyArticle": "https://research.local/item/201203/422/"}],
+    }
+
+
+def test_coarnotify_mention_missing_subject(raw_mention, caplog):
+    subject = """, "https://www.w3.org/ns/activitystreams#subject": [{"@value": "https://research.local/item/201203/422/"}]"""  # noqa
+
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(
+        raw_mention.replace(subject, "")
+    )
+    assert result is None
+    assert "Missing object[as:subject] key" in caplog.text
+
+
+def test_coarnotify_mention_invalid_json(caplog):
+    caplog.set_level(logging.ERROR)
+
+    invalid_json = "#"
+
+    assert MAPPINGS["CoarNotifyMentionMapping"]().translate(invalid_json) is None
+    assert "Failed to parse JSON document" in caplog.text
+
+
+def test_coarnotify_mention_invalid_jsonld(caplog):
+    caplog.set_level(logging.ERROR)
+
+    invalid_jsonld = """{"@id": null}"""
+
+    assert MAPPINGS["CoarNotifyMentionMapping"]().translate(invalid_jsonld) is None
+    assert "Failed to compact JSON-LD document" in caplog.text

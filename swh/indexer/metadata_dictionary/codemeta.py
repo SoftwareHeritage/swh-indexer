@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import xml.etree.ElementTree as ET
 
 import iso8601
+from pyld import jsonld
 import xmltodict
 
 from swh.indexer.codemeta import (
@@ -251,19 +252,30 @@ class CoarNotifyMentionMapping(BaseExtrinsicMapping):
         return ("coarnotify-mention-v1",)
 
     def translate(self, content: bytes) -> Optional[Dict[str, Any]]:
+        """Parse JSON and compact the payload to access the mention."""
+        context = {
+            "@context": [
+                "https://www.w3.org/ns/activitystreams",
+                "https://coar-notify.net",
+            ]
+        }
         try:
-            json_doc = json.loads(content)
+            raw_json = json.loads(content)
+            payload = jsonld.compact(raw_json, context)
         except json.JSONDecodeError:
             logger.error("Failed to parse JSON document: %s", content)
             return None
+        except jsonld.JsonLdError:
+            logger.error("Failed to compact JSON-LD document: %s", content)
+            return None
 
-        if "object" not in json_doc or "as:subject" not in json_doc["object"]:
-            logger.error("Missing object[as:subject] key in %s", json_doc)
+        if "object" not in payload or "as:subject" not in payload["object"]:
+            logger.error("Missing object[as:subject] key in %s", payload)
             return None
 
         mention = {
             "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
-            "citation": [{"ScholarlyArticle": json_doc["object"]["as:subject"]}],
+            "citation": [{"ScholarlyArticle": payload["object"]["as:subject"]}],
         }
 
         return mention
