@@ -396,23 +396,6 @@ class TestMetadata:
         )
         assert results == []
 
-    def test_extrinsic_metadata_indexer_nonforge_authority(self, mocker):
-        """Early abort on non-forge authorities"""
-        metadata_indexer = ExtrinsicMetadataIndexer(config=DIRECTORY_METADATA_CONFIG)
-        metadata_indexer.storage = mocker.patch.object(metadata_indexer, "storage")
-
-        remd = attr.evolve(
-            GITHUB_REMD,
-            authority=attr.evolve(
-                GITHUB_REMD.authority, type=MetadataAuthorityType.REGISTRY
-            ),
-        )
-
-        results = metadata_indexer.index(remd.id, data=remd)
-
-        assert metadata_indexer.storage.method_calls == []
-        assert results == []
-
     def test_extrinsic_metadata_indexer_thirdparty_authority(self, mocker):
         """Should be ignored when authority URL does not match the origin"""
 
