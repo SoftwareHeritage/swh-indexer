@@ -199,7 +199,7 @@ class ExtrinsicMetadataIndexer(
             # do not match their own URL
             # TODO: add ways to define trusted authorities
             logger.debug(
-                "Authority URL %s and origin URL %s does not match, ignoring.",
+                "Authority URL %s and origin URL %s do not match, ignoring.",
                 authority_base_url,
                 origin_base_url,
             )
