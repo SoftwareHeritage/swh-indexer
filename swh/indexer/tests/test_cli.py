@@ -118,7 +118,7 @@ def test_cli_mapping_list_terms(cli_runner, swh_config):
     assert re.search(r"http://schema.org/url:\n.*npm", result.output)
     assert re.search(r"http://schema.org/url:\n.*codemeta", result.output)
     assert re.search(
-        r"https://codemeta.github.io/terms/developmentStatus:\n\tcoarnotify-mention-codemeta",
+        r"https://codemeta.github.io/terms/developmentStatus:\n\tcoarnotify-mention-codemeta, codemeta, json-sword-codemeta, sword-codemeta",  # noqa
         result.output,
     )
 
