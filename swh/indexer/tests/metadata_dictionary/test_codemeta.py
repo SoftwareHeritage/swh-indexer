@@ -587,6 +587,16 @@ def test_coarnotify_mention_missing_subject(raw_mention, caplog):
     assert "Missing object[as:subject] key" in caplog.text
 
 
+def test_coarnotify_mention_invalid_subject(raw_mention, caplog):
+    subject = '{"@value": "https://research.local/item/201203/422/"}'
+
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(
+        raw_mention.replace(subject, '{"@value": 123}')
+    )
+    assert result is None
+    assert "object[as:subject] value is not a string" in caplog.text
+
+
 def test_coarnotify_mention_invalid_json(caplog):
     caplog.set_level(logging.ERROR)
 

@@ -273,6 +273,10 @@ class CoarNotifyMentionMapping(BaseExtrinsicMapping):
             logger.error("Missing object[as:subject] key in %s", payload)
             return None
 
+        if not isinstance(payload["object"]["as:subject"], str):
+            logger.error("object[as:subject] value is not a string in %s", payload)
+            return None
+
         mention = {
             "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
             "citation": [{"ScholarlyArticle": payload["object"]["as:subject"]}],
