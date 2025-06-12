@@ -17,6 +17,7 @@ import xmltodict
 from swh.indexer.codemeta import (
     CODEMETA_TERMS,
     CODEMETA_V2_CONTEXT_URL,
+    _document_loader,
     compact,
     expand,
 )
@@ -261,7 +262,9 @@ class CoarNotifyMentionMapping(BaseExtrinsicMapping):
         }
         try:
             raw_json = json.loads(content)
-            payload = jsonld.compact(raw_json, context)
+            payload = jsonld.compact(
+                raw_json, context, options={"documentLoader": _document_loader}
+            )
         except json.JSONDecodeError:
             logger.error("Failed to parse JSON document: %s", content)
             return None
