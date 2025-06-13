@@ -235,51 +235,119 @@ class JsonSwordCodemetaMapping(SwordCodemetaMapping):
             return super().translate(xmltodict.unparse(json_doc).encode())
 
 
+def load_and_compact_notification(content: bytes | str) -> dict[str, Any] | None:
+    """Load and compact a notification from the REMS.
+
+    Errors logs will be written if something went wrong in the process.
+
+    Args:
+        content: the expanded COAR Notification
+
+    Returns:
+        The compacted form of the COAR Notification or None if we weren't able to
+        read it
+    """
+    try:
+        raw_json = json.loads(content)
+        notification = jsonld.compact(
+            raw_json,
+            {
+                "@context": [
+                    "https://www.w3.org/ns/activitystreams",
+                    "https://coar-notify.net",
+                ]
+            },
+        )
+    except json.JSONDecodeError:
+        logger.error("Failed to parse JSON document: %s", content)
+        return None
+    except jsonld.JsonLdError:
+        logger.error("Failed to compact JSON-LD document: %s", content)
+        return None
+    return notification
+
+
+def validate_mention(notification: dict[str, Any]) -> bool:
+    """Validate minimal notification's requirements before indexation.
+
+    Args:
+        notification: a compact form of a COAR Notification
+
+    Returns:
+        False if the we can't find required props in the notification
+    """
+    if "object" not in notification or "as:subject" not in notification["object"]:
+        logger.error("Missing object[as:subject] key in %s", notification)
+        return False
+    if "context" not in notification or "id" not in notification["context"]:
+        logger.error("Missing context[id] key in %s", notification)
+        return False
+    paper = notification["context"]
+    if notification["object"]["as:subject"] != paper["id"]:
+        logger.error(
+            "Mismatch between context[id] and object[as:subject] %s", notification
+        )
+        return False
+    if not isinstance(paper["id"], str):
+        logger.error("context[id] value is not a string in %s", notification)
+        return False
+    if "id" not in notification or not isinstance(notification["id"], str):
+        logger.error("id value is not a string in %s", notification)
+        return False
+    return True
+
+
 class CoarNotifyMentionMapping(BaseExtrinsicMapping):
-    """Map & translate a COAR Notify software mention in CodeMeta.
+    """Map & translate a COAR Notify software mention in a CodeMeta format.
 
     COAR Notify mentions are received by ``swh-coarnotify`` and saved expanded.
+    Mentions contains metadata on a scientific paper that cites a software.
     """
 
     name = "coarnotify-mention-codemeta"
 
     @classmethod
-    def supported_terms(cls) -> List[str]:
+    def supported_terms(cls) -> list[str]:
         return [term for term in CODEMETA_TERMS if not term.startswith("@")]
 
     @classmethod
-    def extrinsic_metadata_formats(cls) -> Tuple[str, ...]:
+    def extrinsic_metadata_formats(cls) -> tuple[str, ...]:
         return ("coarnotify-mention-v1",)
 
-    def translate(self, content: bytes) -> Optional[Dict[str, Any]]:
-        """Parse JSON and compact the payload to access the mention."""
-        context = {
-            "@context": [
-                "https://www.w3.org/ns/activitystreams",
-                "https://coar-notify.net",
-            ]
-        }
-        try:
-            raw_json = json.loads(content)
-            payload = jsonld.compact(raw_json, context)
-        except json.JSONDecodeError:
-            logger.error("Failed to parse JSON document: %s", content)
-            return None
-        except jsonld.JsonLdError:
-            logger.error("Failed to compact JSON-LD document: %s", content)
+    def translate(self, content: bytes) -> dict[str, Any] | None:
+        """Parse JSON and compact the payload to access the mention.
+
+        The whole `context` of the `AnnounceRelationship` notification will be indexed
+        as it contains metadata about the scientific paper citing the software.
+
+        TODO: At some point we might need to fetch metadata from the paper URL as COAR
+        Notifications are not made to contain **all** the metadata but to indicate
+        where we should find them.
+
+        TODO: We will need to handle cancellations of a mention if it was made by
+        mistake. Maybe we could use the original notification id and an empty context
+        to overwrite the previous citation when merging documents ? It is with this in
+        mind that the notification ID is added to the citation.
+
+        Args:
+            content: the raw expanded COAR Notification
+
+        Returns:
+            A CodeMeta citation if the notification was valid or None
+        """
+
+        notification = load_and_compact_notification(content)
+        if not notification:
             return None
 
-        if "object" not in payload or "as:subject" not in payload["object"]:
-            logger.error("Missing object[as:subject] key in %s", payload)
+        if not validate_mention(notification):
             return None
 
-        if not isinstance(payload["object"]["as:subject"], str):
-            logger.error("object[as:subject] value is not a string in %s", payload)
-            return None
-
-        mention = {
+        citation = {
             "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
-            "citation": [{"ScholarlyArticle": payload["object"]["as:subject"]}],
+            "citation": [
+                {"id": notification["id"], "ScholarlyArticle": notification["context"]}
+            ],
         }
 
-        return mention
+        return citation

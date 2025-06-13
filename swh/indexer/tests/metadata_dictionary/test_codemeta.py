@@ -12,6 +12,10 @@ import pytest
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary.codemeta import (
+    load_and_compact_notification,
+    validate_mention,
+)
 from swh.objstorage.interface import CompositeObjId
 
 from ..utils import json_document_strategy
@@ -569,47 +573,100 @@ def raw_mention():
     return """[{"https://www.w3.org/ns/activitystreams#actor": [{"@id": "https://research-organisation.org", "https://www.w3.org/ns/activitystreams#name": [{"@value": "Research Organisation"}], "@type": ["https://www.w3.org/ns/activitystreams#Organization"]}], "https://www.w3.org/ns/activitystreams#context": [{"@id": "https://research.local/item/201203/422/", "@type": ["https://www.w3.org/ns/activitystreams#Page", "http://schema.org/AboutPage"]}], "@id": "urn:uuid:cf7e6dc8-c96f-4c85-b471-d2263c789ca7", "https://www.w3.org/ns/activitystreams#object": [{"https://www.w3.org/ns/activitystreams#object": [{"@value": "https://github.com/rdicosmo/parmap"}], "https://www.w3.org/ns/activitystreams#relationship": [{"@value": "http://purl.org/vocab/frbr/core#supplement"}], "https://www.w3.org/ns/activitystreams#subject": [{"@value": "https://research.local/item/201203/422/"}], "@id": "urn:uuid:74FFB356-0632-44D9-B176-888DA85758DC", "@type": ["https://www.w3.org/ns/activitystreams#Relationship"]}], "https://www.w3.org/ns/activitystreams#origin": [{"@id": "https://research-organisation.org/repository", "http://www.w3.org/ns/ldp#inbox": [{"@id": "http://inbox.partner.local"}], "@type": ["https://www.w3.org/ns/activitystreams#Service"]}], "https://www.w3.org/ns/activitystreams#target": [{"@id": "https://another-research-organisation.org/repository", "http://www.w3.org/ns/ldp#inbox": [{"@id": "http://inbox.swh/"}], "@type": ["https://www.w3.org/ns/activitystreams#Service"]}], "@type": ["https://www.w3.org/ns/activitystreams#Announce", "http://coar-notify.net/specification/vocabulary/RelationshipAction"]}]"""  # noqa
 
 
+@pytest.fixture
+def compact_mention(raw_mention):
+    return load_and_compact_notification(raw_mention)
+
+
+def test_load_and_compact_notification(raw_mention, caplog):
+    result = load_and_compact_notification(raw_mention)
+    assert result["@context"] == [
+        "https://www.w3.org/ns/activitystreams",
+        "https://coar-notify.net",
+    ]
+    assert result["type"] == ["Announce", "RelationshipAction"]
+    assert result["context"]["id"] == result["object"]["as:subject"]
+
+
+@pytest.mark.parametrize(
+    "value,msg",
+    [
+        ("#", "Failed to parse JSON document"),
+        ('{"@id": null}', "Failed to compact JSON-LD document"),
+    ],
+)
+def test_load_and_compact_notification_failures(value, msg, caplog):
+    caplog.set_level(logging.ERROR)
+    assert load_and_compact_notification(value) is None
+    assert msg in caplog.text
+
+
+def test_validate_mention(compact_mention):
+    assert validate_mention(compact_mention)
+
+
+def test_validate_mention_object(compact_mention, caplog):
+    caplog.set_level(logging.ERROR)
+    msg = "Missing object[as:subject] key"
+    mention = compact_mention.copy()
+    orignal_object = mention["object"]
+
+    del mention["object"]
+    assert not validate_mention(mention)
+    assert msg in caplog.text
+
+    caplog.clear()
+    mention["object"] = orignal_object
+
+    del mention["object"]["as:subject"]
+    assert not validate_mention(mention)
+    assert msg in caplog.text
+
+
+def test_validate_mention_id(compact_mention, caplog):
+    caplog.set_level(logging.ERROR)
+    msg = "id value is not a string"
+    mention = compact_mention.copy()
+
+    del mention["id"]
+    assert not validate_mention(mention)
+
+    caplog.clear()
+
+    mention["id"] = 123
+    assert not validate_mention(mention)
+    assert msg in caplog.text
+
+
 def test_coarnotify_mention(raw_mention):
     result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
     assert result == {
         "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
-        "citation": [{"ScholarlyArticle": "https://research.local/item/201203/422/"}],
+        "citation": [
+            {
+                "id": "urn:uuid:cf7e6dc8-c96f-4c85-b471-d2263c789ca7",
+                "ScholarlyArticle": {
+                    "id": "https://research.local/item/201203/422/",
+                    "type": ["Page", "sorg:AboutPage"],
+                },
+            }
+        ],
     }
 
 
-def test_coarnotify_mention_missing_subject(raw_mention, caplog):
-    subject = """, "https://www.w3.org/ns/activitystreams#subject": [{"@value": "https://research.local/item/201203/422/"}]"""  # noqa
-
-    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(
-        raw_mention.replace(subject, "")
+def test_coarnotify_mention_invalid_json(raw_mention, mocker):
+    mocker.patch(
+        "swh.indexer.metadata_dictionary.codemeta.load_and_compact_notification",
+        return_value=None,
     )
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
     assert result is None
-    assert "Missing object[as:subject] key" in caplog.text
 
 
-def test_coarnotify_mention_invalid_subject(raw_mention, caplog):
-    subject = '{"@value": "https://research.local/item/201203/422/"}'
-
-    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(
-        raw_mention.replace(subject, '{"@value": 123}')
+def test_coarnotify_mention_invalid_mention(raw_mention, mocker):
+    mocker.patch(
+        "swh.indexer.metadata_dictionary.codemeta.validate_mention",
+        return_value=False,
     )
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
     assert result is None
-    assert "object[as:subject] value is not a string" in caplog.text
-
-
-def test_coarnotify_mention_invalid_json(caplog):
-    caplog.set_level(logging.ERROR)
-
-    invalid_json = "#"
-
-    assert MAPPINGS["CoarNotifyMentionMapping"]().translate(invalid_json) is None
-    assert "Failed to parse JSON document" in caplog.text
-
-
-def test_coarnotify_mention_invalid_jsonld(caplog):
-    caplog.set_level(logging.ERROR)
-
-    invalid_jsonld = """{"@id": null}"""
-
-    assert MAPPINGS["CoarNotifyMentionMapping"]().translate(invalid_jsonld) is None
-    assert "Failed to compact JSON-LD document" in caplog.text
