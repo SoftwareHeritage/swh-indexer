@@ -88,6 +88,7 @@ def test_cli_mapping_list(cli_runner, swh_config):
     expected_output = "\n".join(
         [
             "cff",
+            "coarnotify-mention-codemeta",
             "codemeta",
             "composer",
             "gemspec",
@@ -117,7 +118,7 @@ def test_cli_mapping_list_terms(cli_runner, swh_config):
     assert re.search(r"http://schema.org/url:\n.*npm", result.output)
     assert re.search(r"http://schema.org/url:\n.*codemeta", result.output)
     assert re.search(
-        r"https://codemeta.github.io/terms/developmentStatus:\n\tcodemeta",
+        r"https://codemeta.github.io/terms/developmentStatus:\n\tcoarnotify-mention-codemeta, codemeta, json-sword-codemeta, sword-codemeta",  # noqa
         result.output,
     )
 
@@ -136,6 +137,8 @@ def test_cli_mapping_list_terms_exclude(cli_runner, swh_config):
             "json-sword-codemeta",
             "--exclude-mapping",
             "sword-codemeta",
+            "--exclude-mapping",
+            "coarnotify-mention-codemeta",
         ],
         catch_exceptions=False,
     )
@@ -143,7 +146,7 @@ def test_cli_mapping_list_terms_exclude(cli_runner, swh_config):
     assert re.search(r"http://schema.org/url:\n.*npm", result.output)
     assert not re.search(r"http://schema.org/url:\n.*codemeta", result.output)
     assert not re.search(
-        r"https://codemeta.github.io/terms/developmentStatus:\n\tcodemeta",
+        r"https://codemeta.github.io/terms/developmentStatus:\n\tcoarnotify-mention-codemeta",
         result.output,
     )
 

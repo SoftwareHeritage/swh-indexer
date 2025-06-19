@@ -148,14 +148,6 @@ class ExtrinsicMetadataIndexer(
         else:
             # other types are not supported yet
             return []
-
-        if data.authority.type == MetadataAuthorityType.REGISTRY:
-            # metadata provided by a third-party; don't trust it
-            # (technically this could be handled below, but we check it here
-            # to return early; sparing a translation and origin lookup)
-            # TODO: add ways to define trusted authorities
-            return []
-
         metadata_items = []
         mappings: List[str] = []
         for mapping_cls in EXTRINSIC_MAPPINGS.values():
@@ -196,9 +188,21 @@ class ExtrinsicMetadataIndexer(
                 f"over {num_retries * sleep_delay}s?"
             ) from None
 
-        if urlparse(data.authority.url).netloc != urlparse(origin["url"]).netloc:
-            # metadata provided by a third-party; don't trust it
+        authority_base_url = urlparse(data.authority.url).netloc
+        origin_base_url = urlparse(origin["url"]).netloc
+
+        if (
+            data.authority.type != MetadataAuthorityType.REGISTRY
+            and authority_base_url != origin_base_url
+        ):
+            # Registries are allowed to push metadata provided related to origins that
+            # do not match their own URL
             # TODO: add ways to define trusted authorities
+            logger.debug(
+                "Authority URL %s and origin URL %s do not match, ignoring.",
+                authority_base_url,
+                origin_base_url,
+            )
             return []
 
         metadata = merge_documents(metadata_items)
