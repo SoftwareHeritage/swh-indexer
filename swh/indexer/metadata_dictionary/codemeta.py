@@ -276,24 +276,35 @@ def validate_mention(notification: dict[str, Any]) -> bool:
     Returns:
         False if the we can't find required props in the notification
     """
-    if "object" not in notification or "as:subject" not in notification["object"]:
+    subject = notification.get("object", {}).get("as:subject")
+    if subject is None:
         logger.error("Missing object[as:subject] key in %s", notification)
         return False
-    if "context" not in notification or "id" not in notification["context"]:
+    if not isinstance(subject, str):
+        logger.error("object[as:subject] value is not a string in %s", notification)
+        return False
+
+    paper = notification.get("context", {}).get("id")
+    if paper is None:
         logger.error("Missing context[id] key in %s", notification)
         return False
-    paper = notification["context"]
-    if notification["object"]["as:subject"] != paper["id"]:
-        logger.error(
-            "Mismatch between context[id] and object[as:subject] %s", notification
-        )
-        return False
-    if not isinstance(paper["id"], str):
+    if not isinstance(paper, str):
         logger.error("context[id] value is not a string in %s", notification)
         return False
-    if "id" not in notification or not isinstance(notification["id"], str):
+    if subject != paper:
+        logger.error(
+            "Mismatch between context[id] and object[as:subject] in %s", notification
+        )
+        return False
+
+    notification_id = notification.get("id")
+    if notification_id is None:
+        logger.error("missing id key in %s", notification)
+        return False
+    if not isinstance(notification_id, str):
         logger.error("id value is not a string in %s", notification)
         return False
+
     return True
 
 
