@@ -6,7 +6,6 @@ swh.core[testing] >= 3.0.0
 swh.journal[pytest] >= 2.0.0
 swh.storage[pytest] >= 3.1.0
 
-types-click
 types-confluent-kafka
 types-pyyaml
 types-xmltodict
