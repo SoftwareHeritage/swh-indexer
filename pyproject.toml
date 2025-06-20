@@ -86,8 +86,8 @@ ignore = [
     "W503" # line break before binary operator <https://github.com/psf/black/issues/52>
 ]
 max-line-length = 88
+exclude = ["build/", ".tox/"]
 
 [tool.pytest.ini_options]
 norecursedirs = "build docs .*"
-asyncio_mode = "strict"
 consider_namespace_packages = true

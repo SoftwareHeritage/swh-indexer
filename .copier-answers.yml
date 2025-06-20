@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier
-_commit: v0.3.3
+_commit: v0.3.4
 _src_path: https://gitlab.softwareheritage.org/swh/devel/swh-py-template.git
 description: Software Heritage indexer
 distribution_name: swh-indexer
@@ -7,5 +7,5 @@ have_cli: true
 have_workers: true
 package_root: swh/indexer
 project_name: swh.indexer
-python_minimal_version: '3.7'
+python_minimal_version: '3.9'
 readme_format: rst
