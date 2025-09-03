@@ -6,17 +6,16 @@
 from collections import defaultdict
 import itertools
 import logging
-from typing import Any, Dict, Generator, List, Optional, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 import sentry_sdk
 
 from swh.core import utils
 from swh.core.config import load_from_envvar
-from swh.model import hashutil
+from swh.model.hashutil import MultiHash, hash_to_bytes
 from swh.model.model import Content
 from swh.objstorage.exc import ObjNotFoundError
 from swh.objstorage.factory import get_objstorage
-from swh.objstorage.interface import ObjId
 from swh.storage import get_storage
 
 DEFAULT_CONFIG: Dict[str, Any] = {
@@ -73,7 +72,7 @@ class RecomputeChecksums:
         for c in contents:
             h = c["sha1"]
             if isinstance(h, str):
-                h = hashutil.hash_to_bytes(h)
+                h = hash_to_bytes(h)
 
             yield h
 
@@ -121,14 +120,14 @@ class RecomputeChecksums:
                     continue
 
                 try:
-                    raw_content = self.objstorage.get(cast(ObjId, content.hashes()))
+                    raw_content = self.objstorage.get(content.hashes())
                 except ObjNotFoundError:
                     self.log.warning(
                         "Content %s not found in objstorage!", content.hashes()
                     )
                     continue
 
-                content_hashes = hashutil.MultiHash.from_data(
+                content_hashes = MultiHash.from_data(
                     raw_content, hash_names=checksums_to_compute
                 ).digest()
                 content_dict = content.to_dict()
