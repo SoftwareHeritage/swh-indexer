@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Tuple, Union
 import unittest
 
 from hypothesis import strategies
+import magic
 
 from swh.core.api.classes import stream_results
 from swh.indexer.storage import INDEXER_CFG_KEY
@@ -207,7 +208,7 @@ RAW_CONTENT_METADATA: List[Tuple[bytes, Union[str, Tuple[str, ...]], str]] = [
     (
         b"\xff\xfe\x00\x00\x00\x00\xff\xfe\xff\xff",
         "application/octet-stream",
-        "",
+        "" if magic.version() <= 544 else "utf-32le",
     ),
 ]
 
