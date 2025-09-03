@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024  The Software Heritage developers
+# Copyright (C) 2017-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -16,7 +16,7 @@ from swh.indexer.metadata_dictionary.codemeta import (
     load_and_compact_notification,
     validate_mention,
 )
-from swh.objstorage.interface import CompositeObjId
+from swh.model.hashutil import HashDict
 
 from ..utils import json_document_strategy
 
@@ -178,9 +178,7 @@ def test_detect_metadata_codemeta_json_uppercase():
     ]
     results = detect_metadata(df)
 
-    expected_results = {
-        "CodemetaMapping": [CompositeObjId(sha1=b"bcd", sha1_git=b"aab")]
-    }
+    expected_results = {"CodemetaMapping": [HashDict(sha1=b"bcd", sha1_git=b"aab")]}
     assert expected_results == results
 
 

@@ -7,10 +7,10 @@ from typing import Dict, List
 
 from swh.indexer.metadata_dictionary import INTRINSIC_MAPPINGS
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
-from swh.objstorage.interface import CompositeObjId
+from swh.model.hashutil import HashDict
 
 
-def detect_metadata(files: List[DirectoryLsEntry]) -> Dict[str, List[CompositeObjId]]:
+def detect_metadata(files: List[DirectoryLsEntry]) -> Dict[str, List[HashDict]]:
     """
     Detects files potentially containing metadata
 

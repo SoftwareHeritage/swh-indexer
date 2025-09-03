@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024  The Software Heritage developers
+# Copyright (C) 2017-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -11,7 +11,7 @@ import pytest
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
 from swh.indexer.storage.model import ContentMetadataRow
-from swh.objstorage.interface import CompositeObjId
+from swh.model.hashutil import HashDict
 
 from ..test_metadata import TRANSLATOR_TOOL, ContentMetadataTestIndexer
 from ..utils import (
@@ -461,7 +461,7 @@ def test_detect_metadata_package_json(filename):
     ]
     results = detect_metadata(df)
 
-    expected_results = {"NpmMapping": [CompositeObjId(sha1=b"cde", sha1_git=b"aab")]}
+    expected_results = {"NpmMapping": [HashDict(sha1=b"cde", sha1_git=b"aab")]}
     assert expected_results == results
 
 

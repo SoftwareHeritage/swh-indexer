@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024  The Software Heritage developers
+# Copyright (C) 2017-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -13,7 +13,7 @@ from hypothesis import strategies
 
 from swh.core.api.classes import stream_results
 from swh.indexer.storage import INDEXER_CFG_KEY
-from swh.model.hashutil import hash_to_bytes
+from swh.model.hashutil import HashDict, hash_to_bytes
 from swh.model.model import (
     Content,
     Directory,
@@ -31,7 +31,6 @@ from swh.model.model import (
     SnapshotTargetType,
     TimestampWithTimezone,
 )
-from swh.objstorage.interface import CompositeObjId, objid_from_dict
 from swh.storage.utils import now
 
 BASE_TEST_CONFIG: Dict[str, Dict[str, Any]] = {
@@ -183,12 +182,12 @@ OBJ_STORAGE_RAW_CONTENT: Dict[str, bytes] = {
 }
 
 MAPPING_DESCRIPTION_CONTENT_SHA1GIT: Dict[str, bytes] = {}
-MAPPING_DESCRIPTION_CONTENT_OBJID: Dict[str, CompositeObjId] = {}
-OBJ_STORAGE_DATA: List[Tuple[CompositeObjId, bytes]] = []
+MAPPING_DESCRIPTION_CONTENT_OBJID: Dict[str, HashDict] = {}
+OBJ_STORAGE_DATA: List[Tuple[HashDict, bytes]] = []
 
 for key_description, data in OBJ_STORAGE_RAW_CONTENT.items():
     content = Content.from_data(data)
-    content_id = objid_from_dict(content.hashes())
+    content_id = content.hashes()
     MAPPING_DESCRIPTION_CONTENT_SHA1GIT[key_description] = content.sha1_git
     MAPPING_DESCRIPTION_CONTENT_OBJID[key_description] = content_id
     OBJ_STORAGE_DATA.append((content_id, data))
@@ -212,13 +211,13 @@ RAW_CONTENT_METADATA: List[Tuple[bytes, Union[str, Tuple[str, ...]], str]] = [
     ),
 ]
 
-RAW_CONTENTS: List[Tuple[CompositeObjId, bytes, Union[str, Tuple[str, ...]], str]] = []
-RAW_CONTENT_OBJIDS: List[CompositeObjId] = []
+RAW_CONTENTS: List[Tuple[HashDict, bytes, Union[str, Tuple[str, ...]], str]] = []
+RAW_CONTENT_OBJIDS: List[HashDict] = []
 
 for index, raw_content_d in enumerate(RAW_CONTENT_METADATA):
     raw_content = raw_content_d[0]
     content = Content.from_data(raw_content)
-    content_id = objid_from_dict(content.hashes())
+    content_id = content.hashes()
     RAW_CONTENTS.append((content_id, *raw_content_d))
     RAW_CONTENT_OBJIDS.append(content_id)
     # and write it to objstorage data so it's flushed in the objstorage
@@ -666,10 +665,10 @@ class CommonContentIndexerTest(metaclass=abc.ABCMeta):
         """Unknown sha1s are not indexed"""
         obj_ids = [
             self.id1,
-            CompositeObjId(
+            HashDict(
                 sha1=bytes.fromhex("799a5ef812c53907562fe379d4b3851e69c7cb15")
             ),  # unknown
-            CompositeObjId(
+            HashDict(
                 sha1=bytes.fromhex("800a5ef812c53907562fe379d4b3851e69c7cb15")
             ),  # unknown
         ]  # unknown

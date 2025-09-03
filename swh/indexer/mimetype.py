@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2024  The Software Heritage developers
+# Copyright (C) 2016-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -10,7 +10,7 @@ import magic
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import ContentMimetypeRow
-from swh.objstorage.interface import CompositeObjId
+from swh.model.hashutil import HashDict
 
 from .indexer import ContentIndexer
 
@@ -68,7 +68,7 @@ class MixinMimetypeIndexer:
         self.config = merge_configs(DEFAULT_CONFIG, self.config)
 
     def index(
-        self, id: CompositeObjId, data: Optional[bytes] = None, **kwargs
+        self, id: HashDict, data: Optional[bytes] = None, **kwargs
     ) -> List[ContentMimetypeRow]:
         """Index sha1s' content and store result.
 
@@ -121,7 +121,7 @@ class MimetypeIndexer(MixinMimetypeIndexer, ContentIndexer[ContentMimetypeRow]):
 
     """
 
-    def filter(self, ids: List[CompositeObjId]):
+    def filter(self, ids: List[HashDict]):
         """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_mimetype_missing(
             (

@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2024  The Software Heritage developers
+# Copyright (C) 2016-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -17,10 +17,10 @@ from typing_extensions import TypedDict
 from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
-from swh.model import hashutil
+from swh.model.hashutil import HashDict, hash_to_bytes, hash_to_hex
 from swh.model.model import Directory, Origin, Sha1Git
 from swh.objstorage.factory import get_objstorage
-from swh.objstorage.interface import CompositeObjId, objid_from_dict
+from swh.objstorage.interface import objid_from_dict
 from swh.storage import get_storage
 from swh.storage.interface import StorageInterface
 
@@ -279,7 +279,7 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
 
-class ContentIndexer(BaseIndexer[CompositeObjId, bytes, TResult], Generic[TResult]):
+class ContentIndexer(BaseIndexer[HashDict, bytes, TResult], Generic[TResult]):
     """A content indexer working on the journal (method `process_journal_objects`) or on
     a list of ids directly (method `run`).
 
@@ -298,7 +298,7 @@ class ContentIndexer(BaseIndexer[CompositeObjId, bytes, TResult], Generic[TResul
         )
         return summary
 
-    def run(self, ids: List[CompositeObjId], **kwargs) -> Tuple[Dict, List]:
+    def run(self, ids: List[HashDict], **kwargs) -> Tuple[Dict, List]:
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -319,13 +319,11 @@ class ContentIndexer(BaseIndexer[CompositeObjId, bytes, TResult], Generic[TResul
             content_data = self.objstorage.get_batch(ids)
             for item, raw_content in zip(ids, content_data):
                 id_ = item
-                sentry_sdk.set_tag(
-                    "swh-indexer-content-sha1", hashutil.hash_to_hex(id_["sha1"])
-                )
+                sentry_sdk.set_tag("swh-indexer-content-sha1", hash_to_hex(id_["sha1"]))
                 if not raw_content:
                     self.log.warning(
                         "Content %s not found in objstorage",
-                        hashutil.hash_to_hex(id_["sha1"]),
+                        hash_to_hex(id_["sha1"]),
                     )
                     continue
 
@@ -442,7 +440,7 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
 
         """
         directory_ids = [
-            hashutil.hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
+            hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
         ]
 
         return self._process_directories([(dir_id, None) for dir_id in directory_ids])
@@ -467,7 +465,7 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
         # TODO: fetch raw_manifest when useful?
 
         for dir_id, dir_ in directories:
-            swhid = f"swh:1:dir:{hashutil.hash_to_hex(dir_id)}"
+            swhid = f"swh:1:dir:{hash_to_hex(dir_id)}"
             sentry_sdk.set_tag("swh-indexer-directory-swhid", swhid)
             try:
                 results.extend(self.index(dir_id, dir_))

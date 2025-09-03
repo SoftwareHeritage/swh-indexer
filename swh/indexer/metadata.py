@@ -48,7 +48,7 @@ from swh.indexer.storage.model import (
     OriginExtrinsicMetadataRow,
     OriginIntrinsicMetadataRow,
 )
-from swh.model import hashutil
+from swh.model.hashutil import HashDict, hash_to_hex
 from swh.model.model import (
     Directory,
     MetadataAuthorityType,
@@ -58,7 +58,6 @@ from swh.model.model import (
     Sha1Git,
 )
 from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
-from swh.objstorage.interface import CompositeObjId
 
 REVISION_GET_BATCH_SIZE = 10
 RELEASE_GET_BATCH_SIZE = 10
@@ -237,7 +236,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
 
     """
 
-    def filter(self, ids: List[CompositeObjId]):
+    def filter(self, ids: List[HashDict]):
         """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_metadata_missing(
             (
@@ -251,7 +250,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
 
     def index(
         self,
-        id: CompositeObjId,
+        id: HashDict,
         data: Optional[bytes] = None,
         log_suffix="unknown directory",
         **kwargs,
@@ -273,12 +272,12 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         metadata = None
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
-            log_suffix += ", content_id=%s" % hashutil.hash_to_hex(id["sha1"])
+            log_suffix += ", content_id=%s" % hash_to_hex(id["sha1"])
             metadata = INTRINSIC_MAPPINGS[mapping_name](log_suffix).translate(data)
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
-                "for content %s" % hashutil.hash_to_hex(id["sha1"])
+                "for content %s" % hash_to_hex(id["sha1"])
             )
             sentry_sdk.capture_exception()
         if metadata is None:
@@ -378,7 +377,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             files = [entry for entry in dir_ if entry["type"] == "file"]
             (mappings, metadata) = self.translate_directory_intrinsic_metadata(
                 files,
-                log_suffix="directory=%s" % hashutil.hash_to_hex(id),
+                log_suffix="directory=%s" % hash_to_hex(id),
             )
         except Exception as e:
             self.log.exception("Problem when indexing dir: %r", e)

@@ -12,8 +12,7 @@ import sentry_sdk
 from swh.core.config import merge_configs
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.indexer.storage.model import ContentLicenseRow
-from swh.model import hashutil
-from swh.objstorage.interface import CompositeObjId
+from swh.model.hashutil import HashDict, hash_to_hex
 
 from .indexer import ContentIndexer, write_to_temp
 
@@ -87,7 +86,7 @@ class MixinFossologyLicenseIndexer:
         self.working_directory = self.config["workdir"]
 
     def index(
-        self, id: CompositeObjId, data: Optional[bytes] = None, **kwargs
+        self, id: HashDict, data: Optional[bytes] = None, **kwargs
     ) -> List[ContentLicenseRow]:
         """Index sha1s' content and store result.
 
@@ -106,7 +105,7 @@ class MixinFossologyLicenseIndexer:
         """
         assert data is not None
         with write_to_temp(
-            filename=hashutil.hash_to_hex(id["sha1"]),  # use the id as pathname
+            filename=hash_to_hex(id["sha1"]),  # use the id as pathname
             data=data,
             working_directory=self.working_directory,
         ) as content_path:

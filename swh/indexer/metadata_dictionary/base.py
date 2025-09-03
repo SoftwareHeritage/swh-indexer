@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024  The Software Heritage developers
+# Copyright (C) 2017-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -29,7 +29,8 @@ import yaml
 from swh.indexer.codemeta import _document_loader, compact
 from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
-from swh.objstorage.interface import CompositeObjId, objid_from_dict
+from swh.model.hashutil import HashDict
+from swh.objstorage.interface import objid_from_dict
 
 from .utils import add_url_if_valid
 
@@ -134,7 +135,7 @@ class BaseIntrinsicMapping(BaseMapping):
     @classmethod
     def detect_metadata_files(
         cls, file_entries: List[DirectoryLsEntry]
-    ) -> List[CompositeObjId]:
+    ) -> List[HashDict]:
         """
         Returns the sha1 hashes of files which can be translated by this mapping
         """
@@ -152,7 +153,7 @@ class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
     @classmethod
     def detect_metadata_files(
         cls, file_entries: List[DirectoryLsEntry]
-    ) -> List[CompositeObjId]:
+    ) -> List[HashDict]:
         filename = cls.filename
         # Check if filename is a regex or bytes:
         if isinstance(filename, bytes):

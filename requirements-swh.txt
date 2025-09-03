@@ -1,5 +1,5 @@
 swh.core[db,http] >= 4.0.0
-swh.model >= 6.13.0
+swh.model >= 8.4.0
 swh.objstorage >= 2.3.1
 swh.storage >= 3.0.0
 swh.journal >= 0.1.0
