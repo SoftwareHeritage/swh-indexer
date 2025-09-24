@@ -142,9 +142,9 @@ def test_index_content_metadata_npm(storage, obj_storage):
                 "author": [
                     {
                         "type": "Person",
-                        "name": "Isaac Z. Schlueter",
-                        "email": "i@izs.me",
-                        "url": "http://blog.izs.me",
+                        "name": "John Doe",
+                        "email": "john@doe.example.com",
+                        "url": "http://blog.doe.example.com",
                     }
                 ],
                 "codeRepository": "git+https://github.com/npm/npm",

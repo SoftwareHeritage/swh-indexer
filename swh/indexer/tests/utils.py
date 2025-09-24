@@ -114,7 +114,7 @@ OBJ_STORAGE_RAW_CONTENT: Dict[str, bytes] = {
         "publishtest": false
       },
       "homepage": "https://docs.npmjs.com/",
-      "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)",
+      "author": "John Doe <john@doe.example.com> (http://blog.doe.example.com)",
       "repository": {
         "type": "git",
         "url": "https://github.com/npm/npm"
@@ -160,7 +160,7 @@ OBJ_STORAGE_RAW_CONTENT: Dict[str, bytes] = {
         "type": "git",
         "url": "git+https://github.com/librariesio/yarn-parser.git"
       },
-      "author": "Andrew Nesbitt",
+      "author": "Gary Cooper",
       "license": "AGPL-3.0",
       "bugs": {
         "url": "https://github.com/librariesio/yarn-parser/issues"
@@ -273,14 +273,14 @@ _utc_plus_2 = datetime.timezone(datetime.timedelta(minutes=120))
 REVISION = Revision(
     message=b"Improve search functionality",
     author=Person(
-        name=b"Andrew Nesbitt",
-        fullname=b"Andrew Nesbitt <andrewnez@gmail.com>",
-        email=b"andrewnez@gmail.com",
+        name=b"Gary Cooper",
+        fullname=b"Gary Cooper <gary.cooper@example.com>",
+        email=b"gary.cooper@example.com",
     ),
     committer=Person(
-        name=b"Andrew Nesbitt",
-        fullname=b"Andrew Nesbitt <andrewnez@gmail.com>",
-        email=b"andrewnez@gmail.com",
+        name=b"Gary Cooper",
+        fullname=b"Gary Cooper <gary.cooper@example.com>",
+        email=b"gary.cooper@example.com",
     ),
     committer_date=TimestampWithTimezone.from_datetime(
         datetime.datetime(2013, 10, 4, 12, 50, 49, tzinfo=_utc_plus_2)
@@ -300,9 +300,9 @@ RELEASE = Release(
     name=b"v0.0.0",
     message=None,
     author=Person(
-        name=b"Andrew Nesbitt",
-        fullname=b"Andrew Nesbitt <andrewnez@gmail.com>",
-        email=b"andrewnez@gmail.com",
+        name=b"Gary Cooper",
+        fullname=b"Gary Cooper <gary.cooper@example.com>",
+        email=b"gary.cooper@example.com",
     ),
     synthetic=False,
     date=TimestampWithTimezone.from_datetime(
@@ -446,7 +446,7 @@ YARN_PARSER_METADATA = {
     "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
     "url": "https://github.com/librariesio/yarn-parser#readme",
     "codeRepository": "git+git+https://github.com/librariesio/yarn-parser.git",
-    "author": [{"type": "Person", "name": "Andrew Nesbitt"}],
+    "author": [{"type": "Person", "name": "Gary Cooper"}],
     "license": "https://spdx.org/licenses/AGPL-3.0",
     "version": "1.0.0",
     "description": "Tiny web service for parsing yarn.lock files",

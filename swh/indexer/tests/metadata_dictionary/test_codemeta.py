@@ -35,25 +35,25 @@ def test_compute_metadata_valid_codemeta():
         "author": [
           {
             "@type": "Person",
-            "givenName": "Carl",
-            "familyName": "Boettiger",
-            "email": "cboettig@gmail.com",
-            "@id": "http://orcid.org/0000-0002-1642-628X"
+            "givenName": "Gname",
+            "familyName": "Doe",
+            "email": "gdoe@example.com",
+            "@id": "http://orcid.org/0000-0002-0000-001X"
           },
           {
             "@type": "Person",
-            "givenName": "Matthew B.",
-            "familyName": "Jones",
-            "email": "jones@nceas.ucsb.edu",
-            "@id": "http://orcid.org/0000-0003-0077-4738"
+            "givenName": "Given N.",
+            "familyName": "Doe",
+            "email": "g.n.doe@edu.example.com",
+            "@id": "http://orcid.org/0000-0003-0000-002X"
           }
         ],
         "maintainer": {
           "@type": "Person",
-          "givenName": "Carl",
-          "familyName": "Boettiger",
-          "email": "cboettig@gmail.com",
-          "@id": "http://orcid.org/0000-0002-1642-628X"
+          "givenName": "Gname",
+          "familyName": "Doe",
+          "email": "gdoe@example.com",
+          "@id": "http://orcid.org/0000-0002-0000-001X"
         },
         "contIntegration": "https://travis-ci.org/codemeta/codemeta",
         "developmentStatus": "active",
@@ -89,25 +89,25 @@ def test_compute_metadata_valid_codemeta():
         "author": [
             {
                 "type": "Person",
-                "givenName": "Carl",
-                "familyName": "Boettiger",
-                "email": "cboettig@gmail.com",
-                "id": "http://orcid.org/0000-0002-1642-628X",
+                "givenName": "Gname",
+                "familyName": "Doe",
+                "email": "gdoe@example.com",
+                "id": "http://orcid.org/0000-0002-0000-001X",
             },
             {
                 "type": "Person",
-                "givenName": "Matthew B.",
-                "familyName": "Jones",
-                "email": "jones@nceas.ucsb.edu",
-                "id": "http://orcid.org/0000-0003-0077-4738",
+                "givenName": "Given N.",
+                "familyName": "Doe",
+                "email": "g.n.doe@edu.example.com",
+                "id": "http://orcid.org/0000-0003-0000-002X",
             },
         ],
         "maintainer": {
             "type": "Person",
-            "givenName": "Carl",
-            "familyName": "Boettiger",
-            "email": "cboettig@gmail.com",
-            "id": "http://orcid.org/0000-0002-1642-628X",
+            "givenName": "Gname",
+            "familyName": "Doe",
+            "email": "gdoe@example.com",
+            "id": "http://orcid.org/0000-0002-0000-001X",
         },
         "contIntegration": "https://travis-ci.org/codemeta/codemeta",
         "developmentStatus": "active",

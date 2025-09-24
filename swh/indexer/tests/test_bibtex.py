@@ -282,7 +282,7 @@ def test_author_id():
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {
                 "name": "Jane Doe",
-                "id": "https://orcid.org/0000-0002-2771-9344",
+                "id": "https://orcid.org/0000-0002-0000-000X",
             },
             "name": "Example Software",
             "url": "http://example.org/",
@@ -308,7 +308,7 @@ def test_author_invalid_id():
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {
                 "name": "Jane Doe",
-                "id": "https://orcid.org/ 0000-0002-2771-9344",
+                "id": "https://orcid.org/ 0000-0002-0000-000X",
             },
             "name": "Example Software",
             "url": "http://example.org/",
@@ -386,7 +386,7 @@ def test_context_contains_schema_org():
             "type": "Role",
             "schema:author": {
                 "name": "Jane Doe",
-                "id": "https://orcid.org/0000-0002-2771-9344",
+                "id": "https://orcid.org/0000-0002-0000-000X",
             },
         },
         [
@@ -394,7 +394,7 @@ def test_context_contains_schema_org():
                 "type": "Role",
                 "schema:author": {
                     "name": "Jane Doe",
-                    "id": "https://orcid.org/0000-0002-2771-9344",
+                    "id": "https://orcid.org/0000-0002-0000-000X",
                 },
             }
         ],
@@ -493,7 +493,7 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: Druskat
     given-names: Stephan
-    orcid: "https://orcid.org/0000-0001-7310-4634 "
+    orcid: "https://orcid.org/0000-0001-0000-000X "
 title: "My Research Software"
 date-released: 2021-08-11
 url: "http://example.org/"

@@ -19,13 +19,13 @@ schema.org, CodeMeta, and .zenodo.json."
 authors:
   -
     affiliation: "Netherlands eScience Center"
-    family-names: Klaver
-    given-names: Tom
+    family-names: Fname
+    given-names: Gname
   -
     affiliation: "Humboldt-Universität zu Berlin"
-    family-names: Druskat
-    given-names: Stephan
-    orcid: https://orcid.org/0000-0003-4925-7248
+    family-names: Nachname
+    given-names: Vorname
+    orcid: https://orcid.org/0000-0003-0000-0007
 cff-version: "1.0.3"
 date-released: 2019-11-12
 doi: 10.5281/zenodo.1162057
@@ -62,18 +62,18 @@ version: "1.4.0-alpha0"
                     "type": "Organization",
                     "name": "Netherlands eScience Center",
                 },
-                "familyName": "Klaver",
-                "givenName": "Tom",
+                "familyName": "Fname",
+                "givenName": "Gname",
             },
             {
-                "id": "https://orcid.org/0000-0003-4925-7248",
+                "id": "https://orcid.org/0000-0003-0000-0007",
                 "type": "Person",
                 "affiliation": {
                     "type": "Organization",
                     "name": "Humboldt-Universität zu Berlin",
                 },
-                "familyName": "Druskat",
-                "givenName": "Stephan",
+                "familyName": "Nachname",
+                "givenName": "Vorname",
             },
         ],
         "codeRepository": (
