@@ -609,3 +609,34 @@ def test_codemeta_context_with_trailing_slash():
         }
         """
     )
+
+
+def test_cff_doi_license_full_url():
+    assert (
+        cff_to_bibtex(
+            """
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Druskat
+    given-names: Stephan
+title: "My Research Software"
+date-released: 2021-08-11
+doi: https://doi.org/10.5281/example
+license: https://spdx.org/licenses/GPL-3.0-or-later
+            """
+        )
+        == textwrap.dedent(
+            """\
+            @software{REPLACEME,
+                author = "Druskat, Stephan",
+                license = "GPL-3.0-or-later",
+                date = "2021-08-11",
+                year = "2021",
+                month = aug,
+                doi = "https://doi.org/10.5281/example",
+                title = "My Research Software"
+            }
+            """
+        )
+    )

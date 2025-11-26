@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2024  The Software Heritage developers
+# Copyright (C) 2021-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -58,11 +58,17 @@ class CffMapping(YamlMapping, SingleFileIntrinsicMapping):
 
     def normalize_doi(self, s: str) -> URIRef:
         if isinstance(s, str):
-            return DOI + s
+            if not s.startswith(DOI):
+                return DOI + s
+            else:
+                return URIRef(s)
 
     def normalize_license(self, s: str) -> URIRef:
         if isinstance(s, str):
-            return SPDX + s
+            if not s.startswith(SPDX):
+                return SPDX + s
+            else:
+                return URIRef(s)
 
     def _translate_dict(self, content_dict: Dict) -> Dict[str, Any]:
         # https://github.com/citation-file-format/citation-file-format/blob/main/schema-guide.md#credit-redirection
