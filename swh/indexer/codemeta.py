@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2022  The Software Heritage developers
+# Copyright (C) 2018-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -132,7 +132,7 @@ def _document_loader(url, options=None):
     Reads the local codemeta.jsonld file instead of fetching it
     from the Internet every single time."""
     if (
-        url.lower() == CODEMETA_V2_CONTEXT_URL.lower()
+        url.lower().rstrip("/") == CODEMETA_V2_CONTEXT_URL.lower()
         or url.lower() in CODEMETA_V2_ALTERNATE_CONTEXT_URLS
     ):
         return {
@@ -141,8 +141,8 @@ def _document_loader(url, options=None):
             "document": CODEMETA_V2_CONTEXT,
         }
     if (
-        url.lower() == CODEMETA_V3_CONTEXT_URL.lower()
-        or url.lower() in CODEMETA_V3_ALTERNATE_CONTEXT_URLS
+        url.lower().rstrip("/") == CODEMETA_V3_CONTEXT_URL.lower()
+        or url.lower().rstrip("/") in CODEMETA_V3_ALTERNATE_CONTEXT_URLS
     ):
         return {
             "contextUrl": None,
