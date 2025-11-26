@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2024  The Software Heritage developers
+# Copyright (C) 2023-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -28,6 +28,10 @@ it is not used outside :func:`codemeta_to_bibtex`.
 """
 
 MACRO_PREFIX = "macro" + secrets.token_urlsafe(16).replace("_", "")
+
+
+class BibTeXCitationError(Exception):
+    pass
 
 
 class BibTeXWithMacroWriter(Writer):
@@ -224,6 +228,12 @@ def codemeta_to_bibtex(
     else:
         for _, _, version in g.triples((id_, SCHEMA.version, None)):
             fields["version"] = version
+
+    if not fields:
+        raise BibTeXCitationError(
+            "No BibTex fields could be extracted from citation metadata file "
+            "(codemeta.json or citation.cff), please check its content is valid."
+        )
 
     # entry_type
     if swhid:

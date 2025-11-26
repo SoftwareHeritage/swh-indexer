@@ -1,4 +1,4 @@
-# Copyright (C) 2023  The Software Heritage developers
+# Copyright (C) 2023-2025  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -7,21 +7,20 @@ import textwrap
 
 import pytest
 
-from swh.indexer.bibtex import cff_to_bibtex, codemeta_to_bibtex
+from swh.indexer.bibtex import BibTeXCitationError, cff_to_bibtex, codemeta_to_bibtex
 from swh.model.swhids import QualifiedSWHID
 
 
 def test_empty():
-    assert codemeta_to_bibtex(
-        {
-            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-        }
-    ) == textwrap.dedent(
-        """\
-            @software{REPLACEME
+    with pytest.raises(
+        BibTeXCitationError,
+        match="No BibTex fields could be extracted from citation metadata file",
+    ):
+        codemeta_to_bibtex(
+            {
+                "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             }
-            """
-    )
+        )
 
 
 def test_minimal():
@@ -438,21 +437,19 @@ def test_author_role(author):
 
 
 def test_cff_empty():
-    assert cff_to_bibtex("") == textwrap.dedent(
-        """\
-        @software{REPLACEME
-        }
-        """
-    )
+    with pytest.raises(
+        BibTeXCitationError,
+        match="No BibTex fields could be extracted from citation metadata file",
+    ):
+        cff_to_bibtex("")
 
 
 def test_cff_invalid():
-    assert cff_to_bibtex("foo") == textwrap.dedent(
-        """\
-        @software{REPLACEME
-        }
-        """
-    )
+    with pytest.raises(
+        BibTeXCitationError,
+        match="No BibTex fields could be extracted from citation metadata file",
+    ):
+        cff_to_bibtex("foo")
 
 
 def test_cff_minimal():
@@ -518,6 +515,8 @@ def test_swhid_type_snp():
     assert codemeta_to_bibtex(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "author": {"name": "Jane Doe"},
+            "name": "Example Software",
         },
         QualifiedSWHID.from_string(
             "swh:1:snp:da39a3ee5e6b4b0d3255bfef95601890afd80709"
@@ -525,6 +524,8 @@ def test_swhid_type_snp():
     ) == textwrap.dedent(
         """\
         @software{swh-snp-da39a3e,
+            author = "Doe, Jane",
+            title = "Example Software",
             swhid = "swh:1:snp:da39a3ee5e6b4b0d3255bfef95601890afd80709"
         }
         """
@@ -535,6 +536,8 @@ def test_swhid_type_rev():
     assert codemeta_to_bibtex(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "author": {"name": "Jane Doe"},
+            "name": "Example Software",
         },
         QualifiedSWHID.from_string(
             "swh:1:rev:5b909292bcfe6099d726c0b5194165c72f93b767"
@@ -542,6 +545,8 @@ def test_swhid_type_rev():
     ) == textwrap.dedent(
         """\
         @softwareversion{swh-rev-5b90929,
+            author = "Doe, Jane",
+            title = "Example Software",
             swhid = "swh:1:rev:5b909292bcfe6099d726c0b5194165c72f93b767"
         }
         """
@@ -552,6 +557,8 @@ def test_swhid_type_cnt():
     assert codemeta_to_bibtex(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+            "author": {"name": "Jane Doe"},
+            "name": "Example Software",
         },
         QualifiedSWHID.from_string(
             "swh:1:cnt:5b909292bcfe6099d726c0b5194165c72f93b767;lines=5-10"
@@ -559,6 +566,8 @@ def test_swhid_type_cnt():
     ) == textwrap.dedent(
         """\
         @codefragment{swh-cnt-5b90929-L5-L10,
+            author = "Doe, Jane",
+            title = "Example Software",
             swhid = "swh:1:cnt:5b909292bcfe6099d726c0b5194165c72f93b767;lines=5-10"
         }
         """
