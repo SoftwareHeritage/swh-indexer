@@ -54,6 +54,18 @@ register_plugin("pybtex.database.output", "bibtex_with_macro", BibTeXWithMacroWr
 def codemeta_to_bibtex(
     doc: Dict[str, Any], swhid: Optional[QualifiedSWHID] = None
 ) -> str:
+    """Generate citation in BibTeX format from a parsed ``codemeta.json`` file.
+
+    Args:
+        doc: parsed ``codemeta.json`` file
+        swhid: optional SWHID to add as ``swhid`` field in BibTeX citation
+
+    Returns:
+        A BibTeX citation as a string.
+
+    Raises:
+        BibTeXCitationError: when citation could not be generated
+    """
     doc = compact(doc, False)
 
     identifiers = []
@@ -269,6 +281,18 @@ def codemeta_to_bibtex(
 
 
 def cff_to_bibtex(content: str, swhid: Optional[QualifiedSWHID] = None) -> str:
+    """Generate citation in BibTeX format from a raw ``citation.cff`` file.
+
+    Args:
+        content: raw content of a ``citation.cff`` file
+        swhid: optional SWHID to add as ``swhid`` field in BibTeX citation
+
+    Returns:
+        A BibTeX citation as a string.
+
+    Raises:
+        BibTeXCitationError: when citation could not be generated
+    """
     codemeta = CffMapping().translate(raw_content=content.encode("utf-8"))
     if codemeta is None:
         codemeta = {}
