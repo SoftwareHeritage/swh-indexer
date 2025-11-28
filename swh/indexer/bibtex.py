@@ -15,6 +15,7 @@ import iso8601
 from pybtex.database import Entry, Person
 from pybtex.database.output.bibtex import Writer
 from pybtex.plugin import register_plugin
+from pyld.jsonld import JsonLdError
 import rdflib
 
 from swh.indexer.codemeta import CODEMETA_V3_CONTEXT_URL, compact, expand
@@ -81,9 +82,12 @@ def codemeta_to_bibtex(
     if force_codemeta_context:
         doc["@context"] = CODEMETA_V3_CONTEXT_URL
 
-    doc = compact(
-        doc, forgefed=False, resolve_unknown_context_url=resolve_unknown_context_url
-    )
+    try:
+        doc = compact(
+            doc, forgefed=False, resolve_unknown_context_url=resolve_unknown_context_url
+        )
+    except JsonLdError as e:
+        raise BibTeXCitationError(str(e.cause))
 
     identifiers = []
 
@@ -109,7 +113,11 @@ def codemeta_to_bibtex(
         elif isinstance(doc["identifier"], str) and "/" not in doc["identifier"]:
             identifiers.append(doc["identifier"])
 
-    doc = expand(doc, resolve_unknown_context_url=resolve_unknown_context_url)
+    try:
+        doc = expand(doc, resolve_unknown_context_url=resolve_unknown_context_url)
+    except JsonLdError as e:
+        raise BibTeXCitationError(str(e.cause))
+
     g = rdflib.Graph().parse(
         data=json.dumps(doc),
         format="json-ld",
