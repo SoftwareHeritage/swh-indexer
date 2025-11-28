@@ -8,6 +8,7 @@ import textwrap
 import pytest
 
 from swh.indexer.bibtex import BibTeXCitationError, cff_to_bibtex, codemeta_to_bibtex
+from swh.indexer.codemeta import CODEMETA_V3_CONTEXT
 from swh.model.swhids import QualifiedSWHID
 
 
@@ -648,4 +649,36 @@ license: https://spdx.org/licenses/GPL-3.0-or-later
             }
             """
         )
+    )
+
+
+def test_codemeta_to_bibtex_resolve_unknown_context_url(requests_mock):
+    unknown_context_url = "https://example.org/codemeta/3.0"
+    codemeta = {
+        "@context": unknown_context_url,
+        "author": {"name": "Jane Doe"},
+        "name": "Example Software",
+        "url": "http://example.org/",
+        "datePublished": "2023-10-10",
+    }
+    requests_mock.get(unknown_context_url, json=CODEMETA_V3_CONTEXT)
+
+    # should raise by default with an unknown context URL
+    with pytest.raises(Exception, match=f"Unknown context URL: {unknown_context_url}"):
+        codemeta_to_bibtex(codemeta)
+
+    # should generate citation after fetching context with requests
+    assert codemeta_to_bibtex(
+        codemeta, resolve_unknown_context_url=True
+    ) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            author = "Doe, Jane",
+            date = "2023-10-10",
+            year = "2023",
+            month = oct,
+            title = "Example Software",
+            url = "http://example.org/"
+        }
+        """
     )

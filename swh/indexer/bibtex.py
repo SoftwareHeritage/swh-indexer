@@ -52,13 +52,20 @@ register_plugin("pybtex.database.output", "bibtex_with_macro", BibTeXWithMacroWr
 
 
 def codemeta_to_bibtex(
-    doc: Dict[str, Any], swhid: Optional[QualifiedSWHID] = None
+    doc: Dict[str, Any],
+    swhid: Optional[QualifiedSWHID] = None,
+    *,
+    resolve_unknown_context_url: bool = False,
 ) -> str:
     """Generate citation in BibTeX format from a parsed ``codemeta.json`` file.
 
     Args:
         doc: parsed ``codemeta.json`` file
         swhid: optional SWHID to add as ``swhid`` field in BibTeX citation
+        resolve_unknown_context_url: if const:`True` unknown JSON-LD context URL
+            will be fetched using ``requests`` instead of raising an exception,
+            :const:`False` by default as it can lead sending requests to arbitrary
+            URLs so use with caution
 
     Returns:
         A BibTeX citation as a string.
@@ -66,7 +73,9 @@ def codemeta_to_bibtex(
     Raises:
         BibTeXCitationError: when citation could not be generated
     """
-    doc = compact(doc, False)
+    doc = compact(
+        doc, forgefed=False, resolve_unknown_context_url=resolve_unknown_context_url
+    )
 
     identifiers = []
 
@@ -92,7 +101,7 @@ def codemeta_to_bibtex(
         elif isinstance(doc["identifier"], str) and "/" not in doc["identifier"]:
             identifiers.append(doc["identifier"])
 
-    doc = expand(doc)
+    doc = expand(doc, resolve_unknown_context_url=resolve_unknown_context_url)
     g = rdflib.Graph().parse(
         data=json.dumps(doc),
         format="json-ld",

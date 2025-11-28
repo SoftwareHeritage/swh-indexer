@@ -5,6 +5,7 @@
 
 import collections
 import csv
+from functools import lru_cache, partial
 import itertools
 import json
 import os.path
@@ -12,6 +13,7 @@ import re
 from typing import Any, Dict, List, Set, TextIO, Tuple
 
 from pyld import jsonld
+from pyld.documentloader.requests import requests_document_loader
 import rdflib
 
 import swh.indexer
@@ -59,6 +61,11 @@ PROPERTY_BLACKLIST = {
 }
 
 _codemeta_field_separator = re.compile(r"\s*[,/]\s*")
+
+
+@lru_cache
+def _requests_document_loader(url):
+    return requests_document_loader()(url)
 
 
 def make_absolute_uri(local_name):
@@ -126,7 +133,7 @@ with open(CROSSWALK_TABLE_PATH) as fd:
     (CODEMETA_TERMS, CROSSWALK_TABLE) = read_crosstable(fd)
 
 
-def _document_loader(url, options=None):
+def _document_loader(url, options=None, resolve_unknown_context_url: bool = False):
     """Document loader for pyld.
 
     Reads the local codemeta.jsonld file instead of fetching it
@@ -162,28 +169,69 @@ def _document_loader(url, options=None):
             "document": _SCHEMA_DOT_ORG_CONTEXT,
         }
     else:
-        raise Exception(f"Unknown context URL: {url}")
+        if resolve_unknown_context_url:
+            return _requests_document_loader(url)
+        else:
+            raise Exception(f"Unknown context URL: {url}")
 
 
-def compact(doc, forgefed: bool):
+def compact(
+    doc: Dict[str, Any], forgefed: bool, resolve_unknown_context_url: bool = False
+) -> Dict[str, Any]:
     """Same as `pyld.jsonld.compact`, but in the context of CodeMeta.
 
     Args:
+        doc: parsed ``codemeta.json`` file
         forgefed: Whether to add ForgeFed and ActivityStreams as compact URIs.
-          This is typically used for extrinsic metadata documents, which frequently
-          use properties from these namespaces.
+            This is typically used for extrinsic metadata documents, which frequently
+            use properties from these namespaces.
+        resolve_unknown_context_url: if const:`True` unknown JSON-LD context URL
+            will be fetched using ``requests`` instead of raising an exception,
+            :const:`False` by default as it can lead sending requests to arbitrary
+            URLs so use with caution
+    Returns:
+        A compacted JSON-LD document.
     """
     contexts: List[Any] = [CODEMETA_V2_CONTEXT_URL]
     if forgefed:
         contexts.append(
             {"as": str(ACTIVITYSTREAMS), "forge": str(FORGEFED), "xsd": str(XSD)}
         )
-    return jsonld.compact(doc, contexts, options={"documentLoader": _document_loader})
+    return jsonld.compact(
+        doc,
+        contexts,
+        options={
+            "documentLoader": partial(
+                _document_loader,
+                resolve_unknown_context_url=resolve_unknown_context_url,
+            )
+        },
+    )
 
 
-def expand(doc):
-    """Same as `pyld.jsonld.expand`, but in the context of CodeMeta."""
-    return jsonld.expand(doc, options={"documentLoader": _document_loader})
+def expand(
+    doc: Dict[str, Any], resolve_unknown_context_url: bool = False
+) -> Dict[str, Any]:
+    """Same as `pyld.jsonld.expand`, but in the context of CodeMeta.
+
+    Args:
+        doc: parsed ``codemeta.json`` file
+        resolve_unknown_context_url: if const:`True` unknown JSON-LD context URL
+            will be fetched using ``requests`` instead of raising an exception,
+            :const:`False` by default as it can lead sending requests to arbitrary
+            URLs so use with caution
+    Returns:
+        An expanded JSON-LD document.
+    """
+    return jsonld.expand(
+        doc,
+        options={
+            "documentLoader": partial(
+                _document_loader,
+                resolve_unknown_context_url=resolve_unknown_context_url,
+            )
+        },
+    )
 
 
 def merge_documents(documents):
