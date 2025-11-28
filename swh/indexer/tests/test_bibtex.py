@@ -682,3 +682,32 @@ def test_codemeta_to_bibtex_resolve_unknown_context_url(requests_mock):
         }
         """
     )
+
+
+def test_codemeta_to_bibtex_force_codemeta_context():
+    unknown_context_url = "https://example.org/codemeta/3.0"
+    codemeta = {
+        "@context": unknown_context_url,
+        "author": {"name": "Jane Doe"},
+        "name": "Example Software",
+        "url": "http://example.org/",
+        "datePublished": "2023-10-10",
+    }
+
+    # should raise by default with an unknown context URL
+    with pytest.raises(Exception, match=f"Unknown context URL: {unknown_context_url}"):
+        codemeta_to_bibtex(codemeta)
+
+    # should generate citation after overriding JSON-LD context to CodeMeta v3.0
+    assert codemeta_to_bibtex(codemeta, force_codemeta_context=True) == textwrap.dedent(
+        """\
+        @software{REPLACEME,
+            author = "Doe, Jane",
+            date = "2023-10-10",
+            year = "2023",
+            month = oct,
+            title = "Example Software",
+            url = "http://example.org/"
+        }
+        """
+    )

@@ -17,7 +17,7 @@ from pybtex.database.output.bibtex import Writer
 from pybtex.plugin import register_plugin
 import rdflib
 
-from swh.indexer.codemeta import compact, expand
+from swh.indexer.codemeta import CODEMETA_V3_CONTEXT_URL, compact, expand
 from swh.indexer.metadata_dictionary.cff import CffMapping
 from swh.indexer.namespaces import RDF, SCHEMA, SPDX_LICENSES
 from swh.model.swhids import ObjectType, QualifiedSWHID
@@ -56,6 +56,7 @@ def codemeta_to_bibtex(
     swhid: Optional[QualifiedSWHID] = None,
     *,
     resolve_unknown_context_url: bool = False,
+    force_codemeta_context: bool = False,
 ) -> str:
     """Generate citation in BibTeX format from a parsed ``codemeta.json`` file.
 
@@ -66,6 +67,9 @@ def codemeta_to_bibtex(
             will be fetched using ``requests`` instead of raising an exception,
             :const:`False` by default as it can lead sending requests to arbitrary
             URLs so use with caution
+        force_codemeta_context: if :const:`True`, the ``@context`` field in the
+            JSON-LD document will be set to the CodeMeta v3.0 one, this can be used
+            to ensure citation can be generated when strict JSON-LD parsing failed
 
     Returns:
         A BibTeX citation as a string.
@@ -73,6 +77,10 @@ def codemeta_to_bibtex(
     Raises:
         BibTeXCitationError: when citation could not be generated
     """
+
+    if force_codemeta_context:
+        doc["@context"] = CODEMETA_V3_CONTEXT_URL
+
     doc = compact(
         doc, forgefed=False, resolve_unknown_context_url=resolve_unknown_context_url
     )
