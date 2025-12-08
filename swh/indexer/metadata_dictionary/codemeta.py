@@ -291,11 +291,11 @@ def validate_mention(notification: dict[str, Any]) -> bool:
     if not isinstance(paper, str):
         logger.error("context[id] value is not a string in %s", notification)
         return False
-    if object_ != paper:
-        logger.error(
-            "Mismatch between context[id] and object[as:object] in %s", notification
-        )
-        return False
+    # FIXME: CN specs (1.0.1) are a bit unclear about what should context_data contains,
+    # especially the id. It would be more logical to find the paper URI in the id and
+    # then some metadata about it, but instead we might find the software URI in the id
+    # and then metadata about the paper. We are trying to make some changes on the
+    # specs but meanwhile we'll skip verifying that context.id == object.as:subject
 
     notification_id = notification.get("id")
     if notification_id is None:

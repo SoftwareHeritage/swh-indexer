@@ -682,6 +682,21 @@ def test_validate_mention_object(compact_mention, caplog):
     assert msg in caplog.text
 
 
+@pytest.mark.skip(
+    reason=(
+        "Current CN specs (1.0.1) are not clear about what should be in context.id, "
+        "see codemeta:validate_mention"
+    )
+)
+def test_validate_mention_context(compact_mention, caplog):
+    caplog.set_level(logging.ERROR)
+    msg = "Mismatch between context[id] and object[as:object]"
+    mention = compact_mention.copy()
+    mention["context"]["id"] = mention["context"]["id"] + "/fail/"
+    assert not validate_mention(mention)
+    assert msg in caplog.text
+
+
 def test_validate_mention_id(compact_mention, caplog):
     caplog.set_level(logging.ERROR)
     msg = "id value is not a string"
