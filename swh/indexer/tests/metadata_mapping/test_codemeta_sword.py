@@ -7,7 +7,7 @@ import logging
 
 import pytest
 
-from swh.indexer.metadata_dictionary import get_mapping
+from swh.indexer.metadata_mapping import get_mapping
 
 
 def test_sword_default_xmlns():

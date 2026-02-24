@@ -4,7 +4,7 @@
 # See top-level LICENSE file for more information
 
 
-from swh.indexer.metadata_dictionary import get_mapping
+from swh.indexer.metadata_mapping import get_mapping
 
 CffMapping = get_mapping("CffMapping")
 

@@ -80,7 +80,7 @@ def mapping():
 @mapping.command("list")
 def mapping_list():
     """Prints the list of known mappings."""
-    from swh.indexer.metadata_dictionary import get_mappings
+    from swh.indexer.metadata_mapping import get_mappings
 
     mappings = [cls.name for cls in get_mappings().values()]
     for mapping_name in sorted(mappings):
@@ -100,9 +100,9 @@ def mapping_list():
 def mapping_list_terms(concise, exclude_mapping):
     """Prints the list of known CodeMeta terms, and which mappings
     support them."""
-    from swh.indexer import metadata_dictionary
+    from swh.indexer import metadata_mapping
 
-    properties = metadata_dictionary.list_terms()
+    properties = metadata_mapping.list_terms()
     for property_name, supported_mappings in sorted(properties.items()):
         supported_mappings = {m.name for m in supported_mappings}
         supported_mappings -= set(exclude_mapping)
@@ -121,7 +121,7 @@ def mapping_translate(mapping_name, file):
     """Translates file from mapping-name to codemeta format."""
     import json
 
-    from swh.indexer.metadata_dictionary import get_mappings
+    from swh.indexer.metadata_mapping import get_mappings
 
     mapping_cls = get_mappings().get(mapping_name)
     if not mapping_cls:

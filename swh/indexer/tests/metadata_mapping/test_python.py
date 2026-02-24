@@ -3,8 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from swh.indexer.metadata_dictionary import get_mapping
-from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
+from swh.indexer.metadata_mapping import get_mapping
+from swh.indexer.metadata_mapping.base import DirectoryLsEntry
 from swh.model.hashutil import HashDict, hash_to_bytes
 
 PythonPkginfoMapping = get_mapping("PythonPkginfoMapping")

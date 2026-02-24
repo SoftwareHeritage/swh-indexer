@@ -6,7 +6,7 @@
 import pytest
 
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import get_mapping
+from swh.indexer.metadata_mapping import get_mapping
 from swh.model.hashutil import HashDict
 
 NuGetMapping = get_mapping("NuGetMapping")

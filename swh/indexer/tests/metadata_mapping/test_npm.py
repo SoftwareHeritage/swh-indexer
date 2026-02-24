@@ -9,7 +9,7 @@ from hypothesis import HealthCheck, given, settings
 import pytest
 
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import get_mapping
+from swh.indexer.metadata_mapping import get_mapping
 from swh.indexer.storage.model import ContentMetadataRow
 from swh.model.hashutil import HashDict
 

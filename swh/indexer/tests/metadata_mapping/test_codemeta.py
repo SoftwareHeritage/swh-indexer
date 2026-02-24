@@ -9,7 +9,7 @@ from hypothesis import HealthCheck, given, settings
 
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import get_mapping
+from swh.indexer.metadata_mapping import get_mapping
 from swh.model.hashutil import HashDict
 
 from ..utils import json_document_strategy

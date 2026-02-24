@@ -5,8 +5,8 @@
 
 from typing import Dict, List
 
-from swh.indexer.metadata_dictionary import get_intrinsic_mappings
-from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
+from swh.indexer.metadata_mapping import get_intrinsic_mappings
+from swh.indexer.metadata_mapping.base import DirectoryLsEntry
 from swh.model.hashutil import HashDict
 
 

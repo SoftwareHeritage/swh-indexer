@@ -5,7 +5,7 @@
 
 import pytest
 
-from swh.indexer.metadata_dictionary import get_mapping
+from swh.indexer.metadata_mapping import get_mapping
 
 PubMapping = get_mapping("PubMapping")
 

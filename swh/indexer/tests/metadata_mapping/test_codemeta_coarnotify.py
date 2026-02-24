@@ -8,8 +8,8 @@ import logging
 
 import pytest
 
-from swh.indexer.metadata_dictionary import get_mapping
-from swh.indexer.metadata_dictionary.codemeta import (
+from swh.indexer.metadata_mapping import get_mapping
+from swh.indexer.metadata_mapping.codemeta import (
     load_and_compact_notification,
     validate_mention,
 )
@@ -179,7 +179,7 @@ def test_coarnotify_mention(raw_mention):
 
 def test_coarnotify_mention_invalid_json(raw_mention, mocker):
     mocker.patch(
-        "swh.indexer.metadata_dictionary.codemeta.load_and_compact_notification",
+        "swh.indexer.metadata_mapping.codemeta.load_and_compact_notification",
         return_value=None,
     )
     result = get_mapping("CoarNotifyMentionCodemetaMapping")().translate(raw_mention)
@@ -188,7 +188,7 @@ def test_coarnotify_mention_invalid_json(raw_mention, mocker):
 
 def test_coarnotify_mention_invalid_mention(raw_mention, mocker):
     mocker.patch(
-        "swh.indexer.metadata_dictionary.codemeta.validate_mention",
+        "swh.indexer.metadata_mapping.codemeta.validate_mention",
         return_value=False,
     )
     result = get_mapping("CoarNotifyMentionCodemetaMapping")().translate(raw_mention)

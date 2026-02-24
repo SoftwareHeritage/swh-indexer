@@ -6,7 +6,7 @@
 from hypothesis import HealthCheck, given, settings, strategies
 import pytest
 
-from swh.indexer.metadata_dictionary import get_mapping
+from swh.indexer.metadata_mapping import get_mapping
 
 GemSpecMapping = get_mapping("GemspecMapping")
 

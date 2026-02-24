@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2022  The Software Heritage developers
+# Copyright (C) 2018-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -273,7 +273,7 @@ def test_origin_metadata_indexer_no_metadata_file(
 ) -> None:
     indexer = OriginMetadataIndexer(config=swh_indexer_config)
     origin = "https://github.com/librariesio/yarn-parser"
-    with patch("swh.indexer.metadata_dictionary.npm.NpmMapping.filename", b"foo.json"):
+    with patch("swh.indexer.metadata_mapping.npm.NpmMapping.filename", b"foo.json"):
         indexer.run([origin])
 
     dir_id = DIRECTORY2.id

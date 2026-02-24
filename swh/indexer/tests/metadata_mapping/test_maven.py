@@ -7,7 +7,7 @@ import logging
 
 from hypothesis import HealthCheck, given, settings
 
-from swh.indexer.metadata_dictionary import get_mapping
+from swh.indexer.metadata_mapping import get_mapping
 
 from ..utils import xml_document_strategy
 
@@ -79,11 +79,11 @@ def test_compute_metadata_maven_almost_empty():
 
 def test_compute_metadata_maven_invalid_xml(caplog):
     expected_warning = (
-        "swh.indexer.metadata_dictionary.maven.MavenMapping",
+        "swh.indexer.metadata_mapping.maven.MavenMapping",
         logging.WARNING,
         "Error parsing XML from foo",
     )
-    caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_dictionary")
+    caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_mapping")
 
     raw_content = b"""
     <project>"""
@@ -102,11 +102,11 @@ def test_compute_metadata_maven_invalid_xml(caplog):
 
 def test_compute_metadata_maven_unknown_encoding(caplog):
     expected_warning = (
-        "swh.indexer.metadata_dictionary.maven.MavenMapping",
+        "swh.indexer.metadata_mapping.maven.MavenMapping",
         logging.WARNING,
         "Error detecting XML encoding from foo",
     )
-    caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_dictionary")
+    caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_mapping")
 
     raw_content = b"""<?xml version="1.0" encoding="foo"?>
     <project>
@@ -130,7 +130,7 @@ def test_compute_metadata_maven_invalid_encoding(caplog):
         # libexpat1 <= 2.2.10-2+deb11u1
         [
             (
-                "swh.indexer.metadata_dictionary.maven.MavenMapping",
+                "swh.indexer.metadata_mapping.maven.MavenMapping",
                 logging.WARNING,
                 "Error unidecoding XML from foo",
             )
@@ -138,13 +138,13 @@ def test_compute_metadata_maven_invalid_encoding(caplog):
         # libexpat1 >= 2.2.10-2+deb11u2
         [
             (
-                "swh.indexer.metadata_dictionary.maven.MavenMapping",
+                "swh.indexer.metadata_mapping.maven.MavenMapping",
                 logging.WARNING,
                 "Error parsing XML from foo",
             )
         ],
     ]
-    caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_dictionary")
+    caplog.at_level(logging.WARNING, logger="swh.indexer.metadata_mapping")
 
     raw_content = b"""<?xml version="1.0" encoding="UTF-8"?>
     <foo\xe5ct>

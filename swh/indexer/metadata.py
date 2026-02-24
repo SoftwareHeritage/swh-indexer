@@ -38,11 +38,8 @@ from swh.indexer.indexer import (
     OriginIndexer,
 )
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import (
-    get_extrinsic_mappings,
-    get_intrinsic_mappings,
-)
-from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
+from swh.indexer.metadata_mapping import get_extrinsic_mappings, get_intrinsic_mappings
+from swh.indexer.metadata_mapping.base import DirectoryLsEntry
 from swh.indexer.origin_head import get_head_swhid
 from swh.indexer.storage import INDEXER_CFG_KEY
 from swh.indexer.storage.model import (
@@ -243,7 +240,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
     - filtering out content already indexed in content_metadata
     - reading content from objstorage with the content's id sha1
     - computing metadata by given context
-    - using the metadata_dictionary as the 'swh-metadata-translator' tool
+    - using the metadata_mapping as the 'swh-metadata-translator' tool
     - store result in content_metadata table
 
     """
