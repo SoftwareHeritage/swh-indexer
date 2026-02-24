@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2024  The Software Heritage developers
+# Copyright (C) 2018-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -12,6 +12,8 @@ import xml.etree.ElementTree as ET
 
 import iso8601
 from pyld import jsonld
+from rdflib import RDF, SDO, BNode, Graph, URIRef
+from rdflib.exceptions import ParserError
 import xmltodict
 
 from swh.indexer.codemeta import (
@@ -20,10 +22,12 @@ from swh.indexer.codemeta import (
     compact,
     expand,
 )
+from swh.indexer.namespaces import ACTIVITYSTREAMS, DATACITE, SCHEMA
 
 from .base import BaseExtrinsicMapping, SingleFileIntrinsicMapping
 
 ATOM_URI = "http://www.w3.org/2005/Atom"
+
 
 _TAG_RE = re.compile(r"\{(?P<namespace>.*?)\}(?P<localname>.*)")
 _IGNORED_NAMESPACES = ("http://www.w3.org/2005/Atom",)
@@ -235,77 +239,12 @@ class JsonSwordCodemetaMapping(SwordCodemetaMapping):
             return super().translate(xmltodict.unparse(json_doc).encode())
 
 
-def load_and_compact_notification(content: bytes | str) -> dict[str, Any] | None:
-    """Load and compact a notification from the REMS.
-
-    Errors logs will be written if something went wrong in the process.
-
-    Args:
-        content: the expanded COAR Notification
-
-    Returns:
-        The compacted form of the COAR Notification or None if we weren't able to
-        read it
-    """
-    try:
-        raw_json = json.loads(content)
-        notification = jsonld.compact(
-            raw_json,
-            {
-                "@context": [
-                    "https://www.w3.org/ns/activitystreams",
-                    "https://coar-notify.net",
-                ]
-            },
-        )
-    except json.JSONDecodeError:
-        logger.error("Failed to parse JSON document: %s", content)
-        return None
-    except jsonld.JsonLdError:
-        logger.error("Failed to compact JSON-LD document: %s", content)
-        return None
-    return notification
-
-
-def validate_mention(notification: dict[str, Any]) -> bool:
-    """Validate minimal notification's requirements before indexation.
-
-    Args:
-        notification: a compact form of a COAR Notification
-
-    Returns:
-        False if the we can't find required props in the notification
-    """
-    object_ = notification.get("object", {}).get("as:object")
-    if object_ is None:
-        logger.error("Missing object[as:object] key in %s", notification)
-        return False
-    if not isinstance(object_, str):
-        logger.error("object[as:object] value is not a string in %s", notification)
-        return False
-
-    paper = notification.get("context", {}).get("id")
-    if paper is None:
-        logger.error("Missing context[id] key in %s", notification)
-        return False
-    if not isinstance(paper, str):
-        logger.error("context[id] value is not a string in %s", notification)
-        return False
-    # FIXME: CN specs (1.0.1) are a bit unclear about what should context_data contains,
-    # especially the id. It would be more logical to find the paper URI in the id and
-    # then some metadata about it, but instead we might find the software URI in the id
-    # and then metadata about the paper. We are trying to make some changes on the
-    # specs but meanwhile we'll skip verifying that context.id == object.as:subject
-
-    notification_id = notification.get("id")
-    if notification_id is None:
-        logger.error("missing id key in %s", notification)
-        return False
-    if not isinstance(notification_id, str):
-        logger.error("id value is not a string in %s", notification)
-        return False
-
-    return True
+INVERTED_RELATIONSHIPS: dict[URIRef, URIRef] = {
+    SDO.mentions: DATACITE.IsCitedBy,
+    SCHEMA.mentions: DATACITE.IsCitedBy,
+    DATACITE.Cites: DATACITE.IsCitedBy,
+}
+"""A mapping of relationships between a paper and a software and their ``@reverse``"""
 
 
 class CoarNotifyMentionMapping(BaseExtrinsicMapping):
@@ -326,10 +265,60 @@ class CoarNotifyMentionMapping(BaseExtrinsicMapping):
         return ("coarnotify-mention-v1",)
 
     def translate(self, content: bytes) -> dict[str, Any] | None:
-        """Parse JSON and compact the payload to access the mention.
+        """Converts the AnnounceRelationship to metadata about the software.
 
-        The whole `context` of the `AnnounceRelationship` notification will be indexed
-        as it contains metadata about the scientific paper citing the software.
+        In ``content`` we have:
+        - ``as:object`` that contains:
+
+          - ``subject``: the paper
+          - ``relationship``: the kind of relationship
+          - ``object``: the software (Origin URL or SWHID)
+
+        - ``as:context`` that contains metadata about the paper
+
+        The types of ``relationship`` we support is limited to the ones defined in
+        ``INVERTED_RELATIONSHIPS``.
+
+        Example output for a ``sorg:mentions``:
+
+        .. code-block:: json
+
+            {
+                "@context":[
+                    "https://doi.org/10.5063/schema/codemeta-2.0",
+                    {
+                        "as":"https://www.w3.org/ns/activitystreams#",
+                        "forge":"https://forgefed.org/ns#",
+                        "xsd":"http://www.w3.org/2001/XMLSchema#"
+                    }
+                ],
+                "id":"https://github.com/rdicosmo/parmap",
+                "type":"https://schema.org/SoftwareSourceCode",
+                "http://purl.org/spar/datacite/IsCitedBy":{
+                    "id":"https://your-organization.tld/item/12345/",
+                    "type":[
+                        "as:Page",
+                        "schema:AboutPage"
+                    ],
+                    "schema:author":{
+                        "type":"as:Person",
+                        "email":"author@example.com",
+                        "givenName":"Author Name"
+                    },
+                    "name":"My paper title",
+                    "http://www.iana.org/assignments/relation/cite-as":{
+                        "id":"https://doi.org/XXX/YYY"
+                    },
+                    "http://www.iana.org/assignments/relation/item":{
+                        "id":"https://your-organization.tld/item/12345/document.pdf",
+                        "type":[
+                            "as:Object",
+                            "schema:ScholarlyArticle"
+                        ],
+                        "as:mediaType":"application/pdf"
+                    }
+                }
+            }
 
         TODO: At some point we might need to fetch metadata from the paper URL as COAR
         Notifications are not made to contain **all** the metadata but to indicate
@@ -337,28 +326,114 @@ class CoarNotifyMentionMapping(BaseExtrinsicMapping):
 
         TODO: We will need to handle cancellations of a mention if it was made by
         mistake. Maybe we could use the original notification id and an empty context
-        to overwrite the previous citation when merging documents ? It is with this in
-        mind that the notification ID is added to the citation.
+        to overwrite the previous citation when merging documents?
 
         Args:
             content: the raw expanded COAR Notification
 
         Returns:
-            A CodeMeta citation if the notification was valid or None
+            A CodeMeta document describing the relationship of the paper and the
+            software and metadata about the paper or None if we're not able to find the
+            expected triples in the graph or if we're not able to reverse the
+            relationship described in the notification.
         """
-
-        notification = load_and_compact_notification(content)
-        if not notification:
+        try:
+            json_ld = json.loads(content)
+        except Exception as exc:
+            logger.error(
+                "Failed to parse the notification document %s with json: %s",
+                content.decode(),
+                exc,
+            )
             return None
 
-        if not validate_mention(notification):
+        # We'll need the notification ID to get query the "root" element in the graph.
+        # Note: we might be able
+        notification_urn: str | None = None
+        if isinstance(json_ld, dict):
+            notification_urn = json_ld.get("@id")
+        elif isinstance(json_ld, list):
+            notification_urn = json_ld[0].get("@id")
+        if not notification_urn:
+            logger.error("Unable to find the notification @id in %s", json_ld)
+            return None
+        root_id = URIRef(notification_urn)
+
+        g = Graph()
+        try:
+            g.parse(data=content.decode(), format="json-ld")
+        except ParserError as exc:
+            logger.error(
+                "Failed to parse the notification %s with rdflib: %s",
+                content.decode(),
+                exc,
+            )
             return None
 
-        citation = {
-            "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
-            "citation": [
-                {"id": notification["id"], "ScholarlyArticle": notification["context"]}
-            ],
-        }
+        # Identify required elements from the original notification
+        missing_elements: list[str] = []
 
-        return citation
+        context_id = g.value(root_id, ACTIVITYSTREAMS.context)
+        if not context_id:
+            missing_elements.append("as:context")
+        object_id = g.value(root_id, ACTIVITYSTREAMS.object)
+        if not object_id:
+            missing_elements.append("as:object")
+
+        relationship_id = g.value(object_id, ACTIVITYSTREAMS.relationship)
+        if not relationship_id:
+            missing_elements.append("as:object/relationship")
+        paper_id = g.value(object_id, ACTIVITYSTREAMS.subject)
+        if not paper_id:
+            missing_elements.append("as:object/subject")
+        software_id = g.value(object_id, ACTIVITYSTREAMS.object)
+        if not software_id:
+            missing_elements.append("as:object/object")
+
+        if missing_elements:
+            logger.error(
+                "Unable to find %s in: %s",
+                ", ".join(missing_elements),
+                content.decode(),
+            )
+            return None
+        # the notification describes a relationship between a paper (subject) and a
+        # software (object), we invert the relationship to focus on the software.
+        inverted_relationship = INVERTED_RELATIONSHIPS.get(  # type: ignore
+            relationship_id
+        )
+        if not inverted_relationship:
+            logger.error(
+                "Unable to find a reverse relationship for %s",
+                relationship_id,
+            )
+            return None
+
+        # make mypy happy
+        assert software_id
+        assert paper_id
+        assert inverted_relationship
+
+        # Build a new codemeta graph
+        cm = Graph()
+        cm.add((software_id, RDF.type, SDO.SoftwareSourceCode))
+        cm.add((software_id, inverted_relationship, paper_id))
+
+        # and all metadata about the paper included in the original notification
+        def _copy_subgraph(obj):
+            """Recursive graph node cloning to import the original `AS context`."""
+            for s, p, o in g.triples((obj, None, None)):
+                cm.add((s, p, o))
+                if isinstance(o, (URIRef, BNode)) and not cm.value(o, None, None):
+                    _copy_subgraph(o)
+
+        _copy_subgraph(context_id)
+
+        return self.normalize_translation(
+            # at this point the graph contains two ``@graph``, one for the paper and
+            # another for the software, we reframe the JSON-LD it to focus on the
+            # software.
+            jsonld.frame(
+                json.loads(cm.serialize(format="json-ld")), {"@id": str(software_id)}
+            )
+        )

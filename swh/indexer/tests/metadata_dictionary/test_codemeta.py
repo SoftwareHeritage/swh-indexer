@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -12,10 +12,6 @@ import pytest
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_dictionary import MAPPINGS
-from swh.indexer.metadata_dictionary.codemeta import (
-    load_and_compact_notification,
-    validate_mention,
-)
 from swh.model.hashutil import HashDict
 
 from ..utils import json_document_strategy
@@ -567,58 +563,91 @@ def test_json_sword_codemeta_parsing_error(caplog):
 
 
 @pytest.fixture
-def raw_mention():
+def raw_mention() -> bytes:
+    """The expanded version of the notification found in swh-coarnotify docs.
+
+    https://docs.softwareheritage.org/user/coarnotify/howto/mention.html
+    """
     return json.dumps(
         [
             {
                 "https://www.w3.org/ns/activitystreams#actor": [
                     {
-                        "@id": "https://research-organisation.org",
+                        "@id": "https://your-organization.tld",
                         "https://www.w3.org/ns/activitystreams#name": [
-                            {"@value": "Research Organisation"}
+                            {"@value": "Your Organization"}
                         ],
                         "@type": ["https://www.w3.org/ns/activitystreams#Organization"],
                     }
                 ],
+                "https://www.w3.org/ns/activitystreams#object": [
+                    {
+                        "@id": "urn:uuid:74FFB356-0632-44D9-B176-888DA85758DC",
+                        "https://www.w3.org/ns/activitystreams#object": [
+                            {"@id": "https://github.com/rdicosmo/parmap"}
+                        ],
+                        "https://www.w3.org/ns/activitystreams#relationship": [
+                            {"@id": "http://schema.org/mentions"}
+                        ],
+                        "https://www.w3.org/ns/activitystreams#subject": [
+                            {"@id": "https://your-organization.tld/item/12345/"}
+                        ],
+                        "@type": ["https://www.w3.org/ns/activitystreams#Relationship"],
+                    }
+                ],
                 "https://www.w3.org/ns/activitystreams#context": [
                     {
-                        "@id": "https://research.local/item/201203/422/",
+                        "@id": "https://your-organization.tld/item/12345/",
+                        "http://www.iana.org/assignments/relation/cite-as": [
+                            {"@id": "https://doi.org/XXX/YYY"}
+                        ],
+                        "http://www.iana.org/assignments/relation/item": [
+                            {
+                                "@id": "https://your-organization.tld/item/12345/document.pdf",
+                                "https://www.w3.org/ns/activitystreams#mediaType": [
+                                    {"@value": "application/pdf"}
+                                ],
+                                "@type": [
+                                    "https://www.w3.org/ns/activitystreams#Object",
+                                    "http://schema.org/ScholarlyArticle",
+                                ],
+                            }
+                        ],
+                        "http://schema.org/author": [
+                            {
+                                "@type": [
+                                    "https://www.w3.org/ns/activitystreams#Person"
+                                ],
+                                "http://schema.org/email": [
+                                    {"@value": "author@example.com"}
+                                ],
+                                "http://schema.org/givenName": [
+                                    {"@value": "Author Name"}
+                                ],
+                            }
+                        ],
+                        "http://schema.org/name": [{"@value": "My paper title"}],
                         "@type": [
                             "https://www.w3.org/ns/activitystreams#Page",
                             "http://schema.org/AboutPage",
                         ],
                     }
                 ],
-                "@id": "urn:uuid:cf7e6dc8-c96f-4c85-b471-d2263c789ca7",
-                "https://www.w3.org/ns/activitystreams#object": [
-                    {
-                        "https://www.w3.org/ns/activitystreams#object": [
-                            {"@value": "https://research.local/item/201203/422/"}
-                        ],
-                        "https://www.w3.org/ns/activitystreams#relationship": [
-                            {"@value": "http://purl.org/vocab/frbr/core#supplement"}
-                        ],
-                        "https://www.w3.org/ns/activitystreams#subject": [
-                            {"@value": "https://github.com/rdicosmo/parmap"}
-                        ],
-                        "@id": "urn:uuid:74FFB356-0632-44D9-B176-888DA85758DC",
-                        "@type": ["https://www.w3.org/ns/activitystreams#Relationship"],
-                    }
-                ],
+                "@id": "urn:uuid:6908e2d0-ab41-4fbf-8b27-e6d6cf1f7b95",
                 "https://www.w3.org/ns/activitystreams#origin": [
                     {
-                        "@id": "https://research-organisation.org/repository",
+                        "@id": "https://your-organization.tld/repository",
                         "http://www.w3.org/ns/ldp#inbox": [
-                            {"@id": "http://inbox.partner.local"}
+                            {"@id": "https://inbox.your-organization.tld"}
                         ],
                         "@type": ["https://www.w3.org/ns/activitystreams#Service"],
                     }
                 ],
                 "https://www.w3.org/ns/activitystreams#target": [
                     {
-                        "@id": "https://another-research-organisation.org/repository",
+                        "@id": "https://www.softwareheritage.org",
                         "http://www.w3.org/ns/ldp#inbox": [
-                            {"@id": "http://inbox.swh/"}
+                            {"@id": "https://inbox.staging.swh.network"}
                         ],
                         "@type": ["https://www.w3.org/ns/activitystreams#Service"],
                     }
@@ -629,118 +658,134 @@ def raw_mention():
                 ],
             }
         ]
-    )
-
-
-@pytest.fixture
-def compact_mention(raw_mention):
-    return load_and_compact_notification(raw_mention)
-
-
-def test_load_and_compact_notification(raw_mention, caplog):
-    result = load_and_compact_notification(raw_mention)
-    assert result["@context"] == [
-        "https://www.w3.org/ns/activitystreams",
-        "https://coar-notify.net",
-    ]
-    assert result["type"] == ["Announce", "RelationshipAction"]
-    assert result["context"]["id"] == result["object"]["as:object"]
-
-
-@pytest.mark.parametrize(
-    "value,msg",
-    [
-        ("#", "Failed to parse JSON document"),
-        ('{"@id": null}', "Failed to compact JSON-LD document"),
-    ],
-)
-def test_load_and_compact_notification_failures(value, msg, caplog):
-    caplog.set_level(logging.ERROR)
-    assert load_and_compact_notification(value) is None
-    assert msg in caplog.text
-
-
-def test_validate_mention(compact_mention):
-    assert validate_mention(compact_mention)
-
-
-def test_validate_mention_object(compact_mention, caplog):
-    caplog.set_level(logging.ERROR)
-    msg = "Missing object[as:object] key"
-    mention = compact_mention.copy()
-    orignal_object = mention["object"]
-
-    del mention["object"]
-    assert not validate_mention(mention)
-    assert msg in caplog.text
-
-    caplog.clear()
-    mention["object"] = orignal_object
-
-    del mention["object"]["as:object"]
-    assert not validate_mention(mention)
-    assert msg in caplog.text
-
-
-@pytest.mark.skip(
-    reason=(
-        "Current CN specs (1.0.1) are not clear about what should be in context.id, "
-        "see codemeta:validate_mention"
-    )
-)
-def test_validate_mention_context(compact_mention, caplog):
-    caplog.set_level(logging.ERROR)
-    msg = "Mismatch between context[id] and object[as:object]"
-    mention = compact_mention.copy()
-    mention["context"]["id"] = mention["context"]["id"] + "/fail/"
-    assert not validate_mention(mention)
-    assert msg in caplog.text
-
-
-def test_validate_mention_id(compact_mention, caplog):
-    caplog.set_level(logging.ERROR)
-    msg = "id value is not a string"
-    mention = compact_mention.copy()
-
-    del mention["id"]
-    assert not validate_mention(mention)
-
-    caplog.clear()
-
-    mention["id"] = 123
-    assert not validate_mention(mention)
-    assert msg in caplog.text
+    ).encode()
 
 
 def test_coarnotify_mention(raw_mention):
     result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
     assert result == {
-        "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
-        "citation": [
+        "@context": [
+            "https://doi.org/10.5063/schema/codemeta-2.0",
             {
-                "id": "urn:uuid:cf7e6dc8-c96f-4c85-b471-d2263c789ca7",
-                "ScholarlyArticle": {
-                    "id": "https://research.local/item/201203/422/",
-                    "type": ["Page", "sorg:AboutPage"],
-                },
-            }
+                "as": "https://www.w3.org/ns/activitystreams#",
+                "forge": "https://forgefed.org/ns#",
+                "xsd": "http://www.w3.org/2001/XMLSchema#",
+            },
         ],
+        "id": "https://github.com/rdicosmo/parmap",
+        "type": "https://schema.org/SoftwareSourceCode",
+        "http://purl.org/spar/datacite/IsCitedBy": {
+            "id": "https://your-organization.tld/item/12345/",
+            "type": ["as:Page", "schema:AboutPage"],
+            "schema:author": {
+                "type": "as:Person",
+                "email": "author@example.com",
+                "givenName": "Author Name",
+            },
+            "name": "My paper title",
+            "http://www.iana.org/assignments/relation/cite-as": {
+                "id": "https://doi.org/XXX/YYY"
+            },
+            "http://www.iana.org/assignments/relation/item": {
+                "id": "https://your-organization.tld/item/12345/document.pdf",
+                "type": ["as:Object", "schema:ScholarlyArticle"],
+                "as:mediaType": "application/pdf",
+            },
+        },
     }
 
 
-def test_coarnotify_mention_invalid_json(raw_mention, mocker):
-    mocker.patch(
-        "swh.indexer.metadata_dictionary.codemeta.load_and_compact_notification",
-        return_value=None,
-    )
-    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
+def test_coarnotify_mention_invalid_json(caplog):
+    caplog.set_level(logging.ERROR)
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate("{{}}".encode())
     assert result is None
+    assert "Failed to parse the notification document" in caplog.records[0].message
 
 
-def test_coarnotify_mention_invalid_mention(raw_mention, mocker):
-    mocker.patch(
-        "swh.indexer.metadata_dictionary.codemeta.validate_mention",
-        return_value=False,
+def test_coarnotify_mention_missing_id(raw_mention, caplog):
+    caplog.set_level(logging.ERROR)
+    altered = json.loads(raw_mention)
+    del altered[0]["@id"]
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(
+        json.dumps(altered).encode()
     )
-    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
     assert result is None
+    assert "Unable to find the notification @id" in caplog.records[0].message
+
+
+@pytest.mark.parametrize(
+    "key,expected",
+    [
+        ("https://www.w3.org/ns/activitystreams#object", "as:object"),
+        ("https://www.w3.org/ns/activitystreams#context", "as:context"),
+    ],
+)
+def test_coarnotify_mention_missing_root_elements(raw_mention, caplog, key, expected):
+    caplog.set_level(logging.ERROR)
+    altered = json.loads(raw_mention)
+    altered[0].pop(key)
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(
+        json.dumps(altered).encode()
+    )
+    assert result is None
+    assert f"Unable to find {expected}" in caplog.records[0].message
+
+
+@pytest.mark.parametrize(
+    "key,expected",
+    [
+        ("https://www.w3.org/ns/activitystreams#object", "as:object/object"),
+        ("https://www.w3.org/ns/activitystreams#subject", "as:object/subject"),
+        (
+            "https://www.w3.org/ns/activitystreams#relationship",
+            "as:object/relationship",
+        ),
+    ],
+)
+def test_coarnotify_mention_missing_object_elements(raw_mention, caplog, key, expected):
+    caplog.set_level(logging.ERROR)
+    altered = json.loads(raw_mention)
+    altered[0]["https://www.w3.org/ns/activitystreams#object"][0].pop(key)
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(
+        json.dumps(altered).encode()
+    )
+    assert result is None
+    assert f"Unable to find {expected}" in caplog.records[0].message
+
+
+@pytest.mark.parametrize(
+    "relationship,success,expected_reverse",
+    [
+        (
+            "https://schema.org/mentions",
+            True,
+            "http://purl.org/spar/datacite/IsCitedBy",
+        ),
+        ("http://schema.org/mentions", True, "http://purl.org/spar/datacite/IsCitedBy"),
+        (
+            "http://purl.org/spar/datacite/Cites",
+            True,
+            "http://purl.org/spar/datacite/IsCitedBy",
+        ),
+        ("http://purl.org/vocab/frbr/core#supplement", False, None),
+    ],
+)
+def test_coarnotify_mention_relationships(
+    raw_mention, caplog, relationship, success, expected_reverse
+):
+    caplog.set_level(logging.ERROR)
+    altered = json.loads(raw_mention)
+    altered[0]["https://www.w3.org/ns/activitystreams#object"][0][
+        "https://www.w3.org/ns/activitystreams#relationship"
+    ][0]["@id"] = relationship
+    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(
+        json.dumps(altered).encode()
+    )
+    if success:
+        assert result[expected_reverse]
+    else:
+        assert result is None
+        assert (
+            f"Unable to find a reverse relationship for {relationship}"
+            in caplog.records[0].message
+        )
