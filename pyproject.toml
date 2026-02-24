@@ -52,9 +52,9 @@ testing = {file = ["requirements-test.txt"]}
 "NuGetMapping" = "swh.indexer.metadata_mapping.nuget:NuGetMapping"
 "GiteaMapping" = "swh.indexer.metadata_mapping.gitea:GiteaMapping"
 "GitHubMapping" = "swh.indexer.metadata_mapping.github:GitHubMapping"
-"JsonSwordCodemetaMapping" = "swh.indexer.metadata_mapping.codemeta:JsonSwordCodemetaMapping"
-"SwordCodemetaMapping" = "swh.indexer.metadata_mapping.codemeta:SwordCodemetaMapping"
-"CoarNotifyMentionCodemetaMapping" = "swh.indexer.metadata_mapping.codemeta:CoarNotifyMentionMapping"
+"JsonSwordCodemetaMapping" = "swh.indexer.metadata_mapping.sword:JsonSwordCodemetaMapping"
+"SwordCodemetaMapping" = "swh.indexer.metadata_mapping.sword:SwordCodemetaMapping"
+"CoarNotifyMentionCodemetaMapping" = "swh.indexer.metadata_mapping.coarnotify:CoarNotifyMentionMapping"
 
 [project.urls]
 "Homepage" = "https://gitlab.softwareheritage.org/swh/devel/swh-indexer"

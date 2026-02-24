@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from swh.indexer.metadata_mapping.codemeta import load_and_compact_notification
+from swh.indexer.metadata_mapping.coarnotify import load_and_compact_notification
 
 
 @pytest.fixture
