@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -38,7 +38,10 @@ from swh.indexer.indexer import (
     OriginIndexer,
 )
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import EXTRINSIC_MAPPINGS, INTRINSIC_MAPPINGS
+from swh.indexer.metadata_dictionary import (
+    get_extrinsic_mappings,
+    get_intrinsic_mappings,
+)
 from swh.indexer.metadata_dictionary.base import DirectoryLsEntry
 from swh.indexer.origin_head import get_head_swhid
 from swh.indexer.storage import INDEXER_CFG_KEY
@@ -84,6 +87,15 @@ def call_with_batches(
 class ExtrinsicMetadataIndexer(
     BaseIndexer[Sha1Git, RawExtrinsicMetadata, OriginExtrinsicMetadataRow]
 ):
+    """Indexer for Raw Extrinsic Metadata
+
+    For supported extrinsic metadata formats, translate the original format
+    into CodeMeta, and attach the result to the Origin.
+
+    Use XXX to get registered mapping formats.
+
+    """
+
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
@@ -149,7 +161,7 @@ class ExtrinsicMetadataIndexer(
             return []
         metadata_items = []
         mappings: List[str] = []
-        for mapping_cls in EXTRINSIC_MAPPINGS.values():
+        for mapping_cls in get_extrinsic_mappings().values():
             if data.format in mapping_cls.extrinsic_metadata_formats():
                 mapping = mapping_cls()
                 metadata_item = mapping.translate(data.metadata)
@@ -273,7 +285,9 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
             log_suffix += ", content_id=%s" % hash_to_hex(id["sha1"])
-            metadata = INTRINSIC_MAPPINGS[mapping_name](log_suffix).translate(data)
+            metadata = get_intrinsic_mappings()[mapping_name](log_suffix).translate(
+                data
+            )
         except Exception:
             self.log.exception(
                 "Problem during metadata translation "
@@ -425,7 +439,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         }
         all_detected_files = detect_metadata(files)
         used_mappings = [
-            INTRINSIC_MAPPINGS[context].name for context in all_detected_files
+            get_intrinsic_mappings()[context].name for context in all_detected_files
         ]
         for mapping_name, detected_files in all_detected_files.items():
             cfg = deepcopy(config)
@@ -472,6 +486,13 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 class OriginMetadataIndexer(
     OriginIndexer[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]
 ):
+    """Indexer for intrinsice metadata found within origin's root directory
+
+    If there is a metadata file corresponding to a known format in the roor
+    directory of an Origin (i.e. in the root directory of the , read it and
+
+    """
+
     USE_TOOLS = False
 
     def __init__(self, config=None, **kwargs) -> None:

@@ -4,70 +4,76 @@
 # See top-level LICENSE file for more information
 
 import collections
-from typing import Dict, Type
+import logging
+from threading import Lock
+from typing import Dict, List, Type
 
-import click
-
-from . import (
-    cff,
-    codemeta,
-    composer,
-    dart,
-    gitea,
-    github,
-    maven,
-    npm,
-    nuget,
-    python,
-    ruby,
-)
 from .base import BaseExtrinsicMapping, BaseIntrinsicMapping, BaseMapping
 
-INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {
-    "CffMapping": cff.CffMapping,
-    "CodemetaMapping": codemeta.CodemetaMapping,
-    "GemspecMapping": ruby.GemspecMapping,
-    "MavenMapping": maven.MavenMapping,
-    "NpmMapping": npm.NpmMapping,
-    "PubMapping": dart.PubspecMapping,
-    "PythonPkginfoMapping": python.PythonPkginfoMapping,
-    "ComposerMapping": composer.ComposerMapping,
-    "NuGetMapping": nuget.NuGetMapping,
-}
+LOGGER = logging.getLogger(__name__)
 
-EXTRINSIC_MAPPINGS: Dict[str, Type[BaseExtrinsicMapping]] = {
-    "GiteaMapping": gitea.GiteaMapping,
-    "GitHubMapping": github.GitHubMapping,
-    "JsonSwordCodemetaMapping": codemeta.JsonSwordCodemetaMapping,
-    "SwordCodemetaMapping": codemeta.SwordCodemetaMapping,
-    "CoarNotifyMentionMapping": codemeta.CoarNotifyMentionMapping,
-}
+_INTRINSIC_MAPPINGS: Dict[str, Type[BaseIntrinsicMapping]] = {}
+_EXTRINSIC_MAPPINGS: Dict[str, Type[BaseExtrinsicMapping]] = {}
+_MAPPINGS: Dict[str, Type[BaseMapping]] = {}
+_mapping_lock = Lock()
 
 
-MAPPINGS: Dict[str, Type[BaseMapping]] = {**INTRINSIC_MAPPINGS, **EXTRINSIC_MAPPINGS}
+def get_mappings():
+    with _mapping_lock:
+        if not _MAPPINGS:
+            _INTRINSIC_MAPPINGS.clear()
+            _EXTRINSIC_MAPPINGS.clear()
+            _MAPPINGS.clear()
+            for name, map_cls in load_mappings().items():
+                if issubclass(map_cls, BaseExtrinsicMapping):
+                    _EXTRINSIC_MAPPINGS[name] = map_cls
+                elif issubclass(map_cls, BaseIntrinsicMapping):
+                    _INTRINSIC_MAPPINGS[name] = map_cls
+                else:
+                    raise EnvironmentError("Unknown mapping type %s", map_cls.__name__)
+            _MAPPINGS.update(**_INTRINSIC_MAPPINGS)
+            _MAPPINGS.update(**_EXTRINSIC_MAPPINGS)
+        return _MAPPINGS.copy()
+
+
+def get_intrinsic_mappings() -> Dict[str, Type[BaseIntrinsicMapping]]:
+    # make sure mappings have been loaded
+    get_mappings()
+    return _INTRINSIC_MAPPINGS.copy()
+
+
+def get_extrinsic_mappings() -> Dict[str, Type[BaseExtrinsicMapping]]:
+    # make sure mappings have been loaded
+    get_mappings()
+    return _EXTRINSIC_MAPPINGS.copy()
+
+
+def get_mapping(name) -> Type[BaseMapping]:
+    return get_mappings()[name]
+
+
+def get_mapping_names() -> List[str]:
+    # we do not use load_mappings() because there is no need for actually
+    # loading the modules, we just need the names...
+    from backports.entry_points_selectable import entry_points as get_entry_points
+
+    entry_points = get_entry_points(group="swh.indexer.metadata_mappings")
+    return [ep.name for ep in entry_points]
+
+
+def load_mappings() -> Dict[str, Type[BaseExtrinsicMapping]]:
+    from backports.entry_points_selectable import entry_points as get_entry_points
+
+    entry_points = get_entry_points(group="swh.indexer.metadata_mappings")
+    mappings = {ep.name: ep.load() for ep in entry_points}
+    return mappings
 
 
 def list_terms():
     """Returns a dictionary with all supported CodeMeta terms as keys,
     and the mappings that support each of them as values."""
     d = collections.defaultdict(set)
-    for mapping in MAPPINGS.values():
+    for mapping in get_mappings().values():
         for term in mapping.supported_terms():
             d[term].add(mapping)
     return d
-
-
-@click.command()
-@click.argument("mapping_name")
-@click.argument("file_name")
-def main(mapping_name: str, file_name: str):
-    from pprint import pprint
-
-    with open(file_name, "rb") as fd:
-        file_content = fd.read()
-    res = MAPPINGS[mapping_name]().translate(file_content)
-    pprint(res)
-
-
-if __name__ == "__main__":
-    main()

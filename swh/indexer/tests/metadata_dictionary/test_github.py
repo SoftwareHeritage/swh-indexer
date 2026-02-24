@@ -1,9 +1,11 @@
-# Copyright (C) 2022  The Software Heritage developers
+# Copyright (C) 2022-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
+
+GitHubMapping = get_mapping("GitHubMapping")
 
 CONTEXT = [
     "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -24,12 +26,12 @@ def test_compute_metadata_none():
 
     # None if no metadata was found or an error occurred
     declared_metadata = None
-    result = MAPPINGS["GitHubMapping"]().translate(content)
+    result = GitHubMapping().translate(content)
     assert declared_metadata == result
 
 
 def test_supported_terms():
-    terms = MAPPINGS["GitHubMapping"].supported_terms()
+    terms = GitHubMapping.supported_terms()
     assert {
         "http://schema.org/name",
         "http://schema.org/license",
@@ -118,7 +120,7 @@ def test_compute_metadata_github():
 }
 
     """  # noqa
-    result = MAPPINGS["GitHubMapping"]().translate(content)
+    result = GitHubMapping().translate(content)
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",
@@ -164,7 +166,7 @@ def test_github_topics():
   ]
 }
     """
-    result = MAPPINGS["GitHubMapping"]().translate(content)
+    result = GitHubMapping().translate(content)
     assert set(result.pop("keywords", [])) == {"foo", "bar"}, result
     assert result == {
         "@context": CONTEXT,
@@ -191,7 +193,7 @@ def test_github_fork():
   }
 }
     """
-    result = MAPPINGS["GitHubMapping"]().translate(content)
+    result = GitHubMapping().translate(content)
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",
@@ -212,7 +214,7 @@ def test_github_issues():
   "has_issues": true
 }
     """
-    result = MAPPINGS["GitHubMapping"]().translate(content)
+    result = GitHubMapping().translate(content)
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",

@@ -1,10 +1,12 @@
-# Copyright (C) 2021-2024  The Software Heritage developers
+# Copyright (C) 2021-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
+
+CffMapping = get_mapping("CffMapping")
 
 
 def test_compute_metadata_cff():
@@ -45,7 +47,7 @@ version: "1.4.0-alpha0"
         "utf-8"
     )
 
-    result = MAPPINGS["CffMapping"]().translate(content)
+    result = CffMapping().translate(content)
     assert set(result.pop("keywords")) == {
         "citation",
         "bibliography",
@@ -106,7 +108,7 @@ authors:
 
     expected = None
 
-    result = MAPPINGS["CffMapping"]().translate(content)
+    result = CffMapping().translate(content)
     assert expected == result
 
 
@@ -121,7 +123,7 @@ def test_compute_metadata_cff_empty():
 
     expected = None
 
-    result = MAPPINGS["CffMapping"]().translate(content)
+    result = CffMapping().translate(content)
     assert expected == result
 
 
@@ -138,7 +140,7 @@ def test_compute_metadata_cff_list():
 
     expected = None
 
-    result = MAPPINGS["CffMapping"]().translate(content)
+    result = CffMapping().translate(content)
     assert expected == result
 
 
@@ -187,7 +189,7 @@ def test_cff_empty_fields():
         ],
     }
 
-    result = MAPPINGS["CffMapping"]().translate(content)
+    result = CffMapping().translate(content)
     assert expected == result
 
 
@@ -223,7 +225,7 @@ def test_cff_invalid_fields():
         ],
     }
 
-    result = MAPPINGS["CffMapping"]().translate(content)
+    result = CffMapping().translate(content)
     assert expected == result
 
 
@@ -305,5 +307,5 @@ preferred-citation:
         "url": "https://jmlr.csail.mit.edu/papers/v12/pedregosa11a.html",
     }
 
-    result = MAPPINGS["CffMapping"]().translate(content)
+    result = CffMapping().translate(content)
     assert result == expected

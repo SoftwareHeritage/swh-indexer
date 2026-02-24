@@ -1,11 +1,11 @@
-# Copyright (C) 2019-2022  The Software Heritage developers
+# Copyright (C) 2019-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import logging
 import os
-from typing import Callable, Dict, Iterator, List, Optional
+from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple
 import warnings
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
@@ -80,11 +80,10 @@ def mapping():
 @mapping.command("list")
 def mapping_list():
     """Prints the list of known mappings."""
-    from swh.indexer import metadata_dictionary
+    from swh.indexer.metadata_dictionary import get_mappings
 
-    mapping_names = [mapping.name for mapping in metadata_dictionary.MAPPINGS.values()]
-    mapping_names.sort()
-    for mapping_name in mapping_names:
+    mappings = [cls.name for cls in get_mappings().values()]
+    for mapping_name in sorted(mappings):
         click.echo(mapping_name)
 
 
@@ -122,15 +121,11 @@ def mapping_translate(mapping_name, file):
     """Translates file from mapping-name to codemeta format."""
     import json
 
-    from swh.indexer import metadata_dictionary
+    from swh.indexer.metadata_dictionary import get_mappings
 
-    mapping_cls = [
-        cls for cls in metadata_dictionary.MAPPINGS.values() if cls.name == mapping_name
-    ]
+    mapping_cls = get_mappings().get(mapping_name)
     if not mapping_cls:
         raise click.ClickException("Unknown mapping {}".format(mapping_name))
-    assert len(mapping_cls) == 1
-    mapping_cls = mapping_cls[0]
     mapping = mapping_cls()
     codemeta_doc = mapping.translate(file.read())
     click.echo(json.dumps(codemeta_doc, indent=4))
@@ -151,19 +146,44 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids) -> Iterator[str]:
         yield from result.results
 
 
+@indexer_cli_group.command("list")
+@click.option(
+    "-v", "--verbose", is_flag=True, help="Show description of each listed indexer."
+)
+@click.option(
+    "-l", "--long", is_flag=True, help="Show full description of each listed indexer."
+)
+@click.pass_context
+def list_indexers(ctx, verbose, long):
+    """List registered indexers"""
+    from swh.indexer import get_indexer, get_indexer_names
+
+    indexers = get_indexer_names()
+    if long:
+        verbose = True
+    if not verbose:
+        click.echo("\n".join(sorted(indexers)))
+    else:
+        for name in sorted(indexers):
+            cls = get_indexer(name)
+            doc = cls.__doc__ or "\n"
+            if not long:
+                click.echo(f"{name}:\t{doc.splitlines()[0]}")
+            else:
+                click.secho(f"{name}", fg="green", nl=False)
+                click.echo(f" ({cls.__name__})")
+                if doc.strip():
+                    click.echo(doc)
+                else:
+                    click.echo("  N/A\n")
+
+
 @indexer_cli_group.command("journal-client")
 @click.argument(
-    "indexer",
-    type=click.Choice(
-        [
-            "origin_intrinsic_metadata",
-            "extrinsic_metadata",
-            "content_mimetype",
-            "content_fossology_license",
-            "*",
-        ]
-    ),
-    required=True,
+    "indexers",
+    metavar="INDEXER",
+    type=str,
+    nargs=-1,
 )
 @click.option(
     "--broker", "brokers", type=str, multiple=True, help="Kafka broker to connect to."
@@ -189,19 +209,20 @@ def list_origins_by_producer(idx_storage, mappings, tool_ids) -> Iterator[str]:
 @click.pass_context
 def journal_client(
     ctx,
-    indexer: Optional[str],
+    indexers: Tuple[str, ...],
     brokers: List[str],
     prefix: str,
     group_id: str,
     stop_after_objects: Optional[int],
     batch_size: Optional[int],
 ):
-    """Listens for new objects from the SWH Journal, and runs the indexer with
-    the name passed as argument
+    """Listens for new objects from the SWH Journal, and runs the indexers which
+    names are passed as argument.
 
-    Passing '*' as indexer name runs all indexers.
-
+    If no indexer name is given, or if '*' is passed as indexer name, then
+    runs all registered indexers.
     """
+    from swh.indexer import get_indexer, get_indexer_names
     from swh.indexer.indexer import BaseIndexer, ObjectsDict
     from swh.journal.client import get_journal_client
 
@@ -222,45 +243,24 @@ def journal_client(
     if batch_size:
         journal_cfg["batch_size"] = batch_size
 
-    object_types = set()
+    object_types: Set[str] = set()
     worker_fns: List[Callable[[ObjectsDict], Dict]] = []
 
+    available_indexers = get_indexer_names()
+
+    if "*" in indexers or not indexers:
+        indexers = tuple(available_indexers)
+    unknown = set(indexers) - set(available_indexers)
+    if unknown:
+        raise click.ClickException(
+            f"Unknown indexer{'s' if len(unknown)>1 else ''}: {','.join(unknown)}"
+        )
+
     idx: Optional[BaseIndexer] = None
-
-    if indexer in ("origin_intrinsic_metadata", "*"):
-        from swh.indexer.metadata import OriginMetadataIndexer
-
-        object_types.add("origin_visit_status")
-        idx = OriginMetadataIndexer()
+    for indexer in indexers:
+        idx = get_indexer(indexer)()
         idx.catch_exceptions = False  # don't commit offsets if indexation failed
         worker_fns.append(idx.process_journal_objects)
-
-    if indexer in ("extrinsic_metadata", "*"):
-        from swh.indexer.metadata import ExtrinsicMetadataIndexer
-
-        object_types.add("raw_extrinsic_metadata")
-        idx = ExtrinsicMetadataIndexer()
-        idx.catch_exceptions = False  # don't commit offsets if indexation failed
-        worker_fns.append(idx.process_journal_objects)
-
-    if indexer in ("content_mimetype", "*"):
-        from swh.indexer.mimetype import MimetypeIndexer
-
-        object_types.add("content")
-        idx = MimetypeIndexer()
-        idx.catch_exceptions = False  # don't commit offsets if indexation failed
-        worker_fns.append(idx.process_journal_objects)
-
-    if indexer in ("content_fossology_license", "*"):
-        from swh.indexer.fossology_license import FossologyLicenseIndexer
-
-        object_types.add("content")
-        idx = FossologyLicenseIndexer()
-        idx.catch_exceptions = False  # don't commit offsets if indexation failed
-        worker_fns.append(idx.process_journal_objects)
-
-    if not worker_fns:
-        raise click.ClickException(f"Unknown indexer: {indexer}")
 
     if "cls" not in journal_cfg:
         journal_cfg["cls"] = "kafka"

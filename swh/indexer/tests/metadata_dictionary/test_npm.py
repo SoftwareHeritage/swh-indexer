@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -9,7 +9,7 @@ from hypothesis import HealthCheck, given, settings
 import pytest
 
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
 from swh.indexer.storage.model import ContentMetadataRow
 from swh.model.hashutil import HashDict
 
@@ -19,6 +19,8 @@ from ..utils import (
     MAPPING_DESCRIPTION_CONTENT_OBJID,
     json_document_strategy,
 )
+
+NPMMapping = get_mapping("NpmMapping")
 
 
 def test_compute_metadata_none():
@@ -30,7 +32,7 @@ def test_compute_metadata_none():
 
     # None if no metadata was found or an error occurred
     declared_metadata = None
-    result = MAPPINGS["NpmMapping"]().translate(content)
+    result = NPMMapping().translate(content)
     assert declared_metadata == result
 
 
@@ -69,7 +71,7 @@ def test_compute_metadata_npm():
         ],
     }
 
-    result = MAPPINGS["NpmMapping"]().translate(content)
+    result = NPMMapping().translate(content)
     assert declared_metadata == result
 
 
@@ -91,7 +93,7 @@ def test_compute_metadata_invalid_description_npm():
         "version": "0.0.2",
     }
 
-    result = MAPPINGS["NpmMapping"]().translate(content)
+    result = NPMMapping().translate(content)
     assert declared_metadata == result
 
 
@@ -177,7 +179,7 @@ def test_npm_null_list_item_normalization():
             null
         ]
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "foo",
@@ -196,7 +198,7 @@ def test_npm_bugs_normalization():
             "email": "foo@example.com"
         }
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "foo",
@@ -211,7 +213,7 @@ def test_npm_bugs_normalization():
             "email": "foo@example.com"
         }
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "foo",
@@ -223,7 +225,7 @@ def test_npm_bugs_normalization():
         "name": "foo",
         "bugs": "https://github.com/owner/project/issues"
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "foo",
@@ -241,7 +243,7 @@ def test_npm_repository_normalization():
             "url" : "https://github.com/npm/cli.git"
         }
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "foo",
@@ -256,7 +258,7 @@ def test_npm_repository_normalization():
             "type" : "git"
         }
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "foo",
@@ -268,7 +270,7 @@ def test_npm_repository_normalization():
         "name": "foo",
         "repository": "github:npm/cli"
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     expected_result = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "foo",
@@ -282,7 +284,7 @@ def test_npm_repository_normalization():
         "name": "foo",
         "repository": "npm/cli"
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == expected_result
 
     # gitlab shortcut
@@ -290,7 +292,7 @@ def test_npm_repository_normalization():
         "name": "foo",
         "repository": "gitlab:user/repo"
     }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "foo",
@@ -304,7 +306,7 @@ def test_npm_author():
   "version": "1.0.0",
   "author": "Foo Bar (@example)"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -322,7 +324,7 @@ def test_npm_invalid_uris():
     "url": "http://example.org"
   }
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -338,7 +340,7 @@ def test_npm_invalid_uris():
     "url": ""
   }
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -356,7 +358,7 @@ def test_npm_invalid_uris():
   },
   "bugs": ""
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -375,7 +377,7 @@ def test_npm_invalid_uris():
     "url": "http:example.com"
   }
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -387,7 +389,7 @@ def test_npm_invalid_uris():
   "version": "1.0.0",
   "repository": "git+https://g ithub.com/foo/bar.git"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -398,7 +400,7 @@ def test_npm_invalid_uris():
   "version": "1.0.0",
   "repository": "git+http://\\u001b[D\\u001b[D\\u001b[Ds\\u001b[C\\u001b[C\\u001b[D\\u001b://github.com/dearzoe/array-combination"
 }"""  # noqa
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -415,7 +417,7 @@ def test_npm_invalid_licenses():
     "url": "http://example.org"
   }
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -425,10 +427,10 @@ def test_npm_invalid_licenses():
 
 
 @settings(suppress_health_check=[HealthCheck.too_slow])
-@given(json_document_strategy(keys=list(MAPPINGS["NpmMapping"].mapping)))  # type: ignore
+@given(json_document_strategy(keys=list(NPMMapping.mapping)))  # type: ignore
 def test_npm_adversarial(doc):
     raw = json.dumps(doc).encode()
-    MAPPINGS["NpmMapping"]().translate(raw)
+    NPMMapping().translate(raw)
 
 
 @pytest.mark.parametrize(
@@ -469,7 +471,7 @@ def test_valid_spdx_expressions():
     package_json = rb"""{
   "license": "Apache-2.0"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -479,7 +481,7 @@ def test_valid_spdx_expressions():
     package_json = rb"""{
   "license": "(Apache-2.0)"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -489,7 +491,7 @@ def test_valid_spdx_expressions():
     package_json = rb"""{
   "license": "MIT OR Apache-2.0"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -502,7 +504,7 @@ def test_valid_spdx_expressions():
     package_json = rb"""{
   "license": "(MIT OR Apache-2.0)"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -515,7 +517,7 @@ def test_valid_spdx_expressions():
     package_json = rb"""{
   "license": "MIT OR (LGPL-2.1-only OR BSD-3-Clause)"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -529,7 +531,7 @@ def test_valid_spdx_expressions():
     package_json = rb"""{
   "license": "MIT OR LGPL-2.1-only OR BSD-3-Clause"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -545,7 +547,7 @@ def test_unsupported_spdx_expressions():
     package_json = rb"""{
   "license": "MIT AND Apache-2.0"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -554,7 +556,7 @@ def test_unsupported_spdx_expressions():
     package_json = rb"""{
   "license": "(MIT AND Apache-2.0)"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -563,7 +565,7 @@ def test_unsupported_spdx_expressions():
     package_json = rb"""{
   "license": "MIT AND Apache-2.0 OR GPL-3.0-only"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -572,7 +574,7 @@ def test_unsupported_spdx_expressions():
     package_json = rb"""{
   "license": "MIT AND (LGPL-2.1-only OR BSD-3-Clause)"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -581,7 +583,7 @@ def test_unsupported_spdx_expressions():
     package_json = rb"""{
   "license": "MIT AND Apache-2.0 WITH Bison-exception-2.2"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -590,7 +592,7 @@ def test_unsupported_spdx_expressions():
     package_json = rb"""{
   "license": "MIT OR Apache-2.0 WITH Bison-exception-2.2"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -599,7 +601,7 @@ def test_unsupported_spdx_expressions():
     package_json = rb"""{
   "license": "MIT OR (LGPL-2.1-only WITH Bison-exception-2.2)"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -608,7 +610,7 @@ def test_unsupported_spdx_expressions():
     package_json = rb"""{
   "license": "MIT AND (LGPL-2.1-only WITH Bison-exception-2.2)"
 }"""
-    result = MAPPINGS["NpmMapping"]().translate(package_json)
+    result = NPMMapping().translate(package_json)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",

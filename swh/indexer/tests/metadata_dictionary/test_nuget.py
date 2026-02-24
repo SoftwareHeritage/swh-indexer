@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2025  The Software Heritage developers
+# Copyright (C) 2022-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,8 +6,10 @@
 import pytest
 
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
 from swh.model.hashutil import HashDict
+
+NuGetMapping = get_mapping("NuGetMapping")
 
 
 def test_compute_metadata_nuget():
@@ -37,7 +39,7 @@ def test_compute_metadata_nuget():
         </files>
     </package>"""
 
-    result = MAPPINGS["NuGetMapping"]().translate(raw_content)
+    result = NuGetMapping().translate(raw_content)
 
     assert set(result.pop("keywords")) == {
         "python3",
@@ -119,7 +121,7 @@ def test_normalize_license_multiple_licenses_or_delimiter():
             <file src="bin\\Debug\\*.dll" target="lib" />
         </files>
     </package>"""
-    result = MAPPINGS["NuGetMapping"]().translate(raw_content)
+    result = NuGetMapping().translate(raw_content)
     assert set(result.pop("license")) == {
         "https://spdx.org/licenses/BitTorrent-1.0",
         "https://spdx.org/licenses/GPL-3.0-with-GCC-exception",
@@ -142,7 +144,7 @@ def test_normalize_license_unsupported_delimiter():
             <file src="bin\\Debug\\*.dll" target="lib" />
         </files>
     </package>"""
-    result = MAPPINGS["NuGetMapping"]().translate(raw_content)
+    result = NuGetMapping().translate(raw_content)
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -162,7 +164,7 @@ def test_copyrightNotice_absolute_uri_property():
             <file src="bin\\Debug\\*.dll" target="lib" />
         </files>
     </package>"""
-    result = MAPPINGS["NuGetMapping"]().translate(raw_content)
+    result = NuGetMapping().translate(raw_content)
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",

@@ -11,7 +11,7 @@ import pytest
 
 from swh.indexer.codemeta import CODEMETA_TERMS
 from swh.indexer.metadata_detector import detect_metadata
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
 from swh.indexer.metadata_dictionary.codemeta import (
     load_and_compact_notification,
     validate_mention,
@@ -125,7 +125,7 @@ def test_compute_metadata_valid_codemeta():
         "datePublished": "2017-06-05",
         "programmingLanguage": "JSON-LD",
     }
-    result = MAPPINGS["CodemetaMapping"]().translate(raw_content)
+    result = get_mapping("CodemetaMapping")().translate(raw_content)
     assert result == expected_result
 
 
@@ -140,7 +140,7 @@ def test_compute_metadata_codemeta_alternate_context():
         "type": "SoftwareSourceCode",
         "identifier": "CodeMeta",
     }
-    result = MAPPINGS["CodemetaMapping"]().translate(raw_content)
+    result = get_mapping("CodemetaMapping")().translate(raw_content)
     assert result == expected_result
 
 
@@ -148,7 +148,7 @@ def test_compute_metadata_codemeta_alternate_context():
 @given(json_document_strategy(keys=CODEMETA_TERMS))
 def test_codemeta_adversarial(doc):
     raw = json.dumps(doc).encode()
-    MAPPINGS["CodemetaMapping"]().translate(raw)
+    get_mapping("CodemetaMapping")().translate(raw)
 
 
 def test_detect_metadata_codemeta_json_uppercase():
@@ -197,7 +197,7 @@ def test_sword_default_xmlns():
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
@@ -228,7 +228,7 @@ def test_sword_basics():
     </entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
@@ -253,7 +253,7 @@ def test_sword_mixed():
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
@@ -272,7 +272,7 @@ def test_sword_invalid_id(id_):
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
@@ -300,7 +300,7 @@ def test_sword_id(id_):
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "id": id_,
@@ -320,7 +320,7 @@ def test_sword_multiple_ids():
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "id": "http://example.org/foo",
@@ -338,7 +338,7 @@ def test_sword_type():
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "schema:WebSite",
@@ -357,7 +357,7 @@ def test_sword_multiple_type():
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result in (
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -382,7 +382,7 @@ def test_sword_schemaorg_in_codemeta():
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
@@ -406,7 +406,7 @@ def test_sword_schemaorg_in_codemeta_constrained():
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
@@ -426,7 +426,7 @@ def test_sword_schemaorg_not_in_codemeta():
     </atom:entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
@@ -442,7 +442,7 @@ def test_sword_atom_name():
     </entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "My Software",
@@ -462,7 +462,7 @@ def test_sword_multiple_names():
     </entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": [
@@ -490,7 +490,7 @@ def test_sword_propertyvalue():
     </entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "Name",
@@ -514,7 +514,7 @@ def test_sword_fix_date():
     </entry>
     """
 
-    result = MAPPINGS["SwordCodemetaMapping"]().translate(content)
+    result = get_mapping("SwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "name": "Name",
@@ -526,13 +526,13 @@ def test_sword_fix_date():
 
 def test_sword_codemeta_parsing_error(caplog):
     caplog.set_level(logging.ERROR)
-    assert MAPPINGS["SwordCodemetaMapping"]().translate(b"123") is None
+    assert get_mapping("SwordCodemetaMapping")().translate(b"123") is None
     assert caplog.text.endswith("Failed to parse XML document: b'123'\n")
 
 
 def test_json_sword():
     content = """{"id": "hal-01243573", "@xmlns": "http://www.w3.org/2005/Atom", "author": {"name": "Author 1", "email": "foo@example.org"}, "client": "hal", "codemeta:url": "http://example.org/", "codemeta:name": "The assignment problem", "@xmlns:codemeta": "https://doi.org/10.5063/SCHEMA/CODEMETA-2.0", "codemeta:author": {"codemeta:name": "Author 2"}, "codemeta:license": {"codemeta:name": "GNU General Public License v3.0 or later"}}"""  # noqa
-    result = MAPPINGS["JsonSwordCodemetaMapping"]().translate(content)
+    result = get_mapping("JsonSwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "author": [
@@ -548,7 +548,7 @@ def test_json_sword():
 
 def test_json_sword_no_xmlns():
     content = """{"title": "Example Software", "codemeta:url": "http://example.org/", "codemeta:author": [{"codemeta:name": "Author 1"}], "codemeta:version": "1.0"}"""  # noqa
-    result = MAPPINGS["JsonSwordCodemetaMapping"]().translate(content)
+    result = get_mapping("JsonSwordCodemetaMapping")().translate(content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "author": [
@@ -562,7 +562,7 @@ def test_json_sword_no_xmlns():
 
 def test_json_sword_codemeta_parsing_error(caplog):
     caplog.set_level(logging.ERROR)
-    assert MAPPINGS["JsonSwordCodemetaMapping"]().translate(b"{123}") is None
+    assert get_mapping("JsonSwordCodemetaMapping")().translate(b"{123}") is None
     assert caplog.text.endswith("Failed to parse JSON document: b'{123}'\n")
 
 
@@ -713,7 +713,7 @@ def test_validate_mention_id(compact_mention, caplog):
 
 
 def test_coarnotify_mention(raw_mention):
-    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
+    result = get_mapping("CoarNotifyMentionCodemetaMapping")().translate(raw_mention)
     assert result == {
         "@context": ["http://schema.org/", "https://w3id.org/codemeta/3.0"],
         "citation": [
@@ -733,7 +733,7 @@ def test_coarnotify_mention_invalid_json(raw_mention, mocker):
         "swh.indexer.metadata_dictionary.codemeta.load_and_compact_notification",
         return_value=None,
     )
-    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
+    result = get_mapping("CoarNotifyMentionCodemetaMapping")().translate(raw_mention)
     assert result is None
 
 
@@ -742,5 +742,5 @@ def test_coarnotify_mention_invalid_mention(raw_mention, mocker):
         "swh.indexer.metadata_dictionary.codemeta.validate_mention",
         return_value=False,
     )
-    result = MAPPINGS["CoarNotifyMentionMapping"]().translate(raw_mention)
+    result = get_mapping("CoarNotifyMentionCodemetaMapping")().translate(raw_mention)
     assert result is None

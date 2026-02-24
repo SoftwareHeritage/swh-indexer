@@ -33,6 +33,29 @@ testing = {file = ["requirements-test.txt"]}
 "remote" = "swh.indexer.storage.api.client:RemoteStorage"
 "memory" = "swh.indexer.storage.in_memory:IndexerStorage"
 
+[project.entry-points."swh.indexer.classes"]
+"origin_intrinsic_metadata" = "swh.indexer.metadata:OriginMetadataIndexer"
+"extrinsic_metadata" = "swh.indexer.metadata:ExtrinsicMetadataIndexer"
+"content_mimetype" = "swh.indexer.mimetype:MimetypeIndexer"
+"content_fossology_license" = "swh.indexer.fossology_license:FossologyLicenseIndexer"
+"content_metadata" = "swh.indexer.metadata:ContentMetadataIndexer"
+
+[project.entry-points."swh.indexer.metadata_mappings"]
+"CffMapping" = "swh.indexer.metadata_dictionary.cff:CffMapping"
+"CodemetaMapping" = "swh.indexer.metadata_dictionary.codemeta:CodemetaMapping"
+"GemspecMapping" = "swh.indexer.metadata_dictionary.ruby:GemspecMapping"
+"MavenMapping" = "swh.indexer.metadata_dictionary.maven:MavenMapping"
+"NpmMapping" = "swh.indexer.metadata_dictionary.npm:NpmMapping"
+"PubMapping" = "swh.indexer.metadata_dictionary.dart:PubspecMapping"
+"PythonPkginfoMapping" = "swh.indexer.metadata_dictionary.python:PythonPkginfoMapping"
+"ComposerMapping" = "swh.indexer.metadata_dictionary.composer:ComposerMapping"
+"NuGetMapping" = "swh.indexer.metadata_dictionary.nuget:NuGetMapping"
+"GiteaMapping" = "swh.indexer.metadata_dictionary.gitea:GiteaMapping"
+"GitHubMapping" = "swh.indexer.metadata_dictionary.github:GitHubMapping"
+"JsonSwordCodemetaMapping" = "swh.indexer.metadata_dictionary.codemeta:JsonSwordCodemetaMapping"
+"SwordCodemetaMapping" = "swh.indexer.metadata_dictionary.codemeta:SwordCodemetaMapping"
+"CoarNotifyMentionCodemetaMapping" = "swh.indexer.metadata_dictionary.codemeta:CoarNotifyMentionMapping"
+
 [project.urls]
 "Homepage" = "https://gitlab.softwareheritage.org/swh/devel/swh-indexer"
 "Bug Reports" = "https://gitlab.softwareheritage.org/swh/devel/swh-indexer/-/issues"
@@ -72,6 +95,7 @@ plugins = []
 # 3rd party libraries without stubs (yet)
 [[tool.mypy.overrides]]
 module = [
+    "backports.entry_points_selectable.*",
     "pybtex.*",
     "pyld.*",
 ]

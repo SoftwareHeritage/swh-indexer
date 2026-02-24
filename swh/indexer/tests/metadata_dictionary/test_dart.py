@@ -1,11 +1,13 @@
-# Copyright (C) 2022  The Software Heritage developers
+# Copyright (C) 2022-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
 import pytest
 
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
+
+PubMapping = get_mapping("PubMapping")
 
 
 def test_compute_metadata_pubspec():
@@ -39,7 +41,7 @@ dev_dependencies:
   test: '>=1.15.0 <2.0.0'
     """
 
-    result = MAPPINGS["PubMapping"]().translate(raw_content)
+    result = PubMapping().translate(raw_content)
 
     assert set(result.pop("keywords")) == {
         "polyfill",
@@ -68,7 +70,7 @@ def test_normalize_author_pubspec():
     author: Atlee Pine <atlee@example.org>
     """
 
-    result = MAPPINGS["PubMapping"]().translate(raw_content)
+    result = PubMapping().translate(raw_content)
 
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -88,7 +90,7 @@ def test_normalize_authors_pubspec():
       - Ron Bilius Weasley
     """
 
-    result = MAPPINGS["PubMapping"]().translate(raw_content)
+    result = PubMapping().translate(raw_content)
 
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -114,7 +116,7 @@ def test_normalize_author_authors_pubspec():
     author: Hermione Granger
     """
 
-    result = MAPPINGS["PubMapping"]().translate(raw_content)
+    result = PubMapping().translate(raw_content)
 
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -140,7 +142,7 @@ def test_normalize_empty_authors():
     authors:
     """
 
-    result = MAPPINGS["PubMapping"]().translate(raw_content)
+    result = PubMapping().translate(raw_content)
 
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -156,7 +158,7 @@ def test_invalid_yaml():
     license: { :type => "Commercial", :file => "LICENSE" }
     """
 
-    result = MAPPINGS["PubMapping"]().translate(raw_content)
+    result = PubMapping().translate(raw_content)
 
     assert result is None
 
@@ -167,6 +169,6 @@ def test_invalid_tag():
     description: !BETA VERSION - NOT FOR LIVE OR PROD USAGE!
     """
 
-    result = MAPPINGS["PubMapping"]().translate(raw_content)
+    result = PubMapping().translate(raw_content)
 
     assert result is None

@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -7,9 +7,11 @@ import logging
 
 from hypothesis import HealthCheck, given, settings
 
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
 
 from ..utils import xml_document_strategy
+
+MavenMapping = get_mapping("MavenMapping")
 
 
 def test_compute_metadata_maven():
@@ -40,7 +42,7 @@ def test_compute_metadata_maven():
         </license>
       </licenses>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -56,7 +58,7 @@ def test_compute_metadata_maven_empty():
     raw_content = b"""
     <project>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -68,7 +70,7 @@ def test_compute_metadata_maven_almost_empty():
     <project>
       <foo/>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -86,14 +88,14 @@ def test_compute_metadata_maven_invalid_xml(caplog):
     raw_content = b"""
     <project>"""
     caplog.clear()
-    result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+    result = MavenMapping("foo").translate(raw_content)
     assert caplog.record_tuples == [expected_warning], result
     assert result is None
 
     raw_content = b"""
     """
     caplog.clear()
-    result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+    result = MavenMapping("foo").translate(raw_content)
     assert caplog.record_tuples == [expected_warning], result
     assert result is None
 
@@ -110,7 +112,7 @@ def test_compute_metadata_maven_unknown_encoding(caplog):
     <project>
     </project>"""
     caplog.clear()
-    result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+    result = MavenMapping("foo").translate(raw_content)
     assert caplog.record_tuples == [expected_warning], result
     assert result is None
 
@@ -118,7 +120,7 @@ def test_compute_metadata_maven_unknown_encoding(caplog):
     <project>
     </project>"""
     caplog.clear()
-    result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+    result = MavenMapping("foo").translate(raw_content)
     assert caplog.record_tuples == [expected_warning], result
     assert result is None
 
@@ -148,7 +150,7 @@ def test_compute_metadata_maven_invalid_encoding(caplog):
     <foo\xe5ct>
     </foo>"""
     caplog.clear()
-    result = MAPPINGS["MavenMapping"]("foo").translate(raw_content)
+    result = MavenMapping("foo").translate(raw_content)
     assert caplog.record_tuples in expected_warning, result
     assert result is None
 
@@ -162,7 +164,7 @@ def test_compute_metadata_maven_minimal():
       <artifactId>my-app</artifactId>
       <version>1.2.3</version>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -186,7 +188,7 @@ def test_compute_metadata_maven_empty_nodes():
       <repositories>
       </repositories>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -206,7 +208,7 @@ def test_compute_metadata_maven_empty_nodes():
       <artifactId>my-app</artifactId>
       <version></version>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -225,7 +227,7 @@ def test_compute_metadata_maven_empty_nodes():
       <artifactId>my-app</artifactId>
       <version>1.2.3</version>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -246,7 +248,7 @@ def test_compute_metadata_maven_empty_nodes():
       <licenses>
       </licenses>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -263,7 +265,7 @@ def test_compute_metadata_maven_empty_nodes():
       <groupId></groupId>
       <version>1.2.3</version>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -283,7 +285,7 @@ def test_compute_metadata_maven_invalid_licenses():
         foo
       </licenses>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -335,7 +337,7 @@ def test_compute_metadata_maven_multiple():
         </license>
       </licenses>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert set(result.pop("license")) == {
         "https://www.apache.org/licenses/LICENSE-2.0.txt",
         "https://opensource.org/licenses/MIT",
@@ -383,7 +385,7 @@ def test_compute_metadata_maven_invalid_repository():
         </license>
       </licenses>
     </project>"""
-    result = MAPPINGS["MavenMapping"]().translate(raw_content)
+    result = MavenMapping().translate(raw_content)
     assert result == {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
@@ -397,10 +399,10 @@ def test_compute_metadata_maven_invalid_repository():
 @settings(suppress_health_check=[HealthCheck.too_slow])
 @given(
     xml_document_strategy(
-        keys=list(MAPPINGS["MavenMapping"].mapping),  # type: ignore
+        keys=list(MavenMapping.mapping),  # type: ignore
         root="project",
         xmlns="http://maven.apache.org/POM/4.0.0",
     )
 )
 def test_maven_adversarial(doc):
-    MAPPINGS["MavenMapping"]().translate(doc)
+    MavenMapping().translate(doc)

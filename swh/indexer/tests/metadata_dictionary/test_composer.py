@@ -1,9 +1,9 @@
-# Copyright (C) 2017-2022  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
 
 
 def test_compute_metadata_composer():
@@ -58,7 +58,7 @@ def test_compute_metadata_composer():
         "utf-8"
     )
 
-    result = MAPPINGS["ComposerMapping"]().translate(raw_content)
+    result = get_mapping("ComposerMapping")().translate(raw_content)
 
     assert set(result.pop("keywords")) == {
         "polyfill",

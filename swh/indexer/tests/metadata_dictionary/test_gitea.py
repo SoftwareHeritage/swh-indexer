@@ -1,9 +1,11 @@
-# Copyright (C) 2022  The Software Heritage developers
+# Copyright (C) 2022-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from swh.indexer.metadata_dictionary import MAPPINGS
+from swh.indexer.metadata_dictionary import get_mapping
+
+GiteaMapping = get_mapping("GiteaMapping")
 
 CONTEXT = [
     "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -24,12 +26,12 @@ def test_compute_metadata_none():
 
     # None if no metadata was found or an error occurred
     declared_metadata = None
-    result = MAPPINGS["GiteaMapping"]().translate(content)
+    result = GiteaMapping().translate(content)
     assert declared_metadata == result
 
 
 def test_supported_terms():
-    terms = MAPPINGS["GiteaMapping"].supported_terms()
+    terms = GiteaMapping.supported_terms()
     assert {
         "http://schema.org/name",
         "http://schema.org/dateCreated",
@@ -118,7 +120,7 @@ def test_compute_metadata_gitea():
   "repo_transfer": null
 }
     """
-    result = MAPPINGS["GiteaMapping"]().translate(content)
+    result = GiteaMapping().translate(content)
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",
@@ -164,7 +166,7 @@ def test_gitea_fork():
   }
 }
     """
-    result = MAPPINGS["GiteaMapping"]().translate(content)
+    result = GiteaMapping().translate(content)
     assert result == {
         "@context": CONTEXT,
         "type": "forge:Repository",
