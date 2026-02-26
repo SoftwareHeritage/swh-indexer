@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -593,13 +593,13 @@ def raw_mention():
                 "https://www.w3.org/ns/activitystreams#object": [
                     {
                         "https://www.w3.org/ns/activitystreams#object": [
-                            {"@value": "https://research.local/item/201203/422/"}
+                            {"@id": "https://research.local/item/201203/422/"}
                         ],
                         "https://www.w3.org/ns/activitystreams#relationship": [
-                            {"@value": "http://purl.org/vocab/frbr/core#supplement"}
+                            {"@id": "http://purl.org/vocab/frbr/core#supplement"}
                         ],
                         "https://www.w3.org/ns/activitystreams#subject": [
-                            {"@value": "https://github.com/rdicosmo/parmap"}
+                            {"@id": "https://github.com/rdicosmo/parmap"}
                         ],
                         "@id": "urn:uuid:74FFB356-0632-44D9-B176-888DA85758DC",
                         "@type": ["https://www.w3.org/ns/activitystreams#Relationship"],
@@ -644,7 +644,7 @@ def test_load_and_compact_notification(raw_mention, caplog):
         "https://coar-notify.net",
     ]
     assert result["type"] == ["Announce", "RelationshipAction"]
-    assert result["context"]["id"] == result["object"]["as:object"]
+    assert result["context"]["id"] == result["as:object"]["as:object"]
 
 
 @pytest.mark.parametrize(
@@ -668,16 +668,16 @@ def test_validate_mention_object(compact_mention, caplog):
     caplog.set_level(logging.ERROR)
     msg = "Missing object[as:object] key"
     mention = compact_mention.copy()
-    orignal_object = mention["object"]
+    orignal_object = mention["as:object"]
 
-    del mention["object"]
+    del mention["as:object"]
     assert not validate_mention(mention)
     assert msg in caplog.text
 
     caplog.clear()
-    mention["object"] = orignal_object
+    mention["as:object"] = orignal_object
 
-    del mention["object"]["as:object"]
+    del mention["as:object"]["as:object"]
     assert not validate_mention(mention)
     assert msg in caplog.text
 

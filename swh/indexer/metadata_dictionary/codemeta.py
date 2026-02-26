@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2024  The Software Heritage developers
+# Copyright (C) 2018-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -276,7 +276,9 @@ def validate_mention(notification: dict[str, Any]) -> bool:
     Returns:
         False if the we can't find required props in the notification
     """
-    object_ = notification.get("object", {}).get("as:object")
+
+    object_ = notification.get("as:object", {}).get("as:object")
+    # breakpoint()
     if object_ is None:
         logger.error("Missing object[as:object] key in %s", notification)
         return False
