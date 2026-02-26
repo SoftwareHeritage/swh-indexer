@@ -274,7 +274,7 @@ def validate_mention(notification: dict[str, Any]) -> bool:
         notification: a compact form of a COAR Notification
 
     Returns:
-        False if the we can't find required props in the notification
+        False if the required props cannot be found in the notification
     """
 
     object_ = notification.get("as:object", {}).get("as:object")
