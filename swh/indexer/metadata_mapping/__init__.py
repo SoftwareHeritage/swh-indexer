@@ -63,10 +63,42 @@ def get_mapping_names() -> List[str]:
 
 def load_mappings() -> Dict[str, Type[BaseExtrinsicMapping]]:
     from backports.entry_points_selectable import entry_points as get_entry_points
+    from importlib_metadata import EntryPoint
 
-    entry_points = get_entry_points(group="swh.indexer.metadata_mappings")
-    mappings = {ep.name: ep.load() for ep in entry_points}
-    return mappings
+    entry_points: Dict[str, EntryPoint] = {}
+
+    for ep in get_entry_points(group="swh.indexer.metadata_mappings"):
+        if ep.name in entry_points:
+            # if a mapping is defined twice, keep the one not coming from
+            # swh.indexer; this will help moving mappings from swh-indexer to
+            # their respective "natural" packages.
+            cur_ep = entry_points[ep.name]
+            if ep.module.startswith("swh.indexer.metadata_mapping"):
+                LOGGER.info(
+                    "Using metadata mapping %s from %s over %s",
+                    ep.name,
+                    cur_ep.module,
+                    ep.module,
+                )
+                continue
+            else:
+                if not cur_ep.module.startswith("swh.indexer.metadata_mapping"):
+                    raise EnvironmentError(
+                        "The metadata mapping %s from %s is conflicting with %s.%s"
+                        % (ep.name, ep.module, cur_ep.module, ep.name)
+                    )
+                else:
+                    LOGGER.info(
+                        "Using metadata mapping %s from %s over %s",
+                        ep.name,
+                        ep.module,
+                        cur_ep.module,
+                    )
+
+        LOGGER.debug("Registering metadata mapping %s from %s", ep.name, ep.module)
+        entry_points[ep.name] = ep
+
+    return {ep.name: ep.load() for ep in entry_points.values()}
 
 
 def list_terms():
