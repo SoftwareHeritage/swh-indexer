@@ -1,3 +1,5 @@
+.. _metadata-workflow:
+
 Metadata workflow
 =================
 
@@ -26,6 +28,8 @@ Data flow and storage
 .. thumbnail:: images/metadata-flow.svg
 
 
+.. _origin-head-indexer:
+
 Origin-Head Indexer
 ^^^^^^^^^^^^^^^^^^^
 
@@ -43,6 +47,8 @@ It schedules a Directory Metadata Indexer task for the root directory of
 that revision.
 
 
+.. _directory-content-indexer:
+
 Directory and Content Metadata Indexers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -59,6 +65,8 @@ See below for details.
 Their results are saved in a database (the indexer storage), associated with
 the content and directory hashes.
 
+
+.. _origin-indexer:
 
 Origin Metadata Indexer
 ^^^^^^^^^^^^^^^^^^^^^^^

@@ -47,3 +47,6 @@ Current origin indexers:
 
 - metadata: translate file from an ecosystem-specific formats to JSON-LD
   (using schema.org/CodeMeta and ForgeFed vocabularies)
+
+Custom indexers and metadata mappings can be added as plugins, see
+:ref:`custom_indexers`.

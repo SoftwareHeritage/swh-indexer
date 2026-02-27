@@ -8,6 +8,7 @@
 
    README.md
    metadata-workflow.rst
+   custom-indexers.rst
    swhpkg.rst
 
 
