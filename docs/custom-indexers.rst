@@ -1,3 +1,5 @@
+.. _custom_indexers:
+
 Custom indexers and metadata mappings
 =====================================
 
