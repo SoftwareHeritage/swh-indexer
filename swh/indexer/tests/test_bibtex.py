@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025  The Software Heritage developers
+# Copyright (C) 2023-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -7,32 +7,45 @@ import textwrap
 
 import pytest
 
-from swh.indexer.bibtex import BibTeXCitationError, cff_to_bibtex, codemeta_to_bibtex
+from swh.indexer.citation import CitationError, CitationFormat, codemeta_to_citation
+from swh.indexer.citation.bibtex import codemeta_data_to_bibtex
+from swh.indexer.citation.codemeta_data import extract_codemeta_data
 from swh.indexer.codemeta import CODEMETA_V3_CONTEXT
+from swh.indexer.metadata_mapping.cff import CffMapping
 from swh.model.swhids import QualifiedSWHID
+
+
+def cff_to_bibtex(cff_text: str) -> str:
+    codemeta = CffMapping().translate(cff_text.encode()) or {
+        "@context": "https://doi.org/10.5063/schema/codemeta-2.0"
+    }
+    codemeta_data = extract_codemeta_data(codemeta)
+    return codemeta_data_to_bibtex(codemeta_data)
 
 
 def test_empty():
     with pytest.raises(
-        BibTeXCitationError,
+        CitationError,
         match="No BibTex fields could be extracted from citation metadata file",
     ):
-        codemeta_to_bibtex(
+        codemeta_to_citation(
             {
                 "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-            }
+            },
+            CitationFormat.BIBTEX,
         )
 
 
 def test_minimal():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -48,14 +61,15 @@ def test_minimal():
 
 
 def test_empty_author_list():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": [],
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -71,7 +85,7 @@ def test_empty_author_list():
 
 @pytest.mark.parametrize("key", ["version", "softwareVersion"])
 def test_version_minimal(key):
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
@@ -79,7 +93,8 @@ def test_version_minimal(key):
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
             key: "1.2.3",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @softwareversion{REPLACEME,
@@ -96,7 +111,7 @@ def test_version_minimal(key):
 
 
 def test_id():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
@@ -104,7 +119,8 @@ def test_id():
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
             "identifier": "example-software",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{example-software,
@@ -121,7 +137,7 @@ def test_id():
 
 @pytest.mark.parametrize("key", ["@id", "id", "identifier"])
 def test_id_url(key):
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
@@ -129,7 +145,8 @@ def test_id_url(key):
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
             key: "http://example.org/example-software",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -146,7 +163,7 @@ def test_id_url(key):
 
 @pytest.mark.parametrize("key", ["@id", "id", "identifier"])
 def test_id_doi(key):
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
@@ -154,7 +171,8 @@ def test_id_doi(key):
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
             key: "https://doi.org/10.1000/182",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -171,7 +189,7 @@ def test_id_doi(key):
 
 
 def test_license():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
@@ -179,7 +197,8 @@ def test_license():
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
             "license": "https://spdx.org/licenses/Apache-2.0",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -196,7 +215,7 @@ def test_license():
 
 
 def test_licenses():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
@@ -207,7 +226,8 @@ def test_licenses():
                 "https://spdx.org/licenses/Apache-2.0",
                 "https://spdx.org/licenses/GPL-3.0",
             ],
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -224,7 +244,7 @@ def test_licenses():
 
 
 def test_organization_author():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {
@@ -234,7 +254,8 @@ def test_organization_author():
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -250,7 +271,7 @@ def test_organization_author():
 
 
 def test_affiliation():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {
@@ -260,7 +281,8 @@ def test_affiliation():
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -277,7 +299,7 @@ def test_affiliation():
 
 
 def test_author_id():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {
@@ -287,7 +309,8 @@ def test_author_id():
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -303,7 +326,7 @@ def test_author_id():
 
 
 def test_author_invalid_id():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {
@@ -313,7 +336,8 @@ def test_author_invalid_id():
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -329,7 +353,7 @@ def test_author_invalid_id():
 
 
 def test_invalid_date():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
@@ -337,7 +361,8 @@ def test_invalid_date():
             "url": "http://example.org/",
             "datePublished": "TBD",
             "license": "https://spdx.org/licenses/Apache-2.0",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -352,7 +377,7 @@ def test_invalid_date():
 
 
 def test_context_contains_schema_org():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": [
                 "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -363,7 +388,8 @@ def test_context_contains_schema_org():
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
             "license": "https://spdx.org/licenses/Apache-2.0",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -415,14 +441,15 @@ def test_context_contains_schema_org():
     ],
 )
 def test_author_role(author):
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://w3id.org/codemeta/3.0",
             "author": author,
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -439,7 +466,7 @@ def test_author_role(author):
 
 def test_cff_empty():
     with pytest.raises(
-        BibTeXCitationError,
+        CitationError,
         match="No BibTex fields could be extracted from citation metadata file",
     ):
         cff_to_bibtex("")
@@ -447,7 +474,7 @@ def test_cff_empty():
 
 def test_cff_invalid():
     with pytest.raises(
-        BibTeXCitationError,
+        CitationError,
         match="No BibTex fields could be extracted from citation metadata file",
     ):
         cff_to_bibtex("foo")
@@ -513,12 +540,13 @@ url: "http://example.org/"
 
 
 def test_swhid_type_snp():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
             "name": "Example Software",
         },
+        CitationFormat.BIBTEX,
         QualifiedSWHID.from_string(
             "swh:1:snp:da39a3ee5e6b4b0d3255bfef95601890afd80709"
         ),
@@ -534,12 +562,13 @@ def test_swhid_type_snp():
 
 
 def test_swhid_type_rev():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
             "name": "Example Software",
         },
+        CitationFormat.BIBTEX,
         QualifiedSWHID.from_string(
             "swh:1:rev:5b909292bcfe6099d726c0b5194165c72f93b767"
         ),
@@ -555,12 +584,13 @@ def test_swhid_type_rev():
 
 
 def test_swhid_type_cnt():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
             "author": {"name": "Jane Doe"},
             "name": "Example Software",
         },
+        CitationFormat.BIBTEX,
         QualifiedSWHID.from_string(
             "swh:1:cnt:5b909292bcfe6099d726c0b5194165c72f93b767;lines=5-10"
         ),
@@ -576,14 +606,15 @@ def test_swhid_type_cnt():
 
 
 def test_codemeta_v3_context():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://w3id.org/codemeta/3.0",
             "author": {"name": "Jane Doe"},
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -599,14 +630,15 @@ def test_codemeta_v3_context():
 
 
 def test_codemeta_context_with_trailing_slash():
-    assert codemeta_to_bibtex(
+    assert codemeta_to_citation(
         {
             "@context": "https://w3id.org/codemeta/3.0/",
             "author": {"name": "Jane Doe"},
             "name": "Example Software",
             "url": "http://example.org/",
             "datePublished": "2023-10-10",
-        }
+        },
+        CitationFormat.BIBTEX,
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -665,11 +697,11 @@ def test_codemeta_to_bibtex_resolve_unknown_context_url(requests_mock):
 
     # should raise by default with an unknown context URL
     with pytest.raises(Exception, match=f"Unknown context URL: {unknown_context_url}"):
-        codemeta_to_bibtex(codemeta)
+        codemeta_to_citation(codemeta, CitationFormat.BIBTEX)
 
     # should generate citation after fetching context with requests
-    assert codemeta_to_bibtex(
-        codemeta, resolve_unknown_context_url=True
+    assert codemeta_to_citation(
+        codemeta, CitationFormat.BIBTEX, resolve_unknown_context_url=True
     ) == textwrap.dedent(
         """\
         @software{REPLACEME,
@@ -696,10 +728,12 @@ def test_codemeta_to_bibtex_force_codemeta_context():
 
     # should raise by default with an unknown context URL
     with pytest.raises(Exception, match=f"Unknown context URL: {unknown_context_url}"):
-        codemeta_to_bibtex(codemeta)
+        codemeta_to_citation(codemeta, CitationFormat.BIBTEX)
 
     # should generate citation after overriding JSON-LD context to CodeMeta v3.0
-    assert codemeta_to_bibtex(codemeta, force_codemeta_context=True) == textwrap.dedent(
+    assert codemeta_to_citation(
+        codemeta, CitationFormat.BIBTEX, force_codemeta_context=True
+    ) == textwrap.dedent(
         """\
         @software{REPLACEME,
             author = "Doe, Jane",
