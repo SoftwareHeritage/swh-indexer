@@ -54,7 +54,6 @@ testing = {file = ["requirements-test.txt"]}
 "GitHubMapping" = "swh.indexer.metadata_mapping.github:GitHubMapping"
 "JsonSwordCodemetaMapping" = "swh.indexer.metadata_mapping.sword:JsonSwordCodemetaMapping"
 "SwordCodemetaMapping" = "swh.indexer.metadata_mapping.sword:SwordCodemetaMapping"
-"CoarNotifyMentionCodemetaMapping" = "swh.indexer.metadata_mapping.coarnotify:CoarNotifyMentionMapping"
 
 [project.urls]
 "Homepage" = "https://gitlab.softwareheritage.org/swh/devel/swh-indexer"
