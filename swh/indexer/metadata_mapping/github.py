@@ -1,4 +1,4 @@
-# Copyright (C) 2022  The Software Heritage developers
+# Copyright (C) 2022-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -8,7 +8,14 @@ from typing import Any, Tuple
 from rdflib import RDF, BNode, Graph, Literal, URIRef
 
 from swh.indexer.codemeta import CROSSWALK_TABLE
-from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA, XSD
+from swh.indexer.namespaces import (
+    ACTIVITYSTREAMS,
+    CODEMETA,
+    FORGEFED,
+    MESOCORE,
+    SCHEMA,
+    XSD,
+)
 
 from .base import BaseExtrinsicMapping, JsonMapping, produce_terms
 from .utils import add_url_if_valid, prettyprint_graph  # noqa
@@ -174,6 +181,37 @@ class GitHubMapping(BaseExtrinsicMapping, JsonMapping):
         if isinstance(v, int):
             collection = BNode()
             graph.add((root, ACTIVITYSTREAMS.followers, collection))
+            graph.add((collection, RDF.type, ACTIVITYSTREAMS.Collection))
+            graph.add(
+                (
+                    collection,
+                    ACTIVITYSTREAMS.totalItems,
+                    Literal(v, datatype=XSD.nonNegativeInteger),
+                )
+            )
+
+    @produce_terms(MESOCORE.openIssues, ACTIVITYSTREAMS.totalItems)
+    def translate_open_issues_count(self, graph: Graph, root: BNode, v: Any) -> None:
+        """
+
+        >>> graph = Graph()
+        >>> root = URIRef("http://example.org/test-software")
+        >>> GitHubMapping().translate_open_issues_count(graph, root, 42)
+        >>> prettyprint_graph(graph, root)
+        {
+            "@id": ...,
+            "https://www.softwareheritage.org/schema/2022/mesocore/openIssues": {
+                "@type": "https://www.w3.org/ns/activitystreams#Collection",
+                "https://www.w3.org/ns/activitystreams#totalItems": {
+                    "@type": "http://www.w3.org/2001/XMLSchema#nonNegativeInteger",
+                    "@value": "42"
+                }
+            }
+        }
+        """
+        if isinstance(v, int):
+            collection = BNode()
+            graph.add((root, MESOCORE.openIssues, collection))
             graph.add((collection, RDF.type, ACTIVITYSTREAMS.Collection))
             graph.add(
                 (

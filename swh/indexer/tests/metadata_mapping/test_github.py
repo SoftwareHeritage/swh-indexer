@@ -12,6 +12,7 @@ CONTEXT = [
     {
         "as": "https://www.w3.org/ns/activitystreams#",
         "forge": "https://forgefed.org/ns#",
+        "mesocore": "https://www.softwareheritage.org/schema/2022/mesocore/",
         "xsd": "http://www.w3.org/2001/XMLSchema#",
     },
 ]
@@ -86,7 +87,7 @@ def test_compute_metadata_github():
   "mirror_url": null,
   "archived": false,
   "disabled": false,
-  "open_issues_count": 0,
+  "open_issues_count": 10,
   "license": {
     "key": "gpl-3.0",
     "name": "GNU General Public License v3.0",
@@ -143,6 +144,13 @@ def test_compute_metadata_github():
             "as:totalItems": {
                 "type": "xsd:nonNegativeInteger",
                 "@value": "6",
+            },
+            "type": "as:Collection",
+        },
+        "mesocore:openIssues": {
+            "as:totalItems": {
+                "type": "xsd:nonNegativeInteger",
+                "@value": "10",
             },
             "type": "as:Collection",
         },
