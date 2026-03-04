@@ -253,7 +253,7 @@ def journal_client(
     unknown = set(indexers) - set(available_indexers)
     if unknown:
         raise click.ClickException(
-            f"Unknown indexer{'s' if len(unknown)>1 else ''}: {','.join(unknown)}"
+            f"Unknown indexer{'s' if len(unknown) > 1 else ''}: {','.join(unknown)}"
         )
 
     idx: Optional[BaseIndexer] = None
