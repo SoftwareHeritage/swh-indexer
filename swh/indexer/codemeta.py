@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2025  The Software Heritage developers
+# Copyright (C) 2018-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -17,7 +17,14 @@ from pyld.documentloader.requests import requests_document_loader
 import rdflib
 
 import swh.indexer
-from swh.indexer.namespaces import ACTIVITYSTREAMS, CODEMETA, FORGEFED, SCHEMA, XSD
+from swh.indexer.namespaces import (
+    ACTIVITYSTREAMS,
+    CODEMETA,
+    FORGEFED,
+    MESOCORE,
+    SCHEMA,
+    XSD,
+)
 
 _DATA_DIR = os.path.join(os.path.dirname(swh.indexer.__file__), "data")
 
@@ -195,7 +202,12 @@ def compact(
     contexts: List[Any] = [CODEMETA_V2_CONTEXT_URL]
     if forgefed:
         contexts.append(
-            {"as": str(ACTIVITYSTREAMS), "forge": str(FORGEFED), "xsd": str(XSD)}
+            {
+                "as": str(ACTIVITYSTREAMS),
+                "forge": str(FORGEFED),
+                "mesocore": str(MESOCORE),
+                "xsd": str(XSD),
+            }
         )
     return jsonld.compact(
         doc,
