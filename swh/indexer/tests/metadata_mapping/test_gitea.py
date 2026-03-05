@@ -12,6 +12,7 @@ CONTEXT = [
     {
         "as": "https://www.w3.org/ns/activitystreams#",
         "forge": "https://forgefed.org/ns#",
+        "mesocore": "https://www.softwareheritage.org/schema/2022/mesocore/",
         "xsd": "http://www.w3.org/2001/XMLSchema#",
     },
 ]
