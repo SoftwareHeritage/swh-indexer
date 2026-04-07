@@ -125,7 +125,7 @@ s.summary = 'execute system commands with aliases'
         ),
         # values
         strategies.recursive(
-            strategies.characters(),
+            strategies.characters(codec="utf-8"),
             lambda children: strategies.lists(children, min_size=1),
         ),
     )

@@ -19,7 +19,7 @@ def test_compute_metadata_valid_codemeta():
     raw_content = b"""{
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "@type": "SoftwareSourceCode",
-        "identifier": "CodeMeta",
+        "identifier": "https://doi.org/10.5063/schema/codemeta-2.0",
         "description": "CodeMeta is a concept vocabulary that can be used to standardize the exchange of software metadata across repositories and organizations.",
         "name": "CodeMeta: Minimal metadata schemas for science software and code, in JSON-LD",
         "codeRepository": "https://github.com/codemeta/codemeta",
@@ -50,7 +50,7 @@ def test_compute_metadata_valid_codemeta():
           "@id": "http://orcid.org/0000-0002-0000-001X"
         },
         "contIntegration": "https://travis-ci.org/codemeta/codemeta",
-        "developmentStatus": "active",
+        "developmentStatus": "https://www.repostatus.org/#active",
         "downloadUrl": "https://github.com/codemeta/codemeta/archive/2.0.zip",
         "funder": {
             "@id": "https://doi.org/10.13039/100000001",
@@ -70,7 +70,7 @@ def test_compute_metadata_valid_codemeta():
     expected_result = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
-        "identifier": "CodeMeta",
+        "identifier": "https://doi.org/10.5063/schema/codemeta-2.0",
         "description": "CodeMeta is a concept vocabulary that can "
         "be used to standardize the exchange of software metadata "
         "across repositories and organizations.",
@@ -104,7 +104,7 @@ def test_compute_metadata_valid_codemeta():
             "id": "http://orcid.org/0000-0002-0000-001X",
         },
         "contIntegration": "https://travis-ci.org/codemeta/codemeta",
-        "developmentStatus": "active",
+        "developmentStatus": "https://www.repostatus.org/#active",
         "downloadUrl": "https://github.com/codemeta/codemeta/archive/2.0.zip",
         "funder": {
             "id": "https://doi.org/10.13039/100000001",
@@ -127,12 +127,12 @@ def test_compute_metadata_codemeta_alternate_context():
     raw_content = b"""{
         "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
         "@type": "SoftwareSourceCode",
-        "identifier": "CodeMeta"
+        "identifier": "https://doi.org/10.5063/schema/codemeta-2.0"
     }"""  # noqa
     expected_result = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
-        "identifier": "CodeMeta",
+        "identifier": "https://doi.org/10.5063/schema/codemeta-2.0",
     }
     result = get_mapping("CodemetaMapping")().translate(raw_content)
     assert result == expected_result

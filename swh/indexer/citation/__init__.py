@@ -61,6 +61,9 @@ def codemeta_to_citation(
             resolve_unknown_context_url=resolve_unknown_context_url,
         )
     except JsonLdError as e:
-        raise CitationError(str(e.cause))
+        cause = e.__cause__
+        while cause.__cause__ is not None:
+            cause = cause.__cause__
+        raise CitationError(str(cause))
 
     return CITATION_FORMAT_CONVERTER[format](codemeta_data)

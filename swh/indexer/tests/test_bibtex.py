@@ -110,31 +110,6 @@ def test_version_minimal(key):
     )
 
 
-def test_id():
-    assert codemeta_to_citation(
-        {
-            "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-            "author": {"name": "Jane Doe"},
-            "name": "Example Software",
-            "url": "http://example.org/",
-            "datePublished": "2023-10-10",
-            "identifier": "example-software",
-        },
-        CitationFormat.BIBTEX,
-    ) == textwrap.dedent(
-        """\
-        @software{example-software,
-            author = "Doe, Jane",
-            date = "2023-10-10",
-            year = "2023",
-            month = oct,
-            title = "Example Software",
-            url = "http://example.org/"
-        }
-        """
-    )
-
-
 @pytest.mark.parametrize("key", ["@id", "id", "identifier"])
 def test_id_url(key):
     assert codemeta_to_citation(

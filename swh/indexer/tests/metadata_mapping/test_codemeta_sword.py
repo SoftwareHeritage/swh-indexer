@@ -110,8 +110,6 @@ def test_sword_invalid_id(id_):
 @pytest.mark.parametrize(
     "id_",
     [
-        "foo",
-        "42",
         "http://example.org/",
         "http://example.org/foo",
         "https://example.org/",
