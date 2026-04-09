@@ -3,7 +3,8 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from importlib_metadata import EntryPoint
+from importlib.metadata import EntryPoint
+
 import pytest
 
 from swh.indexer.metadata_mapping import load_mappings
