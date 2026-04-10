@@ -70,15 +70,52 @@ T2 = TypeVar("T2")
 logger = logging.getLogger(__name__)
 
 
-def call_with_batches(
-    f: Callable[[List[T1]], Iterable[T2]],
+def fetch_in_batches(
+    fetch_fn: Callable[[List[T1]], Iterable[T2]],
     args: List[T1],
     batch_size: int,
 ) -> Iterator[T2]:
-    """Calls a function with batches of args, and concatenates the results."""
-    groups = grouper(args, batch_size)
-    for group in groups:
-        yield from f(list(group))
+    """Calls a function with batches of args, and concatenates the results.
+
+    If a particular batch raises an exception, the error is logged and the
+    batch is skipped; processing continues with the next chunk.  Successful
+    batches are yielded unchanged, so callers receive a *partial* result set
+    rather than a total failure.
+
+    This manages internally any exceptions raised by the callable `fetch_fn` and logs
+    it.
+
+    """
+    batchs = grouper(args, batch_size)
+    for batch in batchs:
+        try:
+            batch_list = list(batch)
+            yield from fetch_fn(batch_list)
+        except Exception as exc:
+            # Log the error for easier debugging
+            logger.error(
+                "Batch %s failed when calling %r: %s",
+                batch_list,
+                fetch_fn,
+                exc,
+                exc_info=True,
+            )
+            # Continue with the next batch, will return less items if this raises
+            continue
+
+
+def fetch_as_dict(
+    fetch_fn: Callable[[List[T1]], Iterable[T2]],
+    ids: List[T1],
+    batch_size: int,
+) -> Dict[T1, T2]:
+    """Return a dict ``{id: object}``; missing items are logged."""
+    result: Dict[T1, T2] = {}
+    for obj in fetch_in_batches(fetch_fn, ids, batch_size):
+        if obj is None:
+            continue
+        result[obj.id] = obj  # type: ignore
+    return result
 
 
 class ExtrinsicMetadataIndexer(
@@ -483,9 +520,9 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 class OriginMetadataIndexer(
     OriginIndexer[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]
 ):
-    """Indexer for intrinsice metadata found within origin's root directory
+    """Indexer for intrinsic metadata found within origin's root directory
 
-    If there is a metadata file corresponding to a known format in the roor
+    If there is a metadata file corresponding to a known format in the root
     directory of an Origin (i.e. in the root directory of the , read it and
 
     """
@@ -507,46 +544,50 @@ class OriginMetadataIndexer(
         head_rel_ids = []
         origin_heads: Dict[Origin, CoreSWHID] = {}
 
-        # Filter out origins not in the storage
+        # Filter out origins missing from the storage
         if check_origin_known:
-            known_origins = list(
-                call_with_batches(
+            known_urls = set(
+                fetch_in_batches(
                     self.storage.origin_get,
                     [origin.url for origin in origins],
                     ORIGIN_GET_BATCH_SIZE,
                 )
             )
+            known_origins = [o for o in origins if o in known_urls]
         else:
             known_origins = list(origins)
 
+        # Scan origins once, collect head IDs per object type {release, revision}
         for origin in known_origins:
             if origin is None:
                 continue
             head_swhid = get_head_swhid(self.storage, origin.url)
-            if head_swhid:
-                origin_heads[origin] = head_swhid
-                if head_swhid.object_type == ObjectType.REVISION:
-                    head_rev_ids.append(head_swhid.object_id)
-                elif head_swhid.object_type == ObjectType.RELEASE:
-                    head_rel_ids.append(head_swhid.object_id)
-                else:
-                    assert False, head_swhid
+            if head_swhid is None:
+                continue
+            if head_swhid.object_type == ObjectType.REVISION:
+                head_rev_ids.append(head_swhid.object_id)
+            elif head_swhid.object_type == ObjectType.RELEASE:
+                head_rel_ids.append(head_swhid.object_id)
+            else:
+                self.log.error(
+                    "Unexpected object type %s for origin %s. Skipping",
+                    head_swhid,
+                    origin.url,
+                )
+                continue
+            # Skip origin already whose head is already detected
+            if origin in origin_heads:
+                continue
+            origin_heads[origin] = head_swhid
 
-        head_revs = dict(
-            zip(
-                head_rev_ids,
-                call_with_batches(
-                    self.storage.revision_get, head_rev_ids, REVISION_GET_BATCH_SIZE
-                ),
-            )
+        # fetch revisions (and releases) as dict. If revision_get (or release_get)
+        # raises, this will skip such objects. It will receive less results but continue
+        # indexation.
+        head_revs = fetch_as_dict(
+            self.storage.revision_get, head_rev_ids, REVISION_GET_BATCH_SIZE
         )
-        head_rels = dict(
-            zip(
-                head_rel_ids,
-                call_with_batches(
-                    self.storage.release_get, head_rel_ids, RELEASE_GET_BATCH_SIZE
-                ),
-            )
+        head_rels = fetch_as_dict(
+            self.storage.release_get, head_rel_ids, RELEASE_GET_BATCH_SIZE
         )
 
         results = []
@@ -554,18 +595,22 @@ class OriginMetadataIndexer(
             sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
             sentry_sdk.set_tag("swh-indexer-origin-head-swhid", str(head_swhid))
             if head_swhid.object_type == ObjectType.REVISION:
-                rev = head_revs[head_swhid.object_id]
+                rev = head_revs.get(head_swhid.object_id)
                 if not rev:
                     self.log.warning(
-                        "Missing head object %s of origin %r", head_swhid, origin.url
+                        "Missing revision head object %s of origin %r",
+                        head_swhid,
+                        origin.url,
                     )
                     continue
                 directory_id = rev.directory
             elif head_swhid.object_type == ObjectType.RELEASE:
-                rel = head_rels[head_swhid.object_id]
+                rel = head_rels.get(head_swhid.object_id)
                 if not rel:
                     self.log.warning(
-                        "Missing head object %s of origin %r", head_swhid, origin.url
+                        "Missing release head object %s of origin %r",
+                        head_swhid,
+                        origin.url,
                     )
                     continue
                 if rel.target_type != ReleaseTargetType.DIRECTORY:
@@ -580,7 +625,8 @@ class OriginMetadataIndexer(
                 assert rel.target, rel
                 directory_id = rel.target
             else:
-                assert False, head_swhid
+                self.log.error("Unhandled head type %s for %s", head_swhid, origin.url)
+                continue
 
             for dir_metadata in self.directory_metadata_indexer.index(directory_id):
                 # There is at most one dir_metadata
