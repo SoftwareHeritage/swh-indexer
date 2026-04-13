@@ -27,6 +27,11 @@ def swh_indexer_config(swh_indexer_config):
     """Override the default configuration to override the tools entry"""
     cfg = copy.deepcopy(swh_indexer_config)
     cfg["tools"] = TRANSLATOR_TOOL
+    cfg["batch_size"] = {
+        "origin": 20,
+        "release": 20,
+        "revision": 20,
+    }
     return cfg
 
 

@@ -59,9 +59,12 @@ from swh.model.model import (
 )
 from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
 
-REVISION_GET_BATCH_SIZE = 10
-RELEASE_GET_BATCH_SIZE = 10
-ORIGIN_GET_BATCH_SIZE = 10
+# Default batch size per object type (can be overridden through indexer configuration)
+DEFAULT_BATCH_SIZE = {
+    "revision": 10,
+    "release": 10,
+    "origin": 10,
+}
 
 
 T1 = TypeVar("T1")
@@ -532,6 +535,11 @@ class OriginMetadataIndexer(
     def __init__(self, config=None, **kwargs) -> None:
         super().__init__(config=config, **kwargs)
         self.directory_metadata_indexer = DirectoryMetadataIndexer(config=config)
+        self.batch_size = (
+            config.get("batch_size", DEFAULT_BATCH_SIZE)
+            if config
+            else DEFAULT_BATCH_SIZE
+        )
 
     def index_list(
         self,
@@ -550,7 +558,7 @@ class OriginMetadataIndexer(
                 fetch_in_batches(
                     self.storage.origin_get,
                     [origin.url for origin in origins],
-                    ORIGIN_GET_BATCH_SIZE,
+                    self.batch_size["origin"],
                 )
             )
             known_origins = [o for o in origins if o in known_urls]
@@ -584,10 +592,10 @@ class OriginMetadataIndexer(
         # raises, this will skip such objects. It will receive less results but continue
         # indexation.
         head_revs = fetch_as_dict(
-            self.storage.revision_get, head_rev_ids, REVISION_GET_BATCH_SIZE
+            self.storage.revision_get, head_rev_ids, self.batch_size["revision"]
         )
         head_rels = fetch_as_dict(
-            self.storage.release_get, head_rel_ids, RELEASE_GET_BATCH_SIZE
+            self.storage.release_get, head_rel_ids, self.batch_size["release"]
         )
 
         results = []
