@@ -80,30 +80,37 @@ def fetch_in_batches(
 ) -> Iterator[T2]:
     """Calls a function `fetch_fn` on batchs of args, this yields the results when ok.
 
-    If a particular batch raises an exception, the error is logged and the batch is
-    skipped; processing continues with the next chunk. Successful batches are yielded
-    unchanged, so callers receive a *partial* result set rather than a total failure.
+    When a batch raised, processing continues with the next batch of data to read.
 
-    This manages internally any exceptions raised by the callable `fetch_fn` and logs
-    it.
+    Then another round of read is executed on the failed batchs but one object at a
+    time, any further failure is logged and skipped, so callers receive a *partial*
+    result set rather than a total failure.
 
     """
     batchs = grouper(args, batch_size)
+
+    # Read and yield ids we successfully read from `fetch_fn` call
     for batch in batchs:
+        batch_list: List[T1] = list(batch)
         try:
-            batch_list = list(batch)
             yield from fetch_fn(batch_list)
-        except Exception as exc:
-            # Log the error for easier debugging
-            logger.error(
-                "Batch %s failed when calling %r: %s",
-                batch_list,
-                fetch_fn,
-                exc,
-                exc_info=True,
-            )
-            # Continue with the next batch, will return less items if this raises
-            continue
+        except Exception:
+            # If the whole batch failed, fall back to fetching objects individually
+            # in case a single object is causing the exception
+            for obj in batch_list:
+                try:
+                    # Try to fetch one object at a time
+                    yield from fetch_fn([obj])
+                except Exception as exc:
+                    # If it failed again, we found the problematic object, this time, we just
+                    # log it and skip it
+                    logger.error(
+                        "Failure to retrieve object %s when calling %r: %s",
+                        obj,
+                        fetch_fn,
+                        exc,
+                        exc_info=True,
+                    )
 
 
 def fetch_as_dict(
