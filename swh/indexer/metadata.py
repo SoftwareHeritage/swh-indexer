@@ -78,12 +78,11 @@ def fetch_in_batches(
     args: List[T1],
     batch_size: int,
 ) -> Iterator[T2]:
-    """Calls a function with batches of args, and concatenates the results.
+    """Calls a function `fetch_fn` on batchs of args, this yields the results when ok.
 
-    If a particular batch raises an exception, the error is logged and the
-    batch is skipped; processing continues with the next chunk.  Successful
-    batches are yielded unchanged, so callers receive a *partial* result set
-    rather than a total failure.
+    If a particular batch raises an exception, the error is logged and the batch is
+    skipped; processing continues with the next chunk. Successful batches are yielded
+    unchanged, so callers receive a *partial* result set rather than a total failure.
 
     This manages internally any exceptions raised by the callable `fetch_fn` and logs
     it.
