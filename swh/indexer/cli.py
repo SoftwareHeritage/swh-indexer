@@ -5,7 +5,7 @@
 
 import logging
 import os
-from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Callable, Dict, Iterator, List, Optional, Tuple
 import warnings
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
@@ -243,7 +243,6 @@ def journal_client(
     if batch_size:
         journal_cfg["batch_size"] = batch_size
 
-    object_types: Set[str] = set()
     worker_fns: List[Callable[[ObjectsDict], Dict]] = []
 
     available_indexers = get_indexer_names()
@@ -264,18 +263,6 @@ def journal_client(
 
     if "cls" not in journal_cfg:
         journal_cfg["cls"] = "kafka"
-
-    if (
-        journal_cfg.get("object_types")
-        and set(journal_cfg["object_types"]) != object_types
-    ):
-        logger.warning(
-            "Overriding configured journal client object types (%s) with %s",
-            ", ".join(sorted(journal_cfg["object_types"])),
-            ", ".join(sorted(object_types)),
-        )
-
-    journal_cfg["object_types"] = list(object_types)
 
     client = get_journal_client(**journal_cfg)
 
