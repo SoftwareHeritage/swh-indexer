@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2025  The Software Heritage developers
+# Copyright (C) 2016-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -289,6 +289,8 @@ class ContentIndexer(BaseIndexer[HashDict, bytes, TResult], Generic[TResult]):
 
     """
 
+    object_types = ["content"]
+
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Read content objects from the journal, retrieve their raw content and compute
         content indexing (e.g. mimetype, fossology license, ...).
@@ -359,6 +361,8 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
 
     """
 
+    object_types = ["origin", "origin_visit_status"]
+
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Worker function for ``JournalClient``."""
         origin_urls = [
@@ -427,6 +431,8 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
     class.
 
     """
+
+    object_types = ["directory"]
 
     def run(self, ids: List[Sha1Git], **kwargs) -> Tuple[Dict, List]:
         """Given a list of sha1_gits:

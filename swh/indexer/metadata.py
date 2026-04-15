@@ -139,6 +139,8 @@ class ExtrinsicMetadataIndexer(
 
     """
 
+    object_types = ["raw_extrinsic_metadata"]
+
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
