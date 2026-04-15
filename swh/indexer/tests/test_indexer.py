@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2025  The Software Heritage developers
+# Copyright (C) 2020-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -9,6 +9,7 @@ from unittest.mock import Mock
 import pytest
 import sentry_sdk
 
+from swh.indexer import get_indexer, get_indexer_names
 from swh.indexer.indexer import ContentIndexer, DirectoryIndexer, OriginIndexer
 from swh.indexer.storage import Sha1
 from swh.model.hashutil import HashDict
@@ -171,3 +172,20 @@ def test_origin_indexer_catch_exceptions(sentry_events):
     else:
         assert False
     check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
+
+
+def test_indexers_define_object_types(swh_config):
+    """Indexer class should declare their object_types to subscribe to."""
+    available_indexers = get_indexer_names()
+
+    for indexer in available_indexers:
+        indexer_class = get_indexer(indexer)()
+        assert hasattr(
+            indexer_class, "object_types"
+        ), f"Indexer {indexer_class} should declare its class attribute `object_types`"
+        object_types = getattr(indexer_class, "object_types")
+
+        assert object_types != [], (
+            f"Indexer class {indexer_class} should declare a non-empty"
+            " `object_types` class attribute"
+        )

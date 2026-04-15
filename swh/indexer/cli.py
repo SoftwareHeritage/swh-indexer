@@ -5,7 +5,7 @@
 
 import logging
 import os
-from typing import Callable, Dict, Iterator, List, Optional, Tuple
+from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple
 import warnings
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
@@ -243,6 +243,7 @@ def journal_client(
     if batch_size:
         journal_cfg["batch_size"] = batch_size
 
+    object_types: Set[str] = set()
     worker_fns: List[Callable[[ObjectsDict], Dict]] = []
 
     available_indexers = get_indexer_names()
@@ -258,11 +259,30 @@ def journal_client(
     idx: Optional[BaseIndexer] = None
     for indexer in indexers:
         idx = get_indexer(indexer)()
+        if not hasattr(idx, "object_types"):
+            raise ValueError(
+                f"Indexer {idx} must be an object_types list, please adapt."
+            )
+        # Reference the object types
+        object_types.update(idx.object_types)
+
         idx.catch_exceptions = False  # don't commit offsets if indexation failed
         worker_fns.append(idx.process_journal_objects)
 
     if "cls" not in journal_cfg:
         journal_cfg["cls"] = "kafka"
+
+    configured_object_types = journal_cfg.get("object_types", [])
+    if configured_object_types and set(configured_object_types) != object_types:
+        logger.warning(
+            "Configured journal client 'object_type' is different "
+            "(%s) from default subscription %s, merging them.",
+            ", ".join(sorted(configured_object_types)),
+            ", ".join(sorted(object_types)),
+        )
+        object_types.update(configured_object_types)
+
+    journal_cfg["object_types"] = list(object_types)
 
     client = get_journal_client(**journal_cfg)
 

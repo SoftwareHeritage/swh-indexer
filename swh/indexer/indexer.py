@@ -92,8 +92,11 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
     - index this data depending on the object and store the result in
       storage.
 
-    To implement a new object type indexer, inherit from the
-    BaseIndexer and implement indexing:
+    Indexers are kafka journal client so they consumes specific topics. Topics will be
+    inferred from the required class attribute "object_types".
+
+    To implement a new object type indexer, inherit from the BaseIndexer and implement
+    indexing:
 
     :meth:`~BaseIndexer.run`:
       object_ids are different depending on object. For example: sha1 for
@@ -132,6 +135,10 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
     """
 
     results: List[TResult]
+    # List of object types an indexer manipulates (kafka topic to subscribe to will be
+    # inferred from this list. For instance, with a list of one object type "origin",
+    # topic subscribed will be "swh.journal.objects.origin"
+    object_types: List[str]
 
     USE_TOOLS = True
 
