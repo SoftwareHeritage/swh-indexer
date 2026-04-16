@@ -246,8 +246,10 @@ def journal_client(
     object_types: Set[str] = set()
     worker_fns: List[Callable[[ObjectsDict], Dict]] = []
 
+    # Retrieve the known available indexers
     available_indexers = get_indexer_names()
 
+    # Filter the indexers to use according to cli flags
     if "*" in indexers or not indexers:
         indexers = tuple(available_indexers)
     unknown = set(indexers) - set(available_indexers)
@@ -257,21 +259,28 @@ def journal_client(
         )
 
     idx: Optional[BaseIndexer] = None
+    # And then configure the indexer journal client(s) to trigger
     for indexer in indexers:
         idx = get_indexer(indexer)()
         if not hasattr(idx, "object_types"):
             raise ValueError(
-                f"Indexer {idx} must be an object_types list, please adapt."
+                f"Indexer {idx} must declare a non-empty `object_types` class attribute"
+                " list of objects to manipulate, please adapt."
             )
-        # Reference the object types
+        # Reference the object types to "consume" from (topics to subscribe will be
+        # derived from this in the journal client implementation)
         object_types.update(idx.object_types)
-
-        idx.catch_exceptions = False  # don't commit offsets if indexation failed
+        # Do not commit offsets if indexation failed
+        idx.catch_exceptions = False
+        # Register the consuming and processing of kafka objects implementation methods
+        # to trigger
         worker_fns.append(idx.process_journal_objects)
 
     if "cls" not in journal_cfg:
         journal_cfg["cls"] = "kafka"
 
+    # Some configuration regarding object_types can come from the configuration file
+    # So we ensure we merge it from the default object_types the indexer manages
     configured_object_types = journal_cfg.get("object_types", [])
     if configured_object_types and set(configured_object_types) != object_types:
         logger.warning(
@@ -290,6 +299,7 @@ def journal_client(
         for fn in worker_fns:
             fn(objects)
 
+    # Finally, process the messages from the journal
     try:
         client.process(worker_fn)
     except KeyboardInterrupt:
