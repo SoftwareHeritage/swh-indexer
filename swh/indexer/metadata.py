@@ -20,7 +20,6 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
-    cast,
 )
 import urllib.parse
 from urllib.parse import urlparse
@@ -58,6 +57,7 @@ from swh.model.model import (
     Sha1Git,
 )
 from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
+from swh.storage.algos.directory import directory_get
 
 # Default batch size per object type (can be overridden through indexer configuration)
 DEFAULT_BATCH_SIZE = {
@@ -417,26 +417,48 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             - metadata: dict of retrieved metadata
 
         """
-        dir_: List[DirectoryLsEntry]
+
         assert data is None, "Unexpected directory object"
-        dir_ = cast(
-            List[DirectoryLsEntry],
-            list(self.storage.directory_ls(id, recursive=False)),
-        )
+        directory = directory_get(self.storage, id)
+        assert directory is not None
 
         try:
-            if [entry["type"] for entry in dir_] == ["dir"]:
+            subdirs = [entry for entry in directory.entries if entry.type == "dir"]
+            if len(subdirs) == 1:
                 # If the root is just a single directory, recurse into it
                 # eg. PyPI packages, GNU tarballs
-                subdir = dir_[0]["target"]
-                dir_ = cast(
-                    List[DirectoryLsEntry],
-                    list(self.storage.directory_ls(subdir, recursive=False)),
+                directory = directory_get(self.storage, subdirs[0].target)
+
+            assert directory is not None
+            # We have to transform the list of directory entries returned by the storage
+            # into DirectoryLsEntry (so ids are correctly used, sha1 in indexer but
+            # sha1_git in DirectoryEntry)
+            entries = {}
+            sha1git_ids = []
+            for entry in directory.entries:
+                if entry.type != "file":
+                    continue
+                sha1git_id = entry.target
+                entries[sha1git_id] = entry
+                sha1git_ids.append(sha1git_id)
+            directory_entries = []
+            for content in self.storage.content_get(sha1git_ids, algo="sha1_git"):
+                if content is None:
+                    continue
+                entry = entries[content.sha1_git]
+                # We create the DirectoryLsEntry from the full content/entry information
+                directory_entries.append(
+                    DirectoryLsEntry(
+                        name=entry.name,
+                        type=entry.type,
+                        target=content.sha1,
+                        sha1=content.sha1,
+                        sha1_git=content.sha1_git,
+                        sha256=content.sha256,
+                    )
                 )
-            files = [entry for entry in dir_ if entry["type"] == "file"]
             (mappings, metadata) = self.translate_directory_intrinsic_metadata(
-                files,
-                log_suffix="directory=%s" % hash_to_hex(id),
+                directory_entries, log_suffix=f"directory={hash_to_hex(id)}"
             )
         except Exception as e:
             self.log.exception("Problem when indexing dir: %r", e)
@@ -462,12 +484,10 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
     def translate_directory_intrinsic_metadata(
         self, files: List[DirectoryLsEntry], log_suffix: str
     ) -> Tuple[List[Any], Any]:
-        """
-        Determine plan of action to translate metadata in the given root directory
+        """Determine how to translate metadata from the directory file entries.
 
         Args:
-            files: list of file entries, as returned by
-              :meth:`swh.storage.interface.StorageInterface.directory_ls`
+            files: list of file entries DirectoryEntry of type 'file'
 
         Returns:
             (List[str], dict): list of mappings used and dict with
@@ -475,6 +495,9 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 
         """
         metadata = []
+        # Load/Retrieve intrinsic mappings
+        intrinsic_mappings = get_intrinsic_mappings()
+
         # TODO: iterate on each context, on each file
         # -> get raw_contents
         # -> translate each content
@@ -483,11 +506,12 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             for k in [INDEXER_CFG_KEY, "objstorage", "storage", "tools"]
         }
         all_detected_files = detect_metadata(files)
-        used_mappings = [
-            get_intrinsic_mappings()[context].name for context in all_detected_files
-        ]
+        used_mappings = []
         for mapping_name, detected_files in all_detected_files.items():
             cfg = deepcopy(config)
+            # Compulse the list of used mappings
+            used_mappings.append(intrinsic_mappings[mapping_name].name)
+
             cfg["tools"]["configuration"]["context"] = mapping_name
             c_metadata_indexer = ContentMetadataIndexer(config=cfg)
             # sha1s that are in content_metadata table
