@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -30,6 +30,7 @@ from swh.indexer.codemeta import _document_loader, compact
 from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
 from swh.model.hashutil import HashDict
+from swh.model.model import DirectoryEntry
 from swh.objstorage.interface import objid_from_dict
 
 from .utils import add_url_if_valid
@@ -141,6 +142,17 @@ class BaseIntrinsicMapping(BaseMapping):
         """
         raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
 
+    @classmethod
+    def detect_metadata_from_directory_entries(
+        cls, file_entries: List[DirectoryEntry]
+    ) -> Optional[DirectoryEntry]:
+        """
+        Returns the DirectoryEntry of files which can be translated by this mapping
+        """
+        raise NotImplementedError(
+            f"{cls.__name__}.detect_metadata_from_directory_entries"
+        )
+
     def normalize_translation(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         return compact(metadata, forgefed=False)
 
@@ -168,6 +180,27 @@ class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
                         return [objid_from_dict(cast(dict, entry))]
 
         return []
+
+    @classmethod
+    def detect_metadata_from_directory_entries(
+        cls, file_entries: List[DirectoryEntry]
+    ) -> Optional[DirectoryEntry]:
+        """Detect whether the directory entries list has interesting metadata files."""
+        filename = cls.filename
+        # Check if filename is a regex or bytes
+        if isinstance(filename, bytes):
+            for entry in file_entries:
+                if entry.type != "file":
+                    continue
+                if entry.name.lower() == filename.lower():
+                    return entry
+        else:
+            for entry in file_entries:
+                if entry.type != "file":
+                    continue
+                if filename.match(entry.name):
+                    return entry
+        return None
 
 
 class DictMapping(BaseMapping):

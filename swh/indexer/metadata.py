@@ -36,7 +36,10 @@ from swh.indexer.indexer import (
     ObjectsDict,
     OriginIndexer,
 )
-from swh.indexer.metadata_detector import detect_metadata
+from swh.indexer.metadata_detector import (
+    detect_metadata,
+    detect_metadata_from_directory_entries,
+)
 from swh.indexer.metadata_mapping import get_extrinsic_mappings, get_intrinsic_mappings
 from swh.indexer.metadata_mapping.base import DirectoryLsEntry
 from swh.indexer.origin_head import get_head_swhid
@@ -430,18 +433,26 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                 directory = directory_get(self.storage, subdirs[0].target)
 
             assert directory is not None
-            # We have to transform the list of directory entries returned by the storage
-            # into DirectoryLsEntry (so ids are correctly used, sha1 in indexer but
-            # sha1_git in DirectoryEntry)
             entries = {}
             sha1git_ids = []
-            for entry in directory.entries:
-                if entry.type != "file":
+            # Filtering now relevant metadata file entries
+            for _, entry in detect_metadata_from_directory_entries(
+                list(directory.entries)
+            ).items():
+                if entry is None:
                     continue
                 sha1git_id = entry.target
                 entries[sha1git_id] = entry
                 sha1git_ids.append(sha1git_id)
             directory_entries = []
+
+            # We have to transform the list of directory entries returned by the storage
+            # into DirectoryLsEntry (so ids are correct). Currently, DirectoryEntry uses
+            # sha1_git as id but we need the sha1)
+
+            # Now that we have filtered the interesting file entries, we can retrieve
+            # the smaller list of contents to have their full ids and transform back
+            # into DirectoryLsEntry
             for content in self.storage.content_get(sha1git_ids, algo="sha1_git"):
                 if content is None:
                     continue
