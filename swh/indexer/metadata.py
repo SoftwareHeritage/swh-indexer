@@ -29,6 +29,7 @@ from urllib.parse import urlparse
 import sentry_sdk
 
 from swh.core.config import merge_configs
+from swh.core.statsd import statsd
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
 from swh.indexer.indexer import (
@@ -73,6 +74,8 @@ T1 = TypeVar("T1")
 T2 = TypeVar("T2")
 
 logger = logging.getLogger(__name__)
+
+METRIC_INTRINSIC_COUNT = "swh_indexer_intrinsic_run_count"
 
 
 def fetch_in_batches(
@@ -369,7 +372,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 
 def directory_get(
     storage: StorageInterface, directory_id: Sha1Git, logger
-) -> Optional[Directory]:
+) -> Tuple[Optional[Directory], bool]:
     """Get the directory from the storage. This used a more effective implementation to
     read the directory from the storage. It's currently limited though. It can only read
     partially a directory.
@@ -386,19 +389,18 @@ def directory_get(
     directory_page = storage.directory_get_entries(directory_id, limit=100)
     # The directory does not exist, we just stop
     if not directory_page:
-        return None
+        return None, False
 
-    if directory_page.next_page_token is not None:
-        # Detected a potentially big directory
-        # Do not consider it currently
-        logger.warning(
-            "Directory %s is a directory with too many entries, "
-            "compulsing it partially for now."
-        )
+    # Detected a potentially big directory, increment metrics about it and continue
+    # to try and index it as-is
+    truncated_dir = directory_page.next_page_token is not None
 
-    return Directory(
-        id=directory_id,
-        entries=tuple(directory_page.results),
+    return (
+        Directory(
+            id=directory_id,
+            entries=tuple(directory_page.results),
+        ),
+        truncated_dir,
     )
 
 
@@ -456,7 +458,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         """
 
         assert data is None, "Unexpected directory object"
-        directory = directory_get(self.storage, id, logger=self.log)
+        directory, truncated_dir = directory_get(self.storage, id, logger=self.log)
         assert directory is not None
 
         try:
@@ -465,9 +467,12 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             if len(subdirs) == 1 and subdir.type == "dir":
                 # If the root is just a single directory, recurse into it
                 # eg. PyPI packages, GNU tarballs
-                directory = directory_get(self.storage, subdir.target, logger=self.log)
+                directory, truncated_dir = directory_get(
+                    self.storage, subdir.target, logger=self.log
+                )
 
             assert directory is not None
+
             metadata_sha1_gits = []
             # Map from file direntry to mapping detected
             entry_to_mapping = defaultdict(set)
@@ -502,6 +507,14 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             # We can now translate into relevant metadata information
             (mappings, metadata) = self.translate_directory_intrinsic_metadata(
                 mapping_contents, log_suffix=f"directory={hash_to_hex(id)}"
+            )
+            statsd.increment(
+                METRIC_INTRINSIC_COUNT,
+                1,
+                tags={
+                    "directory_truncated": truncated_dir,
+                    "metadata_found": len(metadata) > 0,
+                },
             )
         except Exception as e:
             self.log.exception("Problem when indexing dir: %r", e)
@@ -579,10 +592,11 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                         sha1s_to_index,
                         log_suffix=log_suffix,
                     )
-                    # on the fly possibility:
+                    indexed_count = 0
                     for result in results:
                         local_metadata = result.metadata
                         metadata.append(local_metadata)
+                        indexed_count += 1
 
                 except Exception:
                     self.log.exception("Exception while indexing metadata on contents")
