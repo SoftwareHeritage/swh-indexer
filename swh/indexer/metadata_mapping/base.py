@@ -16,7 +16,6 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
-    cast,
 )
 import uuid
 import xml.parsers.expat
@@ -30,9 +29,7 @@ import yaml
 from swh.indexer.codemeta import _document_loader, compact
 from swh.indexer.namespaces import RDF, SCHEMA
 from swh.indexer.storage.interface import Sha1
-from swh.model.hashutil import HashDict
 from swh.model.model import DirectoryEntry
-from swh.objstorage.interface import objid_from_dict
 
 from .utils import add_url_if_valid
 
@@ -135,18 +132,7 @@ class BaseIntrinsicMapping(BaseMapping):
     """
 
     @classmethod
-    def detect_metadata_files(
-        cls, file_entries: List[DirectoryLsEntry]
-    ) -> List[HashDict]:
-        """
-        Returns the sha1 hashes of files which can be translated by this mapping
-        """
-        raise NotImplementedError(f"{cls.__name__}.detect_metadata_files")
-
-    @classmethod
-    def detect_metadata_from_directory_entries(
-        cls, file_entries: List[DirectoryEntry]
-    ) -> Set[DirectoryEntry]:
+    def detect_metadata(cls, file_entries: List[DirectoryEntry]) -> Set[DirectoryEntry]:
         """
         Returns the DirectoryEntry files which can be translated by this mapping
         """
@@ -164,28 +150,7 @@ class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
     filename: Union[bytes, Pattern[bytes]]
 
     @classmethod
-    def detect_metadata_files(
-        cls, file_entries: List[DirectoryLsEntry]
-    ) -> List[HashDict]:
-        filename = cls.filename
-        # Check if filename is a regex or bytes:
-        if isinstance(filename, bytes):
-            for entry in file_entries:
-                if entry["name"].lower() == filename.lower():
-                    if entry["sha1"] is not None:  # ignore skipped_content and dangling
-                        return [objid_from_dict(cast(dict, entry))]
-        else:
-            for entry in file_entries:
-                if filename.match(entry["name"]):
-                    if entry["sha1"] is not None:  # ignore skipped_content and dangling
-                        return [objid_from_dict(cast(dict, entry))]
-
-        return []
-
-    @classmethod
-    def detect_metadata_from_directory_entries(
-        cls, file_entries: List[DirectoryEntry]
-    ) -> Set[DirectoryEntry]:
+    def detect_metadata(cls, file_entries: List[DirectoryEntry]) -> Set[DirectoryEntry]:
         """Detect whether the directory entries list has interesting metadata files."""
         filename = cls.filename
         results = set()

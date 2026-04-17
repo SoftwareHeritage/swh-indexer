@@ -39,7 +39,7 @@ from swh.indexer.indexer import (
     ObjectsDict,
     OriginIndexer,
 )
-from swh.indexer.metadata_detector import detect_metadata_from_directory_entries
+from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_mapping import get_extrinsic_mappings, get_intrinsic_mappings
 from swh.indexer.origin_head import get_head_swhid
 from swh.indexer.storage import INDEXER_CFG_KEY
@@ -477,7 +477,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             # Map from file direntry to mapping detected
             entry_to_mapping = defaultdict(set)
             # Filtering now relevant metadata file entries
-            for mapping_dir_entry, entries in detect_metadata_from_directory_entries(
+            for mapping_dir_entry, entries in detect_metadata(
                 list(directory.entries)
             ).items():
                 for entry in entries:

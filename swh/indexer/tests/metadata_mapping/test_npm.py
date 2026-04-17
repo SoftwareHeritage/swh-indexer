@@ -11,12 +11,13 @@ import pytest
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_mapping import get_mapping
 from swh.indexer.storage.model import ContentMetadataRow
-from swh.model.hashutil import HashDict
 
 from ..test_metadata import TRANSLATOR_TOOL, ContentMetadataTestIndexer
 from ..utils import (
     BASE_TEST_CONFIG,
     MAPPING_DESCRIPTION_CONTENT_OBJID,
+    convert_dict_to_directory_entries,
+    filter_directory_entries_by_name,
     json_document_strategy,
 )
 
@@ -437,34 +438,39 @@ def test_npm_adversarial(doc):
     "filename", [b"package.json", b"Package.json", b"PACKAGE.json", b"PACKAGE.JSON"]
 )
 def test_detect_metadata_package_json(filename):
-    df = [
-        {
-            "sha1_git": b"abc",
-            "name": b"index.js",
-            "target": b"abc",
-            "length": 897,
-            "status": "visible",
-            "type": "file",
-            "perms": 33188,
-            "dir_id": b"dir_a",
-            "sha1": b"bcd",
-        },
-        {
-            "sha1_git": b"aab",
-            "name": filename,
-            "target": b"aab",
-            "length": 712,
-            "status": "visible",
-            "type": "file",
-            "perms": 33188,
-            "dir_id": b"dir_a",
-            "sha1": b"cde",
-        },
-    ]
-    results = detect_metadata(df)
+    directory_entries = convert_dict_to_directory_entries(
+        [
+            {
+                "sha1_git": b"abc",
+                "name": b"index.js",
+                "target": b"abc",
+                "length": 897,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"bcd",
+            },
+            {
+                "sha1_git": b"aab",
+                "name": filename,
+                "target": b"aab",
+                "length": 712,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"cde",
+            },
+        ]
+    )
+    results = detect_metadata(directory_entries)
 
-    expected_results = {"NpmMapping": [HashDict(sha1=b"cde", sha1_git=b"aab")]}
-    assert expected_results == results
+    expected_result = filter_directory_entries_by_name(
+        b"package.json", directory_entries
+    )
+
+    assert {"NpmMapping": expected_result} == results
 
 
 def test_valid_spdx_expressions():

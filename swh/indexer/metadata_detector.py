@@ -6,30 +6,10 @@
 from typing import Dict, List, Set
 
 from swh.indexer.metadata_mapping import get_intrinsic_mappings
-from swh.indexer.metadata_mapping.base import DirectoryLsEntry
-from swh.model.hashutil import HashDict
 from swh.model.model import DirectoryEntry
 
 
-def detect_metadata(files: List[DirectoryLsEntry]) -> Dict[str, List[HashDict]]:
-    """
-    Detects files potentially containing metadata
-
-    Args:
-        file_entries (list): list of files
-
-    Returns:
-        dict: {mapping_filenames[name]:f['sha1']} (may be empty)
-    """
-    results = {}
-    for mapping_name, mapping in get_intrinsic_mappings().items():
-        matches = mapping.detect_metadata_files(files)
-        if matches:
-            results[mapping_name] = matches
-    return results
-
-
-def detect_metadata_from_directory_entries(
+def detect_metadata(
     file_entries: List[DirectoryEntry],
 ) -> Dict[str, Set[DirectoryEntry]]:
     """Detects file entries potentially containing metadata.
@@ -43,7 +23,7 @@ def detect_metadata_from_directory_entries(
     """
     results = {}
     for mapping_name, mapping in get_intrinsic_mappings().items():
-        matched_entry = mapping.detect_metadata_from_directory_entries(file_entries)
+        matched_entry = mapping.detect_metadata(file_entries)
         if matched_entry:
             results[mapping_name] = matched_entry
     return results

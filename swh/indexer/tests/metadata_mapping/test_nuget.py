@@ -7,7 +7,8 @@ import pytest
 
 from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_mapping import get_mapping
-from swh.model.hashutil import HashDict
+
+from ..utils import convert_dict_to_directory_entries, filter_directory_entries_by_name
 
 NuGetMapping = get_mapping("NuGetMapping")
 
@@ -81,34 +82,37 @@ def test_compute_metadata_nuget():
     [b"package_name.nuspec", b"number_5.nuspec", b"CAPS.nuspec", b"\x8anan.nuspec"],
 )
 def test_detect_metadata_package_nuspec(filename):
-    df = [
-        {
-            "sha1_git": b"abc",
-            "name": b"example.json",
-            "target": b"abc",
-            "length": 897,
-            "status": "visible",
-            "type": "file",
-            "perms": 33188,
-            "dir_id": b"dir_a",
-            "sha1": b"bcd",
-        },
-        {
-            "sha1_git": b"aab",
-            "name": filename,
-            "target": b"aab",
-            "length": 712,
-            "status": "visible",
-            "type": "file",
-            "perms": 33188,
-            "dir_id": b"dir_a",
-            "sha1": b"cde",
-        },
-    ]
-    results = detect_metadata(df)
+    directory_entries = convert_dict_to_directory_entries(
+        [
+            {
+                "sha1_git": b"abc",
+                "name": b"example.json",
+                "target": b"abc",
+                "length": 897,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"bcd",
+            },
+            {
+                "sha1_git": b"aab",
+                "name": filename,
+                "target": b"aab",
+                "length": 712,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"cde",
+            },
+        ]
+    )
+    results = detect_metadata(directory_entries)
 
-    expected_results = {"NuGetMapping": [HashDict(sha1=b"cde", sha1_git=b"aab")]}
-    assert expected_results == results
+    expected_entry = filter_directory_entries_by_name(filename, directory_entries)
+
+    assert {"NuGetMapping": expected_entry} == results
 
 
 def test_normalize_license_multiple_licenses_or_delimiter():

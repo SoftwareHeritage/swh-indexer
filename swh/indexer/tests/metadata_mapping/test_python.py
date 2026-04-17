@@ -3,9 +3,10 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_mapping import get_mapping
-from swh.indexer.metadata_mapping.base import DirectoryLsEntry
-from swh.model.hashutil import HashDict, hash_to_bytes
+
+from ..utils import convert_dict_to_directory_entries, filter_directory_entries_by_name
 
 PythonPkginfoMapping = get_mapping("PythonPkginfoMapping")
 
@@ -118,11 +119,35 @@ License: MIT
 
 
 def test_detect_metadata_files():
-    dir_entry = DirectoryLsEntry(
-        type="file",
-        name=b"PKG-INFO",
-        target=hash_to_bytes("1" * 40),
-        sha1=hash_to_bytes("2" * 40),
+    directory_entries = convert_dict_to_directory_entries(
+        [
+            {
+                "sha1_git": b"abc",
+                "name": b"index.js",
+                "target": b"abc",
+                "length": 897,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"bcd",
+            },
+            {
+                "sha1_git": b"aab",
+                "name": b"PKG-INFO",
+                "target": b"aab",
+                "length": 712,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"cde",
+            },
+        ]
     )
-    result = PythonPkginfoMapping().detect_metadata_files([dir_entry])
-    assert result == [HashDict(sha1=dir_entry["sha1"])]
+
+    result = detect_metadata(directory_entries)
+
+    expected_result = filter_directory_entries_by_name(b"PKG-INFO", directory_entries)
+
+    assert {"PythonPkginfoMapping": expected_result} == result

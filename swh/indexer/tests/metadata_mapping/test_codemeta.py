@@ -6,17 +6,17 @@
 import json
 
 from hypothesis import HealthCheck, given, settings
+import pytest
 
 from swh.indexer.codemeta import CODEMETA_TERMS
-from swh.indexer.metadata_detector import (
-    detect_metadata,
-    detect_metadata_from_directory_entries,
-)
+from swh.indexer.metadata_detector import detect_metadata
 from swh.indexer.metadata_mapping import get_mapping
-from swh.model.hashutil import HashDict
-from swh.model.model import DirectoryEntry
 
-from ..utils import json_document_strategy
+from ..utils import (
+    convert_dict_to_directory_entries,
+    filter_directory_entries_by_name,
+    json_document_strategy,
+)
 
 
 def test_compute_metadata_valid_codemeta():
@@ -149,59 +149,44 @@ def test_codemeta_adversarial(doc):
     get_mapping("CodemetaMapping")().translate(raw)
 
 
-# test data for the following tests
-data_files = [
-    {
-        "sha1_git": b"abc",
-        "name": b"index.html",
-        "target": b"abc",
-        "length": 897,
-        "status": "visible",
-        "type": "file",
-        "perms": 33188,
-        "dir_id": b"dir_a",
-        "sha1": b"bcd",
-    },
-    {
-        "sha1_git": b"aab",
-        "name": b"CODEMETA.json",
-        "target": b"aab",
-        "length": 712,
-        "status": "visible",
-        "type": "file",
-        "perms": 33188,
-        "dir_id": b"dir_a",
-        "sha1": b"bcd",
-    },
-]
-
-
-def test_detect_metadata_codemeta_json_uppercase():
-    """Ensure metadata detector can filter on List[DirectoryLsEntry]"""
-    results = detect_metadata(data_files)
-
-    expected_results = {"CodemetaMapping": [HashDict(sha1=b"bcd", sha1_git=b"aab")]}
-    assert expected_results == results
-
-
-def test_detect_metadata_from_directory_entries():
+@pytest.mark.parametrize(
+    "filename", [b"codemeta.json", b"Codemeta.json", b"CODEMETA.json", b"CODEMETA.JSON"]
+)
+def test_detect_metadata_codemeta_json(filename):
     """Ensure metadata detector can filter on List[DirectoryEntry]"""
-    directory_entries = []
-    expected_dir_entries = set()
-    for file_d in data_files:
-        dir_entry = DirectoryEntry(
-            name=file_d["name"],
-            type=file_d["type"],
-            # remaining part of the object is just there so test are ok structurally
-            target=file_d["sha1"],
-            perms=file_d["perms"],
-        )
+    # Prepare test data
+    directory_entries = convert_dict_to_directory_entries(
+        [
+            {
+                "sha1_git": b"abc",
+                "name": b"index.html",
+                "target": b"abc",
+                "length": 897,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"bcd",
+            },
+            {
+                "sha1_git": b"aab",
+                "name": filename,
+                "target": b"aab",
+                "length": 712,
+                "status": "visible",
+                "type": "file",
+                "perms": 33188,
+                "dir_id": b"dir_a",
+                "sha1": b"bcd",
+            },
+        ]
+    )
 
-        directory_entries.append(dir_entry)
+    # Detect the expected entry to compare result with actual call
+    expected_dir_entries = filter_directory_entries_by_name(
+        b"codemeta.json", directory_entries
+    )
 
-        if file_d["name"] == b"CODEMETA.json":
-            expected_dir_entries.add(dir_entry)
+    actual_result = detect_metadata(directory_entries)
 
-    actual_result = detect_metadata_from_directory_entries(directory_entries)
-
-    assert {"CodemetaMapping": set(expected_dir_entries)} == actual_result
+    assert {"CodemetaMapping": expected_dir_entries} == actual_result

@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -6,7 +6,7 @@
 import abc
 import datetime
 import functools
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Set, Tuple, Union
 import unittest
 
 from hypothesis import strategies
@@ -770,3 +770,38 @@ def mock_compute_license(path):
     # path is something like /tmp/tmpXXX/<sha1> so we keep only the sha1 part
     id_ = path.split("/")[-1]
     return {"licenses": SHA1_TO_LICENSES.get(hash_to_bytes(id_), [])}
+
+
+def convert_dict_to_directory_entries(data_files_dict: Dict) -> List[DirectoryEntry]:
+    """Utility tool to convert a plain dict to a List[DirectoryEntry]
+
+    **For test only.**
+    """
+    directory_entries = []
+    for file_d in data_files_dict:
+        directory_entries.append(
+            DirectoryEntry(
+                name=file_d["name"],
+                type=file_d["type"],
+                # remaining part of the object is just there so test are ok structurally
+                target=file_d["sha1"],
+                perms=file_d["perms"],
+            )
+        )
+
+    return directory_entries
+
+
+def filter_directory_entries_by_name(
+    filename: bytes,
+    directory_entries: List[DirectoryEntry],
+) -> Set[DirectoryEntry]:
+    """Utility to ease filtering interesting data from a list of directory entries
+
+    **For test only.**
+    """
+    filtered = set()
+    for dir_entry in directory_entries:
+        if dir_entry.name.lower() == filename.lower():
+            filtered.add(dir_entry)
+    return filtered
