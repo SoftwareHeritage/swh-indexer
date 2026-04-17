@@ -577,7 +577,12 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                     metadata.append(local_metadata)
 
             sha1s_to_index = [
-                HashDict(sha1=content.sha1)
+                HashDict(
+                    sha1=content.sha1,
+                    sha1_git=content.sha1_git,
+                    sha256=content.sha256,
+                    blake2s256=content.blake2s256,
+                )
                 for content in detected_contents
                 if content.sha1 not in sha1s_in_idx_storage
             ]
