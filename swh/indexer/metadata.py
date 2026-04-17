@@ -57,7 +57,7 @@ from swh.model.model import (
     Sha1Git,
 )
 from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
-from swh.storage.algos.directory import directory_get
+from swh.storage.interface import StorageInterface
 
 # Default batch size per object type (can be overridden through indexer configuration)
 DEFAULT_BATCH_SIZE = {
@@ -365,6 +365,41 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 }
 
 
+def directory_get(
+    storage: StorageInterface, directory_id: Sha1Git, logger
+) -> Optional[Directory]:
+    """Get the directory from the storage. This used a more effective implementation to
+    read the directory from the storage. It's currently limited though. It can only read
+    partially a directory.
+
+    Args:
+        storage: the storage instance
+        directory_id: the directory's identifier
+
+    Returns:
+        * The directory if it could be properly put back together. None otherwise.
+        * Whether the list of entries was truncated
+
+    """
+    directory_page = storage.directory_get_entries(directory_id, limit=100)
+    # The directory does not exist, we just stop
+    if not directory_page:
+        return None
+
+    if directory_page.next_page_token is not None:
+        # Detected a potentially big directory
+        # Do not consider it currently
+        logger.warning(
+            "Directory %s is a directory with too many entries, "
+            "compulsing it partially for now."
+        )
+
+    return Directory(
+        id=directory_id,
+        entries=tuple(directory_page.results),
+    )
+
+
 class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
     """Directory-level indexer
 
@@ -419,15 +454,16 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         """
 
         assert data is None, "Unexpected directory object"
-        directory = directory_get(self.storage, id)
+        directory = directory_get(self.storage, id, logger=self.log)
         assert directory is not None
 
         try:
-            subdirs = [entry for entry in directory.entries if entry.type == "dir"]
-            if len(subdirs) == 1:
+            subdirs = [entry for entry in directory.entries]
+            subdir = subdirs[0]
+            if len(subdirs) == 1 and subdir.type == "dir":
                 # If the root is just a single directory, recurse into it
                 # eg. PyPI packages, GNU tarballs
-                directory = directory_get(self.storage, subdirs[0].target)
+                directory = directory_get(self.storage, subdir.target, logger=self.log)
 
             assert directory is not None
             interesting_content_ids = []
