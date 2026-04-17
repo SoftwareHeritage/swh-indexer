@@ -466,7 +466,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                 directory = directory_get(self.storage, subdir.target, logger=self.log)
 
             assert directory is not None
-            interesting_content_ids = []
+            metadata_sha1_gits = []
             # Map from file direntry to mapping detected
             entry_to_mapping = {}
             # Filtering now relevant metadata file entries
@@ -476,7 +476,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                 if entry is None:
                     continue
                 content_id = entry.target  # It's a sha1_git
-                interesting_content_ids.append(content_id)
+                metadata_sha1_gits.append(content_id)
                 entry_to_mapping[content_id] = mapping_dir_entry
 
             # We have to transform the list of directory entries returned by the storage
@@ -490,7 +490,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             # and keep the mapping dict updated with a Content reference instead of a
             # DirectoryEntry
             for content in self.storage.content_get(
-                interesting_content_ids, algo="sha1_git"
+                metadata_sha1_gits, algo="sha1_git"
             ):
                 if content is None:
                     continue
@@ -545,7 +545,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         }
         used_mappings = []
         for mapping_name, detected_content in mapping_content.items():
-            # Compulse the list of used mappings
+            # Append mapping in list
             used_mappings.append(intrinsic_mappings[mapping_name].name)
 
             detected_contents = [detected_content]
@@ -567,7 +567,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                 if content.sha1 not in sha1s_in_idx_storage
             ]
 
-            # If we did not have yet indexed the file
+            # If we did not have indexed the file yet
             if sha1s_to_index:
                 cfg = deepcopy(config)
                 cfg["tools"]["configuration"]["context"] = mapping_name
