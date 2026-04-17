@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict, List
+from typing import Dict, List, Set
 
 from swh.indexer.metadata_mapping import get_intrinsic_mappings
 from swh.indexer.metadata_mapping.base import DirectoryLsEntry
@@ -31,14 +31,15 @@ def detect_metadata(files: List[DirectoryLsEntry]) -> Dict[str, List[HashDict]]:
 
 def detect_metadata_from_directory_entries(
     file_entries: List[DirectoryEntry],
-) -> Dict[str, DirectoryEntry]:
+) -> Dict[str, Set[DirectoryEntry]]:
     """Detects file entries potentially containing metadata.
 
     Args:
         file_entries: list of file entries
 
     Returns:
-        dict: {mapping_filenames[name]:DirectoryEntry} (may be empty)
+        dict: {mapping_filenames[name]: Set(DirectoryEntry)} (may be empty)
+
     """
     results = {}
     for mapping_name, mapping in get_intrinsic_mappings().items():

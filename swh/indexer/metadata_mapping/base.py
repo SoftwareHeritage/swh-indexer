@@ -12,6 +12,7 @@ from typing import (
     List,
     Optional,
     Pattern,
+    Set,
     Tuple,
     TypeVar,
     Union,
@@ -145,9 +146,9 @@ class BaseIntrinsicMapping(BaseMapping):
     @classmethod
     def detect_metadata_from_directory_entries(
         cls, file_entries: List[DirectoryEntry]
-    ) -> Optional[DirectoryEntry]:
+    ) -> Set[DirectoryEntry]:
         """
-        Returns the DirectoryEntry of files which can be translated by this mapping
+        Returns the DirectoryEntry files which can be translated by this mapping
         """
         raise NotImplementedError(
             f"{cls.__name__}.detect_metadata_from_directory_entries"
@@ -184,23 +185,26 @@ class SingleFileIntrinsicMapping(BaseIntrinsicMapping):
     @classmethod
     def detect_metadata_from_directory_entries(
         cls, file_entries: List[DirectoryEntry]
-    ) -> Optional[DirectoryEntry]:
+    ) -> Set[DirectoryEntry]:
         """Detect whether the directory entries list has interesting metadata files."""
         filename = cls.filename
+        results = set()
         # Check if filename is a regex or bytes
         if isinstance(filename, bytes):
             for entry in file_entries:
                 if entry.type != "file":
                     continue
                 if entry.name.lower() == filename.lower():
-                    return entry
+                    results.add(entry)
+                    return results
         else:
             for entry in file_entries:
                 if entry.type != "file":
                     continue
                 if filename.match(entry.name):
-                    return entry
-        return None
+                    results.add(entry)
+                    return results
+        return set()
 
 
 class DictMapping(BaseMapping):

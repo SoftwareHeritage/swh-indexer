@@ -3,6 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
+from collections import defaultdict
 from copy import deepcopy
 import datetime
 import hashlib
@@ -18,6 +19,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Set,
     Tuple,
     TypeVar,
 )
@@ -468,38 +470,38 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             assert directory is not None
             metadata_sha1_gits = []
             # Map from file direntry to mapping detected
-            entry_to_mapping = {}
+            entry_to_mapping = defaultdict(set)
             # Filtering now relevant metadata file entries
-            for mapping_dir_entry, entry in detect_metadata_from_directory_entries(
+            for mapping_dir_entry, entries in detect_metadata_from_directory_entries(
                 list(directory.entries)
             ).items():
-                if entry is None:
-                    continue
-                content_id = entry.target  # It's a sha1_git
-                metadata_sha1_gits.append(content_id)
-                entry_to_mapping[content_id] = mapping_dir_entry
+                for entry in entries:
+                    if entry is None:
+                        continue
+                    content_id = entry.target  # It's a sha1_git
+                    metadata_sha1_gits.append(content_id)
+                    entry_to_mapping[content_id].add(mapping_dir_entry)
 
             # We have to transform the list of directory entries returned by the storage
-            # into DirectoryLsEntry (so ids are correct). Currently, DirectoryEntry uses
-            # sha1_git as id but we need the sha1)
-
-            mapping_content: Dict[str, Content] = {}
+            # into Content (so ids are correct). Currently, DirectoryEntry uses sha1_git
+            # as id but we need the sha1)
+            mapping_contents: Dict[str, Set[Content]] = defaultdict(set)
 
             # Now that we have filtered the interesting file entries, we can retrieve
             # the filter list of interesting associated contents to have their full ids
-            # and keep the mapping dict updated with a Content reference instead of a
-            # DirectoryEntry
+            # and keep the mapping dict updated with a set of Content references instead
+            # of a DirectoryEntry
             for content in self.storage.content_get(
                 metadata_sha1_gits, algo="sha1_git"
             ):
                 if content is None:
                     continue
-                mapping_name = entry_to_mapping[content.sha1_git]
-                mapping_content[mapping_name] = content
+                for mapping_name in entry_to_mapping[content.sha1_git]:
+                    mapping_contents[mapping_name].add(content)
 
             # We can now translate into relevant metadata information
             (mappings, metadata) = self.translate_directory_intrinsic_metadata(
-                mapping_content, log_suffix=f"directory={hash_to_hex(id)}"
+                mapping_contents, log_suffix=f"directory={hash_to_hex(id)}"
             )
         except Exception as e:
             self.log.exception("Problem when indexing dir: %r", e)
@@ -523,7 +525,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         return self.idx_storage.directory_intrinsic_metadata_add(results)
 
     def translate_directory_intrinsic_metadata(
-        self, mapping_content: Dict[str, Content], log_suffix: str
+        self, mapping_contents: Dict[str, Set[Content]], log_suffix: str
     ) -> Tuple[List[Any], Any]:
         """Determine how to translate metadata from the directory file entries.
 
@@ -544,11 +546,10 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             for k in [INDEXER_CFG_KEY, "objstorage", "storage", "tools"]
         }
         used_mappings = []
-        for mapping_name, detected_content in mapping_content.items():
+        for mapping_name, detected_contents in mapping_contents.items():
             # Append mapping in list
             used_mappings.append(intrinsic_mappings[mapping_name].name)
 
-            detected_contents = [detected_content]
             # sha1s that are in content_metadata table
             sha1s_in_idx_storage = []
             for c in self.idx_storage.content_metadata_get(

@@ -71,7 +71,7 @@ def test_compute_metadata_valid_codemeta():
         "datePublished":"2017-06-05",
         "programmingLanguage": "JSON-LD"
       }"""  # noqa
-    expected_result = {
+    expected_dir_entries = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "identifier": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -124,7 +124,7 @@ def test_compute_metadata_valid_codemeta():
         "programmingLanguage": "JSON-LD",
     }
     result = get_mapping("CodemetaMapping")().translate(raw_content)
-    assert result == expected_result
+    assert result == expected_dir_entries
 
 
 def test_compute_metadata_codemeta_alternate_context():
@@ -133,13 +133,13 @@ def test_compute_metadata_codemeta_alternate_context():
         "@type": "SoftwareSourceCode",
         "identifier": "https://doi.org/10.5063/schema/codemeta-2.0"
     }"""  # noqa
-    expected_result = {
+    expected_dir_entries = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
         "type": "SoftwareSourceCode",
         "identifier": "https://doi.org/10.5063/schema/codemeta-2.0",
     }
     result = get_mapping("CodemetaMapping")().translate(raw_content)
-    assert result == expected_result
+    assert result == expected_dir_entries
 
 
 @settings(suppress_health_check=[HealthCheck.too_slow])
@@ -187,6 +187,7 @@ def test_detect_metadata_codemeta_json_uppercase():
 def test_detect_metadata_from_directory_entries():
     """Ensure metadata detector can filter on List[DirectoryEntry]"""
     directory_entries = []
+    expected_dir_entries = set()
     for file_d in data_files:
         dir_entry = DirectoryEntry(
             name=file_d["name"],
@@ -197,9 +198,10 @@ def test_detect_metadata_from_directory_entries():
         )
 
         directory_entries.append(dir_entry)
+
         if file_d["name"] == b"CODEMETA.json":
-            expected_directory_entry = dir_entry
+            expected_dir_entries.add(dir_entry)
 
     actual_result = detect_metadata_from_directory_entries(directory_entries)
 
-    assert {"CodemetaMapping": expected_directory_entry} == actual_result
+    assert {"CodemetaMapping": set(expected_dir_entries)} == actual_result
