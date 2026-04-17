@@ -463,13 +463,14 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 
         try:
             subdirs = [entry for entry in directory.entries]
-            subdir = subdirs[0]
-            if len(subdirs) == 1 and subdir.type == "dir":
-                # If the root is just a single directory, recurse into it
-                # eg. PyPI packages, GNU tarballs
-                directory, truncated_dir = directory_get(
-                    self.storage, subdir.target, logger=self.log
-                )
+            if len(subdirs) == 1:
+                subdir = subdirs[0]
+                if subdir.type == "dir":
+                    # If the root is just a single directory, recurse into it, e.g. PyPI
+                    # packages, GNU tarballs
+                    directory, truncated_dir = directory_get(
+                        self.storage, subdir.target, logger=self.log
+                    )
 
             assert directory is not None
 
