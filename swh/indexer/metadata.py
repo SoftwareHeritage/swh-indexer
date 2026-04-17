@@ -371,7 +371,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 
 
 def directory_get(
-    storage: StorageInterface, directory_id: Sha1Git, logger
+    storage: StorageInterface,
+    directory_id: Sha1Git,
 ) -> Tuple[Optional[Directory], bool]:
     """Get the directory from the storage. This used a more effective implementation to
     read the directory from the storage. It's currently limited though. It can only read
@@ -458,7 +459,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         """
 
         assert data is None, "Unexpected directory object"
-        directory, truncated_dir = directory_get(self.storage, id, logger=self.log)
+        directory, truncated_dir = directory_get(self.storage, id)
         assert directory is not None
 
         try:
@@ -469,7 +470,8 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                     # If the root is just a single directory, recurse into it, e.g. PyPI
                     # packages, GNU tarballs
                     directory, truncated_dir = directory_get(
-                        self.storage, subdir.target, logger=self.log
+                        self.storage,
+                        subdir.target,
                     )
 
             assert directory is not None
