@@ -462,6 +462,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         directory, truncated_dir = directory_get(self.storage, id)
         assert directory is not None
 
+        metadata: Dict = {}
         try:
             subdirs = [entry for entry in directory.entries]
             if len(subdirs) == 1:
@@ -474,7 +475,17 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                         subdir.target,
                     )
 
-            assert directory is not None
+            if not directory:
+                statsd.increment(
+                    METRIC_INTRINSIC_COUNT,
+                    1,
+                    tags={
+                        "directory_not_found": True,
+                        "directory_truncated": False,
+                        "metadata_found": False,
+                    },
+                )
+                return []
 
             metadata_sha1_gits = []
             # Map from file direntry to mapping detected
@@ -511,18 +522,21 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             (mappings, metadata) = self.translate_directory_intrinsic_metadata(
                 mapping_contents, log_suffix=f"directory={hash_to_hex(id)}"
             )
-            statsd.increment(
-                METRIC_INTRINSIC_COUNT,
-                1,
-                tags={
-                    "directory_truncated": truncated_dir,
-                    "metadata_found": len(metadata) > 0,
-                },
-            )
         except Exception as e:
             self.log.exception("Problem when indexing dir: %r", e)
             sentry_sdk.capture_exception()
             return []
+        finally:
+            statsd.increment(
+                METRIC_INTRINSIC_COUNT,
+                1,
+                tags={
+                    "directory_found": True,
+                    "directory_truncated": truncated_dir,
+                    "metadata_found": metadata and len(metadata) > 0,
+                },
+            )
+
         return [
             DirectoryIntrinsicMetadataRow(
                 id=id,
