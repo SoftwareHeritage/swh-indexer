@@ -76,6 +76,7 @@ T2 = TypeVar("T2")
 logger = logging.getLogger(__name__)
 
 METRIC_INTRINSIC_COUNT = "swh_indexer_intrinsic_run_count"
+METRIC_INTRINSIC_COUNT_CONTENT = "swh_indexer_intrinsic_run_metadata_content_count"
 
 
 def fetch_in_batches(
@@ -579,6 +580,9 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         for mapping_name, detected_contents in mapping_contents.items():
             # Append mapping in list
             used_mappings.append(intrinsic_mappings[mapping_name].name)
+            # Whether we found content to index or already indexed
+            content_already_indexed = False
+            content_newly_indexed = False
 
             # sha1s that are in content_metadata table
             sha1s_in_idx_storage = []
@@ -591,6 +595,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                 # local metadata is aggregated
                 if local_metadata:
                     metadata.append(local_metadata)
+                content_already_indexed = True
 
             sha1s_to_index = [
                 content.hashes()
@@ -615,9 +620,22 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                         metadata.append(local_metadata)
                         indexed_count += 1
 
+                    content_newly_indexed = indexed_count > 0
+
                 except Exception:
                     self.log.exception("Exception while indexing metadata on contents")
                     sentry_sdk.capture_exception()
+
+            statsd.increment(
+                METRIC_INTRINSIC_COUNT_CONTENT,
+                1,
+                tags={
+                    "content_already_indexed": content_already_indexed,
+                    "content_newly_indexed": content_newly_indexed,
+                    "mapping": mapping_name,
+                    "metadata_found": len(metadata) > 0,
+                },
+            )
 
         metadata = merge_documents(metadata)
         return (used_mappings, metadata)
