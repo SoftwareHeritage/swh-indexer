@@ -76,6 +76,9 @@ T2 = TypeVar("T2")
 logger = logging.getLogger(__name__)
 
 METRIC_INTRINSIC_COUNT = "swh_indexer_intrinsic_run_count"
+METRIC_INTRINSIC_COUNT_CONTENT_INDEXED = (
+    "swh_indexer_intrinsic_metadata_content_indexed_count"
+)
 METRIC_INTRINSIC_COUNT_CONTENT = "swh_indexer_intrinsic_run_metadata_content_count"
 
 
@@ -333,23 +336,47 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
         assert "sha1" in id
         assert data is not None
         metadata = None
+        content_id = id["sha1"]
+        content_id_str = hash_to_hex(content_id)
         try:
             mapping_name = self.tool["tool_configuration"]["context"]
-            log_suffix += ", content_id=%s" % hash_to_hex(id["sha1"])
+            log_suffix += f", content_id={content_id_str}"
             metadata = get_intrinsic_mappings()[mapping_name](log_suffix).translate(
                 data
             )
+            self.log.info(
+                "Translated metadata for content %s with mapping %s",
+                content_id_str,
+                mapping_name,
+            )
         except Exception:
             self.log.exception(
-                "Problem during metadata translation "
-                "for content %s" % hash_to_hex(id["sha1"])
+                "Problem during metadata translation for content %s",
+                content_id,
             )
             sentry_sdk.capture_exception()
+            statsd.increment(
+                METRIC_INTRINSIC_COUNT_CONTENT_INDEXED,
+                1,
+                tags={
+                    "content_found": False,
+                    "metadata_found": False,
+                },
+            )
+
+        statsd.increment(
+            METRIC_INTRINSIC_COUNT_CONTENT_INDEXED,
+            1,
+            tags={
+                "content_found": True,
+                "metadata_found": metadata is not None,
+            },
+        )
         if metadata is None:
             return []
         return [
             ContentMetadataRow(
-                id=id["sha1"],
+                id=content_id,
                 indexer_configuration_id=self.tool["id"],
                 metadata=metadata,
             )
