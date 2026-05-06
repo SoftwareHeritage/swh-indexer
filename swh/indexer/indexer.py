@@ -158,11 +158,11 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
         else:
             self.config = load_from_envvar()
         self.config = merge_configs(DEFAULT_CONFIG, self.config)
-        self.prepare()
+        self.prepare(**kw)
         self.check()
         self.log.debug("%s: config=%s", self, self.config)
 
-    def prepare(self) -> None:
+    def prepare(self, **kw) -> None:
         """Prepare the indexer's needed runtime configuration.
         Without this step, the indexer cannot possibly run.
 
@@ -171,7 +171,13 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
         if config_storage:
             self.storage = get_storage(**config_storage)
 
-        self.objstorage = get_objstorage(**self.config["objstorage"])
+        # We can pass along an already instantiated objstorage
+        objstorage = kw.get("objstorage")
+        if objstorage:
+            self.objstorage = objstorage
+        else:
+            # If not provided, instantiate it
+            self.objstorage = get_objstorage(**self.config["objstorage"])
 
         idx_storage = self.config[INDEXER_CFG_KEY]
         self.idx_storage = get_indexer_storage(**idx_storage)

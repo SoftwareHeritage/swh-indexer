@@ -10,9 +10,15 @@ import pytest
 import sentry_sdk
 
 from swh.indexer import get_indexer, get_indexer_names
-from swh.indexer.indexer import ContentIndexer, DirectoryIndexer, OriginIndexer
+from swh.indexer.indexer import (
+    BaseIndexer,
+    ContentIndexer,
+    DirectoryIndexer,
+    OriginIndexer,
+)
 from swh.indexer.storage import Sha1
 from swh.model.hashutil import HashDict
+from swh.objstorage.backends.in_memory import InMemoryObjStorage
 
 from .utils import BASE_TEST_CONFIG, DIRECTORY2
 
@@ -47,6 +53,10 @@ class CrashingDirectoryIndexer(CrashingIndexerMixin, DirectoryIndexer):
 
 
 class CrashingOriginIndexer(CrashingIndexerMixin, OriginIndexer):
+    pass
+
+
+class TestIndexer(CrashingIndexerMixin, BaseIndexer):
     pass
 
 
@@ -189,3 +199,20 @@ def test_indexers_define_object_types(swh_config):
             f"Indexer class {indexer_class} should declare a non-empty"
             " `object_types` class attribute"
         )
+
+
+def test_instantiate_objstorage_for_indexer():
+    # To bullet proof against change in that test configuration (adapt accordingly this
+    # test if this changes)
+    assert BASE_TEST_CONFIG["objstorage"]["cls"] == "memory"
+    # Basic instantiation of indexer will just instantiate objstorage
+    indexer = TestIndexer(config=BASE_TEST_CONFIG)
+
+    assert hasattr(indexer, "objstorage")
+    assert isinstance(indexer.objstorage, InMemoryObjStorage)
+
+    # Instantiation with objstorage passed along
+    indexer = TestIndexer(config=BASE_TEST_CONFIG, objstorage=Mock())
+
+    assert hasattr(indexer, "objstorage")
+    assert isinstance(indexer.objstorage, Mock)
