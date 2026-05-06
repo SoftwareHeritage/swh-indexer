@@ -75,11 +75,16 @@ T2 = TypeVar("T2")
 
 logger = logging.getLogger(__name__)
 
-METRIC_INTRINSIC_COUNT = "swh_indexer_intrinsic_run_count"
-METRIC_INTRINSIC_COUNT_CONTENT_INDEXED = (
+# Count directory found with metadata (or not) and truncated (or not)
+METRIC_INTRINSIC_DIRECTORY_COUNT = "swh_indexer_intrinsic_metadata_directory_count"
+# Count actual content metadata indexed
+METRIC_INTRINSIC_CONTENT_INDEXED_COUNT = (
     "swh_indexer_intrinsic_metadata_content_indexed_count"
 )
-METRIC_INTRINSIC_COUNT_CONTENT = "swh_indexer_intrinsic_run_metadata_content_count"
+# Count content metadata indexed (per mapping)
+METRIC_INTRINSIC_CONTENT_PER_MAPPING_COUNT = (
+    "swh_indexer_intrinsic_metadata_content_per_mapping_count"
+)
 
 
 def fetch_in_batches(
@@ -356,7 +361,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
             )
             sentry_sdk.capture_exception()
             statsd.increment(
-                METRIC_INTRINSIC_COUNT_CONTENT_INDEXED,
+                METRIC_INTRINSIC_CONTENT_INDEXED_COUNT,
                 1,
                 tags={
                     "content_found": False,
@@ -365,7 +370,7 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
             )
 
         statsd.increment(
-            METRIC_INTRINSIC_COUNT_CONTENT_INDEXED,
+            METRIC_INTRINSIC_CONTENT_INDEXED_COUNT,
             1,
             tags={
                 "content_found": True,
@@ -505,7 +510,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 
             if not directory:
                 statsd.increment(
-                    METRIC_INTRINSIC_COUNT,
+                    METRIC_INTRINSIC_DIRECTORY_COUNT,
                     1,
                     tags={
                         "directory_found": False,
@@ -556,7 +561,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             return []
         finally:
             statsd.increment(
-                METRIC_INTRINSIC_COUNT,
+                METRIC_INTRINSIC_DIRECTORY_COUNT,
                 1,
                 tags={
                     "directory_found": True,
@@ -654,7 +659,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                     sentry_sdk.capture_exception()
 
             statsd.increment(
-                METRIC_INTRINSIC_COUNT_CONTENT,
+                METRIC_INTRINSIC_CONTENT_PER_MAPPING_COUNT,
                 1,
                 tags={
                     "content_already_indexed": content_already_indexed,
