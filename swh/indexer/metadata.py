@@ -60,6 +60,7 @@ from swh.model.model import (
     Sha1Git,
 )
 from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
+from swh.objstorage.factory import get_objstorage
 from swh.storage.interface import StorageInterface
 
 # Default batch size per object type (can be overridden through indexer configuration)
@@ -307,6 +308,10 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
 
     """
 
+    def __init__(self, *args, objstorage=None, **kwargs):
+        kwargs["objstorage"] = objstorage
+        super().__init__(*args, **kwargs)
+
     def filter(self, ids: List[HashDict]):
         """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_metadata_missing(
@@ -454,8 +459,28 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
     """
 
     def __init__(self, *args, **kwargs):
+        # Instantiate an objstorage once (for specific cases like multiplexer, this can
+        # spawn threads so we need to limit such instantiation)
+        if "objstorage" in kwargs:
+            kwargs["objstorage"] = get_objstorage(**kwargs["objstorage"])
         super().__init__(*args, **kwargs)
         self.config = merge_configs(DEFAULT_CONFIG, self.config)
+
+        # Build a dict of ContentMetadataIndexer per mapping
+        intrinsic_mappings = get_intrinsic_mappings()
+        template_tool_config = {
+            k: self.config[k]
+            for k in [INDEXER_CFG_KEY, "objstorage", "storage", "tools"]
+        }
+
+        content_metadata_indexers = {}
+        for mapping_name, mapping_config in intrinsic_mappings.items():
+            cfg = deepcopy(template_tool_config)
+            cfg["tools"]["configuration"]["context"] = mapping_name
+            content_metadata_indexers[mapping_name] = ContentMetadataIndexer(
+                config=cfg, objstorage=self.objstorage
+            )
+        self.content_metadata_indexers = content_metadata_indexers
 
     def filter(self, sha1_gits):
         """Filter out known sha1s and return only missing ones."""
@@ -604,10 +629,6 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         # Load/Retrieve intrinsic mappings
         intrinsic_mappings = get_intrinsic_mappings()
 
-        config = {
-            k: self.config[k]
-            for k in [INDEXER_CFG_KEY, "objstorage", "storage", "tools"]
-        }
         used_mappings = []
         for mapping_name, detected_contents in mapping_contents.items():
             # Append mapping in list
@@ -637,9 +658,8 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 
             # If we did not have indexed the file yet
             if sha1s_to_index:
-                cfg = deepcopy(config)
-                cfg["tools"]["configuration"]["context"] = mapping_name
-                c_metadata_indexer = ContentMetadataIndexer(config=cfg)
+                # Retrieve the metadata indexer to use
+                c_metadata_indexer = self.content_metadata_indexers[mapping_name]
                 # content indexing
                 try:
                     _, results = c_metadata_indexer.run(

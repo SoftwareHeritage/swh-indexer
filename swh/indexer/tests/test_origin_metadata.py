@@ -41,7 +41,7 @@ def test_origin_metadata_indexer_release(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     origin = "https://npm.example.org/yarn-parser"
     indexer.run([origin])
 
@@ -81,7 +81,7 @@ def test_origin_metadata_indexer_revision(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     origin = "https://github.com/librariesio/yarn-parser"
     indexer.run([origin])
 
@@ -121,7 +121,7 @@ def test_origin_metadata_indexer_duplicate_origin(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     indexer.storage = storage
     indexer.idx_storage = idx_storage
     indexer.run(["https://github.com/librariesio/yarn-parser"])
@@ -145,7 +145,7 @@ def test_origin_metadata_indexer_missing_head(
 ) -> None:
     storage.origin_add([Origin(url="https://example.com")])
 
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     indexer.run(["https://example.com"])
 
     origin = "https://example.com"
@@ -163,7 +163,7 @@ def test_origin_metadata_indexer_partial_missing_head(
     origin1 = "https://example.com"
     origin2 = "https://github.com/librariesio/yarn-parser"
     storage.origin_add([Origin(url=origin1)])
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     indexer.run([origin1, origin2])
 
     dir_id = DIRECTORY2.id
@@ -199,7 +199,7 @@ def test_origin_metadata_indexer_duplicate_directory(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     indexer.storage = storage
     indexer.idx_storage = idx_storage
     indexer.catch_exceptions = False
@@ -228,7 +228,7 @@ def test_origin_metadata_indexer_duplicate_directory_different_result(
     """Same as above, but indexing the same directory twice resulted in different
     data (because list order differs).
     """
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     indexer.storage = storage
     indexer.idx_storage = idx_storage
     indexer.catch_exceptions = False
@@ -276,7 +276,7 @@ def test_origin_metadata_indexer_no_metadata_file(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch("swh.indexer.metadata_mapping.npm.NpmMapping.filename", b"foo.json"):
         indexer.run([origin])
@@ -296,7 +296,7 @@ def test_origin_metadata_indexer_no_metadata(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     origin = "https://github.com/librariesio/yarn-parser"
     with patch(
         "swh.indexer.metadata.DirectoryMetadataIndexer"
@@ -323,7 +323,7 @@ def test_origin_metadata_indexer_directory_error(
     sentry_events,
     catch_exceptions,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     origin = "https://github.com/librariesio/yarn-parser"
 
     indexer.catch_exceptions = catch_exceptions
@@ -363,7 +363,7 @@ def test_origin_metadata_indexer_content_exception(
     sentry_events,
     catch_exceptions,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     origin = "https://github.com/librariesio/yarn-parser"
 
     indexer.catch_exceptions = catch_exceptions
@@ -403,6 +403,6 @@ def test_origin_metadata_indexer_unknown_origin(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-    indexer = OriginMetadataIndexer(config=swh_indexer_config)
+    indexer = OriginMetadataIndexer(config=swh_indexer_config, objstorage=obj_storage)
     result = indexer.index_list([Origin("https://unknown.org/foo")])
     assert not result
