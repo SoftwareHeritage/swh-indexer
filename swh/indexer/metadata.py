@@ -694,8 +694,9 @@ class OriginMetadataIndexer(
 ):
     """Indexer for intrinsic metadata found within origin's root directory
 
-    If there is a metadata file corresponding to a known format in the root
-    directory of an Origin (i.e. in the root directory of the , read it and
+    If there is a metadata file corresponding to a known format in the root directory of
+    an Origin (root directory from a visit on that origin). This extracts metadata from
+    it.
 
     """
 
