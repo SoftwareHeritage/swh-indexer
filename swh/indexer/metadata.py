@@ -308,10 +308,6 @@ class ContentMetadataIndexer(ContentIndexer[ContentMetadataRow]):
 
     """
 
-    def __init__(self, *args, objstorage=None, **kwargs):
-        kwargs["objstorage"] = objstorage
-        super().__init__(*args, **kwargs)
-
     def filter(self, ids: List[HashDict]):
         """Filter out known sha1s and return only missing ones."""
         yield from self.idx_storage.content_metadata_missing(
