@@ -156,8 +156,10 @@ def test_origin_indexer_catch_exceptions(sentry_events):
     assert indexer.run([origin_url]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
 
+    ovs = {"origin": origin_url, "status": "full"}
+
     # As journal client, catching exceptions
-    assert indexer.process_journal_objects({"origin": [{"url": origin_url}]}) == {
+    assert indexer.process_journal_objects({"origin_visit_status": [ovs]}) == {
         "status": "failed"
     }
     check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
@@ -171,12 +173,12 @@ def test_origin_indexer_catch_exceptions(sentry_events):
 
     # As journal client, not catching exceptions
     with pytest.raises(_TestException):
-        indexer.process_journal_objects({"origin": [{"url": origin_url}]})
+        indexer.process_journal_objects({"origin_visit_status": [ovs]})
     assert sentry_events == []
 
     # As journal client, check the frontend will be able to get the tag when reporting
     try:
-        indexer.process_journal_objects({"origin": [{"url": origin_url}]})
+        indexer.process_journal_objects({"origin_visit_status": [ovs]})
     except Exception:
         sentry_sdk.capture_exception()
     else:

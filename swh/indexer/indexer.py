@@ -372,9 +372,13 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
     and override the methods mentioned in the :class:`BaseIndexer`
     class.
 
+    Implementation wise, the default behavior of this class is to consume
+    origin_visit_status objects. Override the :meth:`process_journal_objects` if you
+    need to consume more topics.
+
     """
 
-    object_types = ["origin", "origin_visit_status"]
+    object_types = ["origin_visit_status"]
 
     def process_journal_objects(self, objects: ObjectsDict) -> Dict:
         """Worker function for ``JournalClient``."""
@@ -382,7 +386,7 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
             status["origin"]
             for status in objects.get("origin_visit_status", [])
             if status["status"] == "full"
-        ] + [origin["url"] for origin in objects.get("origin", [])]
+        ]
         summary, _ = self.run(origin_urls)
         return summary
 
