@@ -34,7 +34,7 @@ testing = {file = ["requirements-test.txt"]}
 "memory" = "swh.indexer.storage.in_memory:IndexerStorage"
 
 [project.entry-points."swh.indexer.classes"]
-"origin_intrinsic_metadata" = "swh.indexer.metadata:OriginMetadataIndexer"
+"origin_intrinsic_metadata" = "swh.indexer.metadata:OriginIntrinsicMetadataIndexer"
 "extrinsic_metadata" = "swh.indexer.metadata:ExtrinsicMetadataIndexer"
 "content_mimetype" = "swh.indexer.mimetype:MimetypeIndexer"
 "content_fossology_license" = "swh.indexer.fossology_license:FossologyLicenseIndexer"

@@ -689,7 +689,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         return (used_mappings, metadata)
 
 
-class OriginMetadataIndexer(
+class OriginIntrinsicMetadataIndexer(
     OriginIndexer[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]
 ):
     """Indexer for intrinsic metadata found within origin's root directory
