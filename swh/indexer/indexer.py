@@ -404,38 +404,56 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
         """
         origins = [Origin(url=url) for url in origin_urls]
         summary: Dict[str, Any] = {"status": "uneventful"}
-        results = []
+        results: List[TResult] = []
         try:
-            results = self.index_list(
+            results, excs = self.index_list(
                 origins,
                 # no need to check they exist, as we just received either an origin
                 # or visit status; which cannot be created by swh-storage unless
                 # the origin already exists
                 check_origin_known=False,
             )
-        except Exception:
+        except Exception as e:
+            # Terminal exception, we log it and stop
             if not self.catch_exceptions:
-                raise
+                raise e
             self.log.exception("Problem when processing origins")
             sentry_sdk.capture_exception()
             summary["status"] = "failed"
             return summary, results
 
+        # We persist whatever results we successfully computed
         summary_persist = self.persist_index_computations(results)
         if summary_persist:
             for value in summary_persist.values():
                 if value > 0:
                     summary["status"] = "eventful"
             summary.update(summary_persist)
+
+        # Finally, if some internal process failed, we mark the indexation as failed
+        if excs:
+            summary["status"] = "failed"
+
         return summary, results
 
-    def index_list(self, origins: List[Origin], **kwargs) -> List[TResult]:
-        results = []
-        for origin in origins:
-            sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
-            results.extend(self.index(origin.url, **kwargs))
-        sentry_sdk.set_tag("swh-indexer-origin-url", "")
-        return results
+    def index_list(
+        self,
+        origins: List[Origin],
+        *,
+        check_origin_known: bool = True,
+        **kwargs,
+    ) -> Tuple[List[TResult], List[Exception]]:
+        """Index list of origins
+
+        Args:
+            origins: List of origins to index
+
+        Returns:
+            Tuple of indexed data to persist and an eventual list of exceptions raised
+            during the metadata processing.
+
+        """
+        raise NotImplementedError()
 
 
 class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult]):

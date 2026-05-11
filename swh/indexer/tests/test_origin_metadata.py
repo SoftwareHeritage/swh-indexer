@@ -428,5 +428,5 @@ def test_origin_metadata_indexer_unknown_origin(
     indexer = OriginIntrinsicMetadataIndexer(
         config=swh_indexer_config, objstorage=obj_storage
     )
-    result = indexer.index_list([Origin("https://unknown.org/foo")])
+    result, _ = indexer.index_list([Origin("https://unknown.org/foo")])
     assert not result

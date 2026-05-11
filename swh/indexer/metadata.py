@@ -717,7 +717,10 @@ class OriginIntrinsicMetadataIndexer(
         *,
         check_origin_known: bool = True,
         **kwargs,
-    ) -> List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]:
+    ) -> Tuple[
+        List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]],
+        List[Exception],
+    ]:
         head_rev_ids = []
         head_rel_ids = []
         origin_heads: Dict[Origin, CoreSWHID] = {}
@@ -769,6 +772,9 @@ class OriginIntrinsicMetadataIndexer(
         )
 
         results = []
+        # If any exception is caught, ensure we can let the process finish prior to
+        # actually stop it
+        excs = []
         for origin, head_swhid in origin_heads.items():
             sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
             sentry_sdk.set_tag("swh-indexer-origin-head-swhid", str(head_swhid))
@@ -806,18 +812,24 @@ class OriginIntrinsicMetadataIndexer(
                 self.log.error("Unhandled head type %s for %s", head_swhid, origin.url)
                 continue
 
-            for dir_metadata in self.directory_metadata_indexer.index(directory_id):
-                # There is at most one dir_metadata
-                orig_metadata = OriginIntrinsicMetadataRow(
-                    from_directory=dir_metadata.id,
-                    id=origin.url,
-                    metadata=dir_metadata.metadata,
-                    mappings=dir_metadata.mappings,
-                    indexer_configuration_id=dir_metadata.indexer_configuration_id,
-                )
-                results.append((orig_metadata, dir_metadata))
+            try:
+                for dir_metadata in self.directory_metadata_indexer.index(directory_id):
+                    # There is at most one dir_metadata
+                    orig_metadata = OriginIntrinsicMetadataRow(
+                        from_directory=dir_metadata.id,
+                        id=origin.url,
+                        metadata=dir_metadata.metadata,
+                        mappings=dir_metadata.mappings,
+                        indexer_configuration_id=dir_metadata.indexer_configuration_id,
+                    )
+                    results.append((orig_metadata, dir_metadata))
+            except Exception as e:
+                # Log the exception and continue
+                self.log.exception("Problem when processing origins")
+                sentry_sdk.capture_exception()
+                excs.append(e)
 
-        return results
+        return results, excs
 
     def persist_index_computations(
         self,

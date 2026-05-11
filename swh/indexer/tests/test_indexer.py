@@ -3,7 +3,7 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 from unittest.mock import Mock
 
 import pytest
@@ -18,6 +18,7 @@ from swh.indexer.indexer import (
 )
 from swh.indexer.storage import Sha1
 from swh.model.hashutil import HashDict
+from swh.model.model import Origin
 from swh.objstorage.backends.in_memory import InMemoryObjStorage
 
 from .utils import BASE_TEST_CONFIG, DIRECTORY2
@@ -53,7 +54,15 @@ class CrashingDirectoryIndexer(CrashingIndexerMixin, DirectoryIndexer):
 
 
 class CrashingOriginIndexer(CrashingIndexerMixin, OriginIndexer):
-    pass
+    def index_list(
+        self, origins: List[Origin], *, check_origin_known: bool = True, **kwargs: Any
+    ) -> Tuple[List[Any], List[Exception]]:
+        results = []
+        for origin in origins:
+            sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
+            results.extend(self.index(origin.url, **kwargs))
+        sentry_sdk.set_tag("swh-indexer-origin-url", "")
+        return results, []
 
 
 class TestIndexer(CrashingIndexerMixin, BaseIndexer):
