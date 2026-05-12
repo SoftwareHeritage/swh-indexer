@@ -221,6 +221,18 @@ def journal_client(
 
     If no indexer name is given, or if '*' is passed as indexer name, then
     runs all registered indexers.
+
+    An optional 'error_reporter' config section can be provided allowing to specify a
+    Redis connection parameter set that will be used to report objects that could not be
+    indexed, eg.::
+
+      journal_client:
+        [...]
+      error_reporter:
+        host: redis.local
+        port: 6379
+        db: 1
+
     """
     from swh.indexer import get_indexer, get_indexer_names
     from swh.indexer.indexer import BaseIndexer, ObjectsDict
@@ -257,6 +269,15 @@ def journal_client(
         raise click.ClickException(
             f"Unknown indexer{'s' if len(unknown) > 1 else ''}: {','.join(unknown)}"
         )
+
+    # Set up the optional redis error reporter
+    error_reporter_cfg = cfg.get("error_reporter")
+    if error_reporter_cfg:
+        from redis import Redis
+
+        from swh import indexer as indexer_module
+
+        indexer_module.ERROR_REPORTER = Redis(**error_reporter_cfg).set
 
     idx: Optional[BaseIndexer] = None
     # And then configure the indexer journal client(s) to trigger

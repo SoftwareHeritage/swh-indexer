@@ -3,12 +3,15 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import TYPE_CHECKING, Dict, List, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Type
 
 if TYPE_CHECKING:
     from swh.indexer.indexer import BaseIndexer
 
 _INDEXERS: Dict[str, Type["BaseIndexer"]] = {}
+
+# Issue reporter set from configuration
+ERROR_REPORTER: Optional[Callable[[str, bytes], Any]] = None
 
 
 # implemented as a function to help lazy loading

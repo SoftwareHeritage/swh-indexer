@@ -31,6 +31,7 @@ import sentry_sdk
 from swh.core.config import merge_configs
 from swh.core.statsd import statsd
 from swh.core.utils import grouper
+from swh.indexer import ERROR_REPORTER
 from swh.indexer.codemeta import merge_documents
 from swh.indexer.indexer import (
     BaseIndexer,
@@ -63,6 +64,24 @@ from swh.model.swhids import CoreSWHID, ExtendedObjectType, ObjectType
 from swh.objstorage.factory import get_objstorage
 from swh.storage.interface import StorageInterface
 
+
+def _exc_message(base: str, args):
+    message = base
+    if args:
+        message += f": {args[0]}"
+    return message
+
+
+class DirectoryMissingError(Exception):
+    """Raises when a directory read from an origin is missing.
+    origin -> snapshot -> {revision, release} -> directory
+
+    """
+
+    def __str__(self):
+        return _exc_message("Directory missing", self.args)
+
+
 # Default batch size per object type (can be overridden through indexer configuration)
 DEFAULT_BATCH_SIZE = {
     "revision": 10,
@@ -76,6 +95,7 @@ T2 = TypeVar("T2")
 
 logger = logging.getLogger(__name__)
 
+
 # Count directory found with metadata (or not) and truncated (or not)
 METRIC_INTRINSIC_DIRECTORY_COUNT = "swh_indexer_intrinsic_metadata_directory_count"
 # Count actual content metadata indexed
@@ -86,6 +106,59 @@ METRIC_INTRINSIC_CONTENT_INDEXED_COUNT = (
 METRIC_INTRINSIC_CONTENT_PER_MAPPING_COUNT = (
     "swh_indexer_intrinsic_metadata_content_per_mapping_count"
 )
+
+
+def log_error_report(
+    obj_id: bytes, exc: Exception, operation: str, information: Dict[str, Any]
+) -> None:
+    """Function called when issue must be reported without failing the index process.
+
+    This always logs the issue in sentry. This can also optionally logs the issue in
+    another reporter (when said reporter is declared in configuration).
+
+    Args:
+        obj_id: The object identifier which raised a problem.
+        exc: The exception raised and caught
+        operation: The operation where it was triggered
+        information: A dictionary of extra information to summarize the context
+
+    Returns:
+        None
+
+    """
+
+    obj_id_str = hash_to_hex(obj_id)
+    error_context = {
+        "obj_id": obj_id_str,
+        "operation": operation,
+        "exc": str(exc),
+    }
+    for k, v in information.items():
+        if isinstance(v, bytes):
+            value = hash_to_hex(v)
+        else:
+            value = value
+        error_context[k] = value
+
+    # Report in sentry
+    with sentry_sdk.push_scope() as scope:
+        for k, v in error_context.items():
+            scope.set_extra(k, v)
+        sentry_sdk.capture_exception(exc)
+
+    logger.error(
+        "Failed operation %(operation)s on %(obj_id)s %(retries)s "
+        "last exception: %(exc)s",
+        error_context,
+    )
+
+    # if we have a global error (redis) reporter
+    if ERROR_REPORTER is not None:
+        from msgpack import dumps
+
+        oid = f"{information['object_type']}:{obj_id_str}"
+        msg = dumps(error_context)
+        ERROR_REPORTER(oid, msg)
 
 
 def fetch_in_batches(
@@ -514,7 +587,19 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 
         assert data is None, "Unexpected directory object"
         directory, truncated_dir = directory_get(self.storage, id)
-        assert directory is not None
+        if directory is None:
+            # We cannot do more, increment stats about directory not found
+            statsd.increment(
+                METRIC_INTRINSIC_DIRECTORY_COUNT,
+                1,
+                tags={
+                    "directory_found": False,
+                    "directory_truncated": False,
+                    "metadata_found": False,
+                },
+            )
+            # Then raise for report
+            raise DirectoryMissingError(id)
 
         metadata: Dict = {}
         try:
@@ -772,6 +857,8 @@ class OriginIntrinsicMetadataIndexer(
         for origin, head_swhid in origin_heads.items():
             sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
             sentry_sdk.set_tag("swh-indexer-origin-head-swhid", str(head_swhid))
+            rev = None
+            rel = None
             if head_swhid.object_type == ObjectType.REVISION:
                 rev = head_revs.get(head_swhid.object_id)
                 if not rev:
@@ -806,16 +893,33 @@ class OriginIntrinsicMetadataIndexer(
                 self.log.error("Unhandled head type %s for %s", head_swhid, origin.url)
                 continue
 
-            for dir_metadata in self.directory_metadata_indexer.index(directory_id):
-                # There is at most one dir_metadata
-                orig_metadata = OriginIntrinsicMetadataRow(
-                    from_directory=dir_metadata.id,
-                    id=origin.url,
-                    metadata=dir_metadata.metadata,
-                    mappings=dir_metadata.mappings,
-                    indexer_configuration_id=dir_metadata.indexer_configuration_id,
+            try:
+                for dir_metadata in self.directory_metadata_indexer.index(directory_id):
+                    # There is at most one dir_metadata
+                    orig_metadata = OriginIntrinsicMetadataRow(
+                        from_directory=dir_metadata.id,
+                        id=origin.url,
+                        metadata=dir_metadata.metadata,
+                        mappings=dir_metadata.mappings,
+                        indexer_configuration_id=dir_metadata.indexer_configuration_id,
+                    )
+                    results.append((orig_metadata, dir_metadata))
+            except DirectoryMissingError as e:
+                # This error of "missing directory" might be due to old inconsistent
+                # data, let's report the issue and continue
+                log_error_report(
+                    directory_id,
+                    e,
+                    self.index_list.__name__,
+                    {
+                        "origin": origin,
+                        "object_type": "directory",
+                        "head_swhid": head_swhid,
+                        "revision": rev,
+                        "release": rel,
+                    },
                 )
-                results.append((orig_metadata, dir_metadata))
+                continue
 
         return results
 
