@@ -9,31 +9,30 @@ import logging
 import os
 import shutil
 import tempfile
-from typing import Any, Dict, Generic, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import sentry_sdk
-from typing_extensions import TypedDict
 
 from swh.core.config import load_from_envvar, merge_configs
 from swh.indexer.storage import INDEXER_CFG_KEY, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
-from swh.model.hashutil import HashDict, hash_to_bytes, hash_to_hex
+from swh.model.hashutil import HashDict, hash_to_hex
 from swh.model.model import Directory, Origin, Sha1Git
 from swh.objstorage.factory import get_objstorage
 from swh.objstorage.interface import objid_from_dict
 from swh.storage import get_storage
 from swh.storage.interface import StorageInterface
-
-
-class ObjectsDict(TypedDict, total=False):
-    """Typed objects whose keys are names of Kafka topics and values are list of values
-    of messages in that topic."""
-
-    content: List[Dict]
-    directory: List[Dict]
-    origin: List[Dict]
-    origin_visit_status: List[Dict]
-    raw_extrinsic_metadata: List[Dict]
 
 
 @contextmanager
@@ -280,17 +279,6 @@ class BaseIndexer(Generic[TId, TData, TResult], metaclass=abc.ABCMeta):
         """
         return {}
 
-    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
-        """Read swh message objects (content, origin, ...) from the journal to:
-
-        - retrieve the associated objects from the storage backend (e.g. storage,
-          objstorage...)
-        - execute the associated indexing computations
-        - store the results in the indexer storage
-
-        """
-        raise NotImplementedError()
-
 
 class ContentIndexer(BaseIndexer[HashDict, bytes, TResult], Generic[TResult]):
     """A content indexer working on the journal (method `process_journal_objects`) or on
@@ -304,16 +292,7 @@ class ContentIndexer(BaseIndexer[HashDict, bytes, TResult], Generic[TResult]):
 
     object_types = ["content"]
 
-    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
-        """Read content objects from the journal, retrieve their raw content and compute
-        content indexing (e.g. mimetype, fossology license, ...).
-        """
-        summary, _ = self.run(
-            [objid_from_dict(obj) for obj in objects.get("content", [])]
-        )
-        return summary
-
-    def run(self, ids: List[HashDict], **kwargs) -> Tuple[Dict, List]:
+    def run(self, objects: List[Dict], **kwargs) -> Tuple[Dict, List]:
         """Given a list of ids:
 
         - retrieve the content from the storage
@@ -321,7 +300,7 @@ class ContentIndexer(BaseIndexer[HashDict, bytes, TResult], Generic[TResult]):
         - store the results
 
         Args:
-            ids (Iterable[Sha1]): sha1's identifier list
+            objects: Objects read from a kafka topics
             **kwargs: passed to the `index` method
 
         Returns:
@@ -331,6 +310,7 @@ class ContentIndexer(BaseIndexer[HashDict, bytes, TResult], Generic[TResult]):
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
         try:
+            ids = [objid_from_dict(obj) for obj in objects]
             content_data = self.objstorage.get_batch(ids)
             for item, raw_content in zip(ids, content_data):
                 id_ = item
@@ -380,32 +360,39 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
 
     object_types = ["origin_visit_status"]
 
-    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
-        """Worker function for ``JournalClient``."""
-        origin_urls = [
-            status["origin"]
-            for status in objects.get("origin_visit_status", [])
-            if status["status"] == "full"
-        ]
-        summary, _ = self.run(origin_urls)
-        return summary
+    def filter_objects(self, objects: Iterable[Dict]) -> Iterator[Dict]:
+        """Index origin on origin visit status with status 'full'."""
+        for ovs in objects:
+            status = ovs["status"]
+            if status == "full":
+                yield ovs
 
-    def run(self, origin_urls: List[str], **kwargs) -> Tuple[Dict, List]:
-        """Given a list of origin urls:
+    def map_objects_to_typed_objects(self, objects: Iterable[Dict]) -> Iterator[Origin]:
+        """Transform iterable of objects into an Origin iterator."""
+        for ovs in objects:
+            yield Origin(url=ovs["origin"])
 
-        - retrieve origins from storage
-        - execute the indexing computations
-        - store the results
+    def run(self, objects: List[Dict], **kwargs) -> Tuple[Dict, List]:
+        """Given a list of dict representing either origin or origin visit status:
+
+        - retrieve the corresponding origins from storage
+        - execute the indexing computations on those origins
+        - finally store the results
+        - return a summary of such computations
 
         Args:
-            origin_urls: list of origin urls.
+            objects: list of origin visit status read from a kafka topics.
             **kwargs: passed to the `index` method
 
+        Returns:
+            Tuple of summary and indexation results
+
         """
-        origins = [Origin(url=url) for url in origin_urls]
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
+
         try:
+            origins = self.map_objects_to_typed_objects(self.filter_objects(objects))
             results = self.index_list(
                 origins,
                 # no need to check they exist, as we just received either an origin
@@ -429,7 +416,8 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
             summary.update(summary_persist)
         return summary, results
 
-    def index_list(self, origins: List[Origin], **kwargs) -> List[TResult]:
+    def index_list(self, origins: Iterable[Origin], **kwargs) -> List[TResult]:
+        """Default implementation which simply iterates over origins to index"""
         results = []
         for origin in origins:
             sentry_sdk.set_tag("swh-indexer-origin-url", origin.url)
@@ -451,7 +439,7 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
 
     object_types = ["directory"]
 
-    def run(self, ids: List[Sha1Git], **kwargs) -> Tuple[Dict, List]:
+    def run(self, objects: List[Dict], **kwargs) -> Tuple[Dict, List]:
         """Given a list of sha1_gits:
 
         - retrieve directories from storage
@@ -462,36 +450,18 @@ class DirectoryIndexer(BaseIndexer[Sha1Git, Directory, TResult], Generic[TResult
             ids: sha1_git's identifier list
 
         """
-        directory_ids = [
-            hash_to_bytes(id_) if isinstance(id_, str) else id_ for id_ in ids
-        ]
-
-        return self._process_directories([(dir_id, None) for dir_id in directory_ids])
-
-    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
-        """Worker function for ``JournalClient``."""
-        summary, _ = self._process_directories(
-            [
-                (dir_["id"], Directory.from_dict(dir_))
-                for dir_ in objects.get("directory", [])
-            ]
-        )
-        return summary
-
-    def _process_directories(
-        self,
-        directories: Union[List[Tuple[Sha1Git, Directory]], List[Tuple[Sha1Git, None]]],
-    ) -> Tuple[Dict, List]:
         summary: Dict[str, Any] = {"status": "uneventful"}
         results = []
 
         # TODO: fetch raw_manifest when useful?
 
-        for dir_id, dir_ in directories:
+        for directory_d in objects:
+            directory = Directory.from_dict(directory_d)
+            dir_id = directory.id
             swhid = f"swh:1:dir:{hash_to_hex(dir_id)}"
             sentry_sdk.set_tag("swh-indexer-directory-swhid", swhid)
             try:
-                results.extend(self.index(dir_id, dir_))
+                results.extend(self.index(dir_id, directory))
             except Exception:
                 if not self.catch_exceptions:
                     raise

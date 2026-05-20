@@ -7,7 +7,6 @@ from typing import Any, Dict, Iterable, List, Optional
 from unittest.mock import Mock
 
 import pytest
-import sentry_sdk
 
 from swh.indexer import get_indexer, get_indexer_names
 from swh.indexer.indexer import (
@@ -79,32 +78,11 @@ def test_content_indexer_catch_exceptions(sentry_events):
     assert indexer.run([HashDict(sha1=sha1)]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
 
-    # As journal client, catching exceptions
-    assert indexer.process_journal_objects({"content": [{"sha1": sha1}]}) == {
-        "status": "failed"
-    }
-    check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
-
-    indexer.catch_exceptions = False
-
     # As task, not catching exceptions
     with pytest.raises(_TestException):
+        indexer.catch_exceptions = False
         indexer.run([HashDict(sha1=sha1)])
     assert sentry_events == []
-
-    # As journal client, not catching exceptions
-    with pytest.raises(_TestException):
-        indexer.process_journal_objects({"content": [{"sha1": sha1}]})
-    assert sentry_events == []
-
-    # As journal client, check the frontend will be able to get the tag when reporting
-    try:
-        indexer.process_journal_objects({"content": [{"sha1": sha1}]})
-    except Exception:
-        sentry_sdk.capture_exception()
-    else:
-        assert False
-    check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
 
 
 def test_directory_indexer_catch_exceptions(sentry_events):
@@ -112,39 +90,17 @@ def test_directory_indexer_catch_exceptions(sentry_events):
     indexer.storage = Mock()
     indexer.storage.directory_get.return_value = [DIRECTORY2]
 
-    sha1 = DIRECTORY2.id
     swhid = str(DIRECTORY2.swhid())
 
     # As task, catching exceptions
-    assert indexer.run([sha1]) == ({"status": "failed"}, [])
+    assert indexer.run([DIRECTORY2.to_dict()]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-directory-swhid": swhid})
-
-    # As journal client, catching exceptions
-    assert indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]}) == {
-        "status": "failed"
-    }
-    check_sentry(sentry_events, {"swh-indexer-directory-swhid": swhid})
-
-    indexer.catch_exceptions = False
 
     # As task, not catching exceptions
     with pytest.raises(_TestException):
-        indexer.run([b"foo"])
+        indexer.catch_exceptions = False
+        indexer.run([DIRECTORY2.to_dict()])
     assert sentry_events == []
-
-    # As journal client, not catching exceptions
-    with pytest.raises(_TestException):
-        indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]})
-    assert sentry_events == []
-
-    # As journal client, check the frontend will be able to get the tag when reporting
-    try:
-        indexer.process_journal_objects({"directory": [DIRECTORY2.to_dict()]})
-    except Exception:
-        sentry_sdk.capture_exception()
-    else:
-        assert False
-    check_sentry(sentry_events, {"swh-indexer-directory-swhid": swhid})
 
 
 def test_origin_indexer_catch_exceptions(sentry_events):
@@ -152,38 +108,16 @@ def test_origin_indexer_catch_exceptions(sentry_events):
 
     origin_url = "http://example.org"
 
+    origin = {"origin": origin_url, "status": "full"}
     # As task, catching exceptions
-    assert indexer.run([origin_url]) == ({"status": "failed"}, [])
+    assert indexer.run([origin]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
-
-    ovs = {"origin": origin_url, "status": "full"}
-
-    # As journal client, catching exceptions
-    assert indexer.process_journal_objects({"origin_visit_status": [ovs]}) == {
-        "status": "failed"
-    }
-    check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
-
-    indexer.catch_exceptions = False
 
     # As task, not catching exceptions
     with pytest.raises(_TestException):
-        indexer.run([origin_url])
+        indexer.catch_exceptions = False
+        indexer.run([origin])
     assert sentry_events == []
-
-    # As journal client, not catching exceptions
-    with pytest.raises(_TestException):
-        indexer.process_journal_objects({"origin_visit_status": [ovs]})
-    assert sentry_events == []
-
-    # As journal client, check the frontend will be able to get the tag when reporting
-    try:
-        indexer.process_journal_objects({"origin_visit_status": [ovs]})
-    except Exception:
-        sentry_sdk.capture_exception()
-    else:
-        assert False
-    check_sentry(sentry_events, {"swh-indexer-origin-url": origin_url})
 
 
 def test_indexers_define_object_types(swh_config):

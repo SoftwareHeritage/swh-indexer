@@ -5,7 +5,7 @@
 
 import logging
 import os
-from typing import Callable, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Iterator, List, Optional, Tuple
 import warnings
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
@@ -223,8 +223,8 @@ def journal_client(
     runs all registered indexers.
     """
     from swh.indexer import get_indexer, get_indexer_names
-    from swh.indexer.indexer import BaseIndexer, ObjectsDict
-    from swh.journal.client import get_journal_client
+    from swh.indexer.indexer import BaseIndexer
+    from swh.indexer.journal_client import IndexerJournalClient
 
     cfg = ctx.obj["config"]
     journal_cfg = cfg.get("journal_client", cfg.get("journal", {}))
@@ -242,9 +242,6 @@ def journal_client(
         journal_cfg["stop_after_objects"] = stop_after_objects
     if batch_size:
         journal_cfg["batch_size"] = batch_size
-
-    object_types: Set[str] = set()
-    worker_fns: List[Callable[[ObjectsDict], Dict]] = []
 
     # Retrieve the known available indexers
     available_indexers = get_indexer_names()
@@ -267,41 +264,14 @@ def journal_client(
                 f"Indexer {idx} must declare a non-empty `object_types` class attribute"
                 " list of objects to manipulate, please adapt."
             )
-        # Reference the object types to "consume" from (topics to subscribe will be
-        # derived from this in the journal client implementation)
-        object_types.update(idx.object_types)
-        # Do not commit offsets if indexation failed
-        idx.catch_exceptions = False
-        # Register the consuming and processing of kafka objects implementation methods
-        # to trigger
-        worker_fns.append(idx.process_journal_objects)
+        # we found our indexer to run, stop
+        break
 
-    if "cls" not in journal_cfg:
-        journal_cfg["cls"] = "kafka"
-
-    # Some configuration regarding object_types can come from the configuration file
-    # So we ensure we merge it from the default object_types the indexer manages
-    configured_object_types = journal_cfg.get("object_types", [])
-    if configured_object_types and set(configured_object_types) != object_types:
-        logger.warning(
-            "Configured journal client 'object_type' is different "
-            "(%s) from default subscription %s, merging them.",
-            ", ".join(sorted(configured_object_types)),
-            ", ".join(sorted(object_types)),
-        )
-        object_types.update(configured_object_types)
-
-    journal_cfg["object_types"] = list(object_types)
-
-    client = get_journal_client(**journal_cfg)
-
-    def worker_fn(objects: ObjectsDict):
-        for fn in worker_fns:
-            fn(objects)
+    client = IndexerJournalClient(idx, **journal_cfg)
 
     # Finally, process the messages from the journal
     try:
-        client.process(worker_fn)
+        client.process_messages()
     except KeyboardInterrupt:
         ctx.exit(0)
     else:

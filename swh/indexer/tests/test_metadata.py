@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024  The Software Heritage developers
+# Copyright (C) 2017-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -124,10 +124,10 @@ class TestMetadata:
             {f"tool_{k}": v for (k, v) in TRANSLATOR_TOOL.items()}
         )
         assert tool is not None
-        dir_ = DIRECTORY2
+        directory = DIRECTORY2
 
         assert (
-            dir_.entries[0].target
+            directory.entries[0].target
             == MAPPING_DESCRIPTION_CONTENT_SHA1GIT["json:yarn-parser-package.json"]
         )
 
@@ -143,15 +143,17 @@ class TestMetadata:
             ]
         )
 
-        metadata_indexer.run([dir_.id])
+        metadata_indexer.run([directory.to_dict()])
 
         results = list(
-            metadata_indexer.idx_storage.directory_intrinsic_metadata_get([dir_.id])
+            metadata_indexer.idx_storage.directory_intrinsic_metadata_get(
+                [directory.id]
+            )
         )
 
         expected_results = [
             DirectoryIntrinsicMetadataRow(
-                id=dir_.id,
+                id=directory.id,
                 tool=TRANSLATOR_TOOL,
                 metadata=YARN_PARSER_METADATA,
                 mappings=["npm"],
@@ -206,7 +208,7 @@ class TestMetadata:
             ]
         )
 
-        metadata_indexer.run([new_dir.id])
+        metadata_indexer.run([new_dir.to_dict()])
 
         results = list(
             metadata_indexer.idx_storage.directory_intrinsic_metadata_get([new_dir.id])
@@ -252,9 +254,10 @@ class TestMetadata:
         )
         assert tool is not None
 
-        assert metadata_indexer.process_journal_objects(
-            {"raw_extrinsic_metadata": [GITHUB_REMD.to_dict()]}
-        ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
+        assert metadata_indexer.run([GITHUB_REMD.to_dict()])[0] == {
+            "status": "eventful",
+            "origin_extrinsic_metadata:add": 1,
+        }
 
         assert metadata_indexer.storage.method_calls == [
             call.origin_get_by_sha1([b"\x01" * 20])
@@ -292,9 +295,10 @@ class TestMetadata:
         )
         assert tool is not None
 
-        assert metadata_indexer.process_journal_objects(
-            {"raw_extrinsic_metadata": [DEPOSIT_REMD.to_dict()]}
-        ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
+        assert metadata_indexer.run([DEPOSIT_REMD.to_dict()])[0] == {
+            "status": "eventful",
+            "origin_extrinsic_metadata:add": 1,
+        }
 
         assert metadata_indexer.storage.method_calls == [
             call.origin_get_by_sha1(
@@ -336,9 +340,10 @@ class TestMetadata:
         )
         assert tool is not None
 
-        assert metadata_indexer.process_journal_objects(
-            {"raw_extrinsic_metadata": [DEPOSIT_REMD.to_dict()]}
-        ) == {"status": "uneventful", "origin_extrinsic_metadata:add": 0}
+        assert metadata_indexer.run([DEPOSIT_REMD.to_dict()])[0] == {
+            "status": "uneventful",
+            "origin_extrinsic_metadata:add": 0,
+        }
 
         assert metadata_indexer.storage.method_calls == [
             call.origin_get_by_sha1(
@@ -369,23 +374,21 @@ class TestMetadata:
         )
         assert tool is not None
 
-        assert metadata_indexer.process_journal_objects(
-            {
-                "raw_extrinsic_metadata": [
-                    attr.evolve(
-                        DEPOSIT_REMD,
-                        fetcher=attr.evolve(
-                            DEPOSIT_REMD.fetcher,
-                            name="swh-deposit",
-                        ),
-                        origin="https://cran.r-project.org/package%3DairGR",
-                        discovery_date=datetime.datetime(
-                            2024, 5, 13, 8, 4, 8, tzinfo=datetime.timezone.utc
-                        ),
-                    ).to_dict(),
-                ]
-            }
-        ) == {"status": "uneventful", "origin_extrinsic_metadata:add": 0}
+        assert metadata_indexer.run(
+            [
+                attr.evolve(
+                    DEPOSIT_REMD,
+                    fetcher=attr.evolve(
+                        DEPOSIT_REMD.fetcher,
+                        name="swh-deposit",
+                    ),
+                    origin="https://cran.r-project.org/package%3DairGR",
+                    discovery_date=datetime.datetime(
+                        2024, 5, 13, 8, 4, 8, tzinfo=datetime.timezone.utc
+                    ),
+                ).to_dict(),
+            ]
+        )[0] == {"status": "uneventful", "origin_extrinsic_metadata:add": 0}
 
         assert metadata_indexer.storage.method_calls == [
             call.origin_get_by_sha1([hashlib.sha1(origin.encode()).digest()])
@@ -432,14 +435,12 @@ class TestMetadata:
         )
         assert tool is not None
 
-        assert metadata_indexer.process_journal_objects(
-            {
-                "raw_extrinsic_metadata": [
-                    GITHUB_REMD.to_dict(),
-                    {**GITHUB_REMD.to_dict(), "id": b"\x00" * 20},
-                ]
-            }
-        ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
+        assert metadata_indexer.run(
+            [
+                GITHUB_REMD.to_dict(),
+                {**GITHUB_REMD.to_dict(), "id": b"\x00" * 20},
+            ]
+        )[0] == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
 
         results = list(
             metadata_indexer.idx_storage.origin_extrinsic_metadata_get([origin])
@@ -461,18 +462,16 @@ class TestMetadata:
         )
         assert tool is not None
 
-        assert metadata_indexer.process_journal_objects(
-            {
-                "raw_extrinsic_metadata": [
-                    DEPOSIT_REMD.to_dict(),
-                    {
-                        **DEPOSIT_REMD.to_dict(),
-                        "id": b"\x00" * 20,
-                        "target": "swh:1:dir:" + "01" * 20,
-                    },
-                ]
-            }
-        ) == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
+        assert metadata_indexer.run(
+            [
+                DEPOSIT_REMD.to_dict(),
+                {
+                    **DEPOSIT_REMD.to_dict(),
+                    "id": b"\x00" * 20,
+                    "target": "swh:1:dir:" + "01" * 20,
+                },
+            ]
+        )[0] == {"status": "eventful", "origin_extrinsic_metadata:add": 1}
 
         results = list(
             metadata_indexer.idx_storage.origin_extrinsic_metadata_get([origin])

@@ -45,7 +45,9 @@ def test_origin_metadata_indexer_release(
         config=swh_indexer_config, objstorage=obj_storage
     )
     origin = "https://npm.example.org/yarn-parser"
-    indexer.run([origin])
+    ovs = {"origin": origin, "status": "full"}
+
+    indexer.run([ovs])
 
     tool = swh_indexer_config["tools"]
 
@@ -86,8 +88,14 @@ def test_origin_metadata_indexer_revision(
     indexer = OriginIntrinsicMetadataIndexer(
         config=swh_indexer_config, objstorage=obj_storage
     )
+
     origin = "https://github.com/librariesio/yarn-parser"
-    indexer.run([origin])
+    ovs = {
+        "origin": origin,
+        "status": "full",
+    }
+
+    indexer.run([ovs])
 
     tool = swh_indexer_config["tools"]
 
@@ -130,10 +138,16 @@ def test_origin_metadata_indexer_duplicate_origin(
     )
     indexer.storage = storage
     indexer.idx_storage = idx_storage
-    indexer.run(["https://github.com/librariesio/yarn-parser"])
-    indexer.run(["https://github.com/librariesio/yarn-parser"] * 2)
 
     origin = "https://github.com/librariesio/yarn-parser"
+    ovs = {
+        "origin": origin,
+        "status": "full",
+    }
+
+    indexer.run([ovs])
+    indexer.run([ovs] * 2)
+
     dir_id = DIRECTORY2.id
 
     dir_results = list(indexer.idx_storage.directory_intrinsic_metadata_get([dir_id]))
@@ -149,14 +163,17 @@ def test_origin_metadata_indexer_missing_head(
     storage: StorageInterface,
     obj_storage,
 ) -> None:
-    storage.origin_add([Origin(url="https://example.com")])
+    origin = "https://example.com"
+    origin_d = {"url": origin}
+
+    storage.origin_add([Origin.from_dict(origin_d)])
 
     indexer = OriginIntrinsicMetadataIndexer(
         config=swh_indexer_config, objstorage=obj_storage
     )
-    indexer.run(["https://example.com"])
 
-    origin = "https://example.com"
+    ovs = {"origin": origin, "status": "full"}
+    indexer.run([ovs])
 
     results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
     assert results == []
@@ -170,11 +187,20 @@ def test_origin_metadata_indexer_partial_missing_head(
 ) -> None:
     origin1 = "https://example.com"
     origin2 = "https://github.com/librariesio/yarn-parser"
-    storage.origin_add([Origin(url=origin1)])
+
+    # We are creating only one origin so the other head is missing when indexing for the
+    # origin2
+    origin1_d = {"url": origin1}
+    storage.origin_add([Origin.from_dict(origin1_d)])
+
     indexer = OriginIntrinsicMetadataIndexer(
         config=swh_indexer_config, objstorage=obj_storage
     )
-    indexer.run([origin1, origin2])
+
+    ovs1 = {"origin": origin1, "status": "full"}
+    ovs2 = {"origin": origin2, "status": "full"}
+
+    indexer.run([ovs1, ovs2])
 
     dir_id = DIRECTORY2.id
 
@@ -215,9 +241,14 @@ def test_origin_metadata_indexer_duplicate_directory(
     indexer.storage = storage
     indexer.idx_storage = idx_storage
     indexer.catch_exceptions = False
+
     origin1 = "https://github.com/librariesio/yarn-parser"
     origin2 = "https://github.com/librariesio/yarn-parser.git"
-    indexer.run([origin1, origin2])
+
+    origin1_d = {"origin": origin1, "status": "full"}
+    origin2_d = {"origin": origin2, "status": "full"}
+
+    indexer.run([origin1_d, origin2_d])
 
     dir_id = DIRECTORY2.id
 
@@ -249,6 +280,9 @@ def test_origin_metadata_indexer_duplicate_directory_different_result(
     origin1 = "https://github.com/librariesio/yarn-parser"
     origin2 = "https://github.com/librariesio/yarn-parser.git"
 
+    ovs1 = {"origin": origin1, "status": "full"}
+    ovs2 = {"origin": origin2, "status": "full"}
+
     directory_index = indexer.directory_metadata_indexer.index
 
     nb_calls = 0
@@ -271,7 +305,7 @@ def test_origin_metadata_indexer_duplicate_directory_different_result(
         indexer.directory_metadata_indexer, "index", side_effect=side_effect
     )
 
-    indexer.run([origin1, origin2])
+    indexer.run([ovs1, ovs2])
 
     dir_id = DIRECTORY2.id
 
@@ -294,8 +328,13 @@ def test_origin_metadata_indexer_no_metadata_file(
         config=swh_indexer_config, objstorage=obj_storage
     )
     origin = "https://github.com/librariesio/yarn-parser"
+    ovs = {
+        "origin": origin,
+        "status": "full",
+    }
+
     with patch("swh.indexer.metadata_mapping.npm.NpmMapping.filename", b"foo.json"):
-        indexer.run([origin])
+        indexer.run([ovs])
 
     dir_id = DIRECTORY2.id
 
@@ -316,12 +355,17 @@ def test_origin_metadata_indexer_no_metadata(
         config=swh_indexer_config, objstorage=obj_storage
     )
     origin = "https://github.com/librariesio/yarn-parser"
+    ovs = {
+        "origin": origin,
+        "status": "full",
+    }
+
     with patch(
         "swh.indexer.metadata.DirectoryMetadataIndexer"
         ".translate_directory_intrinsic_metadata",
         return_value=(["npm"], {"@context": "foo"}),
     ):
-        indexer.run([origin])
+        indexer.run([ovs])
 
     dir_id = DIRECTORY2.id
 
@@ -345,6 +389,10 @@ def test_origin_metadata_indexer_directory_error(
         config=swh_indexer_config, objstorage=obj_storage
     )
     origin = "https://github.com/librariesio/yarn-parser"
+    ovs = {
+        "origin": origin,
+        "status": "full",
+    }
 
     indexer.catch_exceptions = catch_exceptions
 
@@ -353,7 +401,7 @@ def test_origin_metadata_indexer_directory_error(
         ".translate_directory_intrinsic_metadata",
         return_value=None,
     ):
-        indexer.run([origin])
+        indexer.run([ovs])
 
     assert len(sentry_events) == 1
     sentry_event = sentry_events.pop()
@@ -387,6 +435,10 @@ def test_origin_metadata_indexer_content_exception(
         config=swh_indexer_config, objstorage=obj_storage
     )
     origin = "https://github.com/librariesio/yarn-parser"
+    ovs = {
+        "origin": origin,
+        "status": "full",
+    }
 
     indexer.catch_exceptions = catch_exceptions
 
@@ -397,7 +449,7 @@ def test_origin_metadata_indexer_content_exception(
         "swh.indexer.metadata.ContentMetadataRow",
         side_effect=TestException(),
     ):
-        indexer.run([origin])
+        indexer.run([ovs])
 
     assert len(sentry_events) == 1
     sentry_event = sentry_events.pop()

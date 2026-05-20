@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2022  The Software Heritage developers
+# Copyright (C) 2019-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -159,6 +159,7 @@ def test_cli_journal_client_without_brokers(
     cli_runner, swh_config, kafka_prefix: str, kafka_server, consumer: Consumer
 ):
     """Without brokers configuration, the cli fails."""
+    indexer_name = "origin_intrinsic_metadata"
 
     with pytest.raises(ValueError, match="brokers"):
         cli_runner.invoke(
@@ -167,13 +168,12 @@ def test_cli_journal_client_without_brokers(
                 "-C",
                 swh_config,
                 "journal-client",
-                "*",
+                indexer_name,
             ],
             catch_exceptions=False,
         )
 
 
-@pytest.mark.parametrize("indexer_name", ["origin_intrinsic_metadata", "*"])
 def test_cli_journal_client_index__origin_intrinsic_metadata(
     cli_runner,
     swh_config,
@@ -184,9 +184,9 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
     storage,
     mocker,
     swh_indexer_config,
-    indexer_name: str,
 ):
     """Test the 'swh indexer journal-client' cli tool."""
+    indexer_name = "origin_intrinsic_metadata"
     journal_writer = get_journal_writer(
         "kafka",
         brokers=[kafka_server],
@@ -307,7 +307,6 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
     assert sorted(results, key=lambda r: r.id) == expected_results
 
 
-@pytest.mark.parametrize("indexer_name", ["extrinsic_metadata", "*"])
 def test_cli_journal_client_index__origin_extrinsic_metadata(
     cli_runner,
     swh_config,
@@ -318,9 +317,9 @@ def test_cli_journal_client_index__origin_extrinsic_metadata(
     storage,
     mocker,
     swh_indexer_config,
-    indexer_name: str,
 ):
     """Test the 'swh indexer journal-client' cli tool."""
+    indexer_name = "extrinsic_metadata"
     journal_writer = get_journal_writer(
         "kafka",
         brokers=[kafka_server],
@@ -393,6 +392,7 @@ def test_cli_journal_client_index__content_mimetype(
     swh_indexer_config,
 ):
     """Test the 'swh indexer journal-client' cli tool."""
+    indexer_name = "content_mimetype"
     journal_writer = get_journal_writer(
         "kafka",
         brokers=[kafka_server],
@@ -440,7 +440,7 @@ def test_cli_journal_client_index__content_mimetype(
             "-C",
             swh_config,
             "journal-client",
-            "content_mimetype",
+            indexer_name,
             "--broker",
             kafka_server,
             "--prefix",
@@ -477,7 +477,7 @@ def test_cli_journal_client_index__fossology_license(
     swh_indexer_config,
 ):
     """Test the 'swh indexer journal-client' cli tool."""
-
+    indexer_name = "content_fossology_license"
     # Patch
     fossology_license.compute_license = mock_compute_license
 
@@ -522,7 +522,7 @@ def test_cli_journal_client_index__fossology_license(
             "-C",
             swh_config,
             "journal-client",
-            "content_fossology_license",
+            indexer_name,
             "--broker",
             kafka_server,
             "--prefix",

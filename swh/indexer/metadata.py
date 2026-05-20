@@ -32,11 +32,11 @@ from swh.core.config import merge_configs
 from swh.core.statsd import statsd
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
+from swh.indexer.exception import ReportableException
 from swh.indexer.indexer import (
     BaseIndexer,
     ContentIndexer,
     DirectoryIndexer,
-    ObjectsDict,
     OriginIndexer,
 )
 from swh.indexer.metadata_detector import detect_metadata
@@ -156,11 +156,11 @@ class ExtrinsicMetadataIndexer(
 
     object_types = ["raw_extrinsic_metadata"]
 
-    def process_journal_objects(self, objects: ObjectsDict) -> Dict:
+    def run(self, objects: List[Dict], **kwargs) -> Tuple[Dict, Dict]:
         summary: Dict[str, Any] = {"status": "uneventful"}
         try:
             results = {}
-            for item in objects.get("raw_extrinsic_metadata", []):
+            for item in objects:
                 remd = RawExtrinsicMetadata.from_dict(item)
                 sentry_sdk.set_tag("swh-indexer-remd-swhid", str(remd.swhid()))
                 for result in self.index(remd.id, data=remd):
@@ -169,7 +169,7 @@ class ExtrinsicMetadataIndexer(
             if not self.catch_exceptions:
                 raise
             summary["status"] = "failed"
-            return summary
+            return summary, results
 
         summary_persist = self.persist_index_computations(list(results.values()))
         if summary_persist:
@@ -177,7 +177,7 @@ class ExtrinsicMetadataIndexer(
                 if value > 0:
                     summary["status"] = "eventful"
             summary.update(summary_persist)
-        return summary
+        return summary, results
 
     def index(
         self,
@@ -499,12 +499,11 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         indexers, then merges (if more than one)
 
         Args:
-          id: sha1_git of the directory
-          data: should always be None
+          id: Directory id (its sha1_git)
+          data: A model directory object in this context
 
         Returns:
-            dict: dictionary representing a directory_intrinsic_metadata, with
-            keys:
+            List of dictionary representing a directory_intrinsic_metadata, with keys:
 
             - id: directory's identifier (sha1_git)
             - indexer_configuration_id (bytes): tool used
@@ -512,9 +511,11 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
 
         """
 
-        assert data is None, "Unexpected directory object"
         directory, truncated_dir = directory_get(self.storage, id)
-        assert directory is not None
+        if directory is None:
+            raise ReportableException(
+                f"The directory {hash_to_hex(id)} is not found!", id
+            )
 
         metadata: Dict = {}
         try:
@@ -713,7 +714,7 @@ class OriginIntrinsicMetadataIndexer(
 
     def index_list(
         self,
-        origins: List[Origin],
+        origins: Iterable[Origin],
         *,
         check_origin_known: bool = True,
         **kwargs,
