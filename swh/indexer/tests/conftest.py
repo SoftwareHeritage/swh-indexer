@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2022  The Software Heritage developers
+# Copyright (C) 2019-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -100,4 +100,43 @@ def swh_config(swh_indexer_config, monkeypatch, tmp_path):
     with open(conffile, "w") as f:
         f.write(yaml.dump(swh_indexer_config))
     monkeypatch.setenv("SWH_CONFIG_FILENAME", conffile)
+    return conffile
+
+
+@pytest.fixture(autouse=True)
+def cleanup_redis(redisdb):
+    """Clear Redis between tests."""
+    yield
+    redisdb.flushdb()  # Clear the database after each test
+
+
+@pytest.fixture
+def error_reporter_dict(redisdb):
+    """Convert redisdb fixture to a dict of connection parameters."""
+    connection_kwargs = redisdb.connection_pool.connection_kwargs.copy()
+
+    # If using Unix socket, restructure for Redis() constructor
+    if "path" in connection_kwargs:
+        return {
+            "unix_socket_path": connection_kwargs["path"],
+            "decode_responses": connection_kwargs.get("decode_responses", False),
+            "db": connection_kwargs.get("db", 0),
+        }
+
+    # Otherwise, return as-is for TCP connections
+    return connection_kwargs
+
+
+@pytest.fixture
+def swh_config_error_report(
+    swh_indexer_config, monkeypatch, tmp_path, error_reporter_dict
+):
+    # Patch journal client so it's able to connect to the redisdb
+
+    swh_indexer_config["journal_client"] = {"error_reporter": error_reporter_dict}
+    conffile = os.path.join(str(tmp_path), "indexer.yml")
+    with open(conffile, "w") as f:
+        f.write(yaml.dump(swh_indexer_config))
+    monkeypatch.setenv("SWH_CONFIG_FILENAME", conffile)
+
     return conffile

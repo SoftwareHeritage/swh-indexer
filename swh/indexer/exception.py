@@ -4,7 +4,7 @@
 # See top-level LICENSE file for more information
 
 
-class ReportableException(Exception):
+class ReportableError(RuntimeError):
     """A specific exception raised by Indexer implementation when they want such
     exception to be trapped and reported without stopping the overall indexation
     process.

@@ -3,9 +3,9 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict
+from typing import Any, Dict
 
-from swh.indexer.exception import ReportableException
+from swh.indexer.exception import ReportableError
 from swh.indexer.indexer import BaseIndexer
 from swh.journal.client import JournalClientBase
 
@@ -18,9 +18,6 @@ class IndexerJournalClient(JournalClientBase):
         # The indexer collaborator which does indexation computation out of objects read
         # from kafka
         self.indexer = indexer
-        # Let's share the same error reporter so internal error raised can be managed
-        # within the indexer
-        indexer.error_reporter = self.error_reporter
 
     def process_one_object(self, decoded_object, decoded_object_type, raw_message):
         """Implementation is in charge of calling the run method of the indexer and trap
@@ -31,9 +28,10 @@ class IndexerJournalClient(JournalClientBase):
             try:
                 # Make the indexer index the object
                 self.indexer.run([decoded_object])
-            except ReportableException as exc:
-                # If any reportable exception is raised, let it be reported to the error
-                # reporter if any
+            except ReportableError as exc:
+                # If any reportable error is raised, let it be reported to the error
+                # reporter if any, otherwise propagate the error to the main process as
+                # usual
                 if self.error_reporter is None:
                     raise
 
@@ -42,14 +40,14 @@ class IndexerJournalClient(JournalClientBase):
                     decoded_object_type,
                     raw_message,
                     exc,
-                    self.indexer.run,
+                    str(self.indexer.run),
                 )
 
     def log_error_report(
         self,
         object_d: Dict,
         object_type: str,
-        raw_message,
+        msg,
         exc: Exception,
         operation: str,
     ) -> None:
@@ -59,15 +57,17 @@ class IndexerJournalClient(JournalClientBase):
         another reporter (when said reporter is declared in configuration).
 
         Args:
-            obj_id: The object identifier which raised a problem.
-            exc: The exception raised and caught
-            operation: The operation where it was triggered
-            information: A dictionary of extra information to summarize the context
+            object_d: The object dict which created a problem
+            object_type: its associated object_type
+            msg: The raw kafka message read from the topic
+            exc: The exception raised and caught (it contains the id of the object)
+            operation: The operation method called which raised the issue
 
         Returns:
             None
 
         """
+        from msgpack import dumps
         import sentry_sdk
 
         from swh.model.hashutil import hash_to_hex
@@ -77,18 +77,20 @@ class IndexerJournalClient(JournalClientBase):
         obj_id = exc.args[1]
 
         obj_id_str = hash_to_hex(obj_id)
-        error_context = {
+        error_context: Dict[str, Any] = {
             "obj_id": obj_id_str,
+            "object_type": object_type,
             "operation": operation,
             "exc": str(exc),
-            "raw_message": raw_message,
         }
-        for k, v in object_d.items():
-            if isinstance(v, bytes):
-                value = hash_to_hex(v)
-            else:
-                value = value
-            error_context[k] = value
+
+        error_context["raw_message"] = {
+            "key": msg.key(),  # bytes or None
+            "value": msg.value(),  # bytes or None
+            "partition": msg.partition(),  # int
+            "topic": msg.topic(),  # str
+            "timestamp": msg.timestamp(),
+        }
 
         # Report in sentry
         with sentry_sdk.push_scope() as scope:
@@ -101,9 +103,8 @@ class IndexerJournalClient(JournalClientBase):
             error_context,
         )
 
-        from msgpack import dumps
+        oid = f"{object_type}:{obj_id_str}"
 
-        oid = f"swh:1:{object_type}:{obj_id_str}"
         msg = dumps(error_context)
         assert self.error_reporter is not None
         self.error_reporter(oid, msg)

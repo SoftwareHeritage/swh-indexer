@@ -23,7 +23,7 @@ from swh.indexer.storage.model import (
     OriginIntrinsicMetadataRow,
 )
 from swh.journal.writer import get_journal_writer
-from swh.model.hashutil import hash_to_bytes
+from swh.model.hashutil import hash_to_bytes, hash_to_hex
 from swh.model.model import Content, Origin, OriginVisitStatus
 
 from .test_metadata import GITHUB_REMD
@@ -305,6 +305,134 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         for status in sorted(visit_statuses_full, key=lambda r: r.origin)
     ]
     assert sorted(results, key=lambda r: r.id) == expected_results
+
+
+def test_cli_journal_client_index__origin_intrinsic_metadata_with_error_report(
+    cli_runner,
+    swh_config_error_report,
+    kafka_prefix: str,
+    kafka_server,
+    consumer: Consumer,
+    idx_storage,
+    storage,
+    mocker,
+    sentry_events,
+    redisdb,
+):
+    """Test the 'swh indexer journal-client' cli tool."""
+    indexer_name = "origin_intrinsic_metadata"
+    journal_writer = get_journal_writer(
+        "kafka",
+        brokers=[kafka_server],
+        prefix=kafka_prefix,
+        client_id="test producer",
+        value_sanitizer=lambda object_type, value: value,
+        flush_timeout=3,  # fail early if something is going wrong
+    )
+
+    visit_statuses = [
+        OriginVisitStatus(
+            origin="file:///dev/zero",
+            type="git",
+            visit=1,
+            date=now(),
+            status="full",
+            snapshot=None,
+        ),
+        OriginVisitStatus(
+            origin="file:///dev/foobar",
+            type="git",
+            visit=2,
+            date=now(),
+            status="full",
+            snapshot=None,
+        ),
+        OriginVisitStatus(
+            origin="file:///tmp/spamegg",
+            type="git",
+            visit=3,
+            date=now(),
+            status="full",
+            snapshot=None,
+        ),
+        OriginVisitStatus(
+            origin="file:///dev/0002",
+            type="git",
+            visit=6,
+            date=now(),
+            status="full",
+            snapshot=None,
+        ),
+        OriginVisitStatus(  # will be filtered out due to its 'partial' status
+            origin="file:///dev/0000",
+            type="git",
+            visit=4,
+            date=now(),
+            status="partial",
+            snapshot=None,
+        ),
+        OriginVisitStatus(  # will be filtered out due to its 'ongoing' status
+            origin="file:///dev/0001",
+            type="git",
+            visit=5,
+            date=now(),
+            status="ongoing",
+            snapshot=None,
+        ),
+    ]
+
+    journal_writer.write_additions("origin_visit_status", visit_statuses)
+
+    mocker.patch(
+        "swh.indexer.metadata.get_head_swhid",
+        return_value=REVISION.swhid(),
+    )
+
+    # targeted directories won't exist so this will raise a ReportableError
+    # so it can be caught by the journal client for report
+    mocker.patch("swh.indexer.metadata.directory_get", return_value=(None, False))
+
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config_error_report,
+            "journal-client",
+            indexer_name,
+            "--broker",
+            kafka_server,
+            "--prefix",
+            kafka_prefix,
+            "--group-id",
+            "test-consumer",
+            "--stop-after-objects",
+            len(visit_statuses),
+        ],
+        catch_exceptions=False,
+    )
+
+    # Check the output
+    expected_output = "Done.\n"
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output
+
+    # Read the redis to ensure the report is present
+    reports = redisdb.keys()
+
+    assert len(reports) == 1
+    from msgpack import loads
+
+    for key in reports:
+        dir_id = hash_to_hex(DIRECTORY2.id)
+        expected_key = f"origin_visit_status:{dir_id}".encode()
+        assert key == expected_key
+
+        value = redisdb.get(expected_key)
+        expected_dict = loads(value)
+
+        assert isinstance(expected_dict, Dict)
+        for key in ["obj_id", "object_type", "operation", "exc", "raw_message"]:
+            assert key in expected_dict
 
 
 def test_cli_journal_client_index__origin_extrinsic_metadata(

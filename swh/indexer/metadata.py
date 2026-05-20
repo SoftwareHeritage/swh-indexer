@@ -32,7 +32,7 @@ from swh.core.config import merge_configs
 from swh.core.statsd import statsd
 from swh.core.utils import grouper
 from swh.indexer.codemeta import merge_documents
-from swh.indexer.exception import ReportableException
+from swh.indexer.exception import ReportableError
 from swh.indexer.indexer import (
     BaseIndexer,
     ContentIndexer,
@@ -510,12 +510,9 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
             - metadata: dict of retrieved metadata
 
         """
-
         directory, truncated_dir = directory_get(self.storage, id)
         if directory is None:
-            raise ReportableException(
-                f"The directory {hash_to_hex(id)} is not found!", id
-            )
+            raise ReportableError(f"The directory {hash_to_hex(id)} is not found!", id)
 
         metadata: Dict = {}
         try:

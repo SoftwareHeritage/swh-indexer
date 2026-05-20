@@ -25,6 +25,7 @@ from typing import (
 import sentry_sdk
 
 from swh.core.config import load_from_envvar, merge_configs
+from swh.indexer.exception import ReportableError
 from swh.indexer.storage import INDEXER_CFG_KEY, get_indexer_storage
 from swh.indexer.storage.interface import IndexerStorageInterface
 from swh.model.hashutil import HashDict, hash_to_hex
@@ -400,6 +401,10 @@ class OriginIndexer(BaseIndexer[str, None, TResult], Generic[TResult]):
                 # the origin already exists
                 check_origin_known=False,
             )
+        except ReportableError:
+            # Let this kind of error through so it can be dealt with at journal client
+            # level
+            raise
         except Exception:
             if not self.catch_exceptions:
                 raise

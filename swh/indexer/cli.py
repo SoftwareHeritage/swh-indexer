@@ -5,7 +5,7 @@
 
 import logging
 import os
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator, List, Optional
 import warnings
 
 # WARNING: do not import unnecessary things here to keep cli startup time under
@@ -180,10 +180,10 @@ def list_indexers(ctx, verbose, long):
 
 @indexer_cli_group.command("journal-client")
 @click.argument(
-    "indexers",
+    "indexer",
     metavar="INDEXER",
     type=str,
-    nargs=-1,
+    required=True,
 )
 @click.option(
     "--broker", "brokers", type=str, multiple=True, help="Kafka broker to connect to."
@@ -209,7 +209,7 @@ def list_indexers(ctx, verbose, long):
 @click.pass_context
 def journal_client(
     ctx,
-    indexers: Tuple[str, ...],
+    indexer: str,
     brokers: List[str],
     prefix: str,
     group_id: str,
@@ -227,6 +227,7 @@ def journal_client(
     from swh.indexer.journal_client import IndexerJournalClient
 
     cfg = ctx.obj["config"]
+
     journal_cfg = cfg.get("journal_client", cfg.get("journal", {}))
 
     if brokers:
@@ -246,30 +247,21 @@ def journal_client(
     # Retrieve the known available indexers
     available_indexers = get_indexer_names()
 
-    # Filter the indexers to use according to cli flags
-    if "*" in indexers or not indexers:
-        indexers = tuple(available_indexers)
-    unknown = set(indexers) - set(available_indexers)
+    unknown = set([indexer]) - set(available_indexers)
     if unknown:
-        raise click.ClickException(
-            f"Unknown indexer{'s' if len(unknown) > 1 else ''}: {','.join(unknown)}"
-        )
+        raise click.ClickException(f"Unknown indexer: {','.join(unknown)}")
 
-    idx: Optional[BaseIndexer] = None
     # And then configure the indexer journal client(s) to trigger
-    for indexer in indexers:
-        idx = get_indexer(indexer)()
-        if not hasattr(idx, "object_types"):
-            raise ValueError(
-                f"Indexer {idx} must declare a non-empty `object_types` class attribute"
-                " list of objects to manipulate, please adapt."
-            )
-        # we found our indexer to run, stop
-        break
+    idx: BaseIndexer = get_indexer(indexer)()
+    if not hasattr(idx, "object_types"):
+        raise ValueError(
+            f"Indexer {idx} must declare a non-empty `object_types` class attribute"
+            " list of objects to manipulate, please adapt."
+        )
 
     client = IndexerJournalClient(idx, **journal_cfg)
 
-    # Finally, process the messages from the journal
+    # Finally, process the messages from the journal and index them
     try:
         client.process_messages()
     except KeyboardInterrupt:
