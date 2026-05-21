@@ -14,6 +14,9 @@ class IndexerJournalClient(JournalClientBase):
     indexer: BaseIndexer
 
     def __init__(self, indexer, *args, **kwargs):
+        # The indexer declares the object_types to read so let's provide it to the
+        # journal client instantiation
+        kwargs["object_types"] = indexer.object_types
         super().__init__(*args, **kwargs)
         # The indexer collaborator which does indexation computation out of objects read
         # from kafka
