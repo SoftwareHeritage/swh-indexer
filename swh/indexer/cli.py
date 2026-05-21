@@ -230,6 +230,10 @@ def journal_client(
 
     journal_cfg = cfg.get("journal_client", cfg.get("journal", {}))
 
+    # We do not use the cls class in our implementation (to drop in the deployment
+    # repos)
+    journal_cfg.pop("cls", None)
+
     if brokers:
         journal_cfg["brokers"] = brokers
     if not journal_cfg.get("brokers"):
