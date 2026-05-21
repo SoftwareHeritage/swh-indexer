@@ -47,7 +47,7 @@ def indexer_cli_group(ctx, config_file):
 
     if config_file:
         if not os.path.exists(config_file):
-            raise ValueError("%s does not exist" % config_file)
+            raise click.ClickException(f"File '{config_file}' does not exist")
         cfg = config.read(config_file)
     else:
         cfg = {}
@@ -254,7 +254,7 @@ def journal_client(
     # And then configure the indexer journal client(s) to trigger
     idx: BaseIndexer = get_indexer(indexer)()
     if not hasattr(idx, "object_types"):
-        raise ValueError(
+        raise click.ClickException(
             f"Indexer {idx} must declare a non-empty `object_types` class attribute"
             " list of objects to manipulate, please adapt."
         )

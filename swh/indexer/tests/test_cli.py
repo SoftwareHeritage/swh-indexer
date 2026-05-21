@@ -6,6 +6,7 @@
 import datetime
 import re
 from typing import Any, Dict, List
+from unittest.mock import patch
 
 import attr
 from click.testing import CliRunner
@@ -172,6 +173,94 @@ def test_cli_journal_client_without_brokers(
             ],
             catch_exceptions=False,
         )
+
+
+def test_cli_journal_client_wrong_config_filepath(cli_runner, swh_config, monkeypatch):
+    """Starting the journal client with a wrong config filepath should raise"""
+    # This case can only be tested through the environment variable case
+    # Otherwise the current cli would detect it directly when passed as cli flag
+    wrong_config_filepath = swh_config.replace(".yml", "-wrong-path.yml")
+
+    # Case detected by click with the --config-file
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "--config-file",
+            wrong_config_filepath,
+            "journal-client",
+            "some-indexer",
+        ],
+        catch_exceptions=False,
+    )
+
+    # Case detected when passing through the environment variable
+    monkeypatch.setenv("SWH_CONFIG_FILENAME", wrong_config_filepath)
+
+    result2 = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "journal-client",
+            "some-indexer",
+        ],
+        catch_exceptions=False,
+    )
+
+    for res in [result, result2]:
+        assert res.exit_code != 0
+        assert f"File '{wrong_config_filepath}' does not exist" in res.output
+
+
+def test_cli_journal_client_unknown_indexer(cli_runner, swh_config):
+    """Starting the journal client with an unknown indexer should raise"""
+    unknown_indexer_name = "unknown_indexer"
+
+    result = cli_runner.invoke(
+        indexer_cli_group,
+        [
+            "-C",
+            swh_config,
+            "journal-client",
+            unknown_indexer_name,
+            "--broker",
+            "foo",
+            "--batch-size",
+            10,
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0
+    assert f"Unknown indexer: {unknown_indexer_name}" in result.output
+
+
+def test_cli_journal_client_missing_object_types_class_attribute(
+    cli_runner, swh_config
+):
+    """Starting the journal client with an incomplete indexer should raise"""
+    some_indexer_name = "some_indexer"
+
+    class MissingOjectTypesIndexerTest:
+        """This does not declare the object_types class attribute"""
+
+        pass
+
+    with patch("swh.indexer.get_indexer", return_value=MissingOjectTypesIndexerTest):
+        with patch("swh.indexer.get_indexer_names", return_value=[some_indexer_name]):
+            result = cli_runner.invoke(
+                indexer_cli_group,
+                [
+                    "-C",
+                    swh_config,
+                    "journal-client",
+                    some_indexer_name,
+                    "--broker",
+                    "foo",
+                ],
+                catch_exceptions=False,
+            )
+
+            assert result.exit_code != 0
+            assert "non-empty `object_types` class attribute" in result.output
 
 
 def test_cli_journal_client_index__origin_intrinsic_metadata(
