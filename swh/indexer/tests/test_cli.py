@@ -11,6 +11,7 @@ from unittest.mock import patch
 import attr
 from click.testing import CliRunner
 from confluent_kafka import Consumer
+from msgpack import loads
 import pytest
 
 from swh.indexer import fossology_license
@@ -509,7 +510,6 @@ def test_cli_journal_client_index__origin_intrinsic_metadata_with_error_report(
     reports = redisdb.keys()
 
     assert len(reports) == 1
-    from msgpack import loads
 
     for key in reports:
         dir_id = hash_to_hex(DIRECTORY2.id)
@@ -522,6 +522,18 @@ def test_cli_journal_client_index__origin_intrinsic_metadata_with_error_report(
         assert isinstance(expected_dict, Dict)
         for key in ["obj_id", "object_type", "operation", "exc", "raw_message"]:
             assert key in expected_dict
+
+        # That's the object_type's associated we are consuming
+        assert expected_dict["object_type"] == "origin_visit_status"
+        assert expected_dict["obj_id"] == dir_id
+        assert f"The directory {dir_id} is not found" in expected_dict["exc"]
+        assert set(expected_dict["raw_message"].keys()) == {
+            "key",
+            "partition",
+            "timestamp",
+            "topic",
+            "value",
+        }
 
 
 def test_cli_journal_client_index__origin_extrinsic_metadata(

@@ -78,9 +78,9 @@ def test_content_indexer_catch_exceptions(sentry_events):
     assert indexer.run([HashDict(sha1=sha1)]) == ({"status": "failed"}, [])
     check_sentry(sentry_events, {"swh-indexer-content-sha1": sha1.hex()})
 
+    indexer.catch_exceptions = False
     # As task, not catching exceptions
     with pytest.raises(_TestException):
-        indexer.catch_exceptions = False
         indexer.run([HashDict(sha1=sha1)])
     assert sentry_events == []
 
