@@ -804,7 +804,15 @@ class OriginIntrinsicMetadataIndexer(
                 self.log.error("Unhandled head type %s for %s", head_swhid, origin.url)
                 continue
 
-            for dir_metadata in self.directory_metadata_indexer.index(directory_id):
+            # Let's check whether we already have indexed that directory
+            dir_meta = self.idx_storage.directory_intrinsic_metadata_get([directory_id])
+            if not dir_meta:
+                # We did not, let's compute it
+                dir_meta = self.directory_metadata_indexer.index(directory_id)
+
+            # Let's reference the origin metadata associated to the directory index
+            # computation
+            for dir_metadata in dir_meta:
                 # There is at most one dir_metadata
                 orig_metadata = OriginIntrinsicMetadataRow(
                     from_directory=dir_metadata.id,
@@ -813,6 +821,11 @@ class OriginIntrinsicMetadataIndexer(
                     mappings=dir_metadata.mappings,
                     indexer_configuration_id=dir_metadata.indexer_configuration_id,
                 )
+
+                # We don't bother to check whether that row already exists. 1. That cost
+                # is probably marginal (vs the cost of actually recomputing index on the
+                # directory) 2. we don't have such method available in the indexer
+                # storage
                 results.append((orig_metadata, dir_metadata))
 
         return results
