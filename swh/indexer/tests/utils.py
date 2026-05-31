@@ -294,7 +294,31 @@ REVISION = Revision(
     parents=(),
 )
 
-REVISIONS = [REVISION]
+REVISION2 = Revision(
+    message=b"Simplify code",
+    author=Person(
+        name=b"Gary Cooper",
+        fullname=b"Gary Cooper <gary.cooper@example.com>",
+        email=b"gary.cooper@example.com",
+    ),
+    committer=Person(
+        name=b"Gary Cooper",
+        fullname=b"Gary Cooper <gary.cooper@example.com>",
+        email=b"gary.cooper@example.com",
+    ),
+    committer_date=TimestampWithTimezone.from_datetime(
+        datetime.datetime(2017, 2, 21, 16, 14, 16, tzinfo=_utc_plus_2)
+    ),
+    type=RevisionType.GIT,
+    synthetic=False,
+    date=TimestampWithTimezone.from_datetime(
+        datetime.datetime(2017, 2, 21, 16, 14, 16, tzinfo=_utc_plus_2)
+    ),
+    directory=DIRECTORY.id,
+    parents=(),
+)
+
+REVISIONS = [REVISION, REVISION2]
 
 RELEASE = Release(
     name=b"v0.0.0",

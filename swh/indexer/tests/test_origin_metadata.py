@@ -19,7 +19,7 @@ from swh.model.model import Origin
 from swh.storage.interface import StorageInterface
 
 from .test_metadata import TRANSLATOR_TOOL
-from .utils import DIRECTORY2, YARN_PARSER_METADATA
+from .utils import DIRECTORY2, REVISION, REVISION2, YARN_PARSER_METADATA
 
 
 @pytest.fixture
@@ -301,11 +301,10 @@ def test_origin_metadata_indexer_duplicate_directory_different_result(
             for row in directory_index(dir_id)
         ]
 
-    mocker.patch.object(
+    with mocker.patch.object(
         indexer.directory_metadata_indexer, "index", side_effect=side_effect
-    )
-
-    indexer.run([ovs1, ovs2])
+    ):
+        indexer.run([ovs1, ovs2])
 
     dir_id = DIRECTORY2.id
 
@@ -316,6 +315,127 @@ def test_origin_metadata_indexer_duplicate_directory_different_result(
         indexer.idx_storage.origin_intrinsic_metadata_get([origin1, origin2])
     )
     assert len(orig_results) == 2
+
+
+def test_origin_metadata_indexer_same_origin_with_multiple_ovs(
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
+    mocker,
+) -> None:
+    """Indexing an origin with multiple ovs on the same origin will result in only one
+    indexation. There is an implicit filtering on origin so only 1 head is found and
+    indexed.
+
+    """
+    indexer = OriginIntrinsicMetadataIndexer(
+        config=swh_indexer_config, objstorage=obj_storage
+    )
+    indexer.storage = storage
+    indexer.idx_storage = idx_storage
+    indexer.catch_exceptions = False
+
+    origin = "https://github.com/librariesio/yarn-parser"
+
+    ovs1 = {"origin": origin, "status": "full"}
+    # Let's make another ovs with another snapshot
+    ovs2 = {"origin": origin, "status": "full"}
+
+    with patch(
+        "swh.indexer.metadata.get_head_swhid",
+        # REVISION targets DIRECTORY2, REVISION2 targets DIRECTORY
+        side_effect=[REVISION.swhid(), REVISION2.swhid()],
+    ):
+        indexer.run([ovs1, ovs2])
+
+    dir_results = list(
+        indexer.idx_storage.directory_intrinsic_metadata_get(
+            [REVISION2.directory, REVISION.directory]
+        )
+    )
+    # Only one of the 2 ovs got called since there is filtering on origin
+    assert len(dir_results) == 1
+
+    # First call of get_head_swhid returned the REVISION swhid so
+    assert dir_results[0].id == REVISION.directory
+
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert len(orig_results) == 1
+
+
+def test_origin_metadata_indexer_multiple_call_same_origin_different_snapshots(
+    swh_indexer_config,
+    idx_storage: IndexerStorageInterface,
+    storage: StorageInterface,
+    obj_storage,
+    mocker,
+) -> None:
+    """Indexing an origin with distinct ovs (distinct snapshot hence directory) will
+    result in different indexed data (when called in multiple times)
+
+    """
+    indexer = OriginIntrinsicMetadataIndexer(
+        config=swh_indexer_config, objstorage=obj_storage
+    )
+    indexer.storage = storage
+    indexer.idx_storage = idx_storage
+    indexer.catch_exceptions = False
+
+    origin = "https://github.com/librariesio/yarn-parser"
+
+    ovs1 = {"origin": origin, "status": "full"}
+    ovs2 = {"origin": origin, "status": "full"}
+
+    with patch(
+        "swh.indexer.metadata.get_head_swhid",
+        # REVISION targets DIRECTORY2
+        side_effect=[REVISION.swhid()],
+    ):
+        indexer.run([ovs1])
+
+    dir_results = list(
+        indexer.idx_storage.directory_intrinsic_metadata_get(
+            [REVISION.directory, REVISION2.directory]
+        )
+    )
+    # Only one of the 2 ovs got called since there is filtering on origin
+    assert len(dir_results) == 1
+    # First call of get_head_swhid returned the REVISION swhid so
+    assert dir_results[0].id == REVISION.directory
+
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+    assert len(orig_results) == 1
+
+    assert orig_results[0].from_directory == REVISION.directory
+
+    # 2nd index call (forced to do in two calls because there is a filtering happening
+    # on origin coming from ovs, in effect, that filters out too many ovs on the same so
+    # only the same origin is looked up, see previous tests which makes that behavior
+    # apparent)
+    with patch(
+        "swh.indexer.metadata.get_head_swhid",
+        # REVISION2 targets DIRECTORY
+        side_effect=[REVISION2.swhid()],
+    ):
+        indexer.run([ovs2])
+
+    dir_results = list(
+        indexer.idx_storage.directory_intrinsic_metadata_get(
+            [REVISION.directory, REVISION2.directory]
+        )
+    )
+    # Now we've got one more directory indexed
+    assert len(dir_results) == 2
+
+    orig_results = list(indexer.idx_storage.origin_intrinsic_metadata_get([origin]))
+
+    # FIXME: Is this expected? I would have imagined another origin-intrinsic-metadata
+    # with another from_directory id (REVISION2.directory)
+
+    assert len(orig_results) == 1
+    # Updated with the latest directory seen
+    assert orig_results[0].from_directory == REVISION2.directory
 
 
 def test_origin_metadata_indexer_no_metadata_file(
@@ -399,7 +519,7 @@ def test_origin_metadata_indexer_directory_error(
     with patch(
         "swh.indexer.metadata.DirectoryMetadataIndexer"
         ".translate_directory_intrinsic_metadata",
-        return_value=None,
+        side_effect=ValueError("Just raise"),
     ):
         indexer.run([ovs])
 
@@ -411,7 +531,7 @@ def test_origin_metadata_indexer_directory_error(
         ),
         "swh-indexer-origin-url": origin,
     }
-    assert "'TypeError'" in str(sentry_event)
+    assert "'ValueError'" in str(sentry_event)
 
     dir_id = DIRECTORY2.id
 
