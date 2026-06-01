@@ -35,6 +35,7 @@ from .utils import (
     RAW_CONTENTS,
     REVISION,
     SHA1_TO_LICENSES,
+    SNAPSHOT,
     mock_compute_license,
 )
 
@@ -286,6 +287,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         flush_timeout=3,  # fail early if something is going wrong
     )
 
+    # SNAPSHOT -> REVISION -> DIRECTORY2
     visit_statuses = [
         OriginVisitStatus(
             origin="file:///dev/zero",
@@ -293,7 +295,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
             visit=1,
             date=now(),
             status="full",
-            snapshot=None,
+            snapshot=SNAPSHOT.id,
         ),
         OriginVisitStatus(
             origin="file:///dev/foobar",
@@ -301,7 +303,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
             visit=2,
             date=now(),
             status="full",
-            snapshot=None,
+            snapshot=SNAPSHOT.id,
         ),
         OriginVisitStatus(
             origin="file:///tmp/spamegg",
@@ -309,7 +311,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
             visit=3,
             date=now(),
             status="full",
-            snapshot=None,
+            snapshot=SNAPSHOT.id,
         ),
         OriginVisitStatus(
             origin="file:///dev/0002",
@@ -317,7 +319,146 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
             visit=6,
             date=now(),
             status="full",
+            snapshot=SNAPSHOT.id,
+        ),
+        OriginVisitStatus(  # will be filtered out due to its 'partial' status
+            origin="file:///dev/0000",
+            type="git",
+            visit=4,
+            date=now(),
+            status="partial",
             snapshot=None,
+        ),
+        OriginVisitStatus(  # will be filtered out due to its 'ongoing' status
+            origin="file:///dev/0001",
+            type="git",
+            visit=5,
+            date=now(),
+            status="ongoing",
+            snapshot=None,
+        ),
+    ]
+
+    journal_writer.write_additions("origin_visit_status", visit_statuses)
+    visit_statuses_full = [vs for vs in visit_statuses if vs.status == "full"]
+
+    # Make the origin head resolution targets the REVISION which targets DIRECTORY2
+    mocker.patch(
+        "swh.indexer.metadata.get_head_swhid",
+        return_value=REVISION.swhid(),
+    )
+
+    mocker.patch(
+        "swh.indexer.metadata.DirectoryMetadataIndexer.index",
+        return_value=[
+            DirectoryIntrinsicMetadataRow(
+                id=DIRECTORY2.id,
+                indexer_configuration_id=1,
+                mappings=["cff"],
+                metadata={"foo": "bar"},
+            )
+        ],
+    )
+
+    with mocker.patch(
+        "swh.indexer.storage.IndexerStorage.directory_intrinsic_metadata_get",
+        return_value=[],
+    ):
+        result = cli_runner.invoke(
+            indexer_cli_group,
+            [
+                "-C",
+                swh_config,
+                "journal-client",
+                indexer_name,
+                "--broker",
+                kafka_server,
+                "--prefix",
+                kafka_prefix,
+                "--group-id",
+                "test-consumer",
+                "--stop-after-objects",
+                len(visit_statuses),
+            ],
+            catch_exceptions=False,
+        )
+
+    # Check the output
+    expected_output = "Done.\n"
+    assert result.exit_code == 0, result.output
+    assert result.output == expected_output
+
+    results = idx_storage.origin_intrinsic_metadata_get(
+        [status.origin for status in visit_statuses]
+    )
+    expected_results = [
+        OriginIntrinsicMetadataRow(
+            id=status.origin,
+            from_directory=DIRECTORY2.id,
+            tool={"id": 1, **swh_indexer_config["tools"]},
+            mappings=["cff"],
+            metadata={"foo": "bar"},
+        )
+        for status in sorted(visit_statuses_full, key=lambda r: r.origin)
+    ]
+    assert sorted(results, key=lambda r: r.id) == expected_results
+
+
+def test_cli_journal_client_index__origin_intrinsic_metadata_with_filter(
+    cli_runner,
+    swh_config,
+    kafka_prefix: str,
+    kafka_server,
+    consumer: Consumer,
+    idx_storage,
+    storage,
+    mocker,
+    swh_indexer_config,
+):
+    """Test the 'swh indexer journal-client' cli tool."""
+    indexer_name = "origin_intrinsic_metadata"
+    journal_writer = get_journal_writer(
+        "kafka",
+        brokers=[kafka_server],
+        prefix=kafka_prefix,
+        client_id="test producer",
+        value_sanitizer=lambda object_type, value: value,
+        flush_timeout=3,  # fail early if something is going wrong
+    )
+
+    # SNAPSHOT -> REVISION -> DIRECTORY2
+    visit_statuses = [
+        OriginVisitStatus(
+            origin="file:///dev/zero",
+            type="git",
+            visit=1,
+            date=now(),
+            status="full",
+            snapshot=SNAPSHOT.id,
+        ),
+        OriginVisitStatus(
+            origin="file:///dev/foobar",
+            type="git",
+            visit=2,
+            date=now(),
+            status="full",
+            snapshot=SNAPSHOT.id,
+        ),
+        OriginVisitStatus(
+            origin="file:///tmp/spamegg",
+            type="git",
+            visit=3,
+            date=now(),
+            status="full",
+            snapshot=SNAPSHOT.id,
+        ),
+        OriginVisitStatus(
+            origin="file:///dev/0002",
+            type="git",
+            visit=6,
+            date=now(),
+            status="full",
+            snapshot=SNAPSHOT.id,
         ),
         OriginVisitStatus(  # will be filtered out due to its 'partial' status
             origin="file:///dev/0000",
@@ -341,6 +482,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
     visit_statuses_full = [vs for vs in visit_statuses if vs.status == "full"]
     storage.revision_add([REVISION])
 
+    # Make the origin head resolution targets the REVISION which targets DIRECTORY2
     mocker.patch(
         "swh.indexer.metadata.get_head_swhid",
         return_value=REVISION.swhid(),
@@ -357,6 +499,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
             )
         ],
     )
+
     result = cli_runner.invoke(
         indexer_cli_group,
         [
@@ -394,6 +537,7 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         )
         for status in sorted(visit_statuses_full, key=lambda r: r.origin)
     ]
+
     assert sorted(results, key=lambda r: r.id) == expected_results
 
 

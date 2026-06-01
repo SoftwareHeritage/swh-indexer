@@ -338,6 +338,15 @@ RELEASE = Release(
 
 RELEASES = [RELEASE]
 
+SNAPSHOT = Snapshot(
+    branches={
+        b"HEAD": SnapshotBranch(
+            target=REVISION.id,
+            target_type=SnapshotTargetType.REVISION,
+        )
+    }
+)
+
 SNAPSHOTS = [
     # https://github.com/SoftwareHeritage/swh-storage
     Snapshot(
@@ -444,14 +453,7 @@ SNAPSHOTS = [
         },
     ),
     # https://github.com/librariesio/yarn-parser.git
-    Snapshot(
-        branches={
-            b"HEAD": SnapshotBranch(
-                target=REVISION.id,
-                target_type=SnapshotTargetType.REVISION,
-            )
-        },
-    ),
+    SNAPSHOT,
     # https://npm.example.org/yarn-parser
     Snapshot(
         branches={

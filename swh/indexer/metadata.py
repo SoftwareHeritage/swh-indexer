@@ -2,7 +2,6 @@
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
-
 from collections import defaultdict
 from copy import deepcopy
 import datetime
@@ -26,6 +25,7 @@ from typing import (
 import urllib.parse
 from urllib.parse import urlparse
 
+import attr
 import sentry_sdk
 
 from swh.core.config import merge_configs
@@ -698,7 +698,8 @@ class OriginIntrinsicMetadataIndexer(
 
     """
 
-    USE_TOOLS = False
+    # We use the tools to check for already indexed directory with such tool
+    USE_TOOLS = True
 
     def __init__(self, config=None, **kwargs) -> None:
         super().__init__(config=config, **kwargs)
@@ -708,6 +709,7 @@ class OriginIntrinsicMetadataIndexer(
             if config
             else DEFAULT_BATCH_SIZE
         )
+        self.tool_id = self.tools[0]["id"]
 
     def index_list(
         self,
@@ -805,7 +807,12 @@ class OriginIntrinsicMetadataIndexer(
                 continue
 
             # Let's check whether we already have indexed that directory
-            dir_meta = self.idx_storage.directory_intrinsic_metadata_get([directory_id])
+            dir_meta = self.idx_storage.directory_intrinsic_metadata_get_by_tool(
+                [
+                    directory_id,
+                ],
+                self.tool_id,
+            )
             if not dir_meta:
                 # We did not, let's compute it
                 dir_meta = self.directory_metadata_indexer.index(directory_id)
@@ -813,13 +820,26 @@ class OriginIntrinsicMetadataIndexer(
             # Let's reference the origin metadata associated to the directory index
             # computation
             for dir_metadata in dir_meta:
+                # Let's keep the tool information consistent across index/get method
+                # call
+                if dir_metadata.indexer_configuration_id is not None:
+                    tool_id = dir_metadata.indexer_configuration_id
+                else:
+                    tool_id = dir_metadata.tool["id"]  # type: ignore
+
                 # There is at most one dir_metadata
                 orig_metadata = OriginIntrinsicMetadataRow(
                     from_directory=dir_metadata.id,
                     id=origin.url,
                     metadata=dir_metadata.metadata,
                     mappings=dir_metadata.mappings,
-                    indexer_configuration_id=dir_metadata.indexer_configuration_id,
+                    indexer_configuration_id=tool_id,
+                )
+
+                # Let's keep the dir_metadata compatible with the indexer storage add
+                # method
+                dir_metadata = attr.evolve(
+                    dir_metadata, indexer_configuration_id=tool_id, tool=None
                 )
 
                 # We don't bother to check whether that row already exists. 1. That cost
