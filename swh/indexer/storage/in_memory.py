@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2022  The Software Heritage developers
+# Copyright (C) 2018-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -346,6 +346,15 @@ class IndexerStorage:
         self, ids: Iterable[Sha1]
     ) -> List[DirectoryIntrinsicMetadataRow]:
         return self._directory_intrinsic_metadata.get(ids)
+
+    def directory_intrinsic_metadata_get_by_tool(
+        self, ids: Iterable[Sha1], tool_id
+    ) -> List[DirectoryIntrinsicMetadataRow]:
+        result = []
+        for dir_meta in self._directory_intrinsic_metadata.get(ids):
+            if dir_meta.tool["id"] == tool_id:
+                result.append(dir_meta)
+        return result
 
     def directory_intrinsic_metadata_add(
         self, metadata: List[DirectoryIntrinsicMetadataRow]

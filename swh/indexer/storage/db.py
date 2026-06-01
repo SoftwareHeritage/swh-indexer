@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2022  The Software Heritage developers
+# Copyright (C) 2015-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -137,6 +137,40 @@ class Db(BaseDb):
             keys=", ".join(keys), id_col=id_col, table=table
         )
         yield from execute_values_generator(cur, query, ((_id,) for _id in ids))
+
+    def _filter_from_list(
+        self, table, ids, cols, where=None, where_params=(), cur=None, id_col="id"
+    ):
+        """Fetches entries from the `table` such that their `id` field
+        (or whatever is given to `id_col`) is in `ids`.
+        Returns the columns `cols`.
+        The `cur` parameter is used to connect to the database.
+        """
+        cur = self._cursor(cur)
+        keys = map(self._convert_key, cols)
+        # Query parameters to pass along to the cur.execute call
+        # Extend the query with filtering if any
+        if where and where_params:
+            where_clause = f"where {where}"
+            query_params = [(_id, *where_params) for _id in ids]
+        else:
+            # No filtering
+            where_clause = ""
+            query_params = [(_id,) for _id in ids]
+
+        query = """
+            select {keys}
+            from (values (%s)) as t(id)
+            inner join {table} c
+                on c.{id_col}=t.id
+            inner join indexer_configuration i
+                on c.indexer_configuration_id=i.id
+            {where};
+            """.format(
+            keys=", ".join(keys), id_col=id_col, table=table, where=where_clause
+        )
+
+        yield from execute_values_generator(cur, query, query_params)
 
     content_indexer_names = {
         "mimetype": "content_mimetype",
@@ -295,6 +329,17 @@ class Db(BaseDb):
             "directory_intrinsic_metadata",
             ids,
             self.directory_intrinsic_metadata_cols,
+            cur=cur,
+        )
+
+    def directory_intrinsic_metadata_filter_by_tool(self, ids, tool_id, cur=None):
+        """Return the filtered by tool list of DirectoryIntrinsicMetadata"""
+        yield from self._filter_from_list(
+            "directory_intrinsic_metadata",
+            ids,
+            self.directory_intrinsic_metadata_cols,
+            where="c.indexer_configuration_id=%s",
+            where_params=(tool_id,),
             cur=cur,
         )
 

@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2024  The Software Heritage developers
+# Copyright (C) 2015-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -468,6 +468,20 @@ class IndexerStorage:
                 )
             )
             for c in db.directory_intrinsic_metadata_get_from_list(ids, cur)
+        ]
+
+    @timed
+    @db_transaction()
+    def directory_intrinsic_metadata_get_by_tool(
+        self, ids: Iterable[Sha1], tool_id, db=None, cur=None
+    ) -> List[DirectoryIntrinsicMetadataRow]:
+        return [
+            DirectoryIntrinsicMetadataRow.from_dict(
+                converters.db_to_metadata(
+                    dict(zip(db.directory_intrinsic_metadata_cols, c))
+                )
+            )
+            for c in db.directory_intrinsic_metadata_filter_by_tool(ids, tool_id, cur)
         ]
 
     @timed

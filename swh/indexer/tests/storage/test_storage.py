@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2022  The Software Heritage developers
+# Copyright (C) 2015-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -619,6 +619,44 @@ class TestIndexerStorageDirectoryIntrinsicMetadata(StorageETypeTester):
         },
     ]
     row_class = DirectoryIntrinsicMetadataRow
+
+    def test_directory_intrinsic_metadata_get_by_tool(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ):
+        storage, data = swh_indexer_storage_with_data
+        # given
+        tool_id = data.tools["swh-metadata-detector"]["id"]
+
+        metadata = {
+            "version": None,
+            "name": None,
+        }
+        dir_id = data.directory_id_2
+        dir_metadata = DirectoryIntrinsicMetadataRow(
+            id=dir_id,
+            metadata=metadata,
+            mappings=["mapping1"],
+            indexer_configuration_id=tool_id,
+        )
+
+        result = storage.directory_intrinsic_metadata_add([dir_metadata])
+        assert result == {"directory_intrinsic_metadata:add": 1}
+
+        # There is no filtering, this gives all the directory_intrinsic_metadata indexed
+        # by any indexer configuration tool
+        data = storage.directory_intrinsic_metadata_get([dir_id])
+        assert len(data) == 1
+
+        data = storage.directory_intrinsic_metadata_get_by_tool([dir_id], tool_id)
+        assert len(data) == 1
+
+        another_tool_id = tool_id + 1
+
+        # The DIM was not indexed by another_tool_id so list should be empty
+        data = storage.directory_intrinsic_metadata_get_by_tool(
+            [dir_id], another_tool_id
+        )
+        assert len(data) == 0
 
 
 class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
