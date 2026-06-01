@@ -4,6 +4,7 @@ importlib_metadata
 pytest >= 8.1
 pytest-mock
 pytest-redis
+redis==7.4.0
 swh.coarnotify >= 0.9.0
 swh.core[testing] >= 3.0.0
 swh.journal[pytest] >= 2.0.0
