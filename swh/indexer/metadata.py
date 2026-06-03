@@ -4,6 +4,7 @@
 # See top-level LICENSE file for more information
 from collections import defaultdict
 from copy import deepcopy
+from dataclasses import dataclass
 import datetime
 import hashlib
 from importlib.metadata import version
@@ -25,7 +26,6 @@ from typing import (
 import urllib.parse
 from urllib.parse import urlparse
 
-import attr
 import sentry_sdk
 
 from swh.core.config import merge_configs
@@ -687,9 +687,14 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
         return (used_mappings, metadata)
 
 
-class OriginIntrinsicMetadataIndexer(
-    OriginIndexer[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]
-):
+@dataclass
+class OriginIntrinsicMetadataResult:
+    origin: OriginIntrinsicMetadataRow
+    directory: Optional[DirectoryIntrinsicMetadataRow] = None
+    """This can be None if we already indexed it"""
+
+
+class OriginIntrinsicMetadataIndexer(OriginIndexer[OriginIntrinsicMetadataResult]):
     """Indexer for intrinsic metadata found within origin's root directory
 
     If there is a metadata file corresponding to a known format in the root directory of
@@ -717,7 +722,7 @@ class OriginIntrinsicMetadataIndexer(
         *,
         check_origin_known: bool = True,
         **kwargs,
-    ) -> List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]]:
+    ) -> List[OriginIntrinsicMetadataResult]:
         head_rev_ids = []
         head_rel_ids = []
         origin_heads: Dict[Origin, CoreSWHID] = {}
@@ -806,75 +811,99 @@ class OriginIntrinsicMetadataIndexer(
                 self.log.error("Unhandled head type %s for %s", head_swhid, origin.url)
                 continue
 
+            dir_meta_found = False
             # Let's check whether we already have indexed that directory
-            dir_meta = self.idx_storage.directory_intrinsic_metadata_get_by_tool(
+            all_dir_meta = self.idx_storage.directory_intrinsic_metadata_get_by_tool(
                 [
                     directory_id,
                 ],
                 self.tool_id,
             )
-            if not dir_meta:
-                # We did not, let's compute it
-                dir_meta = self.directory_metadata_indexer.index(directory_id)
+            if all_dir_meta:
+                dir_meta_found = True
+                # We already indexed that directory, let's check whether we already have
+                # the information for the origin
+                all_ori_meta = self.idx_storage.origin_intrinsic_metadata_get_by_tool(
+                    [origin.url], self.tool_id
+                )
 
-            # Let's reference the origin metadata associated to the directory index
-            # computation
-            for dir_metadata in dir_meta:
-                # Let's keep the tool information consistent across index/get method
-                # call
-                if dir_metadata.indexer_configuration_id is not None:
-                    tool_id = dir_metadata.indexer_configuration_id
+                ori_meta_found = False
+                # Check whether we already have indexed that origin
+                for ori_meta in all_ori_meta:
+                    if ori_meta.from_directory == directory_id:
+                        ori_meta_found = True
+                        break
+
+                if ori_meta_found:
+                    self.log.info(
+                        "Origin <%s> on directory {%s} already indexed, skipping.",
+                        origin.url,
+                        hash_to_hex(directory_id),
+                    )
+                    # No need to send the directory or the origin intrinsic metadata for
+                    # persistence, it's already there
+                    continue
+            else:
+                # We did not indexed that directory, let's index it
+                all_dir_meta = self.directory_metadata_indexer.index(directory_id)
+
+            # And then index the not-yet indexed origin with such information
+            for dir_meta in all_dir_meta:
+                # Implementation twist, for compatibility reason, the returned object
+                # from the storage has its indexer_configuration_id set to None, the
+                # tool entry is set instead
+                if dir_meta_found:
+                    assert dir_meta.tool is not None
+                    tool_id = dir_meta.tool["id"]
                 else:
-                    tool_id = dir_metadata.tool["id"]  # type: ignore
+                    tool_id = dir_meta.indexer_configuration_id
 
-                # There is at most one dir_metadata
-                orig_metadata = OriginIntrinsicMetadataRow(
-                    from_directory=dir_metadata.id,
+                ori_meta = OriginIntrinsicMetadataRow(
+                    from_directory=dir_meta.id,
                     id=origin.url,
-                    metadata=dir_metadata.metadata,
-                    mappings=dir_metadata.mappings,
+                    metadata=dir_meta.metadata,
+                    mappings=dir_meta.mappings,
                     indexer_configuration_id=tool_id,
                 )
-
-                # Let's keep the dir_metadata compatible with the indexer storage add
-                # method
-                dir_metadata = attr.evolve(
-                    dir_metadata, indexer_configuration_id=tool_id, tool=None
+                # Provide the tuple of metadata for creation (when needed)
+                results.append(
+                    OriginIntrinsicMetadataResult(
+                        origin=ori_meta,
+                        # Directory may already be present in the storage, in which
+                        # case, we do not send it back again (to avoid unnecessary write
+                        # calls)
+                        directory=dir_meta if not dir_meta_found else None,
+                    )
                 )
-
-                # We don't bother to check whether that row already exists. 1. That cost
-                # is probably marginal (vs the cost of actually recomputing index on the
-                # directory) 2. we don't have such method available in the indexer
-                # storage
-                results.append((orig_metadata, dir_metadata))
 
         return results
 
     def persist_index_computations(
         self,
-        results: List[Tuple[OriginIntrinsicMetadataRow, DirectoryIntrinsicMetadataRow]],
+        results: List[OriginIntrinsicMetadataResult],
     ) -> Dict[str, int]:
         # Deduplicate directories
         dir_metadata: Dict[bytes, DirectoryIntrinsicMetadataRow] = {}
-        orig_metadata: Dict[str, OriginIntrinsicMetadataRow] = {}
+        ori_metadata: Dict[str, OriginIntrinsicMetadataRow] = {}
         summary: Dict = {}
-        for orig_item, dir_item in results:
-            assert dir_item.metadata == orig_item.metadata
-            if dir_item.metadata and not (dir_item.metadata.keys() <= {"@context"}):
+
+        for ori_item, dir_item in ((res.origin, res.directory) for res in results):
+            if ori_item.metadata and not (ori_item.metadata.keys() <= {"@context"}):
                 # Only store non-empty metadata sets
-                if dir_item.id not in dir_metadata:
+                if dir_item is not None and dir_item.id not in dir_metadata:
                     dir_metadata[dir_item.id] = dir_item
-                if orig_item.id not in orig_metadata:
-                    orig_metadata[orig_item.id] = orig_item
+                if ori_item.id not in ori_metadata:
+                    ori_metadata[ori_item.id] = ori_item
 
         if dir_metadata:
             summary_dir = self.idx_storage.directory_intrinsic_metadata_add(
-                list(dir_metadata.values())
+                [dir_meta for dir_meta in dir_metadata.values() if dir_meta is not None]
             )
             summary.update(summary_dir)
-        if orig_metadata:
+
+        if ori_metadata:
             summary_ori = self.idx_storage.origin_intrinsic_metadata_add(
-                list(orig_metadata.values())
+                list(ori_metadata.values())
             )
             summary.update(summary_ori)
 
