@@ -1540,6 +1540,63 @@ class TestIndexerStorageOriginIntrinsicMetadata:
             "non_empty": 2,
         }
 
+    def test_origin_intrinsic_metadata_get_by_tool(
+        self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
+    ):
+        storage, data = swh_indexer_storage_with_data
+        # given
+        tool_id = data.tools["swh-metadata-detector"]["id"]
+
+        metadata = {
+            "version": None,
+            "name": None,
+        }
+        metadata_dir = DirectoryIntrinsicMetadataRow(
+            id=data.directory_id_2,
+            metadata=metadata,
+            mappings=["mapping1"],
+            indexer_configuration_id=tool_id,
+        )
+        metadata_origin = OriginIntrinsicMetadataRow(
+            id=data.origin_url_1,
+            metadata=metadata,
+            indexer_configuration_id=tool_id,
+            mappings=["mapping1"],
+            from_directory=data.directory_id_2,
+        )
+
+        # when
+        storage.directory_intrinsic_metadata_add([metadata_dir])
+        storage.origin_intrinsic_metadata_add([metadata_origin])
+
+        # then
+        actual_metadata = list(
+            storage.origin_intrinsic_metadata_get_by_tool(
+                [data.origin_url_1, "no://where"], tool_id
+            )
+        )
+
+        expected_metadata = [
+            OriginIntrinsicMetadataRow(
+                id=data.origin_url_1,
+                metadata=metadata,
+                tool=data.tools["swh-metadata-detector"],
+                from_directory=data.directory_id_2,
+                mappings=["mapping1"],
+            )
+        ]
+
+        assert actual_metadata == expected_metadata
+
+        another_tool_id = tool_id + 1
+
+        # The OIM we look for either does not exist or was not indexed by
+        # another_tool_id so list should be empty
+        data = storage.origin_intrinsic_metadata_get_by_tool(
+            [data.origin_url_1, "no://where"], another_tool_id
+        )
+        assert len(data) == 0
+
 
 class TestIndexerStorageOriginExtrinsicMetadata:
     def test_origin_extrinsic_metadata_add(

@@ -379,6 +379,17 @@ class Db(BaseDb):
             id_col="id",
         )
 
+    def origin_intrinsic_metadata_filter_by_tool(self, ids, tool_id, cur=None):
+        """Return the filtered list of DirectoryIntrinsicMetadata by tool"""
+        yield from self._filter_from_list(
+            "origin_intrinsic_metadata",
+            ids,
+            self.origin_intrinsic_metadata_cols,
+            where="c.indexer_configuration_id=%s",
+            where_params=(tool_id,),
+            cur=cur,
+        )
+
     def origin_intrinsic_metadata_search_fulltext(self, terms, *, limit, cur):
         regconfig = self.origin_intrinsic_metadata_regconfig
         tsquery_template = " && ".join(

@@ -306,6 +306,22 @@ class IndexerStorageInterface(Protocol):
         """
         ...
 
+    @remote_api_endpoint("origin_intrinsic_metadata/get_by_tool")
+    def origin_intrinsic_metadata_get_by_tool(
+        self, ids: Iterable[str], tool_id: int
+    ) -> List[OriginIntrinsicMetadataRow]:
+        """Retrieve intrinsic origin metadata per id indexed by tool (with id tool_id).
+
+        Args:
+            ids (iterable): sha1 checksums
+            tool_id: Tool identifier used to "index" the origin ids
+
+        Returns:
+            OriginIntrinsicMetadataRow objects
+
+        """
+        ...
+
     @remote_api_endpoint("origin_intrinsic_metadata/add")
     def origin_intrinsic_metadata_add(
         self, metadata: List[OriginIntrinsicMetadataRow]

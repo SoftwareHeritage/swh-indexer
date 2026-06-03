@@ -531,6 +531,20 @@ class IndexerStorage:
         ]
 
     @timed
+    @db_transaction()
+    def origin_intrinsic_metadata_get_by_tool(
+        self, ids: Iterable[str], tool_id, db=None, cur=None
+    ) -> List[OriginIntrinsicMetadataRow]:
+        return [
+            OriginIntrinsicMetadataRow.from_dict(
+                converters.db_to_metadata(
+                    dict(zip(db.origin_intrinsic_metadata_cols, c))
+                )
+            )
+            for c in db.origin_intrinsic_metadata_filter_by_tool(ids, tool_id, cur)
+        ]
+
+    @timed
     @process_metrics
     @db_transaction()
     def origin_intrinsic_metadata_add(

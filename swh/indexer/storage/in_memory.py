@@ -367,6 +367,15 @@ class IndexerStorage:
     ) -> List[OriginIntrinsicMetadataRow]:
         return self._origin_intrinsic_metadata.get(urls)
 
+    def origin_intrinsic_metadata_get_by_tool(
+        self, ids: Iterable[str], tool_id
+    ) -> List[OriginIntrinsicMetadataRow]:
+        result = []
+        for ori_meta in self._origin_intrinsic_metadata.get(ids):
+            if ori_meta.tool["id"] == tool_id:
+                result.append(ori_meta)
+        return result
+
     def origin_intrinsic_metadata_add(
         self, metadata: List[OriginIntrinsicMetadataRow]
     ) -> Dict[str, int]:
