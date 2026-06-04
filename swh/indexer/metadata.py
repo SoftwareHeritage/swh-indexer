@@ -836,7 +836,7 @@ class OriginIntrinsicMetadataIndexer(OriginIndexer[OriginIntrinsicMetadataResult
 
                 if ori_meta_found:
                     self.log.info(
-                        "Origin <%s> on directory {%s} already indexed, skipping.",
+                        "Origin '%s' on directory %s already indexed, skipping.",
                         origin.url,
                         hash_to_hex(directory_id),
                     )
