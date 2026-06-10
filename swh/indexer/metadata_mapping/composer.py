@@ -1,4 +1,4 @@
-# Copyright (C) 2022  The Software Heritage developers
+# Copyright (C) 2022-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -20,7 +20,7 @@ SPDX = URIRef("https://spdx.org/licenses/")
 COMPOSER_TABLE_PATH = os.path.join(_DATA_DIR, "composer.csv")
 
 with open(COMPOSER_TABLE_PATH) as fd:
-    (CODEMETA_TERMS, COMPOSER_TABLE) = read_crosstable(fd)
+    CODEMETA_TERMS, COMPOSER_TABLE = read_crosstable(fd)
 
 
 class ComposerMapping(JsonMapping, SingleFileIntrinsicMapping):

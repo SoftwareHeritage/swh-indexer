@@ -54,9 +54,7 @@ def test_compute_metadata_composer():
     }
 }
 }
-    """.encode(
-        "utf-8"
-    )
+    """.encode("utf-8")
 
     result = get_mapping("ComposerMapping")().translate(raw_content)
 

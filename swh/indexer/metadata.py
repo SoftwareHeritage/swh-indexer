@@ -571,7 +571,7 @@ class DirectoryMetadataIndexer(DirectoryIndexer[DirectoryIntrinsicMetadataRow]):
                     mapping_contents[mapping_name].add(content)
 
             # We can now translate into relevant metadata information
-            (mappings, metadata) = self.translate_directory_intrinsic_metadata(
+            mappings, metadata = self.translate_directory_intrinsic_metadata(
                 mapping_contents, log_suffix=f"directory={hash_to_hex(id)}"
             )
         except Exception as e:

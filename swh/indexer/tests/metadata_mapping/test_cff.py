@@ -43,9 +43,7 @@ message: "If you use this software, please cite it using these metadata."
 repository-code: "https://github.com/citation-file-format/cff-converter-python"
 title: cffconvert
 version: "1.4.0-alpha0"
-    """.encode(
-        "utf-8"
-    )
+    """.encode("utf-8")
 
     result = CffMapping().translate(content)
     assert set(result.pop("keywords")) == {
@@ -102,9 +100,7 @@ def test_compute_metadata_cff_invalid_yaml():
 message: To cite the SigMF specification, please include the following:
 authors:
   - name: The GNU Radio Foundation, Inc.
-    """.encode(
-        "utf-8"
-    )
+    """.encode("utf-8")
 
     expected = None
 
@@ -117,9 +113,7 @@ def test_compute_metadata_cff_empty():
     test yaml translation for empty yaml file
     """
     content = """
-    """.encode(
-        "utf-8"
-    )
+    """.encode("utf-8")
 
     expected = None
 
@@ -134,9 +128,7 @@ def test_compute_metadata_cff_list():
     content = """
 - Foo
 - Bar
-    """.encode(
-        "utf-8"
-    )
+    """.encode("utf-8")
 
     expected = None
 
@@ -161,9 +153,7 @@ def test_cff_empty_fields():
     given-names: Arthur
 
 
-    """.encode(
-        "utf-8"
-    )
+    """.encode("utf-8")
 
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -206,9 +196,7 @@ def test_cff_invalid_fields():
     - James
     given-names: Harry
 
-    """.encode(
-        "utf-8"
-    )
+    """.encode("utf-8")
 
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
@@ -278,9 +266,7 @@ preferred-citation:
   end: 2830
   year: 2011
   url: "https://jmlr.csail.mit.edu/papers/v12/pedregosa11a.html"
-    """.encode(
-        "utf-8"
-    )
+    """.encode("utf-8")
 
     expected = {
         "@context": "https://doi.org/10.5063/schema/codemeta-2.0",

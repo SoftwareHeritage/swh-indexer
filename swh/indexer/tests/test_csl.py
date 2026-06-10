@@ -246,8 +246,7 @@ def test_cff_invalid():
 
 def test_cff_minimal():
     assert (
-        cff_to_csl(
-            """
+        cff_to_csl("""
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
@@ -256,8 +255,7 @@ authors:
 title: "My Research Software"
 date-released: 2021-08-11
 url: "http://example.org/"
-        """
-        )
+        """)
         == {
             "type": "software",
             "title": "My Research Software",
@@ -270,8 +268,7 @@ url: "http://example.org/"
 
 def test_cff_orcid_with_trailing_whitespace():
     assert (
-        cff_to_csl(
-            """
+        cff_to_csl("""
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
@@ -281,8 +278,7 @@ authors:
 title: "My Research Software"
 date-released: 2021-08-11
 url: "http://example.org/"
-        """
-        )
+        """)
         == {
             "type": "software",
             "title": "My Research Software",
@@ -316,8 +312,7 @@ def test_swhid():
 
 def test_cff_doi_license_full_url():
     assert (
-        cff_to_csl(
-            """
+        cff_to_csl("""
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
@@ -327,8 +322,7 @@ title: "My Research Software"
 date-released: 2021-08-11
 doi: https://doi.org/10.5281/example
 license: https://spdx.org/licenses/GPL-3.0-or-later
-        """
-        )
+        """)
         == {
             "type": "software",
             "title": "My Research Software",

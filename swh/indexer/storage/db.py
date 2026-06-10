@@ -55,8 +55,7 @@ class Db(BaseDb):
                 select 1 from %s c
                 where %s
             )
-            """
-            % (keys, values_place_holder, keys, table, equality),
+            """ % (keys, values_place_holder, keys, table, equality),
             (tuple(m[k] for k in hash_keys) for m in data),
         )
 
@@ -106,16 +105,13 @@ class Db(BaseDb):
         elif key == "tool_id":
             return "i.id as tool_id"
         elif key == "license":
-            return (
-                """
+            return """
                 (
                     select name
                     from fossology_license
                     where id = %s.license_id
                 )
-                as licenses"""
-                % main_table
-            )
+                as licenses""" % main_table
         return key
 
     def _get_from_list(self, table, ids, cols, cur=None, id_col="id"):
@@ -133,9 +129,7 @@ class Db(BaseDb):
                 on c.{id_col}=t.id
             inner join indexer_configuration i
                 on c.indexer_configuration_id=i.id;
-            """.format(
-            keys=", ".join(keys), id_col=id_col, table=table
-        )
+            """.format(keys=", ".join(keys), id_col=id_col, table=table)
         yield from execute_values_generator(cur, query, ((_id,) for _id in ids))
 
     def _filter_from_list(
@@ -258,8 +252,7 @@ class Db(BaseDb):
             inner join content_fossology_license c on t.id=c.id
             inner join indexer_configuration i
                 on i.id=c.indexer_configuration_id
-            """
-            % ", ".join(keys),
+            """ % ", ".join(keys),
             ((_id,) for _id in ids),
         )
 
@@ -522,8 +515,7 @@ class Db(BaseDb):
         cur.execute(
             """select %s
                        from indexer_configuration
-                       where id=%%s"""
-            % (",".join(self.indexer_configuration_cols)),
+                       where id=%%s""" % (",".join(self.indexer_configuration_cols)),
             (id_,),
         )
 

@@ -457,8 +457,7 @@ def test_cff_invalid():
 
 def test_cff_minimal():
     assert (
-        cff_to_bibtex(
-            """
+        cff_to_bibtex("""
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
@@ -467,10 +466,8 @@ authors:
 title: "My Research Software"
 date-released: 2021-08-11
 url: "http://example.org/"
-            """
-        )
-        == textwrap.dedent(
-            """\
+            """)
+        == textwrap.dedent("""\
             @software{REPLACEME,
                 author = "Druskat, Stephan",
                 date = "2021-08-11",
@@ -479,15 +476,13 @@ url: "http://example.org/"
                 title = "My Research Software",
                 url = "http://example.org/"
             }
-            """
-        )
+            """)
     )
 
 
 def test_cff_orchid_with_trailing_whitespace():
     assert (
-        cff_to_bibtex(
-            """
+        cff_to_bibtex("""
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
@@ -497,10 +492,8 @@ authors:
 title: "My Research Software"
 date-released: 2021-08-11
 url: "http://example.org/"
-            """
-        )
-        == textwrap.dedent(
-            """\
+            """)
+        == textwrap.dedent("""\
             @software{REPLACEME,
                 author = "Druskat, Stephan",
                 date = "2021-08-11",
@@ -509,8 +502,7 @@ url: "http://example.org/"
                 title = "My Research Software",
                 url = "http://example.org/"
             }
-            """
-        )
+            """)
     )
 
 
@@ -630,8 +622,7 @@ def test_codemeta_context_with_trailing_slash():
 
 def test_cff_doi_license_full_url():
     assert (
-        cff_to_bibtex(
-            """
+        cff_to_bibtex("""
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
@@ -641,10 +632,8 @@ title: "My Research Software"
 date-released: 2021-08-11
 doi: https://doi.org/10.5281/example
 license: https://spdx.org/licenses/GPL-3.0-or-later
-            """
-        )
-        == textwrap.dedent(
-            """\
+            """)
+        == textwrap.dedent("""\
             @software{REPLACEME,
                 author = "Druskat, Stephan",
                 license = "GPL-3.0-or-later",
@@ -654,8 +643,7 @@ license: https://spdx.org/licenses/GPL-3.0-or-later
                 doi = "https://doi.org/10.5281/example",
                 title = "My Research Software"
             }
-            """
-        )
+            """)
     )
 
 

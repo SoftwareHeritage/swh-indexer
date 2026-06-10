@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2022  The Software Heritage developers
+# Copyright (C) 2018-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -61,7 +61,7 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
             if "://" in d:
                 url = d
             elif ":" in d:
-                (schema, rest) = d.split(":", 1)
+                schema, rest = d.split(":", 1)
                 if schema in self._schema_shortcuts:
                     url = self._schema_shortcuts[schema] % rest
                 else:

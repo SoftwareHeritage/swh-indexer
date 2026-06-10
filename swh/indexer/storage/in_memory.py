@@ -200,9 +200,7 @@ class SubStorage(Generic[TValue]):
         """
         if limit is None:
             raise IndexerStorageArgumentException("limit should not be None")
-        (start, end) = get_partition_bounds_bytes(
-            partition_id, nb_partitions, SHA1_SIZE
-        )
+        start, end = get_partition_bounds_bytes(partition_id, nb_partitions, SHA1_SIZE)
 
         if page_token:
             start = hash_to_bytes(page_token)

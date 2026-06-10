@@ -894,7 +894,7 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
     def test_add_empty(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
-        (storage, data) = swh_indexer_storage_with_data
+        storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
 
         summary = endpoint(storage, etype, "add")([])
@@ -907,7 +907,7 @@ class TestIndexerStorageContentFossologyLicense(StorageETypeTester):
     def test_get_unknown(
         self, swh_indexer_storage_with_data: Tuple[IndexerStorageInterface, Any]
     ) -> None:
-        (storage, data) = swh_indexer_storage_with_data
+        storage, data = swh_indexer_storage_with_data
         etype = self.endpoint_type
 
         actual_license = list(endpoint(storage, etype, "get")([data.sha1_2]))
