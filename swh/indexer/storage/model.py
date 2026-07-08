@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2022  The Software Heritage developers
+# Copyright (C) 2020-2026  The Software Heritage developers
 # See the AUTHORS file at the top-level directory of this distribution
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
@@ -9,10 +9,9 @@ used for the interface of the idx-storage in the near future."""
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import Any, Dict, Final, List, Optional, Tuple, Type, TypeVar
 
 import attr
-from typing_extensions import Final
 
 from swh.model.model import Sha1Git
 

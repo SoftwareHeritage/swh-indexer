@@ -19,7 +19,7 @@ def get_datastore(*args, **kw):
 
 
 def get_indexer_names() -> List[str]:
-    from backports.entry_points_selectable import entry_points as get_entry_points
+    from importlib.metadata import entry_points as get_entry_points
 
     entry_points = get_entry_points(group="swh.indexer.classes")
     return [ep.name for ep in entry_points]
@@ -32,7 +32,7 @@ def get_indexer(name: str) -> Type["BaseIndexer"]:
 
 
 def load_indexers() -> Dict[str, Type["BaseIndexer"]]:
-    from backports.entry_points_selectable import entry_points as get_entry_points
+    from importlib.metadata import entry_points as get_entry_points
 
     entry_points = get_entry_points(group="swh.indexer.classes")
     return {ep.name: ep.load() for ep in entry_points}

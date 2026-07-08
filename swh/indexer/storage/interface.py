@@ -3,9 +3,17 @@
 # License: GNU General Public License version 3, or any later version
 # See top-level LICENSE file for more information
 
-from typing import Dict, Iterable, List, Optional, Tuple, TypeVar, Union
-
-from typing_extensions import Protocol, runtime_checkable
+from typing import (
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 from swh.core.api import remote_api_endpoint
 from swh.core.api.classes import PagedResult as CorePagedResult

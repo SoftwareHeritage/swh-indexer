@@ -55,7 +55,7 @@ def get_mapping(name) -> Type[BaseMapping]:
 def get_mapping_names() -> List[str]:
     # we do not use load_mappings() because there is no need for actually
     # loading the modules, we just need the names...
-    from backports.entry_points_selectable import entry_points as get_entry_points
+    from importlib.metadata import entry_points as get_entry_points
 
     entry_points = get_entry_points(group="swh.indexer.metadata_mappings")
     return [ep.name for ep in entry_points]
@@ -63,8 +63,7 @@ def get_mapping_names() -> List[str]:
 
 def load_mappings() -> Dict[str, Type[BaseExtrinsicMapping]]:
     from importlib.metadata import EntryPoint
-
-    from backports.entry_points_selectable import entry_points as get_entry_points
+    from importlib.metadata import entry_points as get_entry_points
 
     entry_points: Dict[str, EntryPoint] = {}
 

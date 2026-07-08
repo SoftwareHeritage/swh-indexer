@@ -14,6 +14,7 @@ from typing import (
     Pattern,
     Set,
     Tuple,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -22,7 +23,6 @@ import xml.parsers.expat
 
 from pyld import jsonld
 import rdflib
-from typing_extensions import TypedDict
 import xmltodict
 import yaml
 

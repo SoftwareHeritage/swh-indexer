@@ -32,7 +32,7 @@ class TestMapping4(BaseExtrinsicMapping):
 
 
 def test_load_mapping(mocker):
-    mock = mocker.patch("backports.entry_points_selectable.entry_points")
+    mock = mocker.patch("importlib.metadata.entry_points")
     mock.return_value = [
         EntryPoint(
             name=f"Mapping{i}",
@@ -49,7 +49,7 @@ def test_load_mapping_multimap_selected_before(mocker):
     selected_mapping = "swh.indexer.tests.metadata_mapping.test_load_mappings"
     overloaded_mapping = "swh.indexer.metadata_mapping.test_load_mappings"
 
-    mock = mocker.patch("backports.entry_points_selectable.entry_points")
+    mock = mocker.patch("importlib.metadata.entry_points")
     mock.return_value = [
         EntryPoint(
             name=f"Mapping{i}",
@@ -78,7 +78,7 @@ def test_load_mapping_multimap_selected_after(mocker):
     selected_mapping = "swh.indexer.tests.metadata_mapping.test_load_mappings"
     overloaded_mapping = "swh.indexer.metadata_mapping.test_load_mappings"
 
-    mock = mocker.patch("backports.entry_points_selectable.entry_points")
+    mock = mocker.patch("importlib.metadata.entry_points")
     mock.return_value = [
         EntryPoint(
             name=f"Mapping{i}",
@@ -102,7 +102,7 @@ def test_load_mapping_multimap_selected_after(mocker):
 
 
 def test_load_mapping_multimap_fail(mocker):
-    mock = mocker.patch("backports.entry_points_selectable.entry_points")
+    mock = mocker.patch("importlib.metadata.entry_points")
     mock.return_value = [
         EntryPoint(
             name=f"Mapping{i}",
