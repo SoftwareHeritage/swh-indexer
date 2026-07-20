@@ -128,15 +128,12 @@ def error_reporter_dict(redisdb):
 
 
 @pytest.fixture
-def swh_config_error_report(
-    swh_indexer_config, monkeypatch, tmp_path, error_reporter_dict
-):
+def swh_config_error_report(swh_indexer_config, tmp_path, error_reporter_dict):
     # Patch journal client so it's able to connect to the redisdb
 
     swh_indexer_config["journal_client"] = {"error_reporter": error_reporter_dict}
     conffile = os.path.join(str(tmp_path), "indexer.yml")
     with open(conffile, "w") as f:
         f.write(yaml.dump(swh_indexer_config))
-    monkeypatch.setenv("SWH_CONFIG_FILENAME", conffile)
 
     return conffile

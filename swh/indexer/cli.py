@@ -4,7 +4,6 @@
 # See top-level LICENSE file for more information
 
 import logging
-import os
 from typing import Iterator, List, Optional
 import warnings
 
@@ -12,7 +11,7 @@ import warnings
 # control
 import click
 
-from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup
+from swh.core.cli import CONTEXT_SETTINGS, AliasedGroup, setup_config
 from swh.core.cli import swh as swh_cli_group
 
 logger = logging.getLogger(__name__)
@@ -29,6 +28,7 @@ logger = logging.getLogger(__name__)
         exists=True,
         dir_okay=False,
     ),
+    deprecated=True,
     help="Configuration file.",
 )
 @click.pass_context
@@ -39,28 +39,15 @@ def indexer_cli_group(ctx, config_file):
     information from archive source code artifacts.
 
     """
-    from swh.core import config
+    setup_config(ctx, config_file)
 
-    ctx.ensure_object(dict)
-    if not config_file:
-        config_file = os.environ.get("SWH_CONFIG_FILENAME")
-
-    if config_file:
-        if not os.path.exists(config_file):
-            raise click.ClickException(f"File '{config_file}' does not exist")
-        cfg = config.read(config_file)
-    else:
-        cfg = {}
-
-    if "indexer.storage" in cfg:
+    if "indexer.storage" in ctx.obj["config"]:
         warnings.warn(
             "The 'indexer.storage' configuration section should be renamed "
             "as 'indexer_storage'",
             DeprecationWarning,
         )
-        cfg["indexer_storage"] = cfg.pop("indexer.storage")
-
-    ctx.obj["config"] = cfg
+        ctx.obj["config"]["indexer_storage"] = ctx.obj["config"].pop("indexer.storage")
 
 
 def _get_api(getter, config, config_key, url):

@@ -78,14 +78,15 @@ def fill_idx_storage(idx_storage: IndexerStorageInterface, nb_rows: int) -> List
 
 
 @pytest.fixture
-def cli_runner():
+def cli_runner(swh_config):
     return CliRunner()
 
 
-def test_cli_mapping_list(cli_runner, swh_config):
+def test_cli_mapping_list(cli_runner):
+
     result = cli_runner.invoke(
         indexer_cli_group,
-        ["-C", swh_config, "mapping", "list"],
+        ["mapping", "list"],
         catch_exceptions=False,
     )
     expected_output = "\n".join(
@@ -111,10 +112,10 @@ def test_cli_mapping_list(cli_runner, swh_config):
     assert result.output == expected_output
 
 
-def test_cli_mapping_list_terms(cli_runner, swh_config):
+def test_cli_mapping_list_terms(cli_runner):
     result = cli_runner.invoke(
         indexer_cli_group,
-        ["-C", swh_config, "mapping", "list-terms"],
+        ["mapping", "list-terms"],
         catch_exceptions=False,
     )
     assert result.exit_code == 0, result.output
@@ -126,12 +127,10 @@ def test_cli_mapping_list_terms(cli_runner, swh_config):
     )
 
 
-def test_cli_mapping_list_terms_exclude(cli_runner, swh_config):
+def test_cli_mapping_list_terms_exclude(cli_runner):
     result = cli_runner.invoke(
         indexer_cli_group,
         [
-            "-C",
-            swh_config,
             "mapping",
             "list-terms",
             "--exclude-mapping",
@@ -159,7 +158,7 @@ def now():
 
 
 def test_cli_journal_client_without_brokers(
-    cli_runner, swh_config, kafka_prefix: str, kafka_server, consumer: Consumer
+    cli_runner, kafka_prefix: str, kafka_server, consumer: Consumer
 ):
     """Without brokers configuration, the cli fails."""
     indexer_name = "origin_intrinsic_metadata"
@@ -168,8 +167,6 @@ def test_cli_journal_client_without_brokers(
         cli_runner.invoke(
             indexer_cli_group,
             [
-                "-C",
-                swh_config,
                 "journal-client",
                 indexer_name,
             ],
@@ -177,50 +174,13 @@ def test_cli_journal_client_without_brokers(
         )
 
 
-def test_cli_journal_client_wrong_config_filepath(cli_runner, swh_config, monkeypatch):
-    """Starting the journal client with a wrong config filepath should raise"""
-    # This case can only be tested through the environment variable case
-    # Otherwise the current cli would detect it directly when passed as cli flag
-    wrong_config_filepath = swh_config.replace(".yml", "-wrong-path.yml")
-
-    # Case detected by click with the --config-file
-    result = cli_runner.invoke(
-        indexer_cli_group,
-        [
-            "--config-file",
-            wrong_config_filepath,
-            "journal-client",
-            "some-indexer",
-        ],
-        catch_exceptions=False,
-    )
-
-    # Case detected when passing through the environment variable
-    monkeypatch.setenv("SWH_CONFIG_FILENAME", wrong_config_filepath)
-
-    result2 = cli_runner.invoke(
-        indexer_cli_group,
-        [
-            "journal-client",
-            "some-indexer",
-        ],
-        catch_exceptions=False,
-    )
-
-    for res in [result, result2]:
-        assert res.exit_code != 0
-        assert f"File '{wrong_config_filepath}' does not exist" in res.output
-
-
-def test_cli_journal_client_unknown_indexer(cli_runner, swh_config):
+def test_cli_journal_client_unknown_indexer(cli_runner):
     """Starting the journal client with an unknown indexer should raise"""
     unknown_indexer_name = "unknown_indexer"
 
     result = cli_runner.invoke(
         indexer_cli_group,
         [
-            "-C",
-            swh_config,
             "journal-client",
             unknown_indexer_name,
             "--broker",
@@ -235,9 +195,7 @@ def test_cli_journal_client_unknown_indexer(cli_runner, swh_config):
     assert f"Unknown indexer: {unknown_indexer_name}" in result.output
 
 
-def test_cli_journal_client_missing_object_types_class_attribute(
-    cli_runner, swh_config
-):
+def test_cli_journal_client_missing_object_types_class_attribute(cli_runner):
     """Starting the journal client with an incomplete indexer should raise"""
     some_indexer_name = "some_indexer"
 
@@ -251,8 +209,6 @@ def test_cli_journal_client_missing_object_types_class_attribute(
             result = cli_runner.invoke(
                 indexer_cli_group,
                 [
-                    "-C",
-                    swh_config,
                     "journal-client",
                     some_indexer_name,
                     "--broker",
@@ -267,7 +223,6 @@ def test_cli_journal_client_missing_object_types_class_attribute(
 
 def test_cli_journal_client_index__origin_intrinsic_metadata(
     cli_runner,
-    swh_config,
     kafka_prefix: str,
     kafka_server,
     consumer: Consumer,
@@ -318,8 +273,6 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
         result = cli_runner.invoke(
             indexer_cli_group,
             [
-                "-C",
-                swh_config,
                 "journal-client",
                 indexer_name,
                 "--broker",
@@ -357,7 +310,6 @@ def test_cli_journal_client_index__origin_intrinsic_metadata(
 
 def test_cli_journal_client_index__origin_intrinsic_metadata_with_only_dir_filter(
     cli_runner,
-    swh_config,
     kafka_prefix: str,
     kafka_server,
     consumer: Consumer,
@@ -402,8 +354,6 @@ def test_cli_journal_client_index__origin_intrinsic_metadata_with_only_dir_filte
         result = cli_runner.invoke(
             indexer_cli_group,
             [
-                "-C",
-                swh_config,
                 "journal-client",
                 indexer_name,
                 "--broker",
@@ -496,7 +446,9 @@ def test_cli_journal_client_index__origin_intrinsic_metadata_with_error_report(
     )
 
     # Check the output
-    expected_output = "Done.\n"
+    expected_output = (
+        "DeprecationWarning: The option 'config_file' is deprecated.\nDone.\n"
+    )
     assert result.exit_code == 0, result.output
     assert result.output == expected_output
 
@@ -532,7 +484,6 @@ def test_cli_journal_client_index__origin_intrinsic_metadata_with_error_report(
 
 def test_cli_journal_client_index__origin_extrinsic_metadata(
     cli_runner,
-    swh_config,
     kafka_prefix: str,
     kafka_server,
     consumer: Consumer,
@@ -563,8 +514,6 @@ def test_cli_journal_client_index__origin_extrinsic_metadata(
     result = cli_runner.invoke(
         indexer_cli_group,
         [
-            "-C",
-            swh_config,
             "journal-client",
             indexer_name,
             "--broker",
@@ -604,7 +553,6 @@ def test_cli_journal_client_index__origin_extrinsic_metadata(
 
 def test_cli_journal_client_index__content_mimetype(
     cli_runner,
-    swh_config,
     kafka_prefix: str,
     kafka_server,
     consumer: Consumer,
@@ -660,8 +608,6 @@ def test_cli_journal_client_index__content_mimetype(
     result = cli_runner.invoke(
         indexer_cli_group,
         [
-            "-C",
-            swh_config,
             "journal-client",
             indexer_name,
             "--broker",
@@ -689,7 +635,6 @@ def test_cli_journal_client_index__content_mimetype(
 
 def test_cli_journal_client_index__fossology_license(
     cli_runner,
-    swh_config,
     kafka_prefix: str,
     kafka_server,
     consumer: Consumer,
@@ -742,8 +687,6 @@ def test_cli_journal_client_index__fossology_license(
     result = cli_runner.invoke(
         indexer_cli_group,
         [
-            "-C",
-            swh_config,
             "journal-client",
             indexer_name,
             "--broker",
