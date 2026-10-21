@@ -44,6 +44,11 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
         ...     'url': 'https://example.org/foo.git'
         ... })
         rdflib.term.URIRef('git+https://example.org/foo.git')
+        >>> NpmMapping().normalize_repository({
+        ...     'type': 'git',
+        ...     'url': 'git+https://example.org/foo.git'
+        ... })
+        rdflib.term.URIRef('git+https://example.org/foo.git')
         >>> NpmMapping().normalize_repository(
         ...     'gitlab:foo/bar')
         rdflib.term.URIRef('git+https://gitlab.com/foo/bar.git')
@@ -56,7 +61,10 @@ class NpmMapping(JsonMapping, SingleFileIntrinsicMapping):
             and isinstance(d.get("type"), str)
             and isinstance(d.get("url"), str)
         ):
-            url = "{type}+{url}".format(**d)
+            if d["url"].startswith(d["type"] + "+"):
+                url = d["url"]
+            else:
+                url = "{type}+{url}".format(**d)
         elif isinstance(d, str):
             if "://" in d:
                 url = d
