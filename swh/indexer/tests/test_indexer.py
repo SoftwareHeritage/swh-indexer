@@ -67,12 +67,12 @@ def check_sentry(sentry_events, tags):
 
 
 def test_content_indexer_catch_exceptions(sentry_events):
+    sha1 = b"\x12" * 20
+
     indexer = CrashingContentIndexer(config=BASE_TEST_CONFIG)
     indexer.objstorage = Mock()
     indexer.objstorage.get.return_value = b"content"
-    indexer.objstorage.get_batch.return_value = [b"content"]
-
-    sha1 = b"\x12" * 20
+    indexer.objstorage.get_batch.return_value = [({"sha1": sha1}, b"content")]
 
     # As task, catching exceptions
     assert indexer.run([HashDict(sha1=sha1)]) == ({"status": "failed"}, [])

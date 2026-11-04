@@ -312,16 +312,10 @@ class ContentIndexer(BaseIndexer[HashDict, bytes, TResult], Generic[TResult]):
         results = []
         try:
             ids = [objid_from_dict(obj) for obj in objects]
-            content_data = self.objstorage.get_batch(ids)
-            for item, raw_content in zip(ids, content_data):
-                id_ = item
+            missing_sha1s = {id_["sha1"] for id_ in ids}
+            for id_, raw_content in self.objstorage.get_batch(ids):
+                missing_sha1s.remove(id_["sha1"])
                 sentry_sdk.set_tag("swh-indexer-content-sha1", hash_to_hex(id_["sha1"]))
-                if not raw_content:
-                    self.log.warning(
-                        "Content %s not found in objstorage",
-                        hash_to_hex(id_["sha1"]),
-                    )
-                    continue
 
                 results.extend(self.index(id_, data=raw_content, **kwargs))
         except Exception:
@@ -331,9 +325,15 @@ class ContentIndexer(BaseIndexer[HashDict, bytes, TResult], Generic[TResult]):
             sentry_sdk.capture_exception()
             summary["status"] = "failed"
             return summary, results
-        else:
+        finally:
             # Reset tag after we finished processing the given content
             sentry_sdk.set_tag("swh-indexer-content-sha1", "")
+
+        for missing_sha1 in missing_sha1s:
+            self.log.warning(
+                "Content %s not found in objstorage",
+                hash_to_hex(id_["sha1"]),
+            )
 
         summary_persist = self.persist_index_computations(results)
         if summary_persist:
